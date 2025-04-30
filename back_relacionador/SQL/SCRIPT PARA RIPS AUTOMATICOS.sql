@@ -99,8 +99,7 @@ ALTER TABLE [dbo].[Factura] ENABLE TRIGGER [Relacion_Rips_Factura]
 GO
 
 
-
-CREATE TRIGGER [dbo].[Relacion_Factura_Rips]
+ALTER TRIGGER [dbo].[Relacion_Factura_Rips]
 ON [dbo].[Evaluación Entidad Rips]
 AFTER  insert
 --NOT FOR REPLICATION
@@ -120,37 +119,43 @@ declare @IdEvaluacion  int;
 select  @documentoPaciente = [Evaluación Entidad].[Documento Entidad],
 @FechaEvaluacionEntidad = [Evaluación Entidad].[Fecha Evaluación Entidad],
 @IdEvaluacion = inserted.[Id Evaluación Entidad Rips],
-@IDFactura = inserted.[Id Factura],
-@IDpresupuesto = inserted.[Id Plan de Tratamiento]
+@IDFactura = inserted.[Id Factura]
+--@IDpresupuesto = inserted.[Id Plan de Tratamiento]
 from Inserted inner join [Evaluación Entidad Rips] on [Evaluación Entidad Rips].[Id Evaluación Entidad rips] = inserted.[Id Evaluación Entidad Rips]
 inner join [Evaluación Entidad] on [Evaluación Entidad Rips].[Id Evaluación Entidad] = [Evaluación Entidad].[Id Evaluación Entidad]
 
 	
-	IF (@IDFactura = 0)
+
+	IF(@IDFactura IS NOT NULL)
 	BEGIN
-		update [Evaluación Entidad Rips] set [Id Factura] = NULL
-			where [Id Evaluación Entidad Rips] = @IdEvaluacion
+		--IF (@IDFactura = 0)
+		--	BEGIN
+		--		update [Evaluación Entidad Rips] set [Id Factura] = NULL
+		--			where [Id Evaluación Entidad Rips] = @IdEvaluacion
+		--	END
+	
+
+		--if(@IDFactura IS NULL) 
+		IF (@IDFactura = 0)
+			BEGIN
+				SELECT @IDFactura =   dbo.FuncionBuscarFacturaPaciente(@documentoPaciente, @FechaEvaluacionEntidad) ;	
+	
+				IF(@IDFactura IS NOT NULL)
+					BEGIN
+						update [Evaluación Entidad Rips] set [Id Factura] = @IDFactura
+						where [Id Evaluación Entidad Rips] = @IdEvaluacion
+					END
+					ELSE
+					BEGIN
+						update [Evaluación Entidad Rips] set [Id Factura] = NULL
+						where [Id Evaluación Entidad Rips] = @IdEvaluacion
+					END
+			END
 	END
-	
-
-	
-	
-		if(@IDFactura IS NULL) 
-		BEGIN
-			SELECT @IDFactura =   dbo.FuncionBuscarFacturaPaciente(@documentoPaciente, @FechaEvaluacionEntidad) ;	
-		END
-		
-		
-			update [Evaluación Entidad Rips] set [Id Factura] = @IDFactura
-			where [Id Evaluación Entidad Rips] = @IdEvaluacion
-		
-
-	
 	
 END;
 
 ALTER TABLE [dbo].[Evaluación Entidad Rips] ENABLE TRIGGER [Relacion_Factura_Rips]
-GO
 
 
 
