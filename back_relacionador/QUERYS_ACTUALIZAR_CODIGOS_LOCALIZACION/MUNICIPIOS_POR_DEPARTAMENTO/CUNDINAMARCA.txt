@@ -1,0 +1,155 @@
+-- ACTUALIZAR CÓDIGOS PARA EL DEPARTAMENTO DE <<<<< CUNDINAMARCA >>>>>
+DECLARE @IdDepartamento INT;
+SET @IdDepartamento = 1; -- Cambia este valor si es necesario
+
+MERGE INTO Ciudad AS destino
+USING (
+    SELECT DISTINCT 
+        [Código Ciudad], 
+        [Ciudad], 
+        [Id Departamento]
+    FROM (
+        VALUES 
+            ('839',	'UBALÁ', @IdDepartamento),
+            ('841',	'UBAQUE', @IdDepartamento),
+            ('843',	'VILLA DE SAN DIEGO DE UBATÉ', @IdDepartamento),
+            ('845',	'UNE', @IdDepartamento),
+            ('851',	'ÚTICA', @IdDepartamento),
+            ('862',	'VERGARA', @IdDepartamento),
+            ('867',	'VIANÍ', @IdDepartamento),
+            ('871',	'VILLAGÓMEZ', @IdDepartamento),
+            ('873',	'VILLAPINZÓN', @IdDepartamento),
+            ('875',	'VILLETA', @IdDepartamento),
+            ('878',	'VIOTÁ', @IdDepartamento),
+            ('885',	'YACOPÍ', @IdDepartamento),
+            ('898',	'ZIPACÓN', @IdDepartamento),
+            ('899',	'ZIPAQUIRÁ', @IdDepartamento),
+            ('001',	'AGUA DE DIOS', @IdDepartamento),
+            ('019',	'ALBÁN', @IdDepartamento),
+            ('035',	'ANAPOIMA', @IdDepartamento),
+            ('040',	'ANOLAIMA', @IdDepartamento),
+            ('053',	'ARBELÁEZ', @IdDepartamento),
+            ('086',	'BELTRÁN', @IdDepartamento),
+            ('095',	'BITUIMA', @IdDepartamento),
+            ('099',	'BOJACÁ', @IdDepartamento),
+            ('120',	'CABRERA', @IdDepartamento),
+            ('123',	'CACHIPAY', @IdDepartamento),
+            ('126',	'CAJICÁ', @IdDepartamento),
+            ('148',	'CAPARRAPÍ', @IdDepartamento),
+            ('151',	'CÁQUEZA', @IdDepartamento),
+            ('154',	'CARMEN DE CARUPA', @IdDepartamento),
+            ('168',	'CHAGUANÍ', @IdDepartamento),
+            ('175',	'CHÍA', @IdDepartamento),
+            ('178',	'CHIPAQUE', @IdDepartamento),
+            ('181',	'CHOACHÍ', @IdDepartamento),
+            ('183',	'CHOCONTÁ', @IdDepartamento),
+            ('200',	'COGUA', @IdDepartamento),
+            ('214',	'COTA', @IdDepartamento),
+            ('224',	'CUCUNUBÁ', @IdDepartamento),
+            ('245',	'EL COLEGIO', @IdDepartamento),
+            ('258',	'EL PEÑÓN', @IdDepartamento),
+            ('260',	'EL ROSAL', @IdDepartamento),
+            ('269',	'FACATATIVÁ', @IdDepartamento),
+            ('279',	'FÓMEQUE', @IdDepartamento),
+            ('281',	'FOSCA', @IdDepartamento),
+            ('286',	'FUNZA', @IdDepartamento),
+            ('288',	'FÚQUENE', @IdDepartamento),
+            ('290',	'FUSAGASUGÁ', @IdDepartamento),
+            ('293',	'GACHALÁ', @IdDepartamento),
+            ('295',	'GACHANCIPÁ', @IdDepartamento),
+            ('297',	'GACHETÁ', @IdDepartamento),
+            ('299',	'GAMA', @IdDepartamento),
+            ('307',	'GIRARDOT', @IdDepartamento),
+            ('312',	'GRANADA', @IdDepartamento),
+            ('317',	'GUACHETÁ', @IdDepartamento),
+            ('320',	'GUADUAS', @IdDepartamento),
+            ('322',	'GUASCA', @IdDepartamento),
+            ('324',	'GUATAQUÍ', @IdDepartamento),
+            ('326',	'GUATAVITA', @IdDepartamento),
+            ('328',	'GUAYABAL DE SÍQUIMA', @IdDepartamento),
+            ('335',	'GUAYABETAL', @IdDepartamento),
+            ('339',	'GUTIÉRREZ', @IdDepartamento),
+            ('368',	'JERUSALÉN', @IdDepartamento),
+            ('372',	'JUNÍN', @IdDepartamento),
+            ('377',	'LA CALERA', @IdDepartamento),
+            ('386',	'LA MESA', @IdDepartamento),
+            ('394',	'LA PALMA', @IdDepartamento),
+            ('398',	'LA PEÑA', @IdDepartamento),
+            ('402',	'LA VEGA', @IdDepartamento),
+            ('407',	'LENGUAZAQUE', @IdDepartamento),
+            ('426',	'MACHETÁ', @IdDepartamento),
+            ('430',	'MADRID', @IdDepartamento),
+            ('436',	'MANTA', @IdDepartamento),
+            ('438',	'MEDINA', @IdDepartamento),
+            ('473',	'MOSQUERA', @IdDepartamento),
+            ('483',	'NARIÑO', @IdDepartamento),
+            ('486',	'NEMOCÓN', @IdDepartamento),
+            ('488',	'NILO', @IdDepartamento),
+            ('489',	'NIMAIMA', @IdDepartamento),
+            ('491',	'NOCAIMA', @IdDepartamento),
+            ('506',	'VENECIA', @IdDepartamento),
+            ('513',	'PACHO', @IdDepartamento),
+            ('518',	'PAIME', @IdDepartamento),
+            ('524',	'PANDI', @IdDepartamento),
+            ('530',	'PARATEBUENO', @IdDepartamento),
+            ('535',	'PASCA', @IdDepartamento),
+            ('572',	'PUERTO SALGAR', @IdDepartamento),
+            ('580',	'PULÍ', @IdDepartamento),
+            ('592',	'QUEBRADANEGRA', @IdDepartamento),
+            ('594',	'QUETAME', @IdDepartamento),
+            ('596',	'QUIPILE', @IdDepartamento),
+            ('599',	'APULO', @IdDepartamento),
+            ('612',	'RICAURTE', @IdDepartamento),
+            ('645',	'SAN ANTONIO DEL TEQUENDAMA', @IdDepartamento),
+            ('649',	'SAN BERNARDO', @IdDepartamento),
+            ('653',	'SAN CAYETANO', @IdDepartamento),
+            ('658',	'SAN FRANCISCO', @IdDepartamento),
+            ('662',	'SAN JUAN DE RIOSECO', @IdDepartamento),
+            ('718',	'SASAIMA', @IdDepartamento),
+            ('736',	'SESQUILÉ', @IdDepartamento),
+            ('740',	'SIBATÉ', @IdDepartamento),
+            ('743',	'SILVANIA', @IdDepartamento),
+            ('745',	'SIMIJACA', @IdDepartamento),
+            ('754',	'SOACHA', @IdDepartamento),
+            ('758',	'SOPÓ', @IdDepartamento),
+            ('769',	'SUBACHOQUE', @IdDepartamento),
+            ('772',	'SUESCA', @IdDepartamento),
+            ('777',	'SUPATÁ', @IdDepartamento),
+            ('779',	'SUSA', @IdDepartamento),
+            ('781',	'SUTATAUSA', @IdDepartamento),
+            ('785',	'TABIO', @IdDepartamento),
+            ('793',	'TAUSA', @IdDepartamento),
+            ('797',	'TENA', @IdDepartamento),
+            ('799',	'TENJO', @IdDepartamento),
+            ('805',	'TIBACUY', @IdDepartamento),
+            ('807',	'TIBIRITA', @IdDepartamento),
+            ('815',	'TOCAIMA', @IdDepartamento),
+            ('817',	'TOCANCIPÁ', @IdDepartamento),
+            ('823',	'TOPAIPÍ', @IdDepartamento)
+    ) AS t ([Código Ciudad], [Ciudad], [Id Departamento])
+) AS origen ([Código Ciudad], [Ciudad], [Id Departamento])
+ON destino.[Id Departamento] = origen.[Id Departamento]
+   AND (
+       -- Comparación directa del nombre normalizado
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(destino.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS =
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(origen.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS
+       -- Comparación eliminando palabras comunes
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS =
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+   )
+WHEN MATCHED THEN
+    UPDATE SET 
+        destino.[Código Ciudad] = origen.[Código Ciudad],
+        destino.[Ciudad] = CASE 
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Santuario' THEN'El Santuario'
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Bolivar' THEN'Ciudad Bolívar'
+            ELSE origen.[Ciudad]
+        END,
+        destino.[Id Departamento] = origen.[Id Departamento]
+WHEN NOT MATCHED THEN
+    INSERT ([Código Ciudad], [Ciudad], [Id Departamento])
+    VALUES (origen.[Código Ciudad], origen.[Ciudad], origen.[Id Departamento]);

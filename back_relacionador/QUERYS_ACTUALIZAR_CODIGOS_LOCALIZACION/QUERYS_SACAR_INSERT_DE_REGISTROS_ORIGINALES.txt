@@ -1,0 +1,30 @@
+-- SACA INSERT DE LOS DEPARTAMENTOS ORIGINALES
+SELECT
+	'INSERT INTO [Departamento] ([Id Departamento], [Código Departamento], [Departamento], [Id País]) VALUES (' +
+    CAST([Id Departamento] AS NVARCHAR(MAX)) + ', ' +
+    '''' + REPLACE([Código Departamento], '''', '''''') + ''', ' +
+    '''' + REPLACE([Departamento], '''', '''''') + ''', ' +
+    CAST([Id País] AS NVARCHAR(MAX)) + ');' + CHAR(13)
+FROM [Departamento];
+
+
+
+-- SACA INSERT DE LAS CIUDADES ORIGINALES
+SELECT 
+	 'INSERT INTO [Ciudad] ([Id Ciudad], [Ciudad], [Código Ciudad], [Id Departamento]) VALUES (' +
+    CAST([Id Ciudad] AS NVARCHAR(MAX)) + ', ' +
+    '''' + REPLACE([Ciudad], '''', '''''') + ''', ' +
+    '''' + REPLACE([Código Ciudad], '''', '''''') + ''', ' +
+    CAST([Id Departamento] AS NVARCHAR(MAX)) + ');' + CHAR(13)
+FROM [Ciudad];
+
+
+
+-- SACA INSERT DE LOS BARRIOS ORIGINALES
+SELECT 
+    'INSERT INTO [Barrio] ([Id Barrio], [Código Barrio], [Barrio], [Id Ciudad]) VALUES (' +
+    CAST([Id Barrio] AS NVARCHAR(MAX)) + ', ' +
+    '''' + REPLACE([Código Barrio], '''', '''''') + ''', ' +
+    '''' + REPLACE([Barrio], '''', '''''') + ''', ' +
+    CAST([Id Ciudad] AS NVARCHAR(MAX)) + '); '
+FROM [Barrio];

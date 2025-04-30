@@ -1,0 +1,86 @@
+-- ACTUALIZAR CÓDIGOS PARA EL DEPARTAMENTO DE <<<<< TOLIMA >>>>>
+DECLARE @IdDepartamento INT;
+SET @IdDepartamento = 1; -- Cambia este valor si es necesario
+
+MERGE INTO Ciudad AS destino
+USING (
+    SELECT DISTINCT 
+        [Código Ciudad], 
+        [Ciudad], 
+        [Id Departamento]
+    FROM (
+        VALUES 
+            ('001',	'IBAGUÉ', @IdDepartamento),
+            ('024',	'ALPUJARRA', @IdDepartamento),
+            ('026',	'ALVARADO', @IdDepartamento),
+            ('030',	'AMBALEMA', @IdDepartamento),
+            ('043',	'ANZOÁTEGUI', @IdDepartamento),
+            ('055',	'ARMERO (GUAYABAL)', @IdDepartamento),
+            ('067',	'ATACO', @IdDepartamento),
+            ('124',	'CAJAMARCA', @IdDepartamento),
+            ('148',	'CARMEN DE APICALÁ', @IdDepartamento),
+            ('152',	'CASABIANCA', @IdDepartamento),
+            ('168',	'CHAPARRAL', @IdDepartamento),
+            ('200',	'COELLO', @IdDepartamento),
+            ('217',	'COYAIMA', @IdDepartamento),
+            ('226',	'CUNDAY', @IdDepartamento),
+            ('236',	'DOLORES', @IdDepartamento),
+            ('268',	'ESPINAL', @IdDepartamento),
+            ('270',	'FALAN', @IdDepartamento),
+            ('275',	'FLANDES', @IdDepartamento),
+            ('283',	'FRESNO', @IdDepartamento),
+            ('319',	'GUAMO', @IdDepartamento),
+            ('347',	'HERVEO', @IdDepartamento),
+            ('349',	'HONDA', @IdDepartamento),
+            ('352',	'ICONONZO', @IdDepartamento),
+            ('408',	'LÉRIDA', @IdDepartamento),
+            ('411',	'LÍBANO', @IdDepartamento),
+            ('443',	'SAN SEBASTIÁN DE MARIQUITA', @IdDepartamento),
+            ('449',	'MELGAR', @IdDepartamento),
+            ('461',	'MURILLO', @IdDepartamento),
+            ('483',	'NATAGAIMA', @IdDepartamento),
+            ('504',	'ORTEGA', @IdDepartamento),
+            ('520',	'PALOCABILDO', @IdDepartamento),
+            ('547',	'PIEDRAS', @IdDepartamento),
+            ('555',	'PLANADAS', @IdDepartamento),
+            ('563',	'PRADO', @IdDepartamento),
+            ('585',	'PURIFICACIÓN', @IdDepartamento),
+            ('616',	'RIOBLANCO', @IdDepartamento),
+            ('622',	'RONCESVALLES', @IdDepartamento),
+            ('624',	'ROVIRA', @IdDepartamento),
+            ('671',	'SALDAÑA', @IdDepartamento),
+            ('675',	'SAN ANTONIO', @IdDepartamento),
+            ('678',	'SAN LUIS', @IdDepartamento),
+            ('686',	'SANTA ISABEL', @IdDepartamento),
+            ('770',	'SUÁREZ', @IdDepartamento),
+            ('854',	'VALLE DE SAN JUAN', @IdDepartamento),
+            ('861',	'VENADILLO', @IdDepartamento),
+            ('870',	'VILLAHERMOSA', @IdDepartamento),
+            ('873',	'VILLARRICA', @IdDepartamento)
+    ) AS t ([Código Ciudad], [Ciudad], [Id Departamento])
+) AS origen ([Código Ciudad], [Ciudad], [Id Departamento])
+ON destino.[Id Departamento] = origen.[Id Departamento]
+   AND (
+       -- Comparación directa del nombre normalizado
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(destino.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS =
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(origen.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS
+       -- Comparación eliminando palabras comunes
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS =
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+   )
+WHEN MATCHED THEN
+    UPDATE SET 
+        destino.[Código Ciudad] = origen.[Código Ciudad],
+        destino.[Ciudad] = CASE 
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Santuario' THEN'El Santuario'
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Bolivar' THEN'Ciudad Bolívar'
+            ELSE origen.[Ciudad]
+        END,
+        destino.[Id Departamento] = origen.[Id Departamento]
+WHEN NOT MATCHED THEN
+    INSERT ([Código Ciudad], [Ciudad], [Id Departamento])
+    VALUES (origen.[Código Ciudad], origen.[Ciudad], origen.[Id Departamento]);

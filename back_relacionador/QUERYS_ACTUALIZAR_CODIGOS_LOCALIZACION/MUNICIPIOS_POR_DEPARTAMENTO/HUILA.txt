@@ -1,0 +1,76 @@
+-- ACTUALIZAR CÓDIGOS PARA EL DEPARTAMENTO DE <<<<< HUILA >>>>>
+DECLARE @IdDepartamento INT;
+SET @IdDepartamento = 1; -- Cambia este valor si es necesario
+
+MERGE INTO Ciudad AS destino
+USING (
+    SELECT DISTINCT 
+        [Código Ciudad], 
+        [Ciudad], 
+        [Id Departamento]
+    FROM (
+        VALUES 
+            ('001',	'NEIVA', @IdDepartamento),
+            ('006',	'ACEVEDO', @IdDepartamento),
+            ('013',	'AGRADO', @IdDepartamento),
+            ('016',	'AIPE', @IdDepartamento),
+            ('020',	'ALGECIRAS', @IdDepartamento),
+            ('026',	'ALTAMIRA', @IdDepartamento),
+            ('078',	'BARAYA', @IdDepartamento),
+            ('132',	'CAMPOALEGRE', @IdDepartamento),
+            ('206',	'COLOMBIA', @IdDepartamento),
+            ('244',	'ELÍAS', @IdDepartamento),
+            ('298',	'GARZÓN', @IdDepartamento),
+            ('306',	'GIGANTE', @IdDepartamento),
+            ('319',	'GUADALUPE', @IdDepartamento),
+            ('349',	'HOBO', @IdDepartamento),
+            ('357',	'ÍQUIRA', @IdDepartamento),
+            ('359',	'ISNOS', @IdDepartamento),
+            ('378',	'LA ARGENTINA (LA PLATA VIEJA)', @IdDepartamento),
+            ('396',	'LA PLATA', @IdDepartamento),
+            ('483',	'NÁTAGA', @IdDepartamento),
+            ('503',	'OPORAPA', @IdDepartamento),
+            ('518',	'PAICOL', @IdDepartamento),
+            ('524',	'PALERMO', @IdDepartamento),
+            ('530',	'PALESTINA', @IdDepartamento),
+            ('548',	'PITAL', @IdDepartamento),
+            ('551',	'PITALITO', @IdDepartamento),
+            ('615',	'RIVERA', @IdDepartamento),
+            ('660',	'SALADOBLANCO', @IdDepartamento),
+            ('668',	'SAN AGUSTÍN', @IdDepartamento),
+            ('676',	'SANTA MARÍA', @IdDepartamento),
+            ('770',	'SUAZA', @IdDepartamento),
+            ('791',	'TARQUI', @IdDepartamento),
+            ('797',	'TESALIA (CARNICERÍAS)', @IdDepartamento),
+            ('799',	'TELLO', @IdDepartamento),
+            ('801',	'TERUEL', @IdDepartamento),
+            ('807',	'TIMANÁ', @IdDepartamento),
+            ('872',	'VILLAVIEJA', @IdDepartamento),
+            ('885',	'YAGUARÁ', @IdDepartamento)
+    ) AS t ([Código Ciudad], [Ciudad], [Id Departamento])
+) AS origen ([Código Ciudad], [Ciudad], [Id Departamento])
+ON destino.[Id Departamento] = origen.[Id Departamento]
+   AND (
+       -- Comparación directa del nombre normalizado
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(destino.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS =
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(origen.[Ciudad],'á','a'),'é','e'),'í','i'),'ó','o')))) COLLATE SQL_Latin1_General_CP1_CI_AS
+       -- Comparación eliminando palabras comunes
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS =
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'LA','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'EL','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS = 
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Ciudad])),'CIUDAD','')) COLLATE SQL_Latin1_General_CP1_CI_AS
+   )
+WHEN MATCHED THEN
+    UPDATE SET 
+        destino.[Código Ciudad] = origen.[Código Ciudad],
+        destino.[Ciudad] = CASE 
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Santuario' THEN'El Santuario'
+            WHEN UPPER(LTRIM(RTRIM(destino.[Ciudad]))) COLLATE SQL_Latin1_General_CP1_CI_AS ='Bolivar' THEN'Ciudad Bolívar'
+            ELSE origen.[Ciudad]
+        END,
+        destino.[Id Departamento] = origen.[Id Departamento]
+WHEN NOT MATCHED THEN
+    INSERT ([Código Ciudad], [Ciudad], [Id Departamento])
+    VALUES (origen.[Código Ciudad], origen.[Ciudad], origen.[Id Departamento]);

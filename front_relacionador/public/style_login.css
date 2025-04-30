@@ -1,0 +1,162 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-family: 'Alegreya Sans', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto Condensed', sans-serif;
+    overflow-y: hidden;
+}
+
+body {
+    width: 100%;
+    display: flex;
+    flex-direction: row-reverse;
+    background-image: url('images/Doctor.png');
+    background-size: contain; /* Esto asegura que la imagen de fondo se ajuste sin distorsión */
+    background-repeat: no-repeat; /* Esto evita que la imagen de fondo se repita */
+    background-position: left; /* Esto centra la imagen de fondo */
+    /* Otros estilos para el cuerpo, si es necesario */
+}
+
+
+.container {
+    height: 500px;
+    background: #fff;
+    margin: 6% 15% 0px 0px;
+    display: grid;
+    overflow-x: hidden;
+
+}
+
+.container .logo {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+
+}
+
+.container .logo img {
+    width: 18%;
+}
+
+.container .title {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    font-size: 25px;
+    font-weight: 900;
+    color: #1D2020;
+    margin-top: 10px;
+}
+
+.container .title h1 {
+    letter-spacing: 4px;
+}
+
+.container .user {
+    width: 100%;
+    display: flex;
+    padding: 20px;
+    align-items: center;
+    position: relative;
+}
+
+
+.container .user input {
+    width: 62%;
+    padding: 15px;
+    border: none;
+    border-bottom: 2px solid #A2A7A7;
+    outline: none;
+    font-size: 20px;
+    font-weight: 900;
+    padding-left: 40px;
+}
+
+
+.container .user .bx {
+    font-size: 30px;
+    color: #A2A7A7;
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+}
+
+.container .pass {
+    width: 100%;
+    display: flex;
+    padding: 20px;
+    align-items: center;
+    position: relative;
+    
+
+}
+
+.container .pass input {
+    width: 58%;
+    padding: 15px;
+    border: none;
+    border-bottom: 2px solid #A2A7A7;
+    outline: none;
+    font-size: 20px;
+    font-weight: 900;
+    padding-left: 40px;
+    padding-right: 40px;
+}
+
+.container .pass .bx {
+    font-size: 30px;
+    color: #A2A7A7;
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+}
+
+.container .pass .bxs-hide,
+.container .pass .bxs-show {
+    width: 30px;
+    font-size: 30px;
+    color: #272929;
+    position: absolute;
+    top: 37%;
+    right: 10px;
+    transform: translateY(-50%);
+    transform: translateX(1150%);
+    cursor: pointer;
+}
+
+.container .pass #btnShow {
+    display: none;
+}
+
+.container .pass #btnHide {
+    display: block;
+}
+
+
+
+.container .ingresar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container .ingresar button {
+    width: 300px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #049DB6;
+;
+    background-color: #fff;
+    transition: all 0.5s;
+}
+
+.container .ingresar button:hover {
+    background: linear-gradient(90deg, rgba(31,176,175,1) 6%, rgba(24,79,255,0.9612219887955182) 40%, rgba(31,176,175,1) 94%);
+    color: #fff;
+}
+

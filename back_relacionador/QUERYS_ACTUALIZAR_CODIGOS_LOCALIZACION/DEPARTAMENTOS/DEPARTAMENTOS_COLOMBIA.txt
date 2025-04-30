@@ -1,0 +1,62 @@
+DECLARE @IdPais INT;
+SET @IdPais = 2;
+
+MERGE INTO Departamento AS destino
+USING (
+    SELECT DISTINCT 
+        [Código Departamento], 
+        [Departamento],
+        [Id País]
+    FROM (
+        VALUES 
+            ('91','Amazonas', @IdPais),
+            ('05','Antioquia', @IdPais),
+            ('81','Arauca', @IdPais),
+            ('08','Atlántico', @IdPais),
+            ('11','Bogotá', @IdPais),
+            ('13','Bolívar', @IdPais),
+            ('15','Boyacá', @IdPais),
+            ('17','Caldas', @IdPais),
+            ('18','Caquetá', @IdPais),
+            ('85','Casanare', @IdPais),
+            ('19','Cauca', @IdPais),
+            ('20','Cesar', @IdPais),
+            ('27','Chocó', @IdPais),
+            ('23','Córdoba', @IdPais),
+            ('25','Cundinamarca', @IdPais),
+            ('94','Guainía', @IdPais),
+            ('95','Guaviare', @IdPais),
+            ('41','Huila', @IdPais),
+            ('44','La Guajira', @IdPais),
+            ('47','Magdalena', @IdPais),
+            ('50','Meta', @IdPais),
+            ('52','Nariño', @IdPais),
+            ('54','Norte de Santander', @IdPais),
+            ('86','Putumayo', @IdPais),
+            ('63','Quindío', @IdPais),
+            ('66','Risaralda', @IdPais),
+            ('88','San Andrés y Providencia', @IdPais),
+            ('68','Santander', @IdPais),
+            ('70','Sucre', @IdPais),
+            ('73','Tolima', @IdPais),
+            ('76','Valle del Cauca', @IdPais),
+            ('97','Vaupés', @IdPais),
+            ('99','Vichada', @IdPais)
+    ) AS t ([Código Departamento], [Departamento], [Id País])
+) AS origen ([Código Departamento], [Departamento], [Id País])
+ON destino.[Id País] = origen.[Id País]
+   AND (
+       -- Comparación directa del nombre normalizado
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(destino.[Departamento], 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o')))) =
+       UPPER(LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(origen.[Departamento], 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'))))
+       -- Comparación eliminando palabras comunes
+       OR UPPER(REPLACE(LTRIM(RTRIM(destino.[Departamento])), 'LA ', '')) =
+          UPPER(REPLACE(LTRIM(RTRIM(origen.[Departamento])), 'LA ', ''))
+   )
+WHEN MATCHED THEN
+    UPDATE SET 
+        destino.[Código Departamento] = origen.[Código Departamento],
+        destino.[Departamento] = origen.[Departamento]
+WHEN NOT MATCHED THEN
+    INSERT ([Código Departamento], [Departamento], [Id País])
+    VALUES (origen.[Código Departamento], origen.[Departamento], origen.[Id País]);

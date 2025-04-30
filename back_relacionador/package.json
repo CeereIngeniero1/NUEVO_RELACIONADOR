@@ -1,0 +1,52 @@
+{
+  "name": "ceere.rips.2024",
+  "version": "1.0.0",
+  "description": "Todos los derechos reservados para Ceere Software",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev-server": "nodemon ./server/server.js",
+    "dev": "nodemon ./server/server.js"
+  },
+  "dependencies": {
+    "alertifyjs": "^1.13.1",
+    "atob": "^2.1.2",
+    "bootstrap": "^5.3.3",
+    "cors": "^2.8.5",
+    "compression": "^1.8.0",
+    "chokidar": "^3.6.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "fs": "^0.0.1-security",
+    "fs-extra": "^11.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
+    "luxon": "^3.4.4",
+    "os": "^0.1.2",
+    "soap": "^1.1.0",
+    "tedious": "^18.6.1",
+    "unzipper": "^0.12.2",
+    "yauzl": "^3.1.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "build": {
+    "appId": "com.example.ripsapp",
+    "directories": {
+      "output": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "path/to/your/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": true
+    }
+  }
+}

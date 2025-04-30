@@ -1,0 +1,494 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #FFF;
+}
+
+.navbar {
+    width: 100%;
+    height: 90px;
+    display: flex !important;
+    margin-right: 100px;
+    padding: 8px !important;
+
+}
+
+
+.navbar #closeSesion {
+    width: 120px;
+    background-color: #fff;
+    outline: none;
+    border: 2px solid #007E82;
+    font-weight: bolder;
+    border-radius: 6px;
+}
+
+.navbar h2 {
+    outline: none;
+    font-weight: bolder;
+    color: #007E82;
+    font-size: 20px;
+
+}
+
+#generadorRIPS {
+    width: 150px;
+    height: 40px;
+    text-decoration: none;
+    border: 1px solid #fff;
+    color: #fff;
+    background-color: #007E82;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    transition: all 0.4s;
+}
+
+#generadorRIPS:hover {
+    background-color: transparent;
+    color: #007E82;
+    border: 1px solid #007E82;
+}
+
+
+.container {
+    width: 100%;
+    overflow-x: none;
+}
+
+
+
+.centered {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+
+.mitio {
+    overflow-x: scroll;
+    padding: 8px;
+}
+
+#mitio tbody tr {
+    background-color: #f2f2f2;
+    /* Color de fondo de las filas */
+}
+
+#mitio tbody tr:hover {
+    background-color: #d9d9d9 !important;
+}
+
+#datatable_users {
+    width: 100% !important;
+}
+
+#btn_funcion {
+    width: 200px;
+    border: none;
+    margin: 10px;
+    border-radius: 8px;
+    background-color: blue;
+    color: #fff;
+    transition: 2ms;
+}
+
+#btn_funcion:hover {
+    background-color: #fff;
+    color: blue;
+    border: 1px solid blue;
+}
+
+
+.container main {
+    display: grid;
+    margin: auto;
+    width: 80%;
+    height: 500px;
+
+}
+
+.paciente,
+.HC,
+.divFacturas,
+.btn {
+    width: 100%;
+    display: grid;
+    text-align: center;
+    align-content: center;
+    font-size: 30px;
+}
+
+.facturaCero {
+    width: 100%;
+    display: grid;
+    text-align: center;
+    align-content: center;
+    font-size: 30px;
+    align-items: center;
+    justify-content: center;
+}
+
+.container main select {
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+    outline-color: #007E82;
+    border: 1px solid #007E82;
+    text-align: center;
+    font-size: 20px;
+}
+
+.btn button {
+    width: 250px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #007E82;
+    background-color: #fff;
+    color: #007E82;
+    transition: all 0.2s;
+}
+
+.btn button:hover {
+    background-color: #007E82;
+    border: 1px solid #fff;
+    color: #fff;
+}
+
+.btn {
+    display: flex;
+    justify-content: space-evenly
+}
+
+
+.divBuscar {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end
+}
+
+.paciente input {
+    width: 25%;
+    height: 30px;
+    border: 1px solid #007E82;
+    border-radius: 5px;
+    font-size: 16px;
+    padding: 4px;
+    outline: none;
+}
+
+.html-container-custom {
+    color: white !important;
+}
+
+#swal2-html-container {
+    color: #fff !important;
+}
+
+.swal2-html-container {
+    color: #fff;
+}
+
+.paciente input:focus {
+    border: 2px solid #007E82;
+}
+
+.facturaCero {
+    display: flex;
+}
+
+.facturaCero input {
+    width: 30px;
+    height: 30px;
+}
+
+.facturaCero span {
+    margin-left: 10px;
+}
+
+#btnBuscar {
+    display: block;
+}
+
+
+.factura-footer button {
+    width: 200px;
+    border: none;
+    margin: 10px;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #007E82;
+    transition: 2ms;
+    border: 1px solid #007E82;
+}
+
+.factura-footer button:hover {
+    background-color: #007E82;
+    color: #fff;
+    border: 1px solid 007E82;
+}
+.tabla {
+    width: 100%;
+    display: flex;
+}
+
+.tablaHC {
+    width: 50%;
+}
+
+.tablaFactura {
+    width: 50%;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 10px;
+    border: 1px solid #ddd;
+    /* Ajusta el espacio entre las columnas según tu preferencia */
+}
+
+th {
+    text-align: center !important;
+}
+
+td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+    cursor: pointer;
+}
+
+.checkboxColumn {
+    width: 30px;
+    height: 30px;
+}
+
+.seleccionada {
+    background-color: #a3d3ff;
+}
+
+.ColumnaCheckBox {
+    width: 20px;
+}
+
+#BotonMaestro {
+    width: 200px;
+    height: 40px;
+    border: 1px solid #fff;
+    color: #fff;
+    background-color: #007E82;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    transition: all 0.4s;
+}
+#BotonMaestro:hover {
+    background-color: transparent;
+    color: #007E82;
+    border: 1px solid #007E82;
+}
+
+#descargarRIPS {
+    width: 280px;
+    height: 40px;
+    border: 1px solid #fff;
+    color: #fff;
+    background-color: #007E82;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    transition: all 0.4s;
+}
+
+#XMLS {
+    width: 180px;
+    height: 40px;
+    border: 1px solid #fff;
+    color: #fff;
+    background-color: #007E82;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    transition: all 0.4s;
+}
+
+#XMLS:hover {
+    background-color: transparent;
+    color: #007E82;
+    border: 1px solid #007E82;
+}
+
+#descargarRIPS:hover {
+    background-color: transparent;
+    color: #007E82;
+    border: 1px solid #007E82;
+}
+
+.modal button {
+    width: 200px !important;
+}
+
+.moodal {
+    width: 100%;
+}
+
+.moodal img {
+    width: 57%;
+    opacity: 0.5;
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-position: center;
+    margin-left: 17%;
+    margin-top: 17%;
+}
+
+/* Ajusta el estilo de la marca de agua según tus necesidades */
+.moodal img::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Puedes aplicar un color de fondo semitransparente para mejorar la visibilidad del texto */
+    background-color: rgba(255, 255, 255, 0.5);
+    /* Por ejemplo, blanco semitransparente */
+    z-index: -1;
+    /* Asegúrate de que esta capa esté detrás del contenido */
+}
+
+
+
+
+
+.moodal .primeraParte {
+    display: flex;
+}
+
+.moodal .modalEmpresa {
+    display: grid;
+    width: 50%;
+    text-align: center;
+    padding: 8px;
+    align-content: center;
+}
+
+.moodal .modalEmpresa label {
+    margin-bottom: 0;
+    margin-top: 0;
+    font-weight: bolder;
+    font-size: 20px;
+
+}
+
+.moodal .modalFactura {
+    display: grid;
+    width: 50%;
+    text-align: right;
+    padding: 8px;
+}
+
+.moodal .modalFactura label {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+.moodal .modalPaciente {
+    display: flex;
+}
+
+.moodal .asteriscos1 {
+    width: 100%;
+}
+
+.moodal .nombrePaciente {
+    width: 50%;
+}
+
+.moodal .modalResponsable {
+    display: flex;
+}
+
+.moodal .nombreResponsable {
+    width: 50%;
+}
+
+.moodal .modalValor {
+    display: flex;
+}
+
+.moodal .descripcionFactura {
+    width: 50%;
+    display: grid;
+}
+
+.moodal .itemsValor {
+    display: flex;
+    justify-content: space-evenly;
+    width: 50%;
+}
+
+.cantidad,
+.valorIVA,
+.valorTotal {
+    display: grid;
+    text-align: center;
+}
+
+#alerta {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+.progress {
+    margin-top: 10px;
+}
+
+#barraProgreso {
+    width: 0%;
+    transition: width 0.3s ease-in-out;
+}
+
+.verFactura {
+    border-radius: 8px;
+    background-color: #007E82;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 8px;
+}
+
+.verFactura:hover {
+    background-color: transparent;
+    color: #007E82;
+    border: 2px solid #007E82;
+}

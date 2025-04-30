@@ -1,0 +1,280 @@
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/script.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0
+Servidor escuchando en el puerto 3100
+HPGRIS
+Archivo ./public/script.js actualizado correctamente
+Archivo ./public/RIPS.js actualizado correctamente
+Archivo ./public/MaestroListasRIPS.js actualizado correctamente
+Archivo ./public/Asignar_RIPS.js actualizado correctamente
+🚪 Worker finalizó con código: 0

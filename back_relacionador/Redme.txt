@@ -1,0 +1,332 @@
+************************************************************************************************************************************************************************************************************
+
+SE DEBE DE CONFIGURAR EL PUERTO A TRAVÉS DEL CUAL NODE.JS SE CONECTARA AL SQL SERVER, PARA CONFIGURAR ESTO SE DEBE DE BUSCAR EL SQL SERVER CONFIGURATION MANAGER Y ABRIRLO, EN LA BARRA LATERAL IZQUIERDA QUE ES DONDE APARECEN LAS OPCIONES DESPLEGAMOS LA OPCIÓN 'SQL SERVER NETWORK CONFIGURATION' Y SELECCIONAMOS LA INSTANCIA EN LA CUAL SE ENCUENTRA NUESTRA BASE DE DATOS, AL SELECCIONARLA AL LADO DERECHO SE MOSTRARAN 3 OPCIONES 'SHARED MEMORY', 'NAMED PIPES' Y 'TCP/IP' DAMOS CLICK DERECHO SOBRE 'TCP/IP' Y DAMOS CLICK EN PROPIEDADES AL ABRISE LA VENTANA SELECCIONAMOS LA PESTAÑA DE 'IP ADDRESSES'
+Y EN CADA UNA DE LAS OPCIONES DONDE DICE 'TCP DYNAMIC PORTS' PONEMOS UN '0' Y DONDE DICE TCP PORT PONEMOS UN '1433' Y DAMOS EN ACEPTAR. DESPUÉS DE HACER ESTO ES INDISPENSABLE REINICIAR LA INSTANCIA.
+
+************************************************************************************************************************************************************************************************************
+
+EN LA BASE DE DATOS SE DEBE DE CREAR UN LOGIN 'CeereRIPS' CON LA CONTRASEÑA 'crsoft', ESTO PARA QUE NO HAYA PROBLEMAS DE CONEXIÓN AL ESTABLECER LA CONEXIÓN CON LA BASE DE DATOS, CABE RECORDAR QUE LA CONFIGURACION DE LA BASE DE DATOS ESTA EN 'server.js' EN LA LINEA 28 CONST CONFIG.
+
+************************************************************************************************************************************************************************************************************
+En el SQL Management dar click derecho en la instancia e ir a propiedades, depués dar click en security y en "Sever Authentication" seleccionar SQL Server and Windows Authentication mode y reiniciar la instancia.
+
+************************************************************************************************************************************************************************************************************
+LAS DEPENDENCIAS A INSTALAR DE NODE.JS SON ->
+
+npm install
+
+*****************************************************************************************************
+*****************************************************************************************************
+
+(ESTE PASO ES SOLO PARA LAS PERSONAS QUE FACTUREN CON CEERESOFTWARE)
+
+PARA QUE FUNCIONE EL CHECKBOX DE LA FACTURA 0 TIENE QUE EJECTUAR EL QUERY EN LA BASE DE DATOS PARA CREAR LA FACTURA 0, DEBES CONSULTAR EL DOCUMENTO DE LA EMPRESA Y UN ID EMPRESA V, EN LA EMPRESA QUE SE VA A A EJECUTAR EL QUERY ->
+
+¡¡¡ IMPORTANTEEE, SE DEBE HACER UN UPDATE A UNA FACTRA YA EXISTENTE QUE SE LE HAYA REALIZADO AL USUARIO DE PRUEBA, ES DECIR QUE EL DOCUMENTO RESPONSABLE SEA '70123456' !!!
+INSERT INTO [dbo].[Factura]
+           ([Documento Empresa] 
+		,[Id EmpresaV]
+           ,[No Factura]
+           ,[Id Período de Inventario Bodega]
+           ,[Id Bodega]
+           ,[Id Pedido]
+           ,[Id Tipo Tarifa]
+           ,[Id Remisión]
+           ,[Fecha Digitación Factura]
+           ,[Fecha Factura]
+           ,[Fecha Vencimiento Factura]
+           ,[Id Condición de Pago Factura]
+           ,[Id Moneda]
+           ,[Tasa de Cambio Vigente]
+           ,[Documento Responsable]
+           ,[Documento Paciente]
+           ,[Documento Beneficiario]
+           ,[Id EntidadXXVI Sucursal]
+           ,[Documento Vendedor]
+           ,[Porcentaje Descuento Pronto Pago Factura]
+           ,[Valor Propina Factura]
+           ,[Domicilio Factura]
+           ,[Nro de Items Factura]
+           ,[Cantidad de Artículos Factura]
+           ,[Valor Acumulado Factura]
+           ,[Descuentos Factura]
+           ,[Descuento Adicional $ Factura]
+           ,[Descuento Adicional % Factura]
+           ,[Comisión Factura]
+           ,[Comisión Adicional % Factura]
+           ,[Comisión Adicional $ Factura]
+           ,[Iva Factura]
+           ,[SubTotal Factura]
+           ,[Total Factura]
+           ,[Retención en la Fuente Factura]
+           ,[Id Retención Fuente]
+           ,[Retención Iva Factura]
+           ,[Id Retención Iva]
+           ,[Retención Otros Factura]
+           ,[Id Retención Otros]
+           ,[Valor En Letras Factura]
+           ,[Observaciones Factura]
+           ,[Documento Usuario]
+           ,[Id Terminal]
+           ,[Id Estado Contabilidad]
+           ,[Id Estado]
+           ,[Id Período Inventario]
+           ,[Id Estado Impresión]
+           ,[Id Tipo de Comprobante]
+           ,[Documento Sede]
+           ,[Retención Cancelada]
+           ,[Impuesto Factura Electronica retenido]
+           ,[Concepto Factura Electronica]
+           ,[EstadoFacturaElectronica])
+     VALUES
+           ('DOCUMENTO EMPRESA',
+            ID EMPRESA V,
+            '0000000',
+            NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			'70123456',
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			'0',
+			'0',
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL)
+DECLARE @DocumentoEmpresa VARCHAR(50);
+DECLARE @IdEmpresaV INT;
+DECLARE @IdFactura INT;
+
+
+SET @DocumentoEmpresa = '900129174-3';  -- CÁMBIALO POR EL DOCUMENTO DE LA EMPRESA REAL
+SET @IdEmpresaV = 138; -- CÁMBIALO POR EL ID DE EMPRESA V CORRECTO, EL CUAL SE ENCUETRA VIGENTE
+SET @IdFactura = 83363; -- CÁMBIALO POR EL ID DE LA FACTURA QUE PERTENECE AL ADMINISTRADOR [Documento Responsable] = 70123456
+
+UPDATE [dbo].[Factura]
+SET
+	[Documento Empresa] = @DocumentoEmpresa,
+	[Id EmpresaV] = @IdEmpresaV,
+    [No Factura] = '0000000',
+    [Id Período de Inventario Bodega] = NULL,
+    [Id Bodega] = NULL,
+    [Id Pedido] = NULL,
+    [Id Tipo Tarifa] = NULL,
+    [Id Remisión] = NULL,
+    [Fecha Digitación Factura] = NULL,
+    [Fecha Factura] = NULL,
+    [Fecha Vencimiento Factura] = NULL,
+    [Id Condición de Pago Factura] = NULL,
+    [Id Moneda] = NULL,
+    [Tasa de Cambio Vigente] = NULL,
+    [Documento Responsable] = NULL,
+    [Documento Paciente] = '70123456',
+    [Documento Beneficiario] = NULL,
+    [Id EntidadXXVI Sucursal] = NULL,
+    [Documento Vendedor] = NULL,
+    [Porcentaje Descuento Pronto Pago Factura] = NULL,
+    [Valor Propina Factura] = NULL,
+    [Domicilio Factura] = NULL,
+    [Nro de Items Factura] = NULL,
+    [Cantidad de Artículos Factura] = NULL,
+    [Valor Acumulado Factura] = NULL,
+    [Descuentos Factura] = NULL,
+    [Descuento Adicional $ Factura] = NULL,
+    [Descuento Adicional % Factura] = NULL,
+    [Comisión Factura] = NULL,
+    [Comisión Adicional % Factura] = NULL,
+    [Comisión Adicional $ Factura] = NULL,
+    [Iva Factura] = NULL,
+    [SubTotal Factura] = NULL,
+    [Total Factura] = NULL,
+    [Retención en la Fuente Factura] = '0',
+    [Id Retención Fuente] = '0',
+    [Retención Iva Factura] = NULL,
+    [Id Retención Iva] = NULL,
+    [Retención Otros Factura] = NULL,
+    [Id Retención Otros] = NULL,
+    [Valor En Letras Factura] = NULL,
+    [Observaciones Factura] = NULL,
+    [Documento Usuario] = NULL,
+    [Id Terminal] = NULL,
+    [Id Estado Contabilidad] = NULL,
+    [Id Estado] = NULL,
+    [Id Período Inventario] = NULL,
+    [Id Estado Impresión] = NULL,
+    [Id Tipo de Comprobante] = NULL,
+    [Documento Sede] = NULL,
+    [Retención Cancelada] = NULL,
+    [Impuesto Factura Electronica retenido] = NULL,
+    [Concepto Factura Electronica] = NULL,
+    [EstadoFacturaElectronica] = NULL
+WHERE
+	[Id Factura] = @IdFactura
+    --[No Factura] = '0000000'; -- Condición para identificar el registro a actualizar
+
+
+*****************************************************************************************************
+*****************************************************************************************************
+--TRIGGER PARA QUE ACTUALICE EL ID EMPRESA V DE LA FACTURA EN 0 CUANDO SE HAGA CAMBIO DE RESOLUCION.
+CREATE TRIGGER trg_UpdateFacturaOnEmpresaVChange
+ON EmpresaV
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Solo actualiza si el nuevo valor de [Id Estado] es 7
+    IF EXISTS (SELECT 1 FROM inserted WHERE [Id Estado] = 7)
+    BEGIN
+        -- Actualiza la tabla Factura con el [Id EmpresaV] del registro actualizado
+        UPDATE Factura
+        SET [Id EmpresaV] = i.[Id EmpresaV]
+        FROM inserted i
+        WHERE Factura.[No Factura] = '0000000'
+        AND i.[Id Estado] = 7;
+    END
+END;
+
+
+*****************************************************************************************************
+*****************************************************************************************************
+
+
+
+AHORA PARA MONTAR EL SERVER.JS COMO SERVICIO SE DEBE HACER LO SIGUIENTE 
+
+1. Buscar en windows editar las variables de entorno del sistema y abrirlo, después seleccionar la opción Variables de entorno que es un boton que esta en la parte inferior, después se abrila una venta con 2 cuadros el 1ro dira Variables de Usuario para [Nombre del usuario] y el segundo Variables del sistema en esa opción seleccionaremos NUEVA y en el nombre de la variable colocamos pm2_home y valor de la variable c:\.pm2 (Esta carpeta debe crearse previamente tal cual y en la ruta). Hacemos click en aceptar y aceptar.
+ 
+------------------------------------------------------------------------------------
+
+2. -- INSTALAR Y DESINSTALAR PM2 -------
+
+Abrimos el cmd como administrador y ejecutamos ->
+
+npm install pm2 -g
+
+------------------------------------------------------------------------------------
+3 -- cargar el backend en el pm2 ------
+
+Se coloca la ruta donde se tenga guardado el backend y después de "--name" el nombre que se le quiere colocar
+pm2 start C:\inetpub\wwwroot\server.js --name "Back_Relacionador"
+
+después de esto debemos observar el backend corriendo en el pm2 como esto ->
+
+C:\WINDOWS\system32>pm2 list
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ Back_Relacionador  │ fork     │ 0    │ online    │ 0%       │ 47.2mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+
+------------------------------------------------------------------------------------
+
+4. Guardar el estado de PM2:
+
+Para asegurarte de que PM2 recuerde las aplicaciones que debe iniciar, debes guardar el estado actual de PM2:
+
+pm2 save
+
+
+------------------------------------------------------------------------------------
+
+5. -- PONER COMO SERVICIO-------
+
+npm install pm2-windows-service -g 
+pm2-service-install -n Relacionador_Servicio (Nombre que se le coloca al servicio)
+
+!!!IMPORTANTE!!!!
+En las opciones que se pregunte Y/N siempre se coloca Y o las opciones por defecto menos en este caso ->
+!! no configurar la linea siguiente por defecto
+PM2_SERVICE_SCRIPTS? No
+
+
+------------------------------------------------------------------------------------
+
+6. Una vez configurado esto presionamos Windows + R y en ejecutar escribimos services.msc y buscamos el servicio que en este caso tendra el nombre de Relacionador_Servicio que se le asigno anteriormente damos click derecho sobre el y propiedades, el tipo de inicio lo ponemos en automatico(inicio retrasado), después vamos a la pestaña recuperación y en primer error, segundo error y siguientes errores ponemos reiniciar el servicio y aceptar.
+
+------------------------------------------------------------------------------------
+
+COMANDOS ADICIONALES PARA MANEJAR NPM2 (ESTAS NO SON NECESARIAS PARA LA INSTALACIÓN, PERO SIRVEN PARA VERIFICAR EL BUEN FUNCIONAMIENTO Y QUE SI ESTE CORRIENDO CORRECTAMENTE)
+
+Verificar la Variable PM2_HOME:
+
+echo %PM2_HOME%
+
+Para verificar que el daemon de PM2 se haya iniciado correctamente y que la variable PM2_HOME esté configurada correctamente, puedes ejecutar:
+
+pm2 status
+
+Para saber que se esta ejecutando:
+
+pm2 list
+
+Para reiniciar todo el PROYECTO (En caso de un bloqueo o un error que no permita que vuelva a correr)
+
+pm2 resurrect
+
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+NOTA: Se deben crear las siguientes carpetas
+
+EJECUTAR EN BASH
+
+mkdir -p /c/CeereSio/RIPS_2275/
+mkdir -p /c/CeereSio/RIPS_2275/ARCHIVOS_RIPS
+mkdir -p /c/CeereSio/RIPS_2275/ARCHIVOS_RIPS_JSON
+mkdir -p /c/CeereSio/RIPS_2275/XMLS
+mkdir -p /c/CeereSio/RIPS_2275/ARCHIVOS_DE_ENVIO
+
+O en PowerShell
+
+New-Item -ItemType Directory -Path "C:\CeereSio\RIPS_2275" -Force
+New-Item -ItemType Directory -Path "C:\CeereSio\RIPS_2275\ARCHIVOS_RIPS" -Force
+New-Item -ItemType Directory -Path "C:\CeereSio\RIPS_2275\ARCHIVOS_RIPS_JSON" -Force
+New-Item -ItemType Directory -Path "C:\CeereSio\RIPS_2275\XMLS" -Force
+New-Item -ItemType Directory -Path "C:\CeereSio\RIPS_2275\ARCHIVOS_DE_ENVIO" -Force
+
+
+
+ ESTO ES TODO LO NECESARIO PARA CONFIGURAR LA PARTE DEL BACKEND. AHORA SE DEBE IR A LA CARPETA SQL Y ACTUALIZAR LO NECESARIO EN LA BASE DE DATOS LOS NECESARIO PARA LA 2275 SON Query.sql y SCRIPT PARA RIPS AUTOMATICOS.

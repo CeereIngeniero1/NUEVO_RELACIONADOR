@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Asignar_RIPS.css">
+
+    <!-- GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&family=Be+Vietnam+Pro:wght@500;700&family=Roboto&family=Roboto+Condensed:wght@500&display=swap"
+        el="stylesheet">
+
+    <!-- SWEETALERT2 -->
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+
+    <!-- IMPORTANDO ARCHIVOS NECESARIOS PARA TRABAJAR CON ALERTIFY -->
+    <link rel="stylesheet" href="node_modules/alertifyjs/build/css/alertify.min.css">
+    <link rel="stylesheet" href="node_modules/alertifyjs/build/css/themes/default.css">
+
+    <!-- BOOTSTRAP -->
+    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+    <!-- ICONO DE LA PÁGINA -->
+    <link rel="icon" href="images/Logo.png" type="image/x-icon">
+
+    <!-- HERRAMIENTAS PARA TRABAJAR CON SELECTS PARA INCORPORAR BUSCADOR Y AJUSTAR EL CONTENIDO -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
+
+    <title>Registrar - RIPS</title>
+</head>
+
+<body>
+
+    <div class="container" id="Contenido">
+
+        <div class="position-fixed bottom-0 end-0 p-3">
+            <button class="btn btn-success shadow-lg fw-bolder" id="RegresarAPrincipal">Regresar</button>
+        </div>
+
+
+        <div class="form-control shadow mt-3">
+            <div class="row align-items-center justify-content-center">
+                <h5><b>Selección de paciente</b></h5>
+                <!-- <div class="col-md-6 col-lg-12 border border-secondary d-flex"> -->
+                <div class="row g-0">
+                    <div class="col-md-4 p-3 pt-0">
+                        <label for="listaHC">Seleccionar paciente</label><br>
+                        <select id="listaHC" class="form-select-sm border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                        <button class="btn btn-success btn-sm mt-md-3 mt-lg-0 fw-bolder"
+                            id="BotonConsultar">Consultar</button>
+                    </div>
+                    <!-- <label for="listaHC">Seleccionar paciente</label><br>
+                    <select id="listaHC" class="form-select-sm border-secondary">
+                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                    </select> -->
+                    <!-- <button class="btn btn-success btn-sm mt-md-3 mt-lg-0" data-bs-toggle="modal" data-bs-target="#exampleModal" id="BotonConsultar">Consultar</button> -->
+                    <!-- <button class="btn btn-success btn-sm mt-md-3 mt-lg-0 fw-bolder" id="BotonConsultar">Consultar</button> -->
+                    <div class="col-md-4  p-3 pt-0" id="ContenedorDeCheckBox">
+                        <label for="listaHC">Buscar:</label><br>
+                        <input class="form-check-input" type="checkbox" value="" id="BuscarPorFacturas">
+                        <label class="form-check-label" for="flexCheckDefault" id="LabelFacturas">
+                            Facturas (Particular)
+                        </label>
+
+                        <input class="form-check-input" type="checkbox" value="" id="BuscarPorPresupuestos">
+                        <label class="form-check-label" for="flexCheckDefault" id="LabelPresupuestos">
+                            Presupuestos (EPS)
+                        </label>
+                    </div>
+
+                    <!-- CONTENEDOR PARA SELECT DE FACTURAS Y PRESUPUESTOS DEL PACIENTE -->
+                    <div class="col-md-4 p-2 p-3 pt-0" id="ContenedorDeSelects">
+                        <div class="Facturas" id="Facturas">
+                            <label for="listaHC">Seleccionar factura</label><br>
+                            <select id="FacturaARelacionar" class="form-select-sm border-secondary w-100">
+                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                            </select>
+                        </div>
+
+                        <div class="Presupuestos" id="Presupuestos">
+                            <label for="listaHC">Seleccionar presupuesto</label><br>
+                            <select id="PresupuestoARelacionar" class="form-select-sm border-secondary w-100">
+                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Modal -->
+                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="fs-6 font-weight-bold" id="exampleModalLabel">Consultar rango de fecha para
+                                    historias clínicas sin asignar RIPS</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="">Fecha Inicial</label>
+                                        <input type="date" class="form-control-sm w-100 border border-secondary"
+                                            id="FechaInicioConsulta">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="">Fecha Final</label>
+                                        <input type="date" class="form-control-sm w-100 border border-secondary"
+                                            id="FechaFinConsulta">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm fw-bolder" data-bs-dismiss="modal"
+                                    id="BotonCerarModal">Cerrar</button>
+                                <button type="button" class="btn btn-primary btn-sm fw-bolder"
+                                    id="CargarPacientesConHCSinRIPS">Cargar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <h5><b>Datos del paciente</b></h5>
+                <div class="col-md-4">
+                    <label for="">Nombre completo:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="NombrePaciente"><br>
+
+                    <label for="">Edad:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="EdadPaciente">
+                </div>
+                <div class="col-md-4">
+                    <label for="">Documento:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="DocumentoPaciente"><br>
+
+                    <label for="">Dirección:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="DireccionPaciente">
+                </div>
+                <div class="col-md-4">
+                    <label for="">Sexo:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="SexoPaciente"><br>
+
+                    <label for="">Teléfono:</label><br>
+                    <input type="text" class="form-control-sm mb-2 border border-secondary w-100" readonly
+                        id="TelefonoPaciente">
+                </div>
+            </div>
+
+            <div class="listaHC">
+
+                <div class="row mt-4">
+                    <h5><b>Selección de historia clínica y tipo de RIPS</b></h5>
+                    <div class="col-md-4">
+                        <label for="">Seleccione la historia clínica a asignarle el RIPS</label>
+                        <select name="" class="form-select-sm w-100 border border-secondary" id="HistoriasSinRIPS">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="">Tipo de rips a diligenciar</label>
+                        <br>
+                        <label for="ac">AC <input type="radio" name="tipoRipsss" id="AC"></label>
+                        <label for="ap">AP <input type="radio" name="tipoRips" id="AP"></label>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="">RIPS por defecto</label>
+                        <br>
+                        <button type="button" class="btn btn-success btn-sm fw-bolder" data-bs-toggle="modal"
+                            data-bs-target="#ModalRIPSPorDefecto" id="BotonModalAsignarRIPSPorDefecto">Asignar</button>
+                        <button type="button" class="btn btn-success btn-sm fw-bolder"
+                            id="BotonCargarRIPSPorDefecto">Cargar</button>
+
+                        <!-- MODAL PARA ASIGNAR RIPS POR DEFECTO -->
+                        <div class="modal fade modal-lg" id="ModalRIPSPorDefecto" data-bs-backdrop="static"
+                            data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+                            aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold" id="ModalRIPSPorDefecto">Asignación de RIPS por
+                                            defecto</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close" id="Boton1CerrarModalAsignarRIPSPordefecto"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <span>Selecciona el tipo de RIPS</span>
+                                        <select class="form-select-sm w-30 mb-2 border border-secondary" name=""
+                                            id="SelectTipoRIPSPorDefecto">
+                                            <option value=""></option>
+                                            <option value="1">AC</option>
+                                            <option value="2">AP</option>
+                                        </select>
+                                        <button type="button" class="btn btn-success btn-sm fw-bolder"
+                                            id="BotonVerRIPSPorDefecto">Ver</button>
+
+                                        <div class="form-control w-100 d-none" id="ACPorDefecto">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <label>Tipo de usuario</label>
+                                                    <select name="" id="SelectPorDefectoTipoUsuarioRIPS"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label>Entidad</label>
+                                                    <select name="" id="SelectPorDefectoEntidadAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label>ModalidadGrupoServicioTecSal</label>
+                                                    <select name="" id="SelectPorDefectoModalidadGrupoServicioTecSalAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4">
+                                                    <label for="">GrupoServicios</label>
+                                                    <select name="" id="SelectPoDefectoGrupoServiciosAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">CodServicio</label>
+                                                    <select name="" id="SelectPorDefectoCodigoServicioAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">FinalidadTecnologiaSalud</label>
+                                                    <select name="" id="SelectPorDefectoFinalidadTecnologiaSaludAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4">
+                                                    <label for="">CausaMotivoAtención</label>
+                                                    <select name="" id="SelectPorDefectoCausaMotivoAtencionAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">TipoDiagnósticoPrincipal</label>
+                                                    <select name="" id="SelectPorDefectoTipoDiagnosticoPrincipalAC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Consulta RIPS 1</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoConsultaRIPS1AC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Consulta RIPS 2</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoConsultaRIPS2AC"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Diagnóstico RIPS 1</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoDiagnosticoRIPSAC1"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Diagnóstico RIPS 2</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoDiagnosticoRIPSAC2"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="form-control w-100 d-none" id="APPorDefecto">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <label for="">Tipo de usuario</label>
+                                                    <select name="" id="SelectPorDefectoTipoUsuarioRIPSAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">Entidad</label>
+                                                    <select name="" id="SelectPorDefectoEntidadAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">ViaIngresoServicioSalud</label>
+                                                    <select name="" id="SelectPorDefectoViaIngresoServicioSaludAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-1">
+                                                <div class="col-md-4">
+                                                    <label for="">ModalidadGrupoServicioTecSal</label>
+                                                    <select name="" id="SelectPorDefectoModalidadGrupoServicioTecSalAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">GrupoServicios</label>
+                                                    <select name="" id="SelectPorDefectoGrupoServiciosAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="">CodServicio</label>
+                                                    <select name="" id="SelectPorDefectoCodServicioAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-1">
+                                                <div class="col-md-4">
+                                                    <label for="">FinalidadTecnologíaSalud</label>
+                                                    <select name="" id="SelectPorDefectoFinalidadTecnologíaSaludAP"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Procedimiento RIPS 1</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoProcedimientoRIPSAP1"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Procedimiento RIPS 2</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoProcedimientoRIPSAP2"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Diagnóstico RIPS 1</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoDiagnosticoRIPSAP1"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-1">
+                                                <div class="col-md-4 text-end">
+                                                    <label for="">Diagnóstico RIPS 2</label>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <select name="" id="SelectPorDefectoDiagnosticoRIPSAP2"
+                                                        class="form-select-sm w-100 border border-secondary">
+                                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary btn-sm fw-bolder"
+                                            data-bs-dismiss="modal"
+                                            id="Boton2CerrarModalAsignarRIPSPordefecto">Cerrar</button>
+                                        <button type="button" class="btn btn-primary btn-sm fw-bolder"
+                                            id="BotonGuardarRIPSPorDefecto">Guardar</button>
+                                        <button type="button" class="btn btn-primary btn-sm fw-bolder"
+                                            id="BotonActualizarRIPSPorDefecto">Actualizar</button>
+                                        <button type="button" class="btn btn-primary btn-sm fw-bolder"
+                                            id="BotonEliminarRIPSPorDefecto">Eliminar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="mt-4"><b>Asignación de RIPS</b></h5>
+
+            <!-- RIPS AC -->
+            <div class="" id="TipoAC">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Seleccione tipo de usuario</label>
+                        <select name="" id="SelectTipoUsuarioRIPS"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">Entidad</label>
+                        <select name="" id="SelectEntidad" class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">ModalidadGrupoServicioTecSal</label>
+                        <select name="" id="SelectModalidadGrupoServicioTecnologiaSalud"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">GrupoServicios</label>
+                        <select name="" id="SelectGrupoServiciosAC"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">CodServicio</label>
+                        <select name="" id="SelectServiciosAC"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">FinalidadTecnologiaSalud</label>
+                        <select name="" id="SelectFinalidadTecnologiaSaludAC"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">CausaMotivoAtención</label>
+                        <select name="" id="SelectCausaMotivoAtencion"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">TipoDiagnósticoPrincipal</label>
+                        <select name="" id="SelectTipoDiagnosticoPrincipalAC"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <label>Consulta RIPS</label>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <!-- <div class="col-12 col-md-2">
+                                    <input type="text" id="InputValorCodigoConsultaRIPS1" class="form-control-sm border border-dark w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectConsultaRIPSAC1" class="form-select-sm border border-dark w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                                <!-- <div class="col-12 col-md-2">
+                                    <input type="text" id="InputValorCodigoConsultaRIPS2" class="form-control-sm border border-dark w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectConsultaRIPSAC2" class="form-select-sm border border-dark w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <label>Diagnóstico RIPS</label>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <!-- <div class="col-md-2">
+                                    <input type="text" id="inputCodConsulta1" value="89020" class="form-control-sm border border-secondary w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectDiagnosticoRIPSAC1"
+                                        class="form-select-sm border border-secondary w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                                <!-- <div class="col-md-2">
+                                    <input type="text" id="inputCodConsulta2" value="89020" class="form-control-sm border border-secondary w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectDiagnosticoRIPSAC2"
+                                        class="form-select-sm border border-secondary w-100"
+                                        style="white-space: normal;">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-success d-none" id="MostrarValue">Mostrar Value</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- RIPS AP -->
+            <div clas="" id="TipoAP">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Seleccione tipo de usuario</label>
+                        <select name="" id="SelectTipoUsurioRIPSAP"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">Entidad</label>
+                        <select name="" id="SelectEntidadAP" class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">ViaIngresoServicioSalud</label>
+                        <select name="" id="SelectViaIngresoServicioSaludAP"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">ModalidadGrupoServicioTecSal</label>
+                        <select name="" id="SelectModalidadGrupoServicioTecSalAP"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">GrupoServicios</label>
+                        <select name="" id="SelectGrupoServiciosAP"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">CodServicio</label>
+                        <select name="" id="SelectServicioAP" class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="">FinalidadTecnologíaSalud</label>
+                        <select name="" id="SelectFinalidadTecnologiaSaludAP"
+                            class="form-select-sm w-100 mb-2 border border-secondary">
+                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <label>Procedimiento RIPS</label>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <!-- <div class="col-12 col-md-2">
+                                    <input type="text" id="inputCodConsulta1" value="89020" class="form-control-sm border border-dark w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectProcedimientoRIPSAP1"
+                                        class="form-select-sm border border-dark w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                                <!-- <div class="col-12 col-md-2">
+                                    <input type="text" id="inputCodConsulta2" value="89020" class="form-control-sm border border-dark w-100">
+                                </div> -->
+                                <div class="col-12 col-md-12">
+                                    <select id="SelectProcedimientoRIPSAP2"
+                                        class="form-select-sm border border-dark w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <label>Diagnóstico RIPS</label>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <!-- <div class="col-md-2">
+                                    <input type="text" id="inputCodConsulta1" value="89020" class="form-control-sm border border-secondary w-100">
+                                </div> -->
+                                <div class="col-md-12">
+                                    <select id="SelectDiagnosticoRIPSAP1"
+                                        class="form-select-sm border border-secondary w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                                <!-- <div class="col-md-2">
+                                    <input type="text" id="inputCodConsulta2" value="89020" class="form-control-sm border border-secondary w-100">
+                                </div> -->
+                                <div class="col-md-12">
+                                    <select id="SelectDiagnosticoRIPSAP2"
+                                        class="form-select-sm border border-secondary w-100">
+                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button">
+                <button id="btnRegistrarRIPS" class="btn btn-success btn-sm mt-3 fw-bolder">Registrar RIPS</button>
+                <button id="BtnNoRegistrarRIPS" class="btn btn-warning btn-sm mt-3 fw-bolder">No registrar RIPS a
+                    historia</button>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+<!-- SWEETALERT -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
+<!-- BOOTSTRAP -->
+<script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+<!-- ALERTIFY -->
+<script src="node_modules/alertifyjs/build/alertify.min.js"></script>
+
+<script src="Asignar_RIPS.js"></script>
+
+</html>

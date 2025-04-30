@@ -1,0 +1,8 @@
+{
+    "ignore": [
+        "public/RIPS.js",
+        "public/script.js",
+        "public/Asignar_RIPS.js",
+        "public/MaestroListasRIPS.js"
+    ]
+}
