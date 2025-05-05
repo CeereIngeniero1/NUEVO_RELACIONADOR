@@ -402,7 +402,8 @@ router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio
 
     const request = new Request(
         `
-        SELECT em2.[Código Empresa] AS codPrestador, 
+        SELECT    
+        em2.[Código Empresa] AS codPrestador, 
         --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) AS fechaInicioAtencion, 
 
         CASE WHEN SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) IS NULL THEN SUBSTRING(CONVERT(VARCHAR, EVE.[Fecha Evaluación Entidad] , 120), 1, 16)
@@ -419,7 +420,7 @@ router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio
 		Case when tdp.[Código Tipo de Diagnóstico Principal] IS NULL THEN '02' ELSE tdp.[Código Tipo de Diagnóstico Principal] END AS tipoDiagnosticoPrincipal,
 
 
-        tp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Entidad] AS numDocumentoIdentificacion, 
+        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
         fc.[Total Factura] AS vrServicio, '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
         NULL  AS numFEVPagoModerador, 
         -- ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) 
@@ -437,8 +438,10 @@ router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio
         LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON everips.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
 		LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
 
-		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios] 
+		INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
 
+		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios] 
         
         WHERE everips.[Id Acto Quirúrgico] = 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura
@@ -513,9 +516,10 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
-    const ResolucionesRips = req.params.ResolucionesRips;
+    const ResolucionesRips = req.params.ResolucionesRips; 
 
-      console.log(`
+    const request = new Request(
+        `
         SELECT em2.[Código Empresa] AS codPrestador, 
         --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) AS fechaInicioAtencion, 
 
@@ -531,7 +535,7 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
         NULL AS codDiagnosticoRelacionado2, NULL AS codDiagnosticoRelacionado3, 
         --tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
 		Case when tdp.[Código Tipo de Diagnóstico Principal] IS NULL THEN '02' ELSE tdp.[Código Tipo de Diagnóstico Principal] END AS tipoDiagnosticoPrincipal,
-        tp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Entidad] AS numDocumentoIdentificacion, 
+        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
         PT.[Valor Plan de Tratamiento Items] AS vrServicio, '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
         NULL  AS numFEVPagoModerador, ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) AS consecutivo
 
@@ -551,51 +555,8 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
 		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios]
         LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
         
-        WHERE everips.[Id Acto Quirúrgico] = 1 
-        AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = ${numFactura}
-        AND eve.[Documento Entidad] = ${numDocumentoIdentificacion}
-        AND CONVERT(DATE, eve.[Fecha Evaluación Entidad]) BETWEEN ${fechaInicio} AND ${fechaFin}
-        AND EmpV.[Resolución Facturación EmpresaV] = ${ResolucionesRips}
-        AND Tr.[Documento Paciente] = eve.[Documento Entidad]
-
-        `)
-
-    const request = new Request(
-        `
-        SELECT em2.[Código Empresa] AS codPrestador, 
-        --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) AS fechaInicioAtencion, 
-
-        CASE WHEN SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) IS NULL THEN SUBSTRING(CONVERT(VARCHAR, EVE.[Fecha Evaluación Entidad] , 120), 1, 16)
-        ELSE SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) END  AS fechaInicioAtencion, 
-
-        NULL AS numAutorizacion, everips.[Codigo RIPS] AS codConsulta,
-        '01' AS modalidadGrupoServicioTecSal, '01' AS grupoServicios, Serv.[Código Servicios] AS codServicio,
-        everips.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, CASE WHEN CAU.Codigo IS NULL THEN 38 ELSE Cau.Codigo END AS causaMotivoAtencion,
-        everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
-        Null  AS codDiagnosticoRelacionado1, 
-        --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado1,  
-        NULL AS codDiagnosticoRelacionado2, NULL AS codDiagnosticoRelacionado3, 
-        --tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
-		Case when tdp.[Código Tipo de Diagnóstico Principal] IS NULL THEN '02' ELSE tdp.[Código Tipo de Diagnóstico Principal] END AS tipoDiagnosticoPrincipal,
-        tp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Entidad] AS numDocumentoIdentificacion, 
-        PT.[Valor Plan de Tratamiento Items] AS vrServicio, '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
-        NULL  AS numFEVPagoModerador, ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) AS consecutivo
-
-        FROM [Evaluación Entidad] as eve
-
-        INNER JOIN [Evaluación Entidad Rips] as everips ON eve.[Id Evaluación Entidad] = everips.[Id Evaluación Entidad]
-        LEFT JOIN Entidad ON eve.[Documento Entidad] = Entidad.[Documento Entidad]
-        LEFT JOIN [Tipo de Documento] as tp ON Entidad.[Id Tipo de Documento] = tp.[Id Tipo de Documento]
-        LEFT JOIN Factura as fc ON everips.[Id Factura] = fc.[Id Factura]
-		LEFT JOIN Empresa ON fc.[Documento Empresa] = Empresa.[Documento Empresa]
-		LEFT JOIN Empresa as em2 ON eve.[Documento Empresa] = em2.[Documento Empresa]
-        INNER JOIN EmpresaV as EmpV ON fc.[Documento Empresa] = EmpV.[Documento Empresa]
-        LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON everips.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
-		LEFT JOIN FacturaII FII ON FII.[Id Factura] = FC.[Id Factura] 
-		left join [Plan de Tratamiento Items] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
-		left join [Plan de Tratamiento] Tr ON Tr.[Id Plan de Tratamiento] = fii.[Id Plan de Tratamiento]
-		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios]
-        LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
+        INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
         
         WHERE everips.[Id Acto Quirúrgico] = 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura
@@ -681,8 +642,10 @@ router.get('/serviciosAP/rips/:numFactura/:numDocumentoIdentificacion/:fechaInic
         '01' AS grupoServicios, '371' AS codServicio, 
 		--fp.Codigo AS finalidadTecnologiaSalud, 
 		CASE WHEN fp.Codigo IS NULL THEN '44' ELSE fp.Codigo END AS finalidadTecnologiaSalud, 
-        tp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Entidad] AS numDocumentoIdentificacion, 
+
+        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
         everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
+
         NULL   AS codDiagnosticoRelacionado, 
         --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado, 
         NULL AS codComplicacion, fc.[Total Factura] AS vrServicio, '05' AS tipoPagoModerador, 
@@ -698,6 +661,8 @@ router.get('/serviciosAP/rips/:numFactura/:numDocumentoIdentificacion/:fechaInic
 		LEFT JOIN Empresa ON fc.[Documento Empresa] = Empresa.[Documento Empresa]
 		LEFT JOIN Empresa as em2 ON eve.[Documento Empresa] = em2.[Documento Empresa]
         LEFT JOIN EmpresaV as EmpV ON Empresa.[Documento Empresa] = EmpV.[Documento Empresa]
+		INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
         
         WHERE everips.[Id Acto Quirúrgico] <> 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura 
@@ -782,7 +747,7 @@ router.get('/servicios/ripsEPSAP/:numFactura/:numDocumentoIdentificacion/:fechaI
         '01' AS grupoServicios, '371' AS codServicio, 
 		--fp.Codigo AS finalidadTecnologiaSalud, 
 		CASE WHEN fp.Codigo IS NULL THEN '44' ELSE fp.Codigo END AS finalidadTecnologiaSalud, 
-        tp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Entidad] AS numDocumentoIdentificacion, 
+        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
         everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
         NULL AS codDiagnosticoRelacionado, 
         --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado, 
@@ -799,6 +764,8 @@ router.get('/servicios/ripsEPSAP/:numFactura/:numDocumentoIdentificacion/:fechaI
 		LEFT JOIN Empresa ON fc.[Documento Empresa] = Empresa.[Documento Empresa]
 		LEFT JOIN Empresa as em2 ON eve.[Documento Empresa] = em2.[Documento Empresa]
         LEFT JOIN EmpresaV as EmpV ON Empresa.[Documento Empresa] = EmpV.[Documento Empresa]
+		INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
         
         WHERE everips.[Id Acto Quirúrgico] <> 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura 
