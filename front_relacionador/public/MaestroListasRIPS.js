@@ -1,4 +1,4 @@
-const servidor = "HPGRIS";
+const servidor = "HPRED241";
 let TablaModalidadGrupoServicioTecnologiaSalud;
 
 

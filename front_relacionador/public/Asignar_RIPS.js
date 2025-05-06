@@ -1,4 +1,4 @@
-const servidor = "HPGRIS";
+const servidor = "HPRED241";
 
 function VerificarLogin() {
     const TokenLogin = localStorage.getItem('token');

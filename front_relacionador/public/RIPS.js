@@ -1,4 +1,4 @@
-const servidor = "HPGRIS";
+const servidor = "HPRED241";
 
 // Funcionalidad para incorporar buscador en el select de los pacientes
 $(document).ready(function(e) {
