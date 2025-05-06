@@ -1,6 +1,8 @@
 const { Request, TYPES } = require('tedious');
 const Router = require('express').Router;
 const connection = require('../db');
+const { sql, poolPromise } = require('../db2');
+
 
 const router = Router();
 
@@ -405,7 +407,7 @@ router.post('/relacionar', (req, res) => {
     connection.execSql(requestInsert);
 });
 
-router.post('/facturaCero/:documentoEmpresaSeleccionada', async (req, res) => {
+router.post('/facturaCeroORIGINAL/:documentoEmpresaSeleccionada', async (req, res) => {
     try {
         const { evaluacion } = req.body;
         const idFactura = [];
@@ -473,5 +475,51 @@ router.post('/facturaCero/:documentoEmpresaSeleccionada', async (req, res) => {
         return res.status(500).json({ error: 'Error interno del servidor - Catch' });
     }
 });
+
+router.post('/facturaCero/:documentoEmpresaSeleccionada', async (req, res) => {
+    const { evaluacion } = req.body;
+    const documentoEmpresaSeleccionada = req.params.documentoEmpresaSeleccionada;
+
+    try {
+        // Obtener conexión del pool
+        const pool = await poolPromise;
+        
+        // Realizar la consulta para obtener el Id Factura
+        const resultSelect = await pool.request()
+            .input('documentoEmpresaSeleccionada', sql.VarChar, documentoEmpresaSeleccionada)
+            .query(`SELECT [Id Factura] FROM Factura WHERE [No Factura] = '0000000' AND [Documento Empresa] = @documentoEmpresaSeleccionada`);
+
+        const idFactura = resultSelect.recordset;
+
+        if (idFactura.length > 0) {
+            const facturaId = idFactura[0]['Id Factura'];
+            console.log('IdFactura devuelto por la consulta:', facturaId);
+
+            // Consulta para obtener el máximo consecutivo
+            const resultMax = await pool.request()
+                .query(`SELECT MAX(ConsecutivoRipsFacturaEnCero) AS MaxConsecutivo FROM [Evaluación Entidad Rips]`);
+
+            let maxConsecutivo = resultMax.recordset[0].MaxConsecutivo;
+            const nuevoConsecutivo = (maxConsecutivo === null) ? 1 : maxConsecutivo + 1;
+
+            // Realizar la inserción en la tabla [Evaluación Entidad Rips]
+            const resultInsert = await pool.request()
+                .input('IdEvaluacion', sql.Int, evaluacion)
+                .input('IdFactura', sql.Int, facturaId)
+                .input('NuevoConsecutivo', sql.Int, nuevoConsecutivo)
+                .query(`UPDATE [Evaluación Entidad Rips] SET [Id Factura] = @IdFactura, [ConsecutivoRipsFacturaEnCero] = @NuevoConsecutivo WHERE [Id Evaluación Entidad Rips] = @IdEvaluacion`);
+
+            console.log('Inserción ejecutada con éxito');
+            return res.json({ idFactura: facturaId, nuevoConsecutivo });
+        } else {
+            return res.status(404).json({ error: 'No se encontró ninguna factura con [No Factura] = 0' });
+        }
+    } catch (error) {
+        console.error('Error en la operación:', error.message);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+
 
 module.exports = router;
