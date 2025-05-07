@@ -105,152 +105,7 @@ router.get('/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/:empresa',
     }
 });
 
-router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal', async (req, res) => {
-    const { prefijo, fechainicial, fechafinal } = req.params;
-    console.log(`Prefijo: ${prefijo}, Fecha Inicial: ${fechainicial}, Fecha Final: ${fechafinal}`);
 
-    try {
-        if (connection.state.name !== 'LoggedIn') {
-            return res.status(500).send('La conexión a la base de datos no está en un estado válido');
-        }
-
-        const query = `
-            SELECT 
-                Fac.[No Factura] AS NoFactura, 
-                CONVERT(VARCHAR, Fac.[Fecha Factura], 103) AS FechaFactura, 
-                EmpV.[Prefijo Resolución Facturación EmpresaV] AS Prefijo
-            FROM 
-                Factura Fac
-            INNER JOIN 
-                EmpresaV EmpV ON Fac.[Id EmpresaV] = EmpV.[Id EmpresaV]
-            INNER JOIN 
-                Empresa Emp ON EmpV.[Documento Empresa] = Emp.[Documento Empresa]
-            WHERE 
-                EmpV.[Id Estado] = 7 AND
-                Fac.EstadoFacturaElectronica >= 1 AND
-                CAST(Fac.[Fecha Factura] AS DATE) BETWEEN @FechaInicial AND @FechaFinal AND 
-                EmpV.[Prefijo Resolución Facturación EmpresaV] = @Prefijo
-        `;
-
-        const facturas = [];
-        const request = new Request(query, (err, rowCount) => {
-            if (err) {
-                console.error('Error ejecutando la consulta:', err);
-                // return res.status(500).send('Error ejecutando la consulta');
-            }
-
-            if (rowCount === 0) {
-                // return res.status(404).send('No se encontraron facturas');
-            }
-
-            // processNextFactura(facturas[0]);
-        });
-
-        request.on('row', columns => {
-            const rowObject = {};
-            columns.forEach(column => {
-                rowObject[column.metadata.colName] = column.value;
-            });
-            facturas.push(rowObject);
-        });
-
-        request.on('doneInProc', (rowCount, more, rows) => {
-            if (facturas.length === 0) {
-                // return res.status(404).send('No se encontraron facturas');
-            }
-
-            let processedCount = 0;
-            const facturasWithPaths = [];
-
-            const processNextFactura = (factura) => {
-                if (!factura) {
-                    if (facturasWithPaths.length > 0) {
-                        return res.status(200).json({ message: 'XMLS descargados con éxito', facturas: facturasWithPaths });
-                    } else {
-                        return res.status(200).json({ message: 'No se descargó ningún XML nuevo' });
-                    }
-                }
-
-                // const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${factura.NoFactura}.xml`);
-
-
-                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
-                    console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
-                    processedCount++;
-                    processNextFactura(facturas[processedCount]);
-                    return;
-                }
-
-                const soapUrl = 'https://ws.facturatech.co/v2/pro/index.php?wsdl';
-                const args = {
-                    username: '890941638',
-                    password: 'd63e3771ae7cba422236949ea5826f984e8ea626331104a8a822c9a7333dc04e',
-                    prefijo: factura.Prefijo,
-                    folio: factura.NoFactura
-                };
-
-                soap.createClient(soapUrl, (err, client) => {
-                    if (err) {
-                        console.error('Error creating SOAP client:', err);
-                        processedCount++;
-                        processNextFactura(facturas[processedCount]);
-                        return;
-                    }
-
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
-                        if (err) {
-                            console.error('Error calling FtechAction.downloadXMLFile:', err);
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                            return;
-                        }
-
-                        if (result && result.return && result.return.resourceData && result.return.resourceData.$value) {
-                            const base64Data = result.return.resourceData.$value;
-                            const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            // const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${args.prefijo}${args.folio}.xml`);
-                            // Crear la carpeta de manera recursiva
-                            const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
-                            fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${args.prefijo}${args.folio}.xml`);
-
-                            fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
-                                if (err) {
-                                    console.error('Error guardando archivo XML:', err);
-                                    processedCount++;
-                                    processNextFactura(facturas[processedCount]);
-                                    return;
-                                } else {
-                                    console.log('Archivo XML guardado exitosamente:', filePath);
-                                    factura.filePath = filePath;
-                                    facturasWithPaths.push(factura);
-                                    processedCount++;
-                                    processNextFactura(facturas[processedCount]);
-                                }
-                            });
-                        } else {
-                            console.log('No se recibió ningún dato válido del servicio.');
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                        }
-                    });
-                });
-            };
-
-            processNextFactura(facturas[0]);
-        });
-
-        request.addParameter('Prefijo', TYPES.NVarChar, prefijo);
-        request.addParameter('FechaInicial', TYPES.Date, new Date(fechainicial));
-        request.addParameter('FechaFinal', TYPES.Date, new Date(fechafinal));
-
-        connection.execSql(request);
-    } catch (error) {
-        console.error('Error inesperado:', error);
-        res.status(500).send('Error inesperado');
-    }
-});
 
 
 
@@ -268,7 +123,8 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
             SELECT 
                 Fac.[No Factura] AS NoFactura, 
                 CONVERT(VARCHAR, Fac.[Fecha Factura], 103) AS FechaFactura, 
-                EmpV.[Prefijo Resolución Facturación EmpresaV] AS Prefijo
+                EmpV.[Prefijo Resolución Facturación EmpresaV] AS Prefijo,
+                Empv.idnumeracionFenalco
             FROM 
                 Factura Fac
             INNER JOIN 
@@ -368,7 +224,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
             let processedCount = 0;
             const resultadosFinales = [];
         
-            const processNextFactura = (factura) => {
+            const processNextFactura = (factura, token) => {
                 if (!factura) {
                     // Al finalizar todas las facturas, devolver los resultados al cliente.
                     return res.status(200).json({
@@ -389,13 +245,12 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     return;
                 }
         
-                let soapUrl = ContenidoCredenciales[0].URLSOAP || 'https://ws.facturatech.co/v2/pro/index.php?wsdl';
+                let soapUrl = ContenidoCredenciales[0].URLSOAP || 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
         
                 const args = {
-                    username: ContenidoCredenciales[0].Usuario,
-                    password: ContenidoCredenciales[0].Contrasena,
-                    prefijo: factura.Prefijo,
-                    folio: factura.NoFactura
+                    token: token,
+                    idnumeracion: factura.idnumeracionFenalco, 
+                    numero: factura.NoFactura
                 };
         
                 soap.createClient(soapUrl, async (err, client) => {
@@ -409,6 +264,37 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                         processNextFactura(facturas[processedCount]);
                         return;
                     }
+                    
+                    client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+
+                    client.obtenerApplicationResponseyAttachedDocument2(args, (err, result) => {
+                        const archivo = path.join(carpeta, `${numero.toString()}.xml` );
+    
+                        if (err) {
+                            console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${numero}:`, err);
+                            return reject(err);
+                        }
+    
+                        try {
+                            const response = JSON.parse(result.return);
+                            // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+                            // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+                            let base64 = response.data.attachedDocument;
+                            let buffer = Buffer.from(base64, 'base64');
+                            let xmlcontenido = buffer.toString('utf8');
+                            // console.log(xmlcontenido);
+                            if(!fs.existsSync(carpeta)){
+                                fs.mkdirSync(carpeta, { recursive: true});
+                            }
+                            
+                            fs.writeFileSync(archivo, xmlcontenido, 'utf8');
+                            resolve(response.data.attachedDocument);
+                        } catch (parseError) {
+                            console.error(`Error al parsear la respuesta de la factura ${numero}:`, parseError);
+                            reject(parseError);
+                        }
+                    });
+                    /////////////Esto sepára
         
                     client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
                         if (err) {
@@ -495,8 +381,45 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                 });
         
             };
+
+            const auntenticacion = (facturas) => {
+                const wsdlUrl = 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
+                    let Token ;
+                    const loginData = {
+                        login: ContenidoCredenciales[0].Usuario, // Reemplaza con tu usuario real
+                        password: ContenidoCredenciales[0].Contrasena // Reemplaza con tu contraseña real
+                    };
+
+                    soap.createClient(wsdlUrl, (err, client) => {
+                        if (err) {
+                            console.error('Error al crear el cliente SOAP:', err);
+                            return;
+                        }
+                        
+                        client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+                        
+                        client.autenticar(loginData, (err, result) => {
+                            if (err) {
+                                console.error('Error al autenticar:', err);
+                                return;
+                            }
+                            
+                            try {
+                                const response = JSON.parse(result.return);
+                                console.log('Token de autenticación:', response.data.salida );
+                                Token = response.data.salida;
+                               // processNextFactura(facturas, response.data.salida);
+                               console.log();
+                            } catch (parseError) {
+                                console.error('Error al parsear la respuesta:', parseError);
+                            }
+                        });
+
+                        
+                    });
+            };
         
-            processNextFactura(facturas[0]);
+            auntenticacion(facturas[0]);
         };
         
         
