@@ -1,4 +1,5 @@
-const servidor = "HPRED241";
+// const servidor = "HPGRIS";
+const servidor = localStorage.getItem("NombreEquipoServidor");
 let TablaModalidadGrupoServicioTecnologiaSalud;
 
 

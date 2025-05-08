@@ -11,7 +11,8 @@ const os = require('os');
     console.log(Servidor);
 
     // Nombre/Ruta de los archivos que se van a modificar
-    const ArchivosAModificar = ['./public/RIPS.js', './public/script.js','./public/Asignar_RIPS.js','./public/MaestroListasRIPS.js'];
+    // const ArchivosAModificar = ['./public/RIPS.js', './public/script.js','./public/Asignar_RIPS.js','./public/MaestroListasRIPS.js'];
+    const ArchivosAModificar = ['./public/NombreEquipoServidor.js'];
 
 
     // const RutaArchivos = "public\\";
@@ -28,7 +29,8 @@ const os = require('os');
                 return;
             }
 
-            let updatedContent = data.replace(/const servidor\s*=\s*".*";/, `const servidor = "${Servidor}";`);
+            // let updatedContent = data.replace(/const servidor\s*=\s*".*";/, `const servidor = "${Servidor}";`);
+            let updatedContent = data.replace(/const NombreServidor\s*=\s*".*";/, `const NombreServidor = "${Servidor}";`);
 
 
             // Escribir el contenido actualizado en el archivo temporal
