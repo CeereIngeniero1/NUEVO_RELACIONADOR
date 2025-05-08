@@ -1,0 +1,8 @@
+La relacion automatica busca facturas y presupuestos que estan anulados 
+Colocar exclusion para  solo buscar lso que no esten anulados
+
+El errror de descarga de json cuando es EPS
+ era por que el archivo tenia un nombre muy largo
+ SE DEBE MODIFICAR ESO EN DESARGAR ARCHIVO RIPS EN LAS LINES DONDE ESTA 
+ const nombreArchivo = `${numFacturaConsulta}_${documento}_${docIndex + 1}.json`;
+ const nombreArchivoCombinado = `${numFacturaConsulta}_${documentos.join('_')}.json`;
