@@ -776,6 +776,9 @@ const logout = () => {
     // Se elimina el nombre de la empresa almacenado en localStorage
     sessionStorage.removeItem('empresaTrabajarNombre');
 
+    // Se elimina el nombre del equipo servidor
+    localStorage.removeItem('NombreEquipoServidor');
+
     // Redirigir al usuario a la página de inicio de sesión u otra página deseada
     window.location.href = 'index.html'; // Cambia esto a la página de inicio de sesión o la página que prefieras
 };
@@ -1694,6 +1697,7 @@ const redirectToIndexIfTokenExpired = () => {
     if (!isTokenValid()) {
         localStorage.removeItem('token');
         localStorage.removeItem('token_exp');
+        localStorage.removeItem('NombreEquipoServidor');
         Swal.fire({
             icon: "warning",
             title: "Sesión caducada",
@@ -1719,6 +1723,7 @@ function verificarToken() {
         }).then((result) => {
             if (result.isConfirmed) {
                 localStorage.removeItem('token'); // Eliminar el token del almacenamiento local
+                localStorage.removeItem('NombreEquipoServidor');
                 window.location.href = 'index.html'; // Redirigir a la página de inicio de sesión
             }
         });
