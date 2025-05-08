@@ -62,3 +62,4 @@ build/
 Thumbs.db
 
 # Se excluye archivo del nombre del servidor
+front_relacionador/public/NombreEquipoServidor.js
