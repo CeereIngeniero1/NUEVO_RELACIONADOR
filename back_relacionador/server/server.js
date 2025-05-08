@@ -10,6 +10,7 @@ const compression = require('compression'); //Comprime las respuestas HTTP que s
 const loginRoutes = require('./routes/loginRoutes');
 const descargarArchivosRIPSRoutes = require('./routes/descargarArchivosRIPSRoutes');
 const DescargarXMLSPorLaAPIDeFacturaTechRoutes = require('./routes/descargarXMLSporAPIFacturatechRoutes');
+const descargarXMLSporAPIFenalcoRoutes = require('./routes/descargarXMLSporAPIFenalcoRoutes');
 const InfoPacientesRoutes = require('./routes/infoPacientesRoutes');
 const epsRoutes = require('./routes/epsRoutes');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
@@ -107,6 +108,8 @@ app.use('/api', loginRoutes);
 app.use('/RIPS', descargarArchivosRIPSRoutes);
 
 app.use('/XMLS', DescargarXMLSPorLaAPIDeFacturaTechRoutes);
+
+app.use('/XMLS', descargarXMLSporAPIFenalcoRoutes);
 
 app.use('/api', InfoPacientesRoutes);
 

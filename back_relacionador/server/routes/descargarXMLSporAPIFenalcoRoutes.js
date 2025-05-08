@@ -4,6 +4,7 @@ const connection = require('../db'); // Reutilizamos la conexión existente
 const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
+const { promisify } = require('util');
 
 const router = Router();
 
@@ -109,7 +110,7 @@ router.get('/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/:empresa',
 
 
 
-router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:documentoempresa', async (req, res) => {
+router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:documentoempresa', async (req, res) => {
     const { prefijo, fechainicial, fechafinal, documentoempresa } = req.params;
     console.log(`Prefijo: ${prefijo}, Fecha Inicial: ${fechainicial}, Fecha Final: ${fechafinal}, Documento Empresa: ${documentoempresa}`);
 
@@ -139,6 +140,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
 				( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id Factura] ) )
         `;
 
+            
         const facturas = [];
         const requestFacturas = new Request(queryFacturas, (err, rowCount) => {
             if (err) {
@@ -215,211 +217,308 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
             connection.execSql(requestCredenciales);
         };
 
+        const processNextFactura =  (listfacturas, token, wsdlUrl) => {
+            if (!listfacturas) {
+                // Al finalizar todas las facturas, devolver los resultados al cliente.
+                return res.status(200).json({
+                    message: 'Proceso finalizado',
+                    facturas: resultadosFinales,
+                });
+            }
+            
+            
+            // console.log(listfacturas);
+            let promises = listfacturas.map(Factura => {
+                // let carpeta = path.join(__dirname, 'Xmls');
+                var carpeta = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+                // console.log(Factura.NoFactura )
+                let Parametros = {
+                    token: token,  
+                    idnumeracion: Factura.idnumeracionFenalco,  
+                    numero: Factura.NoFactura 
+                };
+
+                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+
+                // console.log(RutaVerificarSiExisteElXML);
+
+                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
+                    console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
+                    facturas.estado = 'El archivo XML ya existe';
+                    facturas.filePath = RutaVerificarSiExisteElXML;
+                    resultadosFinales.push(facturas);  // Agrega la factura a los resultados
+                    processedCount++;
+                    return;
+                }
+                
+                return new Promise((resolve, reject) => {
+                    soap.createClient(wsdlUrl, (err, client) => {
+                        if (err) {
+                            console.error(`Error al crear el cliente SOAP para la factura ${Factura.NoFactura}:`, err);
+                            return reject(err);
+                        }
+        
+                        client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+        
+                        client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
+                            // const archivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+        
+                            if (err) {
+                                console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${Factura.NoFactura}:`, err);
+                                return reject(err);
+                            }
+        
+                            try {
+                                const response = JSON.parse(result.return);
+                                // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+                                // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+                                let base64 = response.data.attachedDocument;
+                                let buffer = Buffer.from(base64, 'base64');
+                                let xmlcontenido = buffer.toString('utf8');
+                                // console.log(xmlcontenido);
+                                if(!fs.existsSync(carpeta)){
+                                    fs.mkdirSync(carpeta, { recursive: true});
+                                }
+                                
+                                fs.writeFileSync(RutaVerificarSiExisteElXML, xmlcontenido, 'utf8');
+                                resolve(response.data.attachedDocument);
+                            } catch (parseError) {
+                                console.error(`Error al parsear la respuesta de la factura ${Factura.NoFactura}:`, parseError);
+                                reject(parseError);
+                            }
+                        });
+                    });
+                });
+            });
+        
+            Promise.all(promises)
+                .then(() => console.log("Todas las facturas han sido procesadas exitosamente."))
+                .catch(err => console.error("Error procesando las facturas:", err));
+    
+        }
+
+
+
+       
+
+       
+       
+
+
+
         const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
         const processFacturas = () => {
             if (facturas.length === 0) {
                 return res.status(404).send('No se encontraron facturas para procesar');
             }
+          
         
-            let processedCount = 0;
-            const resultadosFinales = [];
-        
-            const processNextFactura = (factura, token) => {
-                if (!factura) {
-                    // Al finalizar todas las facturas, devolver los resultados al cliente.
-                    return res.status(200).json({
-                        message: 'Proceso finalizado',
-                        facturas: resultadosFinales,
-                    });
-                }
-        
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${factura.NoFactura}.xml`);
-        
-                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
-                    console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
-                    factura.estado = 'El archivo XML ya existe';
-                    factura.filePath = RutaVerificarSiExisteElXML;
-                    resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                    processedCount++;
-                    processNextFactura(facturas[processedCount]);
-                    return;
-                }
-        
-                let soapUrl = ContenidoCredenciales[0].URLSOAP || 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
-        
-                const args = {
-                    token: token,
-                    idnumeracion: factura.idnumeracionFenalco, 
-                    numero: factura.NoFactura
-                };
-        
-                soap.createClient(soapUrl, async (err, client) => {
 
-                    await delay(100);
+            const wsdlUrl = 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
+                let Token ;
+                const loginData = {
+                    login: ContenidoCredenciales[0].Usuario, // Reemplaza con tu usuario real
+                    password: ContenidoCredenciales[0].Contrasena // Reemplaza con tu contraseña real
+                };
+
+                soap.createClient(wsdlUrl, (err, client) => {
                     if (err) {
-                        console.error('Error creando el cliente SOAP:', err);
-                        factura.estado = 'Error creando el cliente SOAP';
-                        resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                        processedCount++;
-                        processNextFactura(facturas[processedCount]);
+                        console.error('Error al crear el cliente SOAP:', err);
                         return;
                     }
                     
                     client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
-
-                    client.obtenerApplicationResponseyAttachedDocument2(args, (err, result) => {
-                        const archivo = path.join(carpeta, `${numero.toString()}.xml` );
-    
+                    
+                    client.autenticar(loginData, (err, result) => {
                         if (err) {
-                            console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${numero}:`, err);
-                            return reject(err);
+                            console.error('Error al autenticar:', err);
+                            return "prueba";
                         }
-    
+                        
                         try {
                             const response = JSON.parse(result.return);
-                            // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
-                            // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
-                            let base64 = response.data.attachedDocument;
-                            let buffer = Buffer.from(base64, 'base64');
-                            let xmlcontenido = buffer.toString('utf8');
-                            // console.log(xmlcontenido);
-                            if(!fs.existsSync(carpeta)){
-                                fs.mkdirSync(carpeta, { recursive: true});
-                            }
+                            console.log('Token de autenticación:', response.data.salida );
+                            Token = response.data.salida;
                             
-                            fs.writeFileSync(archivo, xmlcontenido, 'utf8');
-                            resolve(response.data.attachedDocument);
+                            console.log('Token de autenticación:', Token);
+                            
+                            processNextFactura(facturas, response.data.salida, wsdlUrl);
+                            // console.log();
                         } catch (parseError) {
-                            console.error(`Error al parsear la respuesta de la factura ${numero}:`, parseError);
-                            reject(parseError);
+                            console.error('Error al parsear la respuesta:', parseError);
+                            return parseError ;
                         }
                     });
-                    /////////////Esto sepára
-        
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
-                        if (err) {
-                            console.error('Error llamando a FtechAction.downloadXMLFile:', err);
-                            factura.estado = 'Error en la llamada SOAP';
-                            resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                            return;
-                        }
-        
-                        if (!result || !result.return) {
-                            console.error('Respuesta del servicio incompleta o nula:', result);
-                            factura.estado = 'Respuesta del servicio incompleta o nula';
-                            resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                            return;
-                        }
-        
-                        const code = result.return.code.$value;
-                        const error = result.return.error?.$value || '';
-        
-                        const NotificarProblemasConAPI = false;
-        
-                        if (code !== "201" && (error.toLowerCase().includes('password') || error.toLowerCase().includes('usuario'))) {
-                            if (NotificarProblemasConAPI) {
-                                console.error(`Error en la respuesta SOAP: Código ${code}, Error: ${error}`);
-                            }
-                            // factura.estado = `Error en la respuesta SOAP: Código ${code}, Error: ${error}`;
-                            // resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                            // processedCount++;
-                            // processNextFactura(facturas[processedCount]);
-                            // return;
-                            return res.status(404).send({message: `Error en la respuesta SOAP: Código ${code}, Error: ${error}`});
-                        }
-        
-                        if (code === "409" || error.toLowerCase().includes('no ha sido procesado')) {
-                            factura.estado = error;
-                        } else {
-                            factura.estado = 'XML guardado exitosamente';
-                        }
-        
-                        const resourceData = result.return.resourceData;
-        
-                        if (!resourceData || !resourceData.$value) {
-                            console.log('No se recibió ningún dato válido del servicio.');
-                            // factura.estado = 'No se recibió ningún dato válido del servicio';
-                            factura.estado = error;
-                            resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                            return;
-                        }
-        
-                        try {
-                            const base64Data = resourceData.$value;
-                            const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
-                            fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join(carpetaPath, `${args.prefijo}${args.folio}.xml`);
-        
-                            fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
-                                if (err) {
-                                    console.error('Error guardando archivo XML:', err);
-                                    factura.estado = 'Error guardando archivo XML';
-                                } else {
-                                    console.log('Archivo XML guardado exitosamente:', filePath);
-                                    factura.filePath = filePath;
-                                    factura.estado = 'XML guardado exitosamente';
-                                }
-                                resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                                processedCount++;
-                                processNextFactura(facturas[processedCount]);
-                            });
-                        } catch (error) {
-                            console.error('Error procesando los datos recibidos:', error);
-                            factura.estado = 'Error procesando los datos recibidos';
-                            resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                            processedCount++;
-                            processNextFactura(facturas[processedCount]);
-                        }
-                    });
+
+                    
                 });
+
+            // let facturasConToken = facturas.map(factura => ({
+            //     ...factura,
+            //     token: token 
+            // }));
+            // console.log(facturasConToken);
+            // const processNextFactura = (factura, token) => {
+            //     if (!factura) {
+            //         // Al finalizar todas las facturas, devolver los resultados al cliente.
+            //         return res.status(200).json({
+            //             message: 'Proceso finalizado',
+            //             facturas: resultadosFinales,
+            //         });
+            //     }
         
-            };
+            //     const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${factura.NoFactura}.xml`);
+        
+            //     if (fs.existsSync(RutaVerificarSiExisteElXML)) {
+            //         console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
+            //         factura.estado = 'El archivo XML ya existe';
+            //         factura.filePath = RutaVerificarSiExisteElXML;
+            //         resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //         processedCount++;
+            //         processNextFactura(facturas[processedCount]);
+            //         return;
+            //     }
+        
+            //     let soapUrl = ContenidoCredenciales[0].URLSOAP || 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
+        
+            //     const args = {
+            //         token: token,
+            //         idnumeracion: factura.idnumeracionFenalco, 
+            //         numero: factura.NoFactura
+            //     };
+        
+            //     soap.createClient(soapUrl, async (err, client) => {
 
-            const auntenticacion = (facturas) => {
-                const wsdlUrl = 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
-                    let Token ;
-                    const loginData = {
-                        login: ContenidoCredenciales[0].Usuario, // Reemplaza con tu usuario real
-                        password: ContenidoCredenciales[0].Contrasena // Reemplaza con tu contraseña real
-                    };
+            //         await delay(100);
+            //         if (err) {
+            //             console.error('Error creando el cliente SOAP:', err);
+            //             factura.estado = 'Error creando el cliente SOAP';
+            //             resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //             processedCount++;
+            //             processNextFactura(facturas[processedCount]);
+            //             return;
+            //         }
+                    
+            //         client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
 
-                    soap.createClient(wsdlUrl, (err, client) => {
-                        if (err) {
-                            console.error('Error al crear el cliente SOAP:', err);
-                            return;
-                        }
-                        
-                        client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
-                        
-                        client.autenticar(loginData, (err, result) => {
-                            if (err) {
-                                console.error('Error al autenticar:', err);
-                                return;
-                            }
+            //         client.obtenerApplicationResponseyAttachedDocument2(args, (err, result) => {
+            //             const archivo = path.join(carpeta, `${numero.toString()}.xml` );
+    
+            //             if (err) {
+            //                 console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${numero}:`, err);
+            //                 return reject(err);
+            //             }
+    
+            //             try {
+            //                 const response = JSON.parse(result.return);
+            //                 // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+            //                 // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
+            //                 let base64 = response.data.attachedDocument;
+            //                 let buffer = Buffer.from(base64, 'base64');
+            //                 let xmlcontenido = buffer.toString('utf8');
+            //                 // console.log(xmlcontenido);
+            //                 if(!fs.existsSync(carpeta)){
+            //                     fs.mkdirSync(carpeta, { recursive: true});
+            //                 }
                             
-                            try {
-                                const response = JSON.parse(result.return);
-                                console.log('Token de autenticación:', response.data.salida );
-                                Token = response.data.salida;
-                               // processNextFactura(facturas, response.data.salida);
-                               console.log();
-                            } catch (parseError) {
-                                console.error('Error al parsear la respuesta:', parseError);
-                            }
-                        });
-
-                        
-                    });
-            };
+            //                 fs.writeFileSync(archivo, xmlcontenido, 'utf8');
+            //                 resolve(response.data.attachedDocument);
+            //             } catch (parseError) {
+            //                 console.error(`Error al parsear la respuesta de la factura ${numero}:`, parseError);
+            //                 reject(parseError);
+            //             }
+            //         });
+            //         /////////////Esto sepára
         
-            auntenticacion(facturas[0]);
+            //         client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
+            //             if (err) {
+            //                 console.error('Error llamando a FtechAction.downloadXMLFile:', err);
+            //                 factura.estado = 'Error en la llamada SOAP';
+            //                 resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                 processedCount++;
+            //                 processNextFactura(facturas[processedCount]);
+            //                 return;
+            //             }
+        
+            //             if (!result || !result.return) {
+            //                 console.error('Respuesta del servicio incompleta o nula:', result);
+            //                 factura.estado = 'Respuesta del servicio incompleta o nula';
+            //                 resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                 processedCount++;
+            //                 processNextFactura(facturas[processedCount]);
+            //                 return;
+            //             }
+        
+            //             const code = result.return.code.$value;
+            //             const error = result.return.error?.$value || '';
+        
+            //             const NotificarProblemasConAPI = false;
+        
+            //             if (code !== "201" && (error.toLowerCase().includes('password') || error.toLowerCase().includes('usuario'))) {
+            //                 if (NotificarProblemasConAPI) {
+            //                     console.error(`Error en la respuesta SOAP: Código ${code}, Error: ${error}`);
+            //                 }
+            //                 // factura.estado = `Error en la respuesta SOAP: Código ${code}, Error: ${error}`;
+            //                 // resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                 // processedCount++;
+            //                 // processNextFactura(facturas[processedCount]);
+            //                 // return;
+            //                 return res.status(404).send({message: `Error en la respuesta SOAP: Código ${code}, Error: ${error}`});
+            //             }
+        
+            //             if (code === "409" || error.toLowerCase().includes('no ha sido procesado')) {
+            //                 factura.estado = error;
+            //             } else {
+            //                 factura.estado = 'XML guardado exitosamente';
+            //             }
+        
+            //             const resourceData = result.return.resourceData;
+        
+            //             if (!resourceData || !resourceData.$value) {
+            //                 console.log('No se recibió ningún dato válido del servicio.');
+            //                 // factura.estado = 'No se recibió ningún dato válido del servicio';
+            //                 factura.estado = error;
+            //                 resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                 processedCount++;
+            //                 processNextFactura(facturas[processedCount]);
+            //                 return;
+            //             }
+        
+            //             try {
+            //                 const base64Data = resourceData.$value;
+            //                 const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
+            //                 const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+            //                 fs.mkdirSync(carpetaPath, { recursive: true });
+            //                 const filePath = path.join(carpetaPath, `${args.prefijo}${args.folio}.xml`);
+        
+            //                 fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
+            //                     if (err) {
+            //                         console.error('Error guardando archivo XML:', err);
+            //                         factura.estado = 'Error guardando archivo XML';
+            //                     } else {
+            //                         console.log('Archivo XML guardado exitosamente:', filePath);
+            //                         factura.filePath = filePath;
+            //                         factura.estado = 'XML guardado exitosamente';
+            //                     }
+            //                     resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                     processedCount++;
+            //                     processNextFactura(facturas[processedCount]);
+            //                 });
+            //             } catch (error) {
+            //                 console.error('Error procesando los datos recibidos:', error);
+            //                 factura.estado = 'Error procesando los datos recibidos';
+            //                 resultadosFinales.push(factura);  // Agrega la factura a los resultados
+            //                 processedCount++;
+            //                 processNextFactura(facturas[processedCount]);
+            //             }
+            //         });
+            //     });
+        
+            // };
+
+           
+            //console.log(facturas);
+        
         };
         
         
