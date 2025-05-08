@@ -4,7 +4,6 @@ const connection = require('../db'); // Reutilizamos la conexión existente
 const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
-const { promisify } = require('util');
 
 const router = Router();
 
