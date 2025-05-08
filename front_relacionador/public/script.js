@@ -36,6 +36,7 @@ const login = async () => {
                 localStorage.setItem('userLevel', userLevel); // Guarda el nivel de usuario en localStorage
                 sessionStorage.setItem('documentousuariologeado', documentousuariologeado)
 
+
                 alertify.success('Inicio de sesión correcto');
                 setTimeout(() => {
                     window.location.href = 'RIPS.html';
