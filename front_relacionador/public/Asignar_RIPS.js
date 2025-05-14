@@ -292,11 +292,11 @@ async function LlenarSelectDeHistoriasClinicas() {
     option.textContent =
       HistoriasEvolucionesSinRIPS[i].DescripcionTipodeEvaluación +
       " [ " +
-      HistoriasEvolucionesSinRIPS[i].Formato_Diagnostico +
-      " - " +
       HistoriasEvolucionesSinRIPS[i].FechaEvaluacionTexto +
-      " " +
+      " - " +
       HistoriasEvolucionesSinRIPS[i].HoraEvaluacion +
+      " " +
+      HistoriasEvolucionesSinRIPS[i].Formato_Diagnostico +
       " ]";
     SelectHistoriasSinRIPS.appendChild(option);
   }
