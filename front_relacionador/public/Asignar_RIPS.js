@@ -290,14 +290,14 @@ async function LlenarSelectDeHistoriasClinicas() {
     const option = document.createElement("option");
     option.value = HistoriasEvolucionesSinRIPS[i].IdEvaluaciónEntidad;
     option.textContent =
-      HistoriasEvolucionesSinRIPS[i].DescripcionTipodeEvaluación +
-      " [ " +
       HistoriasEvolucionesSinRIPS[i].FechaEvaluacionTexto +
-      " - " +
-      HistoriasEvolucionesSinRIPS[i].HoraEvaluacion +
-      " " +
-      HistoriasEvolucionesSinRIPS[i].Formato_Diagnostico +
-      " ]";
+    " - " +
+    HistoriasEvolucionesSinRIPS[i].HoraEvaluacion +
+    " [ " +
+    HistoriasEvolucionesSinRIPS[i].DescripcionTipodeEvaluación +
+    " " +
+    HistoriasEvolucionesSinRIPS[i].Formato_Diagnostico +
+    " ]";
     SelectHistoriasSinRIPS.appendChild(option);
   }
 }
