@@ -138,7 +138,7 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                 ( EmpV.[Prefijo Resolución Facturación EmpresaV] = @Prefijo ) AND
 				( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id Factura] ) )
         `;
-
+console.log(queryFacturas);
             
         const facturas = [];
         const requestFacturas = new Request(queryFacturas, (err, rowCount) => {

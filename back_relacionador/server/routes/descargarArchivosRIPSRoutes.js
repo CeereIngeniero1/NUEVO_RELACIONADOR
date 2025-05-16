@@ -913,14 +913,16 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
             consultas.forEach((consulta, index) => {
                 const documentos = consulta.usuarios ? consulta.usuarios.map(usuario => usuario.numDocumentoIdentificacion) : [];
                 documentos.forEach((documento, docIndex) => {
-                    const nombreArchivo = `${numFacturaConsulta}_${documento}_${docIndex + 1}.json`;
+                    const nombreArchivo = `${numFacturaConsulta}_${documento}.json`;
+                    // const nombreArchivo = `${numFacturaConsulta}_${documento}_${docIndex + 1}.json`;
                     const contenidoJSON = JSON.stringify(consulta, null, 2); // Genera el JSON del objeto consulta en lugar de un array
                     zip.file(nombreArchivo, contenidoJSON);
                 });
             });
         } else {
             const documentos = consultas.flatMap(consulta => consulta.usuarios ? consulta.usuarios.map(usuario => usuario.numDocumentoIdentificacion) : []);
-            const nombreArchivoCombinado = `${numFacturaConsulta}_${documentos.join('_')}.json`;
+            const nombreArchivoCombinado = `${numFacturaConsulta}.json`;
+            // const nombreArchivoCombinado = `${numFacturaConsulta}_${documentos.join('_')}.json`;
             const contenidoJSONCombinado = JSON.stringify(consultas[0], null, 2); // Toma solo el primer elemento del array para generar el JSON
             zip.file(nombreArchivoCombinado, contenidoJSONCombinado);
         }
@@ -930,6 +932,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
     const fechaActual = new Date();
     const fechaFormateada = `${fechaActual.getFullYear()}-${(fechaActual.getMonth() + 1).toString().padStart(2, '0')}-${fechaActual.getDate().toString().padStart(2, '0')}`;
     const nombreArchivo = `${prefijo} --- ${fechaInicio} --- ${fechaFin}.zip`;
+    console.log('papi ', nombreArchivo);
     const rutaArchivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS', nombreArchivo);
     const nombreCarpetaDeAlmacenadoJSON = `${fechaInicio} --- ${fechaFin}`;
 
@@ -944,6 +947,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
         const rutaBaseDestino = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS_JSON');
         await descomprimirZip(rutasZips, rutaBaseDestino);
         const NombreArchivoIgualdadCarpetaParaXMLS = `${prefijo} --- ${fechaInicio} --- ${fechaFin}`;
+        
         const IgualdadCarpetaParaXMLS = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
         fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
 
