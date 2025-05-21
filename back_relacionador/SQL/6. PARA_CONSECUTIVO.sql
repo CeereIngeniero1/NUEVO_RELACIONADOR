@@ -1,0 +1,6 @@
+-- SE CREA NUEVA COLUMNA EN TABLA [Evaluación Entidad Rips]
+ALTER TABLE [Evaluación Entidad Rips]
+ADD ConsecutivoRipsFacturaEnCero INT NULL;
+
+-- SE ACTUALIZA EL ENDPOINT PARA LA RELACIÓN EN CERO. SE ADICIONA LÓGICA PARA MANEJAR EL CONSECUTIVO DE LOS RIPS EN CERO.
+-- ESTO SE HIZO EN EL ARCHIVO routes/infoPacientesRoutes.js, EXACTAMENTE EN EL API router.post('/facturaCero/
