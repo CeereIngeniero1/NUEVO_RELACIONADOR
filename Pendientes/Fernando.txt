@@ -6,3 +6,46 @@ El errror de descarga de json cuando es EPS
  SE DEBE MODIFICAR ESO EN DESARGAR ARCHIVO RIPS EN LAS LINES DONDE ESTA 
  const nombreArchivo = `${numFacturaConsulta}_${documento}_${docIndex + 1}.json`;
  const nombreArchivoCombinado = `${numFacturaConsulta}_${documentos.join('_')}.json`;
+
+
+
+
+ -- Consulta de los AC CON LOS 3 DATOS QUE FALTAN 
+ ---(NO TIENE EK FILTRO DE  ACTO QUIRURJICO)
+ 
+Select
+    emp.[Código Empresa] AS codPrestador,
+    eva.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
+    ptc.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+    evr.[Codigo RIPS] AS codConsulta,
+    modal.Codigo AS modalidadGrupoServicioTecSal,
+    gpser.Codigo AS grupoServicios,
+    Serv.[Código Servicios] AS codServicio,
+    evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, -- Esta insertando el codigo debe cambiarse por el id desde la insert
+    evr.[Id Causa Externa] AS causaMotivoAtencion, -- Esta insertando el codigo debe cambiarse por el id desde la insert
+    evr.[Diagnostico Rips] AS codDiagnosticoPrincipal,
+    Null  AS codDiagnosticoRelacionado1,
+    NULL AS codDiagnosticoRelacionado2, NULL AS codDiagnosticoRelacionado3,
+    evr.[Id Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal, -- Esta insertando el codigo debe cambiarse por el id desde la insert
+    tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion,
+    eva.[Documento Profesional] AS numDocumentoIdentificacion
+from [Evaluación Entidad Rips] evr
+left join [Evaluación Entidad] eva on eva.[Id Evaluación Entidad] = evr.[Id Evaluación Entidad]
+inner JOIN Factura as fc ON evr.[Id Factura] = fc.[Id Factura]
+LEFT JOIN Empresa Emp ON fc.[Documento Empresa] = Emp.[Documento Empresa]
+left join empresaV empv on empv.[Id EmpresaV] = fc.[Id EmpresaV]
+left join [Plan de Tratamiento] pt on pt.[Id Plan de Tratamiento] = evr.[Id Plan de Tratamiento]
+left join [Plan de Tratamiento Tratamientos] ptt on ptt.[Id Plan de Tratamiento] = pt.[Id Plan de Tratamiento]
+left join [Plan de Tratamiento Copago] ptc on ptc.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
+left join [RIPS Modalidad Atención] Modal on modal.[Id Modalidad Atencion] = evr.[Id Modalidad Atencion]
+left join [RIPS Grupo Servicios] gpser on gpser.[Id Grupo Servicios] = evr.[Id Grupo Servicios]
+left join [RIPS Servicios] AS Serv ON Serv.[Id Servicios]  = evr.[Id Servicios]
+INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
+left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento]
+
+---Falta valor servicio 
+-- falta tipo pago moderador
+--- falta valor pagomoderador
+
+where   EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = 'FE0227'
+
