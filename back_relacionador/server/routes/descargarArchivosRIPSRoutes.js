@@ -188,16 +188,15 @@ LEFT JOIN [Zona Residencia] AS zr ON ENTIII.[Id Zona Residencia] = zr.[Id Zona R
 });
 
 
-router.get('/usuarios/ripsEps/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) => {
-    // console.log ("Bro si estoy entrando sisabe ripsEPS");
+router.get('/usuarios/ripsEps/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) =>  {
+   
     const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
     const ResolucionesRips = req.params.ResolucionesRips;
     const documentoEmpresaSeleccionada = req.params.documentoEmpresaSeleccionada;
 
     const request = new Request(
-        `
-SELECT distinct
+        `SELECT 
     em.NroIDPrestador, 
     EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura], 
     NULL AS [numNota], 
@@ -213,7 +212,7 @@ SELECT distinct
     'NO' AS [incapacidad],
     DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
     pais2.País AS [codPaisOrigen], 
-    --eve.[Id Evaluación Entidad], 
+    eve.[Id Evaluación Entidad], 
     everips.[Id Tipo de Rips], 
     CASE
         WHEN fc.[Documento Responsable] IN (
@@ -226,7 +225,10 @@ SELECT distinct
             )
         ) THEN 1 
         ELSE 0
-    END AS [Prepagada]
+    END AS [Prepagada],
+	everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
+	everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
+	everips.[Id Factura] AS IDfactura
 FROM 
     Entidad AS en
 LEFT JOIN  [Tipo de Documento] AS tpd ON en.[Id Tipo de Documento] = tpd.[Id Tipo de Documento]
@@ -247,7 +249,6 @@ LEFT JOIN Departamento AS Depart2 ON ciu2.[Id Departamento] = Depart2.[Id Depart
 --LEFT JOIN  Departamento AS Depart2 ON ciu2.[Id Departamento] = Depart2.[Id Departamento]
 LEFT JOIN  País AS pais2 ON Depart2.[Id País] = pais2.[Id País]
 LEFT JOIN   EmpresaV AS EmpV ON fc.[Id EmpresaV] = EmpV.[Id EmpresaV]
-inner join [Función Por Entidad] fpe on fc.[Documento Responsable] = fpe.[Documento Entidad] AND (fpe.[Id Función] = 23 or fpe.[Id Función] = 24)
 
 WHERE 
     CASE
@@ -262,9 +263,9 @@ WHERE
         ) THEN 1 
         ELSE 0
     END = 1 AND
-    -- WHERE 
-        CONVERT(DATE, fc.[Fecha Factura], 23) BETWEEN '01-04-2025' AND '30-04-2025'
-        AND eve.[Documento Empresa] = '30319671'
+       -- WHERE 
+        CONVERT(DATE, eve.[Fecha Evaluación Entidad], 23) BETWEEN @fechaInicio AND @fechaFin
+        AND eve.[Documento Empresa] = @documentoEmpresaSeleccionada
         ORDER BY en.[Documento Entidad] DESC
         `,
         (err) => {
@@ -284,8 +285,13 @@ WHERE
 
     request.on('row', (columns) => {
         let numFactura = columns[1].value;
-        const originalNumFactura = numFactura;
-        const idTipoRips = columns[16].value;
+        // const originalNumFactura = numFactura;
+        // const idTipoRips = columns[16].value;
+        const idEvaRips = columns[18].value;
+        const IdTrata = columns[19].value;
+        const IdFacrua = columns[20].value;
+        
+
 
         // Determina si se debe cambiar el numFactura a null
         if (numFactura === null || /000000/.test(numFactura)) {
@@ -336,23 +342,29 @@ WHERE
         } else {
             resultados[facturaKey].usuarios.push(usuario);
         }
+        // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips });
+        facturasOriginales.push({ idEvaRips, IdTrata, IdFacrua});
     });
-
+    console.log (" ripsEPS");
     request.on('requestCompleted', async () => {
         for (let factura in resultados) {
             const consulta = resultados[factura];
-    
+            console.log (" entro a donde nece");
+
+            // console.log(factura);
             // Buscar la factura en facturasOriginales
             const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
     
             if (facturaData) {
-                const { originalNumFactura, idTipoRips } = facturaData;
+                // const { originalNumFactura, idTipoRips } = facturaData;
+
+                const { idEvaRips, IdTrata, IdFacrua } = facturaData;
     
                 for (const usuario of consulta.usuarios) {
                     try {
-                        const consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsEPSAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
+                        // const consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsEPSAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
+                        const consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsEPSAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const consultasData = await consultasResponse.json();
     
                         if (consultasData.length > 0) {
@@ -388,7 +400,7 @@ WHERE
     
 
     connection.execSql(request);
-}); 
+});  
 
 
 router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
@@ -510,34 +522,40 @@ router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio
     connection.execSql(request);
 });
 
-router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
-    
+router.get('/servicios/rips/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
     const numFactura = req.params.numFactura;
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
-    const ResolucionesRips = req.params.ResolucionesRips; 
+    const ResolucionesRips = req.params.ResolucionesRips;
+
+    // console.log(`En AC el num factura es: ${numFactura}`)
 
     const request = new Request(
         `
-        SELECT em2.[Código Empresa] AS codPrestador, 
+        SELECT    
+        em2.[Código Empresa] AS codPrestador, 
         --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) AS fechaInicioAtencion, 
 
         CASE WHEN SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) IS NULL THEN SUBSTRING(CONVERT(VARCHAR, EVE.[Fecha Evaluación Entidad] , 120), 1, 16)
         ELSE SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) END  AS fechaInicioAtencion, 
-
+        
         NULL AS numAutorizacion, everips.[Codigo RIPS] AS codConsulta,
         '01' AS modalidadGrupoServicioTecSal, '01' AS grupoServicios, Serv.[Código Servicios] AS codServicio,
         everips.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, CASE WHEN CAU.Codigo IS NULL THEN 38 ELSE Cau.Codigo END AS causaMotivoAtencion,
         everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
         Null  AS codDiagnosticoRelacionado1, 
-        --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado1,  
+        --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado1, 
         NULL AS codDiagnosticoRelacionado2, NULL AS codDiagnosticoRelacionado3, 
         --tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
 		Case when tdp.[Código Tipo de Diagnóstico Principal] IS NULL THEN '02' ELSE tdp.[Código Tipo de Diagnóstico Principal] END AS tipoDiagnosticoPrincipal,
+
+
         tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
-        PT.[Valor Plan de Tratamiento Items] AS vrServicio, '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
-        NULL  AS numFEVPagoModerador, ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) AS consecutivo
+        fc.[Total Factura] AS vrServicio, '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
+        NULL  AS numFEVPagoModerador, 
+        -- ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) 
+        1 AS consecutivo
 
         FROM [Evaluación Entidad] as eve
 
@@ -547,23 +565,20 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
         LEFT JOIN Factura as fc ON everips.[Id Factura] = fc.[Id Factura]
 		LEFT JOIN Empresa ON fc.[Documento Empresa] = Empresa.[Documento Empresa]
 		LEFT JOIN Empresa as em2 ON eve.[Documento Empresa] = em2.[Documento Empresa]
-        INNER JOIN EmpresaV as EmpV ON fc.[Documento Empresa] = EmpV.[Documento Empresa]
+        INNER JOIN EmpresaV as EmpV ON Empresa.[Documento Empresa] = EmpV.[Documento Empresa]
         LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON everips.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
-		LEFT JOIN FacturaII FII ON FII.[Id Factura] = FC.[Id Factura] 
-		left join [Plan de Tratamiento Items] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
-		left join [Plan de Tratamiento] Tr ON Tr.[Id Plan de Tratamiento] = fii.[Id Plan de Tratamiento]
-		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios]
-        LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
-        
-        INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
+
+		INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
 		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+
+		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios] 
         
         WHERE everips.[Id Acto Quirúrgico] = 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura
         AND eve.[Documento Entidad] = @numDocumentoIdentificacion
         AND CONVERT(DATE, eve.[Fecha Evaluación Entidad]) BETWEEN @fechaInicio AND @fechaFin
         AND EmpV.[Resolución Facturación EmpresaV] = @ResolucionesRips
-        AND Tr.[Documento Paciente] = eve.[Documento Entidad]
 
         `,
         (err) => {
@@ -582,7 +597,7 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
 
     request.on('row', (columns) => {
         // console.log('Fila de servicios:', columns);
-
+        
         const servicio = {
             codPrestador: columns[0].value,
             fechaInicioAtencion: columns[1].value,
@@ -604,14 +619,16 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
             conceptoRecaudo: columns[17].value,
             valorPagoModerador: parseInt(columns[18].value, 10),
             numFEVPagoModerador: columns[19].value,
-            consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
+            consecutivo: 1,
+            // consecutivo: 6,
+            // consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
         };
 
         resultadosServicios.push(servicio);
     });
 
     request.on('requestCompleted', () => {
-        console.log('Resultados de servicios:', resultadosServicios);
+        // console.log('Resultados de servicios:', resultadosServicios);
         res.json(resultadosServicios);
     });
 
@@ -620,7 +637,7 @@ router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaI
         console.error('Error en la consulta de servicios:', err);
         res.status(500).send('Error interno del servidor');
     });
-    
+
     connection.execSql(request);
 });
 
@@ -727,54 +744,68 @@ router.get('/serviciosAP/rips/:numFactura/:numDocumentoIdentificacion/:fechaInic
     connection.execSql(request);
 });
 
-router.get('/servicios/ripsEPSAP/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
-    console.log("bueno so ripsEPSAP");
-    const numFactura = req.params.numFactura;
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
-    const fechaInicio = req.params.fechaInicio;
-    const fechaFin = req.params.fechaFin;
-    const ResolucionesRips = req.params.ResolucionesRips
+// router.get('/servicios/ripsEPSAC/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
 
-    // console.log(`En AP el num factura es: ${numFactura}`)
+router.get('/servicios/ripsEPSAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
+     
+    // const idEvaRips = req.params.idEvaRips;
+    // const IdTrata = req.params.IdTrata;
+    const IdFacrua = req.params.IdFacrua; 
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
 
     const request = new Request(
-        `SELECT em2.[Código Empresa] AS codPrestador, 
-        --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion,
-        CASE WHEN  SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura], 120), 1, 16) IS NULL THEN  SUBSTRING(CONVERT(VARCHAR, EVE.[Fecha Evaluación Entidad], 120), 1, 16)
-        ELSE  SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura], 120), 1, 16) END  AS fechaInicioAtencion, 
-        NULL AS idMIPRES, NULL AS numAutorizacion, 
-        everips.[Codigo RIPS] AS codProcedimiento, '01' AS viaIngresoServicioSalud, '01' AS modalidadGrupoServicioTecSal, 
-        '01' AS grupoServicios, '371' AS codServicio, 
-		--fp.Codigo AS finalidadTecnologiaSalud, 
-		CASE WHEN fp.Codigo IS NULL THEN '44' ELSE fp.Codigo END AS finalidadTecnologiaSalud, 
-        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
-        everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
-        NULL AS codDiagnosticoRelacionado, 
-        --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado, 
-        NULL AS codComplicacion, fc.[Total Factura] AS vrServicio, '05' AS tipoPagoModerador, 
-        '0' AS valorPagoModerador, NULL AS numFEVPagoModerador,  ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) AS consecutivo, eve.[Id Evaluación Entidad]
+        `
+         SELECT em2.[Código Empresa] AS codPrestador, 
+        --SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) AS fechaInicioAtencion, 
 
-        FROM  [Evaluación Entidad Rips] as everips
-        
-        INNER JOIN [Evaluación Entidad] as eve ON everips.[Id Evaluación Entidad] = eve.[Id Evaluación Entidad]
-        LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON everips.[Id Finalidad Consulta] = fp.Codigo
+        CASE WHEN SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) IS NULL THEN SUBSTRING(CONVERT(VARCHAR, EVE.[Fecha Evaluación Entidad] , 120), 1, 16)
+        ELSE SUBSTRING(CONVERT(VARCHAR, fc.[Fecha Factura] , 120), 1, 16) END  AS fechaInicioAtencion, 
+
+        ptc.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion, everips.[Codigo RIPS] AS codConsulta,
+        '01' AS modalidadGrupoServicioTecSal, '01' AS grupoServicios, Serv.[Código Servicios] AS codServicio,
+        everips.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, CASE WHEN CAU.Codigo IS NULL THEN 38 ELSE Cau.Codigo END AS causaMotivoAtencion,
+        everips.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
+        Null  AS codDiagnosticoRelacionado1, 
+        --CASE WHEN everips.[Diagnostico Rips2] = NULL THEN NULL ELSE everips.[Diagnostico Rips2] END AS codDiagnosticoRelacionado1,  
+        NULL AS codDiagnosticoRelacionado2, NULL AS codDiagnosticoRelacionado3, 
+        --tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
+		Case when tdp.[Código Tipo de Diagnóstico Principal] IS NULL THEN '02' ELSE tdp.[Código Tipo de Diagnóstico Principal] END AS tipoDiagnosticoPrincipal,
+        tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eve.[Documento Profesional] AS numDocumentoIdentificacion, 
+        --PT.[Valor Plan de Tratamiento Items] AS vrServicio,
+        FII.[Valor FacturaII] AS vrServicio,
+		 '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
+        NULL  AS numFEVPagoModerador, ROW_NUMBER() OVER (ORDER BY everips.[Id Evaluación Entidad RIPS]) AS consecutivo
+
+        FROM [Evaluación Entidad] as eve
+
+        INNER JOIN [Evaluación Entidad Rips] as everips ON eve.[Id Evaluación Entidad] = everips.[Id Evaluación Entidad]
         LEFT JOIN Entidad ON eve.[Documento Entidad] = Entidad.[Documento Entidad]
         LEFT JOIN [Tipo de Documento] as tp ON Entidad.[Id Tipo de Documento] = tp.[Id Tipo de Documento]
-        LEFT JOIN Factura as fc ON fc.[Id Factura] = everips.[Id Factura]
+        LEFT JOIN Factura as fc ON everips.[Id Factura] = fc.[Id Factura]
 		LEFT JOIN Empresa ON fc.[Documento Empresa] = Empresa.[Documento Empresa]
 		LEFT JOIN Empresa as em2 ON eve.[Documento Empresa] = em2.[Documento Empresa]
-        LEFT JOIN EmpresaV as EmpV ON Empresa.[Documento Empresa] = EmpV.[Documento Empresa]
-		INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
-		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+        INNER JOIN EmpresaV as EmpV ON fc.[Documento Empresa] = EmpV.[Documento Empresa]
+        LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON everips.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
+		LEFT JOIN FacturaII FII ON FII.[Id Factura] = FC.[Id Factura] 
+		left join [Plan de Tratamiento Items] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
+		left join [Plan de Tratamiento] Tr ON Tr.[Id Plan de Tratamiento] = fii.[Id Plan de Tratamiento]
+		left join [Plan de Tratamiento Tratamientos] ptt on ptt.[Id Plan de Tratamiento] = pt.[Id Plan de Tratamiento]
+		left join [Plan de Tratamiento Copago] ptc on ptc.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos] 
+		left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = everips.[Id Servicios]
+        LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = everips.[Id Causa Externa]
         
-        WHERE everips.[Id Acto Quirúrgico] <> 1 
-        AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura 
+        INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eve.[Documento Profesional]
+		left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+		
+        
+        WHERE everips.[Id Acto Quirúrgico] = 1 
+        AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura
         AND eve.[Documento Entidad] = @numDocumentoIdentificacion
         AND CONVERT(DATE, eve.[Fecha Evaluación Entidad]) BETWEEN @fechaInicio AND @fechaFin
         AND EmpV.[Resolución Facturación EmpresaV] = @ResolucionesRips
+        AND Tr.[Documento Paciente] = eve.[Documento Entidad]
 
         `,
-
         (err) => {
             if (err) {
                 console.error('Error al ejecutar la consulta de servicios:', err);
@@ -784,41 +815,46 @@ router.get('/servicios/ripsEPSAP/:numFactura/:numDocumentoIdentificacion/:fechaI
 
     request.addParameter('numFactura', TYPES.VarChar, numFactura);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
-    request.addParameter('fechaInicio', TYPES.Date, fechaInicio);
-    request.addParameter('fechaFin', TYPES.Date, fechaFin);
-    request.addParameter('ResolucionesRips', TYPES.VarChar, ResolucionesRips);
-
+        
+    // request.addParameter('numFactura', TYPES.VarChar, numFactura);
+    // request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
+    // request.addParameter('fechaInicio', TYPES.Date, fechaInicio);
+    // request.addParameter('fechaFin', TYPES.Date, fechaFin);
+    // request.addParameter('ResolucionesRips', TYPES.VarChar, ResolucionesRips);
     const resultadosServicios = [];
 
     request.on('row', (columns) => {
+        // console.log('Fila de servicios:', columns);
+
         const servicio = {
             codPrestador: columns[0].value,
             fechaInicioAtencion: columns[1].value,
-            idMIPRES: columns[2].value,
-            numAutorizacion: columns[3].value,
-            codProcedimiento: columns[4].value,
-            viaIngresoServicioSalud: columns[5].value,
-            modalidadGrupoServicioTecSal: columns[6].value,
-            grupoServicios: columns[7].value,
-            codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString() ,
-            tipoDocumentoIdentificacion: columns[10].value,
-            numDocumentoIdentificacion: columns[11].value,
-            codDiagnosticoPrincipal: columns[12].value,
-            codDiagnosticoRelacionado: columns[13].value,
-            codComplicacion: columns[14].value,
-            vrServicio: columns[15].value,
-            conceptoRecaudo: columns[16].value,
-            valorPagoModerador: parseInt(columns[17].value, 10),
-            numFEVPagoModerador: columns[18].value,
-            consecutivo: 6
-            // consecutivo: parseInt(columns[19].value, 10) // Convertir a entero
+            numAutorizacion: columns[2].value,
+            codConsulta: columns[3].value,
+            modalidadGrupoServicioTecSal: columns[4].value,
+            grupoServicios: columns[5].value,
+            codServicio: parseInt(columns[6].value, 10),
+            finalidadTecnologiaSalud: columns[7].value.toString() ,
+            causaMotivoAtencion: columns[8].value.toString(),
+            codDiagnosticoPrincipal: columns[9].value,
+            codDiagnosticoRelacionado1: columns[10].value,
+            codDiagnosticoRelacionado2: columns[11].value,
+            codDiagnosticoRelacionado3: columns[12].value,
+            tipoDiagnosticoPrincipal: columns[13].value,
+            tipoDocumentoIdentificacion: columns[14].value,
+            numDocumentoIdentificacion: columns[15].value,
+            vrServicio: columns[16].value,
+            conceptoRecaudo: columns[17].value,
+            valorPagoModerador: parseInt(columns[18].value, 10),
+            numFEVPagoModerador: columns[19].value,
+            consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
         };
 
         resultadosServicios.push(servicio);
     });
 
     request.on('requestCompleted', () => {
+        console.log('Resultados de servicios:', resultadosServicios);
         res.json(resultadosServicios);
     });
 
@@ -827,7 +863,7 @@ router.get('/servicios/ripsEPSAP/:numFactura/:numDocumentoIdentificacion/:fechaI
         console.error('Error en la consulta de servicios:', err);
         res.status(500).send('Error interno del servidor');
     });
-
+    
     connection.execSql(request);
 });
 

@@ -497,7 +497,14 @@ btnRelacionar.addEventListener('click', async () => {
             const idEveRips2 = document.getElementById('listaHistoriaClinica')
             const idEveRips = document.getElementById('listaHistoriaClinica').value
             const textoSeleccionadoHistoriaClinica = idEveRips2.selectedOptions[0].textContent;
+            
+            const selectHistoriaClinicaEPS = document.getElementById('listaPacientePrepagada');
+            const documentoPacienteSeleccionado = selectHistoriaClinicaEPS.value;
+            const [documentoPaciente, documentoEps, IdTratamiento] = documentoPacienteSeleccionado.split('|');
 
+
+       
+       
 
             const swalWithBootstrapButtons = Swal.mixin({
                 customClass: {
@@ -525,7 +532,7 @@ btnRelacionar.addEventListener('click', async () => {
 
             if (result.isConfirmed) {
 
-                await relacionarRIPSEPS(idFactura, idEveRips)
+                await relacionarRIPSEPS(idFactura, idEveRips, IdTratamiento)
 
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 swalWithBootstrapButtons.fire({
@@ -1575,7 +1582,7 @@ const updatePacientesEPS = (pacientesPre) => {
     // Agregar opciones al select
     pacientesPre.forEach((PacientePre) => {
         const option = document.createElement("option");
-        option.value = `${PacientePre.DocumentoPaciente}|${PacientePre.DocumentoEps}` ;
+        option.value = `${PacientePre.DocumentoPaciente}|${PacientePre.DocumentoEps}|${PacientePre.Idtratamiento}` ;
         option.text = `${PacientePre.NombrePaciente}`;
         listaPacientePrepagada.appendChild(option);
     });
@@ -1618,10 +1625,10 @@ const updateHistoriasEPS = (historiasPre) => {
     });
 };
 
-const getHistoriasEPS = async (documentoPacienteEPS, DocumentoEPS) => {
+const getHistoriasEPS = async (documentoPacienteEPS, DocumentoEPS, IdTratamiento) => {
     try {
         // const response = await fetch(`http://${servidor}:3000/api/hcPacientesEPS/${documentoPacienteEPS}`);
-        const response = await fetch(`http://${servidor}:3000/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}`);
+        const response = await fetch(`http://${servidor}:3000/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}/${IdTratamiento}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de las historias clinicas EPS: ${response.statusText}`);
         }
@@ -1642,18 +1649,19 @@ document.getElementById('listaPacientePrepagada').addEventListener('change', asy
 
     console.log(documentoPacienteSeleccionado);
 
-    const [documentoPaciente, documentoEps] = documentoPacienteSeleccionado.split('|');
+    const [documentoPaciente, documentoEps, IdTratamiento] = documentoPacienteSeleccionado.split('|');
 
     console.log("Documento del Paciente:", documentoPaciente);
     console.log("Documento de la EPS:", documentoEps);
+    console.log("Tratamiento:", IdTratamiento);
 
-    await getHistoriasEPS(documentoPaciente, documentoEps);
+    await getHistoriasEPS(documentoPaciente, documentoEps, IdTratamiento);
 });
 
-const relacionarRIPSEPS = async (idFactura, idEveRips) => {
+const relacionarRIPSEPS = async (idFactura, idEveRips, IdTratamiento) => {
 
     try {
-        const response = await fetch(`http://${servidor}:3000/api/relacionarEPS/${idFactura}/${idEveRips}`, {
+        const response = await fetch(`http://${servidor}:3000/api/relacionarEPS/${idFactura}/${idEveRips}/${IdTratamiento}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
