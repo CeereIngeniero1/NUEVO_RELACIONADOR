@@ -71,20 +71,17 @@ router.get('/pacientesEPS/:idFacturaEPS', (req, res) => {
     // const fechaFin = req.params.fechaFin;
     const pacientesEPSData = []; // Crear un array para almacenar los resultados
 
-    const request = new Request(`	SELECT en.[Documento Entidad], en.[Nombre Completo Entidad] as [Nombre Paciente]
+    const request = new Request(`SELECT en.[Documento Entidad],
+en.[Primer Nombre Entidad] + ' ' + en.[Segundo Nombre Entidad] + ' ' + en.[Primer Apellido Entidad] + ' ' + en.[Segundo Apellido Entidad]  as [Nombre Paciente]
 
     FROM FacturaII as fc2
         
     INNER JOIN Factura as fc ON fc2.[Id Factura] = fc.[Id Factura]
     INNER JOIN [Plan de Tratamiento] as pt ON fc2.[Id Plan de Tratamiento] = pt.[Id Plan de Tratamiento]
     INNER JOIN Entidad as en ON pt.[Documento Paciente] = en.[Documento Entidad]
-    --LEFT JOIN [Evaluación Entidad Rips] as everips ON fc.[Id Factura] = everips.[Id Factura]
-
-    
+ 
     WHERE fc2.[Id Factura] = @idFacturaEPS
-    --AND everips.[Id Factura] IS NULL
-    
-    ORDER BY fc2.[Id Plan de Tratamiento] ASC`, (err, rowCount) => {
+        ORDER BY fc2.[Id Plan de Tratamiento] ASC`, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de evaluaciones:', err.message);
             res.status(500).json({ error: 'Error al obtener datos de pacientes EPS' });
@@ -201,27 +198,26 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
 
     const PacientesData = []; // Crear un array para almacenar los resultados
 
-    const request = new Request(`	SELECT 
-ENT.[Nombre Completo Entidad] + ' Nro Pres ' + pt.[Nro Plan de Tratamiento] as NombrePaciente, 
-PTT.[Documento Responsable] AS [DocumentoEPS], 
-PT.[Documento Paciente] AS [DocumentoPaciente],
-pt.[Id Plan de Tratamiento] AS [id_plan_tratamiento]
---COUNT(PT.[Documento Paciente])
-FROM FacturaII FII
-    INNER JOIN [Plan de Tratamiento] PT ON PT.
-	[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
-    INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.
-	[Id Plan de Tratamiento] = PT
-	.[Id Plan de Tratamiento]
-    INNER JOIN Entidad ENT ON ENT
-	.[Documento Entidad] = PT.
-	[Documento Paciente]
-    WHERE FII.[Id Factura] = @idfactura
-    --   GROUP BY 
-	--PT.[Documento Paciente], 
-	--PTT.[Documento Responsable], 
-	--ENT.[Nombre Completo Entidad],
-	--PT.[Nro Plan de Tratamiento] `, (err, rowCount) => {
+    const request = new Request(`SELECT 
+        --ENT.[Nombre Completo Entidad] + ' Nro Pres ' + pt.[Nro Plan de Tratamiento] as [NombrePaciente], 
+        ENT.[Primer Nombre Entidad] + ' ' +  ENT.[Segundo Nombre Entidad] + ' ' +  ENT.[Primer Apellido Entidad] 
+		+ ' ' +  ENT.[Segundo Apellido Entidad] + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
+		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
+        PTT.[Documento Responsable] AS [DocumentoEPS], 
+        PT.[Documento Paciente] AS [DocumentoPaciente],
+        pt.[Id Plan de Tratamiento] AS [id_plan_tratamiento]
+        --COUNT(PT.[Documento Paciente])
+        FROM FacturaII FII
+            INNER JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
+            INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+            INNER JOIN Entidad ENT ON ENT.[Documento Entidad] = PT.[Documento Paciente]
+			LEFT JOIN [Evaluación Entidad Rips] EVR ON EVR.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] AND FII.[Id Factura] = EVR.[Id Factura]
+            WHERE FII.[Id Factura] = @idfactura
+            --   GROUP BY 
+            --PT.[Documento Paciente], 
+            --PTT.[Documento Responsable], 
+            --ENT.[Nombre Completo Entidad],
+            --PT.[Nro Plan de Tratamiento] `, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);
             res.status(500).json({ error: 'Error al obtener datos de historias clinicas EPS' });
@@ -238,7 +234,8 @@ FROM FacturaII FII
         }
     });
 
-    
+    console.log("PacientesData");
+    console.log(PacientesData);
     request.addParameter('idfactura', TYPES.Int, IdFactura);
     
     // Manejar cada fila de resultados

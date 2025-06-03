@@ -135,10 +135,11 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                 ( EmpV.[Id Estado] = 7 ) AND
                 ( Fac.EstadoFacturaElectronica >= 1 ) AND
                 ( CAST(Fac.[Fecha Factura] AS DATE) BETWEEN @FechaInicial AND @FechaFinal ) AND 
-                ( EmpV.[Prefijo Resolución Facturación EmpresaV] = @Prefijo ) AND
-				( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id Factura] ) )
+                ( EmpV.[Prefijo Resolución Facturación EmpresaV] = @Prefijo ) 
+                -- AND
+				-- ( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id -- Factura] ) )
         `;
-console.log(queryFacturas);
+// console.log(queryFacturas);
             
         const facturas = [];
         const requestFacturas = new Request(queryFacturas, (err, rowCount) => {

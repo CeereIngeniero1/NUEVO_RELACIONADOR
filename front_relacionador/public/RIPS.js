@@ -1597,7 +1597,7 @@ const getPacientesEPS = async (idFacturaEPS) => {
         }
 
         const pacientesPre = await response.json();
-
+        console.log(pacientesPre);
         updatePacientesEPS(pacientesPre); // Llama a la función para actualizar la tabla
 
     } catch (ex) {
