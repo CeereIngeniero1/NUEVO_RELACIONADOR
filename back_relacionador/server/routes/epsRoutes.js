@@ -199,9 +199,7 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
     const PacientesData = []; // Crear un array para almacenar los resultados
 
     const request = new Request(`SELECT 
-        --ENT.[Nombre Completo Entidad] + ' Nro Pres ' + pt.[Nro Plan de Tratamiento] as [NombrePaciente], 
-        ENT.[Primer Nombre Entidad] + ' ' +  ENT.[Segundo Nombre Entidad] + ' ' +  ENT.[Primer Apellido Entidad] 
-		+ ' ' +  ENT.[Segundo Apellido Entidad] + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
+        ent.[Nombre Completo Entidad] + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
 		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
         PTT.[Documento Responsable] AS [DocumentoEPS], 
         PT.[Documento Paciente] AS [DocumentoPaciente],

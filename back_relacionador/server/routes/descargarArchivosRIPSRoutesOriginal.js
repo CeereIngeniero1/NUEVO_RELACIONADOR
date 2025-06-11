@@ -66,7 +66,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         LEFT JOIN EmpresaV AS EmpV ON fc.[Id EmpresaV] = EmpV.[Id EmpresaV] 
 
         WHERE CONVERT(DATE, eve.[Fecha Evaluación Entidad], 23) BETWEEN @fechaInicio AND @fechaFin
-        AND eve.[Documento Empresa] = @documentoEmpresaSeleccionada
+        AND FC.[Documento Empresa] = @documentoEmpresaSeleccionada
         ORDER BY en.[Documento Entidad] DESC 
         `,
         (err) => {

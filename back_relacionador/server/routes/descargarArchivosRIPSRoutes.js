@@ -279,7 +279,7 @@ WHERE
     END = 1 AND
        -- WHERE 
         CONVERT(DATE, FC.[Fecha Factura], 23) BETWEEN @fechaInicio AND @fechaFin
-        AND eve.[Documento Empresa] = @documentoEmpresaSeleccionada
+        AND FC.[Documento Empresa] = @documentoEmpresaSeleccionada
         ORDER BY en.[Documento Entidad] DESC
         `,
         (err) => {
