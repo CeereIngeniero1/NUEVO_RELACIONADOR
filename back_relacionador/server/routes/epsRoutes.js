@@ -11,7 +11,11 @@ router.get('/EPS/:fechaInicio/:fechaFin', (req, res) => {
     const EPSData = [];
     const EPSVistos = new Set(); // Utilizar un conjunto para rastrear nombres únicos
 
-    const request = new Request(`SELECT fc.[Id Factura], en.[Nombre Completo Entidad] + ' ' + EV.[Prefijo Resolución Facturación EmpresaV]+ fc.[No Factura] as [Nombre EPS]
+    const request = new Request(`SELECT fc.[Id Factura], 
+        ISNULL(en.[Segundo Nombre Entidad], '') + ' ' +
+        ISNULL(en.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(en.[Primer Apellido Entidad], '') + ' ' +
+        ISNULL(en.[Segundo Apellido Entidad], '') + ' ' + EV.[Prefijo Resolución Facturación EmpresaV]+ fc.[No Factura] as [Nombre EPS]
 
     FROM Factura as fc
     
@@ -199,7 +203,10 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
     const PacientesData = []; // Crear un array para almacenar los resultados
 
     const request = new Request(`SELECT 
-        ent.[Nombre Completo Entidad] + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
+         ISNULL(ent.[Segundo Nombre Entidad], '') + ' ' +
+        ISNULL(ent.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(ent.[Primer Apellido Entidad], '') + ' ' +
+        ISNULL(ent.[Segundo Apellido Entidad], '') + ' ' + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
 		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
         PTT.[Documento Responsable] AS [DocumentoEPS], 
         PT.[Documento Paciente] AS [DocumentoPaciente],
@@ -210,6 +217,7 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
             INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
             INNER JOIN Entidad ENT ON ENT.[Documento Entidad] = PT.[Documento Paciente]
 			LEFT JOIN [Evaluación Entidad Rips] EVR ON EVR.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] AND FII.[Id Factura] = EVR.[Id Factura]
+           
             WHERE FII.[Id Factura] = @idfactura
             --   GROUP BY 
             --PT.[Documento Paciente], 
