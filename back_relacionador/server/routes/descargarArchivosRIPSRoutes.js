@@ -42,7 +42,10 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
 			WHEN fc.[Documento Responsable] in (select [Documento Entidad] from [Función Por Entidad] where [Id Función] in ( select [Id Función] from Función where Función like ('%eps%' ) or Función like ('%prepa%') )) 
 				THEN 1 
 			ELSE 0
-		END AS 'Prepagada'
+		END AS 'Prepagada',
+	everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
+	everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
+	everips.[Id Factura] AS IDfactura
 
         FROM Entidad as en
 
