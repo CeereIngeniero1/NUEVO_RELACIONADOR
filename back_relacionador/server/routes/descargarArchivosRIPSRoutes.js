@@ -37,7 +37,10 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
 
         --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad] DESC) 
         --CAST(DENSE_RANK() OVER (ORDER BY en.[Documento Entidad] DESC) AS INT)
-        1 AS consecutivo, pais2.País AS [codPaisOrigen], eve.[Id Evaluación Entidad], everips.[Id Tipo de Rips], 
+        --1 AS consecutivo
+        --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
+	    ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
+        , pais2.País AS [codPaisOrigen], eve.[Id Evaluación Entidad], everips.[Id Tipo de Rips], 
 		CASE
 			WHEN fc.[Documento Responsable] in (select [Documento Entidad] from [Función Por Entidad] where [Id Función] in ( select [Id Función] from Función where Función like ('%eps%' ) or Función like ('%prepa%') )) 
 				THEN 1 
@@ -227,7 +230,8 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     Depart.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
     CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
     'NO' AS [incapacidad],
-    DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
+    --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
+	ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
     pais2.País AS [codPaisOrigen], 
     eve.[Id Evaluación Entidad], 
     everips.[Id Tipo de Rips], 
