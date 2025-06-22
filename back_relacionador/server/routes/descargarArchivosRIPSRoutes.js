@@ -16,6 +16,7 @@ const router = Router();
 // Endpoint para obtener datos de usuarios RIPS
 
 router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) => {
+    console.log("entre a los particulares");
    
    const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
@@ -40,7 +41,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         --1 AS consecutivo
         --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
 	    ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
-        , pais2.País AS [codPaisOrigen], eve.[Id Evaluación Entidad], everips.[Id Tipo de Rips], 
+         pais2.País AS [codPaisOrigen], eve.[Id Evaluación Entidad], everips.[Id Tipo de Rips], 
 		CASE
 			WHEN fc.[Documento Responsable] in (select [Documento Entidad] from [Función Por Entidad] where [Id Función] in ( select [Id Función] from Función where Función like ('%eps%' ) or Función like ('%prepa%') )) 
 				THEN 1 
@@ -209,6 +210,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
 
 
 router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) =>  {
+    console.log("entre a los eps");
    
     const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];

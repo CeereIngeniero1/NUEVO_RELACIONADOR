@@ -15,11 +15,15 @@ const dataSourceLine = fileContent.split('\n').find(line => line.includes('DataS
 
 // Obtener el valor después del '=' y antes del '\'
 const dataSourceValue = dataSourceLine.split('=')[1].split('\\')[0].trim();
+// const dataSourceValue = 'FER-DEVELOPER\\MSSQLSERVER2017';
+console.log(dataSourceValue);
 
 // Buscar la línea que contiene exactamente Catalog
 const CatalogLine = fileContent.split('\n').find(line => line.trim().startsWith('Catalog='));
 const CatalogLineValue = CatalogLine.split('=')[1].split('\\')[0].trim();
 console.log(CatalogLineValue);
+
+
 
 const config = {
     server: dataSourceValue,
@@ -30,13 +34,21 @@ const config = {
             password: 'crsoft'
         }
     },
-    options: { 
-        port: 1433,
-        database: CatalogLineValue,
+   options: {
         encrypt: false,
-        requestTimeout: 30000000
-    }
+        trustServerCertificate: true, // útil para entornos locales
+        language: 'Spanish', // Esto puede no funcionar en todas las versiones
+        requestTimeout: 300000,
+    },
 };
+
+
+// Configuración del pool
+
+
+
+
+
 
 const connection = new Connection(config);
 
