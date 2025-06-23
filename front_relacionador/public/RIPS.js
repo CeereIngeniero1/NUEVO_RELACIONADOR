@@ -2,7 +2,7 @@
 const servidor = localStorage.getItem("NombreEquipoServidor");
 
 // Funcionalidad para incorporar buscador en el select de los pacientes
-$(document).ready(function(e) {
+$(document).ready(function (e) {
     $('#listaPaciente').select2({
         width: '100%', // Ajusta el ancho al contenedor
         dropdownAutoWidth: true, // Ajusta automáticamente el ancho del menú
@@ -269,9 +269,9 @@ const selectPaciente = document.querySelector('#listaPaciente');
 //     }
 // });
 
-$(document).ready(function() {
+$(document).ready(function () {
 
-    $('#listaPaciente').on('change', async function() {
+    $('#listaPaciente').on('change', async function () {
         const documentoSeleccionado = $(this).val(); // Obtener el valor seleccionado
         console.log(documentoSeleccionado);
 
@@ -497,14 +497,14 @@ btnRelacionar.addEventListener('click', async () => {
             const idEveRips2 = document.getElementById('listaHistoriaClinica')
             const idEveRips = document.getElementById('listaHistoriaClinica').value
             const textoSeleccionadoHistoriaClinica = idEveRips2.selectedOptions[0].textContent;
-            
+
             const selectHistoriaClinicaEPS = document.getElementById('listaPacientePrepagada');
             const documentoPacienteSeleccionado = selectHistoriaClinicaEPS.value;
             const [documentoPaciente, documentoEps, IdTratamiento] = documentoPacienteSeleccionado.split('|');
 
 
-       
-       
+
+
 
             const swalWithBootstrapButtons = Swal.mixin({
                 customClass: {
@@ -795,6 +795,8 @@ document.getElementById('closeSesion').addEventListener('click', logout);
 
 /** FUNCIÓN PARA LA DESCARGA DE LOS ARCHIVOS JSON */
 async function DescargarArchivosJSON() {
+    console.log("entre a los eps");
+    // DescargarArchivosJSONParticulares();
     console.log('funcionando');
 
     const fechaInicioInput = document.getElementById('fechaInicio');
@@ -841,7 +843,94 @@ async function DescargarArchivosJSON() {
         await Esperar(1000);
         // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
         const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/rips/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
-        
+
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        console.log('Enviando datos al servidor para generar archivo ZIP...');
+
+        const zipResponse = await fetch(`http://${servidor}:3000/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!zipResponse.ok) {
+            throw new Error(`Error en la generación del ZIP: ${zipResponse.status} - ${zipResponse.statusText}`);
+        }
+
+        const zipData = await zipResponse.json();
+        console.log('Archivo ZIP generado y almacenado en el servidor:', zipData);
+
+        Swal.fire({
+            icon: 'success',
+            text: 'El archivo RIPS JSON se descargó correctamente'
+        })
+
+    } catch (error) {
+
+        Swal.fire({
+            icon: 'error',
+            text: 'Hubo un error al generar el archivo ZIP o al obtener los datos.'
+        })
+        console.error('Error al obtener datos o generar ZIP:', error);
+    }
+}
+
+async function DescargarArchivosJSONParticulares() {
+    console.log("entre a los particulares");
+
+    console.log('funcionando');
+
+    const fechaInicioInput = document.getElementById('fechaInicio');
+    const fechaFinInput = document.getElementById('fechaFin');
+
+    const fechaInicioValue = fechaInicioInput.value;
+    const fechaFinValue = fechaFinInput.value;
+
+    if (!fechaInicioValue || !fechaFinValue) {
+        console.error('Fechas inválidas.');
+        return;
+    }
+
+    localStorage.setItem("fechaInicio", fechaInicioValue);
+    localStorage.setItem("fechaFin", fechaFinValue);
+
+    let SelectResolucionesRips = document.getElementById('ResolucionesRips').value
+
+    let CampoResolucion = document.getElementById('ResolucionesRips');
+    let CampoResolucionTexto = CampoResolucion.options[CampoResolucion.selectedIndex].text;
+    let TextoPrefijo = CampoResolucionTexto.match(/^[A-Za-z]+/)[0];
+
+    const CamposFaltantes = [];
+    if (!fechaInicioValue) CamposFaltantes.push('Fecha Inicio.');
+    if (!fechaFinValue) CamposFaltantes.push('Fecha Fin.');
+    if (SelectResolucionesRips === null || SelectResolucionesRips === "") CamposFaltantes.push('Resolución RIPS.');
+
+    if (CamposFaltantes.length > 0) {
+        Swal.fire({
+            icon: 'info',
+            html: `
+                <h5 style="color: #ffffff"><b> Los siguientes campos son necesarios: </b></h5>
+                <br>
+                <ul style="color: #FFFFFF; text-align: left;">
+                    ${CamposFaltantes.map((campo) => `<li style="color: #FFFFFF;">${campo}</li>`).join("")}
+                </ul>
+            `
+        })
+        return;
+    }
+
+    try {
+        MensajeDeCarga("Descargando JSON...");
+        await Esperar(1000);
+        // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsParticular/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
         }
@@ -882,7 +971,17 @@ async function DescargarArchivosJSON() {
 document.getElementById('obtenerDatosBtn').addEventListener('click', async () => {
     // MensajeDeCarga("Descargando JSON...");
     // await Esperar(1000);
+    // DescargarArchivosJSONParticulares();
     DescargarArchivosJSON();
+
+
+})
+
+
+document.getElementById('obtenerDatosParticularesBtn').addEventListener('click', async () => {
+    // MensajeDeCarga("Descargando JSON...");
+    // await Esperar(1000);
+    DescargarArchivosJSONParticulares();
 
 })
 /* FIN FIN FIN */
@@ -1246,7 +1345,10 @@ async function DescargarXMLSPorLaAPIDeFacturaTech() {
     }
     else {
 
+
+
         try {
+            // const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
             const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-facturatech/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
                 method: 'POST',
                 // headers: {
@@ -1271,6 +1373,8 @@ async function DescargarXMLSPorLaAPIDeFacturaTech() {
                 });
                 throw new Error(data.error);
             }
+
+
 
             // Verifica si 'data' y 'data.facturas' existen y son válidos
             const Facturas = data && Array.isArray(data.facturas) ? data.facturas : [];
@@ -1471,12 +1575,105 @@ async function DescargarXMLSPorLaAPIDeFacturaTech() {
                 text: 'Hubo un problema al descargar los XMLs. Error =>' + Error.message
             });
         }
+
+
+
     }
 }
 
+
+async function DescargarXMLSPorLaAPIFernalco() {
+    const Resolucion = document.getElementById('Resoluciones');
+    const FechaInicial = document.getElementById('FechaInicial');
+    const FechaFinal = document.getElementById('FechaFinal');
+
+    const campos = [
+        { valor: Resolucion.value, mensaje: 'Resolución.' },
+        { valor: FechaInicial.value, mensaje: 'Fecha inicial.' },
+        { valor: FechaFinal.value, mensaje: 'Fecha final.' }
+    ];
+
+    const errores = [];
+
+    for (let i = 0; i < campos.length; i++) {
+        const campo = campos[i];
+        if (!campo.valor) {
+            errores.push(campo.mensaje);
+        } else if (i >= 1 && isNaN(Date.parse(campo.valor))) {
+            errores.push(campo.mensaje);
+        }
+    }
+
+    if (FechaInicial.value > FechaFinal.value) {
+        errores.push('La fecha inicial no puede ser mayor que la fecha final.');
+    }
+
+    if (errores.length > 0) {
+        Swal.fire({
+            icon: 'info',
+            html: `
+                <h5><b>Los siguientes campos son necesarios</b></h5>
+                <br>
+                <ul style="text-align: left;">
+                    ${errores.map((campo) => `<li style="color: #FFFFFF;">${campo}</li>`).join("")}
+                </ul>
+            `
+        });
+        return;
+    }
+
+    try {
+        // Mostrar mensaje de carga
+        await MensajeDeCarga('Descargando XMLs, por favor espera...');
+
+        const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        // Cierra el mensaje de carga
+        Swal.close();
+
+        if (data.error) {
+            Swal.fire({
+                icon: 'error',
+                html: `
+                    <h3>Hubo un problema al descargar los XMLs</h3>
+                    <br />
+                    <p>Error: ${data.error}</p>
+                `
+            });
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Proceso completado',
+                text: 'Se descargaron los XMLs correctamente.'
+            });
+            console.log('Respuesta del servidor:', data);
+        }
+
+    } catch (error) {
+        Swal.close();
+        Swal.fire({
+            icon: 'error',
+            text: 'Hubo un problema al descargar los XMLs. Detalles: ' + error.message
+        });
+        console.error(error);
+    }
+}
+
+
 document.getElementById('DescargarXMLS').addEventListener('click', async () => {
-    MensajeDeCarga("Descargando XMLS...");
-    DescargarXMLSPorLaAPIDeFacturaTech();
+const Facturaador = 'Fenalco';
+    if (Facturaador == 'Fenalco') {
+        DescargarXMLSPorLaAPIFernalco();
+
+    } else {
+        MensajeDeCarga("Descargando XMLS...");
+        DescargarXMLSPorLaAPIDeFacturaTech();
+    }
+
 })
 /* FIN FIN FIN FIN FIN FIN FIN */
 
@@ -1582,7 +1779,7 @@ const updatePacientesEPS = (pacientesPre) => {
     // Agregar opciones al select
     pacientesPre.forEach((PacientePre) => {
         const option = document.createElement("option");
-        option.value = `${PacientePre.DocumentoPaciente}|${PacientePre.DocumentoEps}|${PacientePre.Idtratamiento}` ;
+        option.value = `${PacientePre.DocumentoPaciente}|${PacientePre.DocumentoEps}|${PacientePre.Idtratamiento}`;
         option.text = `${PacientePre.NombrePaciente}`;
         listaPacientePrepagada.appendChild(option);
     });
@@ -1832,7 +2029,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (level === 1) {
             generadorRIPSLink.style.display = 'none';
         } else {
-            generadorRIPSLink.style.display = 'none';            
+            generadorRIPSLink.style.display = 'none';
             const ElementosABloquear = {
                 'BotonMaestro': 'Maestro (Deshabilitado)',
                 'descargarRIPS': 'Descargar RIPS (Deshabilitado)',
@@ -1845,16 +2042,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 'btnRelacionar': '',
                 'AsignarFacturaManual': ''
             }
-        
+
             for (let key in ElementosABloquear) {
                 const elemento = document.getElementById(key); // Obtener el elemento del DOM usando el ID
-        
+
                 if (elemento) { // Verificar que el elemento exista
                     elemento.disabled = true;
                     elemento.classList.remove('btn-primary');
                     elemento.classList.add('btn-danger');
                     elemento.textContent = ElementosABloquear[key]; // Cambia el texto del botón
-                    elemento.style.pointerEvents = "none"; 
+                    elemento.style.pointerEvents = "none";
                 }
             }
         }
