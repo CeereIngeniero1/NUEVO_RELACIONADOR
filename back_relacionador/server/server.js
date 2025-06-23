@@ -15,7 +15,7 @@ const InfoPacientesRoutes = require('./routes/infoPacientesRoutes');
 const epsRoutes = require('./routes/epsRoutes');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
-
+const Facturador = require('./routes/FacturadorRoutes');
 
 /* =========================================================================================================== */
 // Se crea un nuevo worker que ejecutará el archivo asignarNombreServidorRoutes.js
@@ -118,6 +118,8 @@ app.use('/api', epsRoutes);
 app.use('/api', AsignarRips);
 
 app.use('/api', MaestroListasRIPS);
+
+app.use('/XMLS', Facturador);
 
 const port = 3000;
 

@@ -1664,14 +1664,46 @@ async function DescargarXMLSPorLaAPIFernalco() {
 }
 
 
-document.getElementById('DescargarXMLS').addEventListener('click', async () => {
-const Facturaador = 'Fenalco';
-    if (Facturaador == 'Fenalco') {
-        DescargarXMLSPorLaAPIFernalco();
+async function BuscarFacturador() {
+       
+    try {
+        const response = await fetch(`http://${servidor}:3000/XMLS//Facturador/${documentoEmpresaSeleccionada}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
 
-    } else {
+        const Facturador = await response.json();
+        // console.log('Facturador arr:', Facturador);
+        // console.log('Facturador:', Facturador[0].Facturador);
+
+        return Facturador[0].Facturador;
+        // return Facturador.Facturador[0].Facturador;
+
+    } catch (Err) {
+        console.error(Err);
+        return "Facturatech";
+    }
+
+}
+
+
+
+
+document.getElementById('DescargarXMLS').addEventListener('click', async () => {
+
+
+    const Facturador = await BuscarFacturador();
+    console.log("Encontre ", Facturador);
+
+    if (Facturador == 'Fenalco' || Facturador == 'fenalco') {
+        DescargarXMLSPorLaAPIFernalco();
+        console.log("Soy Fenalco");
+
+    } else if (Facturador == 'Facturatech' || Facturador == 'facturatech') {
         MensajeDeCarga("Descargando XMLS...");
         DescargarXMLSPorLaAPIDeFacturaTech();
+        console.log("Soy Facturatech");
+
     }
 
 })

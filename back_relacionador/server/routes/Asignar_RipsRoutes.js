@@ -3,7 +3,7 @@ const Router = require('express').Router;
 const connection = require('../db');
 // const pool = require('../db2');
 // const { connectToDatabase, config } = require('../db2');
-const { sql, poolPromise } = require('../db2'); // Asegúrate de exportar correctamente tu conexión
+const { sql, poolPromise } = require('../db2'); 
 
 const router = Router();
 
