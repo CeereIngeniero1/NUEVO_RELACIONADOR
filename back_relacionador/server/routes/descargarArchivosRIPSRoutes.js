@@ -341,7 +341,7 @@ WHERE
 
         const usuario = {
             tipoDocumentoIdentificacion: columns[4].value,
-            numDocumentoIdentificacion: columns[5].value,
+            numDocumentoIdentificacion: columns[5].value.trim().replace(/\r?\n|\r/g, ''),
             tipoUsuario: columns[6].value,
             fechaNacimiento: columns[7].value,
             codSexo: columns[8].value,
