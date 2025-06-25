@@ -547,7 +547,7 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
 
 router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
 
-console.log('EPS AC ');
+console.log(' AC ');
     const IdFacrua = req.params.IdFacrua; 
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
     console.log( "factura ",IdFacrua);
@@ -555,11 +555,12 @@ console.log('EPS AC ');
     const request = new Request(
         `
         --ac correcto 
-            SELECT 
+          SELECT 
             EMP.[Código Empresa] AS codPrestador, 
             --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
             SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
-            PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+            --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+            0 AS numAutorizacion,
             EVR.[Codigo RIPS] AS codConsulta,
             MODA.Codigo AS modalidadGrupoServicioTecSal, 
             GP.Codigo   AS grupoServicios, 
@@ -572,7 +573,8 @@ console.log('EPS AC ');
             NULL AS codDiagnosticoRelacionado3, 
             tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
             tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
-            FII.[Valor FacturaII] AS vrServicio,
+            --FII.[Valor FacturaII] AS vrServicio,
+            fc.[SubTotal Factura] AS vrServicio,
             '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
             NULL  AS numFEVPagoModerador, 
             ROW_NUMBER() OVER (ORDER BY EVR.[Id Evaluación Entidad RIPS]) AS consecutivo
@@ -581,11 +583,11 @@ console.log('EPS AC ');
             FROM [Evaluación Entidad Rips] EVR 
             INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
             INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
-            INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
+            --INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
             --AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
-            LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
-            LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
-            LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
+            --LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
+            --LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+            --LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
             INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
             INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
             LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
@@ -598,7 +600,7 @@ console.log('EPS AC ');
                                 
             WHERE evr.[Id Acto Quirúrgico] = 1 
             AND EVR.[Id Factura] = @IdFacrua
-            AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
+            --AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
 
 
         `,
@@ -779,7 +781,7 @@ router.get('/servicios/ripsAPViejo/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoId
 });
 
 router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
-    console.log('EPS AP ');
+    console.log(' AP ');
     
     const IdFacrua = req.params.IdFacrua; 
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
@@ -791,12 +793,13 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
     const request = new Request(
         `
         --ap correcto 
-            SELECT 
+             SELECT 
                 EMP.[Código Empresa] AS codPrestador, 
                 --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
                 SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
 				NULL AS idMIPRES,
-                PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+                --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+                0  AS numAutorizacion,
 				evr.[Codigo Rips] AS codProcedimiento,
 				VIAI.Codigo AS viaIngresoServicioSalud, 
 				MODA.Codigo AS modalidadGrupoServicioTecSal, 
@@ -807,8 +810,9 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
 				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
 				NULL   AS codDiagnosticoRelacionado, 
-				NULL AS codComplicacion, 
-				FII.[Valor FacturaII] AS vrServicio,
+				NULL AS codComplicacion, -
+				-FII.[Valor FacturaII] AS vrServicio,
+            fc.[SubTotal Factura] AS vrServicio,
 				'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
 				NULL AS numFEVPagoModerador,  
@@ -818,11 +822,11 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
                 FROM [Evaluación Entidad Rips] EVR 
                 INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
                 INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
-                INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
+                --INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
                 --AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
-                LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
-                LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
-                LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
+                --LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
+                --LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+                --LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
                 INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
                 INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
                 LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
@@ -834,11 +838,10 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
 				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
-					   
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
                 AND EVR.[Id Factura] = @IdFacrua
-                AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
+                --AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
 
         `,
 
