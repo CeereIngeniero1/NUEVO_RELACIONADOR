@@ -12,8 +12,8 @@ router.get('/EPS/:fechaInicio/:fechaFin', (req, res) => {
     const EPSVistos = new Set(); // Utilizar un conjunto para rastrear nombres únicos
 
     const request = new Request(`SELECT fc.[Id Factura], 
-        ISNULL(en.[Segundo Nombre Entidad], '') + ' ' +
         ISNULL(en.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(en.[Segundo Nombre Entidad], '') + ' ' +
         ISNULL(en.[Primer Apellido Entidad], '') + ' ' +
         ISNULL(en.[Segundo Apellido Entidad], '') + ' ' + EV.[Prefijo Resolución Facturación EmpresaV]+ fc.[No Factura] as [Nombre EPS]
 
@@ -76,7 +76,10 @@ router.get('/pacientesEPS/:idFacturaEPS', (req, res) => {
     const pacientesEPSData = []; // Crear un array para almacenar los resultados
 
     const request = new Request(`SELECT en.[Documento Entidad],
-en.[Primer Nombre Entidad] + ' ' + en.[Segundo Nombre Entidad] + ' ' + en.[Primer Apellido Entidad] + ' ' + en.[Segundo Apellido Entidad]  as [Nombre Paciente]
+        en.[Primer Nombre Entidad] + ' 
+' + en.[Segundo Nombre Entidad] + ' 
+' + en.[Primer Apellido Entidad] + ' 
+' + en.[Segundo Apellido Entidad]  as [Nombre Paciente]
 
     FROM FacturaII as fc2
         
@@ -203,8 +206,8 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
     const PacientesData = []; // Crear un array para almacenar los resultados
 
     const request = new Request(`SELECT 
-         ISNULL(ent.[Segundo Nombre Entidad], '') + ' ' +
         ISNULL(ent.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(ent.[Segundo Nombre Entidad], '') + ' ' +
         ISNULL(ent.[Primer Apellido Entidad], '') + ' ' +
         ISNULL(ent.[Segundo Apellido Entidad], '') + ' ' + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
 		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
@@ -243,7 +246,7 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
     console.log("PacientesData");
     console.log(PacientesData);
     request.addParameter('idfactura', TYPES.Int, IdFactura);
-    
+
     // Manejar cada fila de resultados
     request.on('row', (columns) => {
         const Pacientes = {};
@@ -264,7 +267,7 @@ router.get('/RipsPacientesTratamientosEps/:DocumentoPaciente/:DocumentoEPS/:IdTr
     const IdTratamiento = req.params.IdTratamiento;
 
     const PacienteRipsData = []; // Crear un array para almacenar los resultados
-    
+
 
     const request = new Request(`SELECT EVR.[Id Evaluación Entidad Rips] AS [idEveRips], EVA.[Fecha Evaluación Entidad] AS [FechaHC], TE.[Tipo de Evaluación] AS [TipoEvaluacion]
         FROM [Evaluación Entidad Rips] EVR 
@@ -282,15 +285,15 @@ router.get('/RipsPacientesTratamientosEps/:DocumentoPaciente/:DocumentoEPS/:IdTr
             res.json(PacienteRipsData.map(row => ({
                 idEveRips: row['idEveRips'],
                 fechaEveRips: row['FechaHC'],
-                TipoEvaluacion: row['TipoEvaluacion'] 
+                TipoEvaluacion: row['TipoEvaluacion']
             })));
         }
     });
 
-    
+
     request.addParameter('DocumentoPaciente', TYPES.VarChar, DocumentoPaciente);
     request.addParameter('DocumentoEPS', TYPES.VarChar, DocumentoEPS);
-    
+
     // Manejar cada fila de resultados
     request.on('row', (columns) => {
         const PacienteRips = {};
