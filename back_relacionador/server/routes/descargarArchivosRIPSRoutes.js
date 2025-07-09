@@ -810,7 +810,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
 				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
 				NULL   AS codDiagnosticoRelacionado, 
-				NULL AS codComplicacion, -
+				NULL AS codComplicacion, 
 				--FII.[Valor FacturaII] AS vrServicio,
             fc.[SubTotal Factura] AS vrServicio,
 				'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
