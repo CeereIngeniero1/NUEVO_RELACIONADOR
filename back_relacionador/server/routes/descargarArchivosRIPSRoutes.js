@@ -559,7 +559,8 @@ console.log(' AC ');
           SELECT 
             EMP.[Código Empresa] AS codPrestador, 
             --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
-            SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+             --SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+			case when FC.[Fecha Factura] IS NULL THEN EVA.[Fecha Evaluación Entidad] ELSE  SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) END AS fechaInicioAtencion, 
             --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
             '0' AS numAutorizacion,
             EVR.[Codigo RIPS] AS codConsulta,
@@ -797,7 +798,8 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
              SELECT 
                 EMP.[Código Empresa] AS codPrestador, 
                 --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
-                SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+                 --SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+			case when FC.[Fecha Factura] IS NULL THEN EVA.[Fecha Evaluación Entidad] ELSE  SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) END AS fechaInicioAtencion, 
 				NULL AS idMIPRES,
                 --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
                 '0'  AS numAutorizacion,
