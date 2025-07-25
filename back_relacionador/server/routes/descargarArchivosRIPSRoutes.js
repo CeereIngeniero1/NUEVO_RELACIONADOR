@@ -28,7 +28,7 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
 em.NroIDPrestador, EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura], 
 -- CASE WHEN  fc.[No Factura] = '0000000' THEN '111111' ELSE NULL END AS [numNota],
 --CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
-CASE WHEN  fc.[No Factura] = '0000000' THEN "RipSin" + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
+CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
 CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
         en.[Documento Entidad] as [numDocumentoIdentificacion], '0' + tpe.[Tipo Entidad] as [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
@@ -143,6 +143,14 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
             }
         };
 
+        
+        //  SE AGREGA LINEA CONDICIONAL QUE EVALUA  SI EL CODDE MUNICIPIO ES MAYOR A 5 DIGITOS 
+        // SI ES MAYOR A 5 DIGITOS SE TOMA COMO QUE SE ESTA COLOCANDO 0505001  ENTRE OTROS 
+        // SE CORRGE Y SE COLOCA AUTOMATICAMENTE 05001 ELIINANDO 2 DIGITOS DEL PRINCIPIO
+        //NOTA UN CODIGO DE MUNICIPIO NO PUEDE SER MAYOR A  5 DIGITOS
+        usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
+        
+
         // Fusiona los servicios si ya existe el usuario
         const existingUser = resultados[facturaKey].usuarios.find(u => u.numDocumentoIdentificacion === usuario.numDocumentoIdentificacion);
         if (existingUser) {
@@ -225,7 +233,7 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     NULL AS [numNota], 
     NULL AS [tipoNota], 
     tpd.[Tipo de Documento] AS [tipoDocumentoIdentificacion],
-    en.[Documento Entidad] AS [numDocumentoIdentificacion], 
+    en.[Documento Entidad] AS [numDocumentoIdentificacion],
     '0' + tpe.[Tipo Entidad] AS [tipoUsuario],
     CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], 
     Sexo.[Sexo] AS [codSexo], 
@@ -234,7 +242,15 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
     'NO' AS [incapacidad],
     --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
-	ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
+	
+		--DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS consecutivo2,
+		--ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
+		--Esto se realizo para separar con consecutivos cuando se trata de particulares y de eps 
+CASE 
+        WHEN dbo.Documento_EPS(fc.[Documento Responsable] ) = 1 THEN DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) 
+        ELSE ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] )
+    END AS consecutivo,
+	
     pais2.País AS [codPaisOrigen], 
     eve.[Id Evaluación Entidad], 
     everips.[Id Tipo de Rips], 
@@ -253,6 +269,8 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
 	everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
 	everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
 	everips.[Id Factura] AS IDfactura
+
+    
 FROM 
     Entidad AS en
 LEFT JOIN  [Tipo de Documento] AS tpd ON en.[Id Tipo de Documento] = tpd.[Id Tipo de Documento]
@@ -357,6 +375,13 @@ WHERE
                 procedimientos: []
             }
         };
+
+        //  SE AGREGA LINEA CONDICIONAL QUE EVALUA  SI EL CODDE MUNICIPIO ES MAYOR A 5 DIGITOS 
+        // SI ES MAYOR A 5 DIGITOS SE TOMA COMO QUE SE ESTA COLOCANDO 0505001  ENTRE OTROS 
+        // SE CORRGE Y SE COLOCA AUTOMATICAMENTE 05001 ELIINANDO 2 DIGITOS DEL PRINCIPIO
+        //NOTA UN CODIGO DE MUNICIPIO NO PUEDE SER MAYOR A  5 DIGITOS
+        usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
+        
 
         // Fusiona los servicios si ya existe el usuario
         const existingUser = resultados[facturaKey].usuarios.find(u => u.numDocumentoIdentificacion === usuario.numDocumentoIdentificacion);
@@ -938,7 +963,14 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
 				NULL   AS codDiagnosticoRelacionado, 
 				NULL AS codComplicacion, 
-				FII.[Valor FacturaII] AS vrServicio,
+				--FII.[Valor FacturaII] AS vrServicio,
+				-- los copagos en 0 se estaban sumando 
+				case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
+				then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+				when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
+				then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+				else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
+				END AS vrServicio,
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
@@ -967,6 +999,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
 				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+					   
 					   
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
@@ -1056,8 +1089,15 @@ console.log('EPS AC ');
             NULL AS codDiagnosticoRelacionado3, 
             tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
             tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
-            FII.[Valor FacturaII] AS vrServicio,
-            	case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
+           --FII.[Valor FacturaII] AS vrServicio,
+				-- los copagos en 0 se estaban sumando 
+				case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
+				then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+				when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
+				then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+				else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
+				END AS vrServicio,
+				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
 				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
