@@ -56,7 +56,7 @@ Se ajustó la lógica de cálculo para los servicios, incluyendo el valor del co
 
 📂 Rutas relacionadas:
 
-bash
+
 
 http://localhost:3000/RIPS/serviciosEPS/ripsAC
 http://localhost:3000/RIPS/serviciosEPS/ripsAP
