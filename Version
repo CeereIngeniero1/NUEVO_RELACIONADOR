@@ -60,6 +60,7 @@ Se ajustó la lógica de cálculo para los servicios, incluyendo el valor del co
 📂 Rutas relacionadas:
 
 
-
 http://localhost:3000/RIPS/serviciosEPS/ripsAC
 http://localhost:3000/RIPS/serviciosEPS/ripsAP
+
+📌📌📌Nota este cambio no es necesario ejecutarlo por que ya esta incoporado
