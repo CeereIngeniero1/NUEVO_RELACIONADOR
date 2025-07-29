@@ -1,4 +1,4 @@
-Version = 1.0.5
+✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅Version = 1.0.5✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅
 A nivel de usuario, se ha incorporado la opción RipSin en el generador de JSON.
 
 Para ejecutar la consulta correspondiente, se debe utilizar el siguiente archivo del backend:
@@ -6,7 +6,8 @@ back_relacionador/server/routes/descargarArchivosRIPSRoutes
 Ruta de la API:
 /usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada
 
-🛠 Versión 1.0.6
+✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅ Version = 1.0.6✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅
+📌📌📌📌📌📌📌📌📌📌📌Primer
 ✅ Correcciones y mejoras realizadas
 📌 Corrección en Código Postal
 Se corrigió la validación del campo código postal para aceptar valores superiores a 5 dígitos, por ejemplo: 0505001.
@@ -18,7 +19,8 @@ back_relacionador/server/routes/descargarArchivosRIPSRoutes
 
 
 /usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada
-🧩 Separación de consecutivos para EPS y particulares
+📌📌📌📌📌📌📌📌📌Segundo
+Separación de consecutivos para EPS y particulares
 Se implementó una nueva funcionalidad que separa los consecutivos de tipo EPS y particulares en el generador de JSON.
 
 📂 Archivo modificado:
@@ -30,8 +32,8 @@ back_relacionador/server/routes/descargarArchivosRIPSRoutes
 /usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada
 📌 Función requerida para esta separación:
 sql
-
-ALTER FUNCTION [dbo].[Documento_EPS]
+📌📌📌Nota En algunos es ALTER
+Create FUNCTION [dbo].[Documento_EPS]
 (
 	@Documento NVARCHAR(50)
 )
@@ -49,6 +51,7 @@ BEGIN
 		SET @existe = 0;
 	RETURN @existe;
 END;
+📌📌📌📌📌📌📌📌📌📌Tercer
 💵 Corrección en el cálculo de valores (servicios)
 Se ajustó la lógica de cálculo para los servicios, incluyendo el valor del copago y el valor total del servicio.
 

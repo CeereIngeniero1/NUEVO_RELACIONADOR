@@ -148,8 +148,10 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         // SI ES MAYOR A 5 DIGITOS SE TOMA COMO QUE SE ESTA COLOCANDO 0505001  ENTRE OTROS 
         // SE CORRGE Y SE COLOCA AUTOMATICAMENTE 05001 ELIINANDO 2 DIGITOS DEL PRINCIPIO
         //NOTA UN CODIGO DE MUNICIPIO NO PUEDE SER MAYOR A  5 DIGITOS
-        usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
-        
+        // usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
+        if (parseInt(usuario.codMunicipioResidencia) > 5) {
+         usuario.codMunicipioResidencia = usuario.codMunicipioResidencia.substring(2);
+        }
 
         // Fusiona los servicios si ya existe el usuario
         const existingUser = resultados[facturaKey].usuarios.find(u => u.numDocumentoIdentificacion === usuario.numDocumentoIdentificacion);
