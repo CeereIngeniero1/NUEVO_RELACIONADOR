@@ -276,7 +276,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
             INNER JOIN 
                 Empresa Emp ON EmpV.[Documento Empresa] = Emp.[Documento Empresa]
             WHERE 
-                ( EmpV.[Id Estado] = 7 ) AND
+                --( EmpV.[Id Estado] = 7 ) AND
                 ( Fac.EstadoFacturaElectronica >= 1 ) AND
                 ( CAST(Fac.[Fecha Factura] AS DATE) BETWEEN @FechaInicial AND @FechaFinal ) AND 
                 ( EmpV.[Prefijo Resolución Facturación EmpresaV] = @Prefijo ) AND
