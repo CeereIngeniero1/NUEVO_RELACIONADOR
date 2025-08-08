@@ -413,7 +413,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
                         if (err) {
                             console.error('Error llamando a FtechAction.downloadXMLFile:', err);
-                            factura.estado = 'Error en la llamada SOAP';
+                            factura.estado = 'Error en la llamada SOAP' + err.message;
                             resultadosFinales.push(factura);  // Agrega la factura a los resultados
                             processedCount++;
                             processNextFactura(facturas[processedCount]);
