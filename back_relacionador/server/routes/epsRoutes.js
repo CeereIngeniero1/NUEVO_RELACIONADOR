@@ -209,7 +209,7 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
         ISNULL(ent.[Primer Nombre Entidad], '') + ' ' +
         ISNULL(ent.[Segundo Nombre Entidad], '') + ' ' +
         ISNULL(ent.[Primer Apellido Entidad], '') + ' ' +
-        ISNULL(ent.[Segundo Apellido Entidad], '') + ' ' + ' ' + pt.[Nro Plan de Tratamiento] + ' ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
+        ISNULL(ent.[Segundo Apellido Entidad], '') + ' ' + ' ' + 'Pres ' + pt.[Nro Plan de Tratamiento] + ' ' + 'HC ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
 		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
         PTT.[Documento Responsable] AS [DocumentoEPS], 
         PT.[Documento Paciente] AS [DocumentoPaciente],
@@ -226,7 +226,9 @@ router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
             --PT.[Documento Paciente], 
             --PTT.[Documento Responsable], 
             --ENT.[Nombre Completo Entidad],
-            --PT.[Nro Plan de Tratamiento] `, (err, rowCount) => {
+            --PT.[Nro Plan de Tratamiento]
+
+            order by PT.[Documento Paciente] `, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);
             res.status(500).json({ error: 'Error al obtener datos de historias clinicas EPS' });
@@ -269,11 +271,23 @@ router.get('/RipsPacientesTratamientosEps/:DocumentoPaciente/:DocumentoEPS/:IdTr
     const PacienteRipsData = []; // Crear un array para almacenar los resultados
 
 
-    const request = new Request(`SELECT EVR.[Id Evaluación Entidad Rips] AS [idEveRips], EVA.[Fecha Evaluación Entidad] AS [FechaHC], TE.[Tipo de Evaluación] AS [TipoEvaluacion]
+    const request = new Request(`SELECT 
+EVR.[Id Evaluación Entidad Rips]  AS [idEveRips],
+--EVA.[Fecha Evaluación Entidad] AS [FechaHC], 
+CASE WHEN 
+evr.[Id Factura] IS NULL 
+THEN 
+CONVERT(VARCHAR(20), EVA.[Fecha Evaluación Entidad], 100)  + '; NO TIENE'
+else  
+CONVERT(VARCHAR(20), EVA.[Fecha Evaluación Entidad], 100) + '; ' + CAST (fac.[No Factura] AS nvarchar(50)) END  AS [FechaHC],
+
+TE.[Tipo de Evaluación] AS [TipoEvaluacion]
         FROM [Evaluación Entidad Rips] EVR 
         INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
         INNER JOIN [Tipo de Evaluación] TE ON TE.[Id Tipo de Evaluación] = EVA.[Id Tipo de Evaluación]
+        left join Factura fac on fac.[Id Factura] = evr.[Id Factura]
         WHERE EVA.[Documento Entidad] = @DocumentoPaciente AND EVR.[Documento Tipo Rips] = @DocumentoEPS
+        order by EVA.[Fecha Evaluación Entidad] desc
         --AND EVR.[Id Factura] IS NULL AND EVR.[Id Plan de Tratamiento] IS NULL`, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);

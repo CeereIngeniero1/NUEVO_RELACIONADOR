@@ -17,19 +17,22 @@ const router = Router();
 
 router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) => {
     console.log("entre a los particulares");
-   
-   const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
+
+    const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
     const ResolucionesRips = req.params.ResolucionesRips;
     const documentoEmpresaSeleccionada = req.params.documentoEmpresaSeleccionada;
 
     const request = new Request(
         `SELECT  
-em.NroIDPrestador, EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura], 
--- CASE WHEN  fc.[No Factura] = '0000000' THEN '111111' ELSE NULL END AS [numNota],
---CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
-CASE WHEN  fc.[No Factura] = '0000000' THEN "RipSin" + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
-CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
+        --EmpV.[Prefijo Resolución Facturación EmpresaV] +  fc.[No Factura]   AS [numFactura], 
+        --cambio realizado por resoluciones que superan los digitos y colocan un 0 adelante del numero de la factura
+        EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
+
+        -- CASE WHEN  fc.[No Factura] = '0000000' THEN '111111' ELSE NULL END AS [numNota],
+        --CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
+        CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
+        CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
         en.[Documento Entidad] as [numDocumentoIdentificacion], '0' + tpe.[Tipo Entidad] as [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
         País.País AS [codPaisResidencia], Dep.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
@@ -47,9 +50,9 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
 				THEN 1 
 			ELSE 0
 		END AS 'Prepagada',
-	everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
-	everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
-	everips.[Id Factura] AS IDfactura
+        everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
+        everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
+        everips.[Id Factura] AS IDfactura
 
         FROM Entidad as en
 
@@ -98,7 +101,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         const idEvaRips = columns[18].value;
         const IdTrata = columns[19].value;
         const IdFacrua = columns[20].value;
-        
+
 
 
         // Determina si se debe cambiar el numFactura a null
@@ -134,7 +137,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
             codMunicipioResidencia: columns[10].value,
             codZonaTerritorialResidencia: columns[11].value,
             incapacidad: columns[12].value,
-           // consecutivo: parseInt(columns[13].value, 10),
+            // consecutivo: parseInt(columns[13].value, 10),
             consecutivo: columns[13].value,
             codPaisOrigen: columns[14].value,
             servicios: {
@@ -153,13 +156,13 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua});
+        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua });
     });
-    console.log (" ripsEPS");
+    console.log(" ripsEPS");
     request.on('requestCompleted', async () => {
         for (let factura in resultados) {
             const consulta = resultados[factura];
-            console.log (" ");
+            console.log(" ");
 
             // console.log(factura);
             // Buscar la factura en facturasOriginales
@@ -169,12 +172,12 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
                 // const { originalNumFactura, idTipoRips } = facturaData;
 
                 const { originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua } = facturaData;
-    
+
                 for (const usuario of consulta.usuarios) {
                     try {
                         const consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const consultasData = await consultasResponse.json();
-    
+
                         if (consultasData.length > 0) {
                             usuario.servicios.consultas.push(...consultasData);
                         } else {
@@ -183,11 +186,11 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
                     } catch (error) {
                         console.error('Error al obtener consultas:', error);
                     }
-    
+
                     try {
                         const procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const procedimientosData = await procedimientosResponse.json();
-    
+
                         if (procedimientosData.length > 0) {
                             usuario.servicios.procedimientos.push(...procedimientosData);
                         } else {
@@ -201,18 +204,18 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
                 console.error(`Factura con clave ${factura} no encontrada en facturasOriginales.`);
             }
         }
-    
+
         res.json(Object.values(resultados));
     });
-    
+
 
     connection.execSql(request);
 });
 
 
-router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) =>  {
-    console.log("entre a los eps");
-   
+router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEmpresaSeleccionada', async (req, res) => {
+
+
     const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
     const ResolucionesRips = req.params.ResolucionesRips;
@@ -221,7 +224,9 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     const request = new Request(
         `SELECT 
     em.NroIDPrestador, 
-    EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura], 
+    --EmpV.[Prefijo Resolución Facturación EmpresaV] +  fc.[No Factura]   AS [numFactura], 
+    --cambio realizado por resoluciones que superan los digitos y colocan un 0 adelante del numero de la factura
+    EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
     NULL AS [numNota], 
     NULL AS [tipoNota], 
     tpd.[Tipo de Documento] AS [tipoDocumentoIdentificacion],
@@ -314,7 +319,7 @@ WHERE
         const idEvaRips = columns[18].value;
         const IdTrata = columns[19].value;
         const IdFacrua = columns[20].value;
-        
+
 
 
         // Determina si se debe cambiar el numFactura a null
@@ -368,13 +373,13 @@ WHERE
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua});
+        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua });
     });
-    console.log (" ripsEPS");
+    console.log(" ripsEPS");
     request.on('requestCompleted', async () => {
         for (let factura in resultados) {
             const consulta = resultados[factura];
-            console.log (" ");
+            console.log(" ");
 
             // console.log(factura);
             // Buscar la factura en facturasOriginales
@@ -384,15 +389,15 @@ WHERE
                 // const { originalNumFactura, idTipoRips } = facturaData;
 
                 const { originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua } = facturaData;
-    
+
                 for (const usuario of consulta.usuarios) {
                     try {
                         // const consultasResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
                         const consultasResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const consultasData = await consultasResponse.json();
-    
+
                         if (consultasData.length > 0) {
-                            
+
                             usuario.servicios.consultas.push(...consultasData);
                         } else {
                             delete usuario.servicios.consultas;
@@ -400,11 +405,11 @@ WHERE
                     } catch (error) {
                         console.error('Error al obtener consultas:', error);
                     }
-    
+
                     try {
                         const procedimientosResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const procedimientosData = await procedimientosResponse.json();
-    
+
                         if (procedimientosData.length > 0) {
                             usuario.servicios.procedimientos.push(...procedimientosData);
                         } else {
@@ -418,13 +423,13 @@ WHERE
                 console.error(`Factura con clave ${factura} no encontrada en facturasOriginales.`);
             }
         }
-    
+
         res.json(Object.values(resultados));
     });
-    
+
 
     connection.execSql(request);
-});  
+});
 
 
 router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fechaInicio/:fechaFin/:ResolucionesRips', (req, res) => {
@@ -502,7 +507,7 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
 
     request.on('row', (columns) => {
         // console.log('Fila de servicios:', columns);
-        
+
         const servicio = {
             codPrestador: columns[0].value,
             fechaInicioAtencion: columns[1].value,
@@ -511,7 +516,7 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString() ,
+            finalidadTecnologiaSalud: columns[7].value.toString(),
             causaMotivoAtencion: columns[8].value.toString(),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
@@ -548,11 +553,11 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
 
 router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
 
-console.log(' AC ');
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    console.log( "factura ",IdFacrua);
-    console.log("numDocumentoIdentificacion ",numDocumentoIdentificacion);
+    console.log(' AC ');
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+    console.log("factura ", IdFacrua);
+    console.log("numDocumentoIdentificacion ", numDocumentoIdentificacion);
     const request = new Request(
         `
         --ac correcto 
@@ -618,7 +623,7 @@ console.log(' AC ');
 
     request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
-        
+
 
     const resultadosServicios = [];
 
@@ -633,7 +638,7 @@ console.log(' AC ');
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString() ,
+            finalidadTecnologiaSalud: columns[7].value.toString(),
             causaMotivoAtencion: columns[8].value.toString(),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
@@ -662,7 +667,7 @@ console.log(' AC ');
         console.error('Error en la consulta de servicios:', err);
         res.status(500).send('Error interno del servidor');
     });
-    
+
     connection.execSql(request);
 });
 
@@ -733,10 +738,10 @@ router.get('/servicios/ripsAPViejo/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoId
         });
 
 
-        console.log('IdFacrua', IdFacrua );
+    console.log('IdFacrua', IdFacrua);
     request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
- 
+
     // request.addParameter('numFactura', TYPES.VarChar, numFactura);
     // request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
     // request.addParameter('fechaInicio', TYPES.Date, fechaInicio);
@@ -756,7 +761,7 @@ router.get('/servicios/ripsAPViejo/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoId
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString() ,
+            finalidadTecnologiaSalud: columns[9].value.toString(),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -787,13 +792,13 @@ router.get('/servicios/ripsAPViejo/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoId
 
 router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
     console.log(' AP ');
-    
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    
-    console.log( "Estoy en el Ap de ");
-    console.log( "factura ",IdFacrua);
-    console.log("documento ",numDocumentoIdentificacion);
+
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+
+    console.log("Estoy en el Ap de ");
+    console.log("factura ", IdFacrua);
+    console.log("documento ", numDocumentoIdentificacion);
 
     const request = new Request(
         `
@@ -863,7 +868,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
 
     request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
- 
+
     const resultadosServicios = [];
 
     request.on('row', (columns) => {
@@ -877,7 +882,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString() ,
+            finalidadTecnologiaSalud: columns[9].value.toString(),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -889,7 +894,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             numFEVPagoModerador: columns[18].value,
             consecutivo: parseInt(columns[19].value, 10) // Convertir a entero
         };
-        
+
         resultadosServicios.push(servicio);
         console.log("Si estoy llegando aca");
         console.log(resultadosServicios);
@@ -910,13 +915,13 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
 
 router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
     console.log('EPS AP ');
-    
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    
-    console.log( "Estoy en el Ap de ");
-    console.log( "factura ",IdFacrua);
-    console.log("documento ",numDocumentoIdentificacion);
+
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+
+    console.log("Estoy en el Ap de ");
+    console.log("factura ", IdFacrua);
+    console.log("documento ", numDocumentoIdentificacion);
 
     const request = new Request(
         `
@@ -984,7 +989,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 
     request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
- 
+
     const resultadosServicios = [];
 
     request.on('row', (columns) => {
@@ -998,7 +1003,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString() ,
+            finalidadTecnologiaSalud: columns[9].value.toString(),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -1010,7 +1015,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             numFEVPagoModerador: columns[18].value,
             consecutivo: parseInt(columns[19].value, 10) // Convertir a entero
         };
-        
+
         resultadosServicios.push(servicio);
         console.log("Si estoy llegando aca");
         console.log(resultadosServicios);
@@ -1031,11 +1036,11 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 
 router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
 
-console.log('EPS AC ');
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    console.log( "factura ",IdFacrua);
-    console.log("numDocumentoIdentificacion ",numDocumentoIdentificacion);
+    console.log('EPS AC ');
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+    console.log("factura ", IdFacrua);
+    console.log("numDocumentoIdentificacion ", numDocumentoIdentificacion);
     const request = new Request(
         `
         --ac correcto 
@@ -1099,7 +1104,7 @@ console.log('EPS AC ');
 
     request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
     request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
-        
+
 
     const resultadosServicios = [];
 
@@ -1114,7 +1119,7 @@ console.log('EPS AC ');
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString() ,
+            finalidadTecnologiaSalud: columns[7].value.toString(),
             causaMotivoAtencion: columns[8].value.toString(),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
@@ -1143,7 +1148,7 @@ console.log('EPS AC ');
         console.error('Error en la consulta de servicios:', err);
         res.status(500).send('Error interno del servidor');
     });
-    
+
     connection.execSql(request);
 });
 
@@ -1247,7 +1252,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
     const fechaActual = new Date();
     const fechaFormateada = `${fechaActual.getFullYear()}-${(fechaActual.getMonth() + 1).toString().padStart(2, '0')}-${fechaActual.getDate().toString().padStart(2, '0')}`;
     const nombreArchivo = `${prefijo} --- ${fechaInicio} --- ${fechaFin}.zip`;
-    
+
     const rutaArchivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS', nombreArchivo);
     const nombreCarpetaDeAlmacenadoJSON = `${fechaInicio} --- ${fechaFin}`;
 
@@ -1262,7 +1267,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
         const rutaBaseDestino = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS_JSON');
         await descomprimirZip(rutasZips, rutaBaseDestino);
         const NombreArchivoIgualdadCarpetaParaXMLS = `${prefijo} --- ${fechaInicio} --- ${fechaFin}`;
-        
+
         const IgualdadCarpetaParaXMLS = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
         fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
 
