@@ -24,8 +24,8 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
     const documentoEmpresaSeleccionada = req.params.documentoEmpresaSeleccionada;
 
     const request = new Request(
-        `SELECT  
-<<<<<<< HEAD
+        `SELECT 
+        em.NroIDPrestador,   
         --EmpV.[Prefijo Resolución Facturación EmpresaV] +  fc.[No Factura]   AS [numFactura], 
         --cambio realizado por resoluciones que superan los digitos y colocan un 0 adelante del numero de la factura
         EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
@@ -34,13 +34,6 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         --CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
         CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
         CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
-=======
-em.NroIDPrestador, EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura], 
--- CASE WHEN  fc.[No Factura] = '0000000' THEN '111111' ELSE NULL END AS [numNota],
---CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
-CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
-CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
->>>>>>> 6bfcb94811180c65dab62af29ef9982a23286ead
         en.[Documento Entidad] as [numDocumentoIdentificacion], '0' + tpe.[Tipo Entidad] as [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
         País.País AS [codPaisResidencia], Dep.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
@@ -60,7 +53,8 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
 		END AS 'Prepagada',
         everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
         everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
-        everips.[Id Factura] AS IDfactura
+        everips.[Id Factura] AS IDfactura,
+        CASE WHEN  fc.[No Factura] = '0000000' THEN 1 ELSE 0 END AS [Rips Sin Factura]
 
         FROM Entidad as en
 
@@ -105,17 +99,25 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
     request.on('row', (columns) => {
         let numFactura = columns[1].value;
         const originalNumFactura = numFactura;
+        const DocumentoPaciente = columns[5].value;
         const idTipoRips = columns[16].value;
         const idEvaRips = columns[18].value;
         const IdTrata = columns[19].value;
         const IdFacrua = columns[20].value;
-
-
+        const Sinfactura = columns[21].value;
+        // let Sinfactura = 0;
+        console.log(`Se supone que este es el documento paciente ${DocumentoPaciente}`);
+        console.log(`Se supone que este es el  id factura ${IdFacrua}`);
+        console.log(`Se supone que este es el  num factura ${numFactura}`);
+        
 
         // Determina si se debe cambiar el numFactura a null
-        if (numFactura === null || /000000/.test(numFactura)) {
+        if (numFactura === null || /000000/.test(numFactura) || /0/.test(numFactura)) {
             numFactura = null;
+            // Sinfactura = 1;
         }
+       
+        console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
 
         // Determina la clave de la factura
         let facturaKey;
@@ -154,16 +156,6 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
             }
         };
 
-        
-        //  SE AGREGA LINEA CONDICIONAL QUE EVALUA  SI EL CODDE MUNICIPIO ES MAYOR A 5 DIGITOS 
-        // SI ES MAYOR A 5 DIGITOS SE TOMA COMO QUE SE ESTA COLOCANDO 0505001  ENTRE OTROS 
-        // SE CORRGE Y SE COLOCA AUTOMATICAMENTE 05001 ELIINANDO 2 DIGITOS DEL PRINCIPIO
-        //NOTA UN CODIGO DE MUNICIPIO NO PUEDE SER MAYOR A  5 DIGITOS
-        // usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
-        if (parseInt(usuario.codMunicipioResidencia.length) > 5) {
-         usuario.codMunicipioResidencia = usuario.codMunicipioResidencia.substring(2);
-        }
-
         // Fusiona los servicios si ya existe el usuario
         const existingUser = resultados[facturaKey].usuarios.find(u => u.numDocumentoIdentificacion === usuario.numDocumentoIdentificacion);
         if (existingUser) {
@@ -174,7 +166,7 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua });
+        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua, Sinfactura, fechaInicio, fechaFin, DocumentoPaciente });
     });
     console.log(" ripsEPS");
     request.on('requestCompleted', async () => {
@@ -185,15 +177,21 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
             // console.log(factura);
             // Buscar la factura en facturasOriginales
             const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
-            console.log('facturas que hay ', facturaData);
+            // console.log('facturas que hay ', facturaData);
             if (facturaData) {
                 // const { originalNumFactura, idTipoRips } = facturaData;
 
-                const { originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua } = facturaData;
+                const { fechaInicio, fechaFin, idEvaRips, IdTrata, IdFacrua, Sinfactura, DocumentoPaciente } = facturaData;
 
                 for (const usuario of consulta.usuarios) {
                     try {
-                        const consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                        let consultasResponse;
+                        if (Sinfactura === 1) {
+                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
+                        } else {
+                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                        }
+
                         const consultasData = await consultasResponse.json();
 
                         if (consultasData.length > 0) {
@@ -206,7 +204,14 @@ CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[
                     }
 
                     try {
-                        const procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                        let procedimientosResponse;
+                        if (Sinfactura === 1) {
+                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
+
+                        } else {
+                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+
+                        }
                         const procedimientosData = await procedimientosResponse.json();
 
                         if (procedimientosData.length > 0) {
@@ -248,7 +253,7 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     NULL AS [numNota], 
     NULL AS [tipoNota], 
     tpd.[Tipo de Documento] AS [tipoDocumentoIdentificacion],
-    en.[Documento Entidad] AS [numDocumentoIdentificacion],
+    en.[Documento Entidad] AS [numDocumentoIdentificacion], 
     '0' + tpe.[Tipo Entidad] AS [tipoUsuario],
     CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], 
     Sexo.[Sexo] AS [codSexo], 
@@ -257,15 +262,7 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
     'NO' AS [incapacidad],
     --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
-	
-		--DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS consecutivo2,
-		--ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
-		--Esto se realizo para separar con consecutivos cuando se trata de particulares y de eps 
-CASE 
-        WHEN dbo.Documento_EPS(fc.[Documento Responsable] ) = 1 THEN DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) 
-        ELSE ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] )
-    END AS consecutivo,
-	
+	ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
     pais2.País AS [codPaisOrigen], 
     eve.[Id Evaluación Entidad], 
     everips.[Id Tipo de Rips], 
@@ -284,8 +281,6 @@ CASE
 	everips.[Id Evaluación Entidad Rips] AS IDEVARIPS,
 	everips.[Id Plan de Tratamiento] AS IDPLANTRATA,
 	everips.[Id Factura] AS IDfactura
-
-    
 FROM 
     Entidad AS en
 LEFT JOIN  [Tipo de Documento] AS tpd ON en.[Id Tipo de Documento] = tpd.[Id Tipo de Documento]
@@ -390,13 +385,6 @@ WHERE
                 procedimientos: []
             }
         };
-
-        //  SE AGREGA LINEA CONDICIONAL QUE EVALUA  SI EL CODDE MUNICIPIO ES MAYOR A 5 DIGITOS 
-        // SI ES MAYOR A 5 DIGITOS SE TOMA COMO QUE SE ESTA COLOCANDO 0505001  ENTRE OTROS 
-        // SE CORRGE Y SE COLOCA AUTOMATICAMENTE 05001 ELIINANDO 2 DIGITOS DEL PRINCIPIO
-        //NOTA UN CODIGO DE MUNICIPIO NO PUEDE SER MAYOR A  5 DIGITOS
-        usuario.codMunicipioResidencia  = usuario.codMunicipioResidencia.length  > 5 ? usuario.codMunicipioResidencia.substring(2) : usuario.codMunicipioResidencia ;
-        
 
         // Fusiona los servicios si ya existe el usuario
         const existingUser = resultados[facturaKey].usuarios.find(u => u.numDocumentoIdentificacion === usuario.numDocumentoIdentificacion);
@@ -522,7 +510,7 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
         WHERE everips.[Id Acto Quirúrgico] = 1 
         AND EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] = @numFactura
         AND eve.[Documento Entidad] = @numDocumentoIdentificacion
-       -- AND CONVERT(DATE, eve.[Fecha Evaluación Entidad]) BETWEEN @fechaInicio AND @fechaFin
+        AND CONVERT(DATE, eve.[Fecha Evaluación Entidad]) BETWEEN @fechaInicio AND @fechaFin
         AND EmpV.[Resolución Facturación EmpresaV] = @ResolucionesRips
 
         `,
@@ -567,6 +555,135 @@ router.get('/servicios/ripsACViejo/:numFactura/:numDocumentoIdentificacion/:fech
             consecutivo: 1,
             // consecutivo: 6,
             // consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
+        };
+
+        resultadosServicios.push(servicio);
+    });
+
+    request.on('requestCompleted', () => {
+        // console.log('Resultados de servicios:', resultadosServicios);
+        res.json(resultadosServicios);
+    });
+
+    // Añade este bloque para verificar si hay errores en la ejecución de la consulta de servicios
+    request.on('error', (err) => {
+        console.error('Error en la consulta de servicios:', err);
+        res.status(500).send('Error interno del servidor');
+    });
+
+    connection.execSql(request);
+});
+
+router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:fechaInicio/:fechaFin', (req, res) => {
+
+    console.log(' AC Sin factura');
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+    const fechaInicio = req.params.fechaInicio;
+    const fechaFin = req.params.fechaFin;
+    console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
+    console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
+    console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
+    
+    // console.log("factura ", IdFacrua);
+    // console.log("numDocumentoIdentificacion ", numDocumentoIdentificacion);
+    const request = new Request(
+        `
+        --ac correcto 
+          SELECT 
+            EMP.[Código Empresa] AS codPrestador, 
+            --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
+             --SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+			CASE  
+			WHEN FC.[Fecha Factura] IS NULL 
+			THEN SUBSTRING(CONVERT(VARCHAR,EVA.[Fecha Evaluación Entidad], 120), 1, 16) 
+			ELSE  SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) END AS fechaInicioAtencion,
+            --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+            '0' AS numAutorizacion,
+            EVR.[Codigo RIPS] AS codConsulta,
+            MODA.Codigo AS modalidadGrupoServicioTecSal, 
+            GP.Codigo   AS grupoServicios, 
+            Serv.[Código Servicios] AS codServicio,
+            evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
+            evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
+            Null  AS codDiagnosticoRelacionado1,
+            NULL AS codDiagnosticoRelacionado2,
+            NULL AS codDiagnosticoRelacionado3, 
+            tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
+            tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
+            --FII.[Valor FacturaII] AS vrServicio,
+            fc.[SubTotal Factura] AS vrServicio,
+            '05' AS tipoPagoModerador, '0' AS valorPagoModerador, 
+            NULL  AS numFEVPagoModerador, 
+            ROW_NUMBER() OVER (ORDER BY EVR.[Id Evaluación Entidad RIPS]) AS consecutivo
+
+
+            FROM [Evaluación Entidad Rips] EVR 
+            INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
+            INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
+            --INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
+            --AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
+            --LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
+            --LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+            --LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
+            INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
+            INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
+            LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
+            LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
+            left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
+            LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
+            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
+            INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
+            left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+                                
+            WHERE evr.[Id Acto Quirúrgico] = 1 
+            AND EVR.[Id Factura] = @IdFacrua
+            AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
+            AND CONVERT(DATE, EVA.[Fecha Evaluación Entidad], 23) BETWEEN @fechaInicio AND @fechaFin
+            ORDER BY EVR.[Id Evaluación Entidad RIPS]
+        `,
+        (err) => {
+            if (err) {
+                console.error('Error al ejecutar la consulta de servicios:', err);
+                res.status(500).send('Error interno del servidor');
+            }
+        });
+
+    request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
+    request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
+    request.addParameter('fechaInicio', TYPES.Date, fechaInicio);
+    request.addParameter('fechaFin', TYPES.Date, fechaFin);
+    // request.addParameter('ResolucionesRips', TYPES.VarChar, ResolucionesRips); 
+
+
+    const resultadosServicios = [];
+
+    request.on('row', (columns) => {
+        // console.log('Fila de servicios:', columns);
+
+        const servicio = {
+            codPrestador: columns[0].value,
+            fechaInicioAtencion: columns[1].value,
+            numAutorizacion: columns[2].value,
+            codConsulta: columns[3].value,
+            modalidadGrupoServicioTecSal: columns[4].value,
+            grupoServicios: columns[5].value,
+            codServicio: parseInt(columns[6].value, 10),
+            finalidadTecnologiaSalud: columns[7].value.toString(),
+            causaMotivoAtencion: columns[8].value.toString(),
+            codDiagnosticoPrincipal: columns[9].value,
+            codDiagnosticoRelacionado1: columns[10].value,
+            codDiagnosticoRelacionado2: columns[11].value,
+            codDiagnosticoRelacionado3: columns[12].value,
+            tipoDiagnosticoPrincipal: columns[13].value,
+            tipoDocumentoIdentificacion: columns[14].value,
+            numDocumentoIdentificacion: columns[15].value,
+            vrServicio: columns[16].value,
+            conceptoRecaudo: columns[17].value,
+            valorPagoModerador: parseInt(columns[18].value, 10),
+            numFEVPagoModerador: columns[19].value,
+            consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
         };
 
         resultadosServicios.push(servicio);
@@ -693,7 +810,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
     });
 
     request.on('requestCompleted', () => {
-        console.log('Resultados de servicios:', resultadosServicios);
+        // console.log('Resultados de servicios:', resultadosServicios);
         res.json(resultadosServicios);
     });
 
@@ -810,6 +927,135 @@ router.get('/servicios/ripsAPViejo/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoId
         };
 
         resultadosServicios.push(servicio);
+    });
+
+    request.on('requestCompleted', () => {
+        res.json(resultadosServicios);
+    });
+
+    // Añade este bloque para verificar si hay errores en la ejecución de la consulta de servicios
+    request.on('error', (err) => {
+        console.error('Error en la consulta de servicios:', err);
+        res.status(500).send('Error interno del servidor');
+    });
+
+    connection.execSql(request);
+});
+
+router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:fechaInicio/:fechaFin', (req, res) => {
+    console.log(' AP sin factura');
+
+    const IdFacrua = req.params.IdFacrua;
+    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
+    const fechaInicio = req.params.fechaInicio;
+    const fechaFin = req.params.fechaFin;
+     console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
+    console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
+    console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
+
+    const request = new Request(
+        `
+        --ap correcto 
+             SELECT 
+                EMP.[Código Empresa] AS codPrestador, 
+                --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
+                 --SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
+			CASE  
+			WHEN FC.[Fecha Factura] IS NULL 
+			THEN SUBSTRING(CONVERT(VARCHAR,EVA.[Fecha Evaluación Entidad], 120), 1, 16) 
+			ELSE  SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) END AS fechaInicioAtencion, 
+				NULL AS idMIPRES,
+                --PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
+                '0'  AS numAutorizacion,
+				evr.[Codigo Rips] AS codProcedimiento,
+				VIAI.Codigo AS viaIngresoServicioSalud, 
+				MODA.Codigo AS modalidadGrupoServicioTecSal, 
+				GP.Codigo AS grupoServicios,
+				Serv.[Código Servicios] AS codServicio,
+				EVR.[Id Finalidad Consulta] AS finalidadTecnologiaSalud,
+				tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, 
+				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
+				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
+				NULL   AS codDiagnosticoRelacionado, 
+				NULL AS codComplicacion, 
+				--FII.[Valor FacturaII] AS vrServicio,
+            fc.[SubTotal Factura] AS vrServicio,
+				'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
+				'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
+				NULL AS numFEVPagoModerador,  
+				ROW_NUMBER() OVER (ORDER BY EVR.[Id Evaluación Entidad RIPS]) AS consecutivo,
+				EVA.[Id Evaluación Entidad]
+
+                FROM [Evaluación Entidad Rips] EVR 
+                INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
+                INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
+                --INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] 
+                --AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
+                --LEFT JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
+                --LEFT JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+                --LEFT JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
+                INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
+                INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
+                LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
+                LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
+                left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
+                LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
+                LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
+                INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
+                left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+                left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
+				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+
+                WHERE evr.[Id Acto Quirúrgico] <> 1 
+                AND EVR.[Id Factura] = @IdFacrua
+                AND EVA.[Documento Entidad] = @numDocumentoIdentificacion   
+                AND CONVERT(DATE, EVA.[Fecha Evaluación Entidad], 23) BETWEEN @fechaInicio AND @fechaFin
+                ORDER BY EVR.[Id Evaluación Entidad RIPS]
+
+        `,
+
+        (err) => {
+            if (err) {
+                console.error('Error al ejecutar la consulta de servicios:', err);
+                res.status(500).send('Error interno del servidor');
+            }
+        });
+
+    request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
+    request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
+    request.addParameter('fechaInicio', TYPES.Date, fechaInicio);
+    request.addParameter('fechaFin', TYPES.Date, fechaFin);
+    // request.addParameter('ResolucionesRips', TYPES.VarChar, ResolucionesRips);
+
+    const resultadosServicios = [];
+
+    request.on('row', (columns) => {
+        const servicio = {
+            codPrestador: columns[0].value,
+            fechaInicioAtencion: columns[1].value,
+            idMIPRES: columns[2].value,
+            numAutorizacion: columns[3].value,
+            codProcedimiento: columns[4].value,
+            viaIngresoServicioSalud: columns[5].value,
+            modalidadGrupoServicioTecSal: columns[6].value,
+            grupoServicios: columns[7].value,
+            codServicio: parseInt(columns[8].value, 10),
+            finalidadTecnologiaSalud: columns[9].value.toString(),
+            tipoDocumentoIdentificacion: columns[10].value,
+            numDocumentoIdentificacion: columns[11].value,
+            codDiagnosticoPrincipal: columns[12].value,
+            codDiagnosticoRelacionado: columns[13].value,
+            codComplicacion: columns[14].value,
+            vrServicio: columns[15].value,
+            conceptoRecaudo: columns[16].value,
+            valorPagoModerador: parseInt(columns[17].value, 10),
+            numFEVPagoModerador: columns[18].value,
+            consecutivo: parseInt(columns[19].value, 10) // Convertir a entero
+        };
+
+        resultadosServicios.push(servicio);
+        console.log("Si estoy llegando aca");
+        console.log(resultadosServicios);
     });
 
     request.on('requestCompleted', () => {
@@ -978,14 +1224,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
 				NULL   AS codDiagnosticoRelacionado, 
 				NULL AS codComplicacion, 
-			    FII.[Valor FacturaII] AS vrServicio,
-			--	-- los copagos en 0 se estaban sumando 
-			--	case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
-			--	then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-			--	when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
-			--	then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-			--	else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
-			--	END AS vrServicio,
+				FII.[Valor FacturaII] AS vrServicio,
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
@@ -1014,136 +1253,6 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
 				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
-					   
-					   
-
-                WHERE evr.[Id Acto Quirúrgico] <> 1 
-                AND EVR.[Id Factura] = @IdFacrua
-                AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
-
-        `,
-
-        (err) => {
-            if (err) {
-                console.error('Error al ejecutar la consulta de servicios:', err);
-                res.status(500).send('Error interno del servidor');
-            }
-        });
-
-    request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
-    request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
- 
-    const resultadosServicios = [];
-
-    request.on('row', (columns) => {
-        const servicio = {
-            codPrestador: columns[0].value,
-            fechaInicioAtencion: columns[1].value,
-            idMIPRES: columns[2].value,
-            numAutorizacion: columns[3].value,
-            codProcedimiento: columns[4].value,
-            viaIngresoServicioSalud: columns[5].value,
-            modalidadGrupoServicioTecSal: columns[6].value,
-            grupoServicios: columns[7].value,
-            codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString() ,
-            tipoDocumentoIdentificacion: columns[10].value,
-            numDocumentoIdentificacion: columns[11].value,
-            codDiagnosticoPrincipal: columns[12].value,
-            codDiagnosticoRelacionado: columns[13].value,
-            codComplicacion: columns[14].value,
-            vrServicio: columns[15].value,
-            conceptoRecaudo: columns[16].value,
-            valorPagoModerador: parseInt(columns[17].value, 10),
-            numFEVPagoModerador: columns[18].value,
-            consecutivo: parseInt(columns[19].value, 10) // Convertir a entero
-        };
-        
-        resultadosServicios.push(servicio);
-        console.log("Si estoy llegando aca");
-        console.log(resultadosServicios);
-    });
-
-    request.on('requestCompleted', () => {
-        res.json(resultadosServicios);
-    });
-
-    // Añade este bloque para verificar si hay errores en la ejecución de la consulta de servicios
-    request.on('error', (err) => {
-        console.error('Error en la consulta de servicios:', err);
-        res.status(500).send('Error interno del servidor');
-    });
-
-    connection.execSql(request);
-});
-
-router.get('/serviciosEPSfacturatech/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
-    console.log('EPS AP ');
-    
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    
-    console.log( "Estoy en el Ap de ");
-    console.log( "factura ",IdFacrua);
-    console.log("documento ",numDocumentoIdentificacion);
-
-    const request = new Request(
-        `
-        --ap correcto 
-            SELECT 
-                EMP.[Código Empresa] AS codPrestador, 
-                --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
-                SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
-				NULL AS idMIPRES,
-                PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
-				evr.[Codigo Rips] AS codProcedimiento,
-				VIAI.Codigo AS viaIngresoServicioSalud, 
-				MODA.Codigo AS modalidadGrupoServicioTecSal, 
-				GP.Codigo AS grupoServicios,
-				Serv.[Código Servicios] AS codServicio,
-				EVR.[Id Finalidad Consulta] AS finalidadTecnologiaSalud,
-				tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, 
-				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
-				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
-				NULL   AS codDiagnosticoRelacionado, 
-				NULL AS codComplicacion, 
-				--FII.[Valor FacturaII] AS vrServicio,
-				-- los copagos en 0 se estaban sumando 
-				case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
-				then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-				when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
-				then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-				else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
-				END AS vrServicio,
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
-				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
-				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
-				NULL AS numFEVPagoModerador,  
-				ROW_NUMBER() OVER (ORDER BY EVR.[Id Evaluación Entidad RIPS]) AS consecutivo,
-				EVA.[Id Evaluación Entidad]
-
-                FROM [Evaluación Entidad Rips] EVR 
-                INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
-                INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
-                INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
-                INNER JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
-                INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
-                INNER JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
-				left join  [Cuotas Pactadas Inicial Tratamiento] cpit on cpit.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
-				left join  [Cuotas Pactadas Tratamiento] cpt on cpt.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
-                INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
-                INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
-                LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
-                LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
-                left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
-                LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
-                LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
-                INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
-                left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
-                left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
-					   
 					   
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
@@ -1234,14 +1343,7 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
             tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
             FII.[Valor FacturaII] AS vrServicio,
-				-- los copagos en 0 se estaban sumando 
-			--	case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
-			--	then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-			--	when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
-			--	then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-			--	else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
-			--	END AS vrServicio,
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
+            	case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
 				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
@@ -1318,7 +1420,7 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
     });
 
     request.on('requestCompleted', () => {
-        console.log('Resultados de servicios:', resultadosServicios);
+        // console.log('Resultados de servicios:', resultadosServicios);
         res.json(resultadosServicios);
     });
 
@@ -1331,132 +1433,6 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
     connection.execSql(request);
 });
 
-
-
-router.get('/serviciosEPSFacturatech/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentificacion', (req, res) => {
-
-console.log('EPS AC ');
-    const IdFacrua = req.params.IdFacrua; 
-    const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion; 
-    console.log( "factura ",IdFacrua);
-    console.log("numDocumentoIdentificacion ",numDocumentoIdentificacion);
-    const request = new Request(
-        `
-        --ac correcto 
-         SELECT 
-            EMP.[Código Empresa] AS codPrestador, 
-            --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
-            SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
-            PTC.[Nro Autorización Plan de Tratamiento Copago] AS numAutorizacion,
-            EVR.[Codigo RIPS] AS codConsulta,
-            MODA.Codigo AS modalidadGrupoServicioTecSal, 
-            GP.Codigo   AS grupoServicios, 
-            Serv.[Código Servicios] AS codServicio,
-            evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
-            evr.[Id Causa Externa]  AS causaMotivoAtencion,
-            evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
-            Null  AS codDiagnosticoRelacionado1,
-            NULL AS codDiagnosticoRelacionado2,
-            NULL AS codDiagnosticoRelacionado3, 
-            tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
-            tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
-           --FII.[Valor FacturaII] AS vrServicio,
-				-- los copagos en 0 se estaban sumando 
-				case when cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] is null 
-				then cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-				when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] > 0 AND cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] > 0
-				then cpt.[Valor de Cuota Cuotas Pactadas Tratamiento] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
-				else cpt.[Valor de Cuota Cuotas Pactadas Tratamiento]  
-				END AS vrServicio,
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
-				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
-				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
-				 NULL  AS numFEVPagoModerador, 
-            ROW_NUMBER() OVER (ORDER BY EVR.[Id Evaluación Entidad RIPS]) AS consecutivo
-
-
-            FROM [Evaluación Entidad Rips] EVR 
-            INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
-            INNER JOIN Factura FC ON FC.[Id Factura] = EVR.[Id Factura]
-            INNER JOIN FacturaII FII ON FII.[Id Factura] = EVR.[Id Factura] AND FII.[Id Plan de Tratamiento] = EVR.[Id Plan de Tratamiento] 
-            INNER JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] 
-            INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
-            INNER JOIN [Plan de Tratamiento Copago] PTC ON PTC.[Id Plan de Tratamiento Tratamientos] = PTT.[Id Plan de Tratamiento Tratamientos]
-			left join  [Cuotas Pactadas Inicial Tratamiento] cpit on cpit.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
-			left join  [Cuotas Pactadas Tratamiento] cpt on cpt.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
-            INNER JOIN Empresa EMP ON EMP.[Documento Empresa] = FC.[Documento Empresa]
-            INNER JOIN EmpresaV EmpV ON EmpV.[Id EmpresaV] = FC.[Id EmpresaV]
-            LEFT JOIN [RIPS Modalidad Atención] MODA ON MODA.[Id Modalidad Atencion] = EVR.[Id Modalidad Atencion]
-            LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
-            left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
-            LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
-            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
-            INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
-            left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
-                                
-            WHERE evr.[Id Acto Quirúrgico] = 1 
-            AND EVR.[Id Factura] = @IdFacrua
-            AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
-
-
-        `,
-        (err) => {
-            if (err) {
-                console.error('Error al ejecutar la consulta de servicios:', err);
-                res.status(500).send('Error interno del servidor');
-            }
-        });
-
-    request.addParameter('IdFacrua', TYPES.Int, IdFacrua);
-    request.addParameter('numDocumentoIdentificacion', TYPES.VarChar, numDocumentoIdentificacion);
-        
-
-    const resultadosServicios = [];
-
-    request.on('row', (columns) => {
-        // console.log('Fila de servicios:', columns);
-
-        const servicio = {
-            codPrestador: columns[0].value,
-            fechaInicioAtencion: columns[1].value,
-            numAutorizacion: columns[2].value,
-            codConsulta: columns[3].value,
-            modalidadGrupoServicioTecSal: columns[4].value,
-            grupoServicios: columns[5].value,
-            codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString() ,
-            causaMotivoAtencion: columns[8].value.toString(),
-            codDiagnosticoPrincipal: columns[9].value,
-            codDiagnosticoRelacionado1: columns[10].value,
-            codDiagnosticoRelacionado2: columns[11].value,
-            codDiagnosticoRelacionado3: columns[12].value,
-            tipoDiagnosticoPrincipal: columns[13].value,
-            tipoDocumentoIdentificacion: columns[14].value,
-            numDocumentoIdentificacion: columns[15].value,
-            vrServicio: columns[16].value,
-            conceptoRecaudo: columns[17].value,
-            valorPagoModerador: parseInt(columns[18].value, 10),
-            numFEVPagoModerador: columns[19].value,
-            consecutivo: parseInt(columns[20].value, 10) // Convertir a entero
-        };
-
-        resultadosServicios.push(servicio);
-    });
-
-    request.on('requestCompleted', () => {
-        console.log('Resultados de servicios:', resultadosServicios);
-        res.json(resultadosServicios);
-    });
-
-    // Añade este bloque para verificar si hay errores en la ejecución de la consulta de servicios
-    request.on('error', (err) => {
-        console.error('Error en la consulta de servicios:', err);
-        res.status(500).send('Error interno del servidor');
-    });
-    
-    connection.execSql(request);
-});
 /* DESCOMPRESIÓN COMPLETA DE LOS ARCHIVOS JSON */
 const descomprimirZip = async (rutaZips, rutaBaseDestino) => {
     try {
@@ -1524,6 +1500,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
 
     // Agrupar por numFactura y combinar documentos
     const facturasAgrupadas = data.reduce((acc, consulta) => {
+
         const numFacturaConsulta = consulta.numFactura || 'SinFactura';
         if (!acc[numFacturaConsulta]) {
             acc[numFacturaConsulta] = [];
