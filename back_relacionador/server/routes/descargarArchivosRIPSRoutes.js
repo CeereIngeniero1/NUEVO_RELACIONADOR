@@ -111,14 +111,14 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         console.log(`Se supone que este es el documento paciente ${DocumentoPaciente}`);
         console.log(`Se supone que este es el  id factura ${IdFacrua}`);
         console.log(`Se supone que este es el  num factura ${numFactura}`);
-        
+
 
         // Determina si se debe cambiar el numFactura a null
         if (numFactura === null || /000000/.test(numFactura) || /0/.test(numFactura)) {
             numFactura = null;
             // Sinfactura = 1;
         }
-       
+
         console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
 
         // Determina la clave de la factura
@@ -268,7 +268,11 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
     'NO' AS [incapacidad],
     --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
-	ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
+	--ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,
+        DENSE_RANK() OVER (
+    PARTITION BY FC.[Id Factura] 
+    ORDER BY en.[Documento Entidad]
+) AS consecutivo,
     pais2.País AS [codPaisOrigen], 
     eve.[Id Evaluación Entidad], 
     everips.[Id Tipo de Rips], 
@@ -590,7 +594,7 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
     console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
     console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
     console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
-    
+
     // console.log("factura ", IdFacrua);
     // console.log("numDocumentoIdentificacion ", numDocumentoIdentificacion);
     const request = new Request(
@@ -955,7 +959,7 @@ router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:f
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
-     console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
+    console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
     console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
     console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
 
@@ -1230,7 +1234,8 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
 				NULL   AS codDiagnosticoRelacionado, 
 				NULL AS codComplicacion, 
-				FII.[Valor FacturaII] AS vrServicio,
+				--FII.[Valor FacturaII] AS vrServicio,
+                case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then FII.[Valor FacturaII] else FII.[Valor FacturaII]+ cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS vrServicio,
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
@@ -1348,7 +1353,8 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             NULL AS codDiagnosticoRelacionado3, 
             tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
             tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
-            FII.[Valor FacturaII] AS vrServicio,
+            --FII.[Valor FacturaII] AS vrServicio,
+            case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then FII.[Valor FacturaII] else FII.[Valor FacturaII]+ cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS vrServicio,
             	case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '01' END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
