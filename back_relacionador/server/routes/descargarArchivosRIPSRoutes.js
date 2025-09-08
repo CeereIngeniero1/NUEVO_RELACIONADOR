@@ -34,7 +34,9 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         --CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
         CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
         CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
-        en.[Documento Entidad] as [numDocumentoIdentificacion], '0' + tpe.[Tipo Entidad] as [tipoUsuario],
+        en.[Documento Entidad] as [numDocumentoIdentificacion],  CASE 
+ WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
+ ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
         País.País AS [codPaisResidencia], Dep.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
 		CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia], 
@@ -249,12 +251,16 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     em.NroIDPrestador, 
     --EmpV.[Prefijo Resolución Facturación EmpresaV] +  fc.[No Factura]   AS [numFactura], 
     --cambio realizado por resoluciones que superan los digitos y colocan un 0 adelante del numero de la factura
-    EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
+    --EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
+    --aplica para algunos para otros no 
+    EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura],
     NULL AS [numNota], 
     NULL AS [tipoNota], 
     tpd.[Tipo de Documento] AS [tipoDocumentoIdentificacion],
     en.[Documento Entidad] AS [numDocumentoIdentificacion], 
-    '0' + tpe.[Tipo Entidad] AS [tipoUsuario],
+     CASE 
+ WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
+ ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
     CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], 
     Sexo.[Sexo] AS [codSexo], 
     País.País AS [codPaisResidencia], 

@@ -236,7 +236,7 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
 
                         // console.log(RutaVerificarSiExisteElXML);
 
@@ -531,7 +531,7 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
 
                         // console.log(RutaVerificarSiExisteElXML);
 

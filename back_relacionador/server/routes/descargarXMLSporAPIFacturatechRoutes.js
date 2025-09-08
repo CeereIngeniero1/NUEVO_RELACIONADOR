@@ -172,7 +172,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                 }
 
                 // const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${factura.NoFactura}.xml`);
+                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
 
 
                 if (fs.existsSync(RutaVerificarSiExisteElXML)) {
@@ -213,7 +213,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                             // Crear la carpeta de manera recursiva
                             const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
                             fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${args.prefijo}${args.folio}.xml`);
+                            const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${args.prefijo}${parseInt(args.folio)}.xml`);
 
                             fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
                                 if (err) {
@@ -377,7 +377,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     });
                 }
         
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${factura.NoFactura}.xml`);
+                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
         
                 if (fs.existsSync(RutaVerificarSiExisteElXML)) {
                     console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
