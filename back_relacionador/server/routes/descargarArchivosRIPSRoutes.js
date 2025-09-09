@@ -1263,7 +1263,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
                 INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+				--LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
 					   
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
