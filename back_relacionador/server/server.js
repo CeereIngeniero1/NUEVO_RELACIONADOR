@@ -14,6 +14,7 @@ const descargarXMLSporAPIFenalcoRoutes = require('./routes/descargarXMLSporAPIFe
 const InfoPacientesRoutes = require('./routes/infoPacientesRoutes');
 const epsRoutes = require('./routes/epsRoutes');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
+const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 
@@ -116,6 +117,7 @@ app.use('/api', InfoPacientesRoutes);
 app.use('/api', epsRoutes);
 
 app.use('/api', AsignarRips);
+app.use('/apiV2', AsignarRipsv2);
 
 app.use('/api', MaestroListasRIPS);
 

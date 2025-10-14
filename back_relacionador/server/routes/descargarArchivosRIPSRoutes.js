@@ -108,9 +108,9 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         const IdFacrua = columns[20].value;
         const Sinfactura = columns[21].value;
         // let Sinfactura = 0;
-        console.log(`Se supone que este es el documento paciente ${DocumentoPaciente}`);
-        console.log(`Se supone que este es el  id factura ${IdFacrua}`);
-        console.log(`Se supone que este es el  num factura ${numFactura}`);
+        // console.log(`Se supone que este es el documento paciente ${DocumentoPaciente}`);
+        // console.log(`Se supone que este es el  id factura ${IdFacrua}`);
+        // console.log(`Se supone que este es el  num factura ${numFactura}`);
 
 
         // Determina si se debe cambiar el numFactura a null
@@ -119,7 +119,7 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
             // Sinfactura = 1;
         }
 
-        console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
+        // console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
 
         // Determina la clave de la factura
         let facturaKey;
@@ -189,9 +189,11 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
                     try {
                         let consultasResponse;
                         if (Sinfactura === 1) {
+                           console.log(`DOCUMENTO DEL PACIENTE ${DocumentoPaciente} SIN FACTURA ? ${Sinfactura}`);
+
                             consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
                         } else {
-                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
                         }
 
                         const consultasData = await consultasResponse.json();
@@ -208,10 +210,12 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
                     try {
                         let procedimientosResponse;
                         if (Sinfactura === 1) {
+                            // console.log(`Se supone que esta es la fecha pa ${IdFacrua} ${DocumentoPaciente}  ${fechaInicio}  ${fechaFin} `);
+
                             procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
 
                         } else {
-                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
 
                         }
                         const procedimientosData = await procedimientosResponse.json();
@@ -591,9 +595,8 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
-    console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
-    console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
-    console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
+    // console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
+    // console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
 
     // console.log("factura ", IdFacrua);
     // console.log("numDocumentoIdentificacion ", numDocumentoIdentificacion);
@@ -959,9 +962,9 @@ router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:f
     const numDocumentoIdentificacion = req.params.numDocumentoIdentificacion;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
-    console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
-    console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
-    console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
+    // console.log(`Se supone que esta es la fecha pa  ${fechaFin} ${fechaInicio}`);
+    // console.log(`Se supone que esta es el documento  ${numDocumentoIdentificacion} `);
+    // console.log(`Se supone que esta es el id factura  ${IdFacrua} `);
 
     const request = new Request(
         `
@@ -1142,7 +1145,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
                 INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+				--LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
                 AND EVR.[Id Factura] = @IdFacrua

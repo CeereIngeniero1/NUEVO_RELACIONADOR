@@ -1,0 +1,70 @@
+CREATE TABLE [Tipo Atencion Rips]  (
+	[Id Tipo Atencion Rips] [int] IDENTITY(1,1) NOT NULL,
+	[Tipo] nvarchar(10) NULL,
+	[Descripcion] nvarchar(50) NULL,
+
+)
+
+INSERT INTO [Tipo Atencion Rips]  values
+('AC','Archivo de consulta'),
+('AP','Archivo de procedimiento')
+
+
+select * from [Tipo Atencion Rips]
+
+SELECT * FROM [RIPS Finalidad Consulta Version2]
+SELECT * FROM [RIPS Grupo Servicios]
+SELECT * FROM [RIPS Servicios]
+
+SELECT * FROM [RIPS Modalidad Atención]
+SELECT * FROM [RIPS Causa Externa Version2]
+SELECT * FROM [RIPS Via Ingreso Usuario]
+
+CREATE TABLE [dbo].[Evaluación Entidad Rips V2](
+	[Id Evaluación Entidad Rips] [int] IDENTITY(1,1) NOT NULL,
+	[Id Evaluación Entidad] [int] NULL,
+	[Fecha Creacion Rips] Date null default GETDATE(),
+
+	[Cups] [nvarchar](50) NOT NULL,
+	[Cups 2] [nvarchar](50) NULL,
+	[Cups 3] [nvarchar](50) NULL,
+	[Cie] [nvarchar](50) NOT NULL,
+	[Cie 2] [nvarchar](50) NULL,
+	[Cie 3] [nvarchar](50) NULL,
+	[Id Tipo Atencion Rips] [int] NOT NULL,
+	[Id Tipo de Rips] [int] NOT NULL,
+	[Documento Tipo Rips] [nvarchar](50) NULL,
+	[Id Modalidad Atencion] [int] NOT NULL,
+	[Id Grupo Servicios] [int] NOT NULL,
+	[Id Servicios] [int] NOT NULL,
+	[Id Finalidad Consulta Version2] [int] NOT NULL,
+	[Id Causa Externa Version2] [int]  NULL,
+	[Id Tipo de Diagnóstico Principal] [int] NULL,
+	[Id Via Ingreso Usuario] [int] NULL,
+
+	[Id Factura] [int] NULL,
+	[Id Plan de Tratamiento] [int] NULL
+	)
+	
+Alter table [Evaluación Entidad Rips V2] add [Documento Entidad] nvarchar(50)
+	
+    ALTER TABLE [RIPS Servicios]
+ADD [Id Grupo Servicios] INT
+
+UPDATE S
+SET S.[Id Grupo Servicios] = G.[Id Grupo Servicios]
+FROM [RIPS Servicios] AS S
+INNER JOIN [RIPS Grupo Servicios] AS G
+    ON S.[Codigo Grupo Servicios] = G.Codigo;
+
+
+	Create VIEW [dbo].[Cnsta Relacionador Servicios V2]
+AS
+SELECT dbo.[RIPS Servicios].[Id Servicios], dbo.[RIPS Servicios].[Código Servicios], dbo.[RIPS Servicios].[Nombre Servicios], dbo.[RIPS Servicios].[Descripción Servicios], dbo.[RIPS Servicios].[Id Estado], 
+                  dbo.[RIPS Servicios].[Codigo Grupo Servicios], dbo.[RIPS Servicios].[Id Grupo Servicios]
+FROM     dbo.[RIPS Servicios] INNER JOIN
+                  dbo.[RIPS Grupo Servicios] ON dbo.[RIPS Servicios].[Codigo Grupo Servicios] = dbo.[RIPS Grupo Servicios].Codigo
+WHERE  (dbo.[RIPS Servicios].[Id Estado] = 7)
+GO
+
+

@@ -692,3 +692,10 @@ FROM            dbo.FacturaII INNER JOIN
 WHERE        (dbo.[Plan de Tratamiento Tratamientos].[Id Tipo Responsable] = 5)
 ORDER BY IdFactura DESC
 GO
+
+CREATE VIEW [dbo].[Face Cnsta ObservacionesFacturas]
+AS
+SELECT        TOP (100) PERCENT [Id Factura] AS IdFactura, [Id EmpresaV] AS IdEmpresaV, [No Factura] AS NoFactura, [Fecha Factura] AS FechaFactura, [Observaciones Factura] AS ObservacionesFactura
+FROM            dbo.Factura
+ORDER BY IdFactura DESC
+GO
