@@ -113,11 +113,20 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         // console.log(`Se supone que este es el  num factura ${numFactura}`);
 
 
+
+        //         if (Sinfactura === 1 || numFactura === null || numFactura === undefined || String(numFactura).trim() === '') {
+        //     numFactura = null;
+        //     // Sinfactura = 1;
+        // }
         // Determina si se debe cambiar el numFactura a null
-        if (numFactura === null || /000000/.test(numFactura) || /0/.test(numFactura)) {
+        // El patrón /0/ marcaba como "sin factura" a cualquier número con ceros y duplicaba RIPS con factura.
+        // if (numFactura === null || /000000/.test(numFactura) || /0/.test(numFactura)) {
+        if (Sinfactura === 1 || numFactura === null || numFactura === undefined || String(numFactura).trim() === '') {
             numFactura = null;
             // Sinfactura = 1;
         }
+
+
 
         // console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
 
