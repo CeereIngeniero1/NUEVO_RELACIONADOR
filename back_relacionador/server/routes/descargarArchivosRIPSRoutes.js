@@ -28,15 +28,18 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         em.NroIDPrestador,   
         --EmpV.[Prefijo Resolución Facturación EmpresaV] +  fc.[No Factura]   AS [numFactura], 
         --cambio realizado por resoluciones que superan los digitos y colocan un 0 adelante del numero de la factura
-        EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
+       -- EmpV.[Prefijo Resolución Facturación EmpresaV] + CAST(CAST(fc.[No Factura] AS INT ) AS nvarchar(10)) AS [numFactura],
+        EmpV.[Prefijo Resolución Facturación EmpresaV] + fc.[No Factura] AS [numFactura],
 
         -- CASE WHEN  fc.[No Factura] = '0000000' THEN '111111' ELSE NULL END AS [numNota],
         --CASE WHEN  fc.[No Factura] = '0000000' THEN everips.ConsecutivoRipsFacturaEnCero ELSE NULL END AS [numNota],
-        CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.ConsecutivoRipsFacturaEnCero as varchar) ELSE NULL END AS [numNota],
+        CASE WHEN  fc.[No Factura] = '0000000' THEN 'RipSin' + cast(everips.[Id Evaluación Entidad Rips] as varchar) ELSE NULL END AS [numNota],
         CASE WHEN  fc.[No Factura] = '0000000' THEN 'RS' ELSE NULL END [tipoNota], tpd.[Tipo de Documento] as [tipoDocumentoIdentificacion],
-        en.[Documento Entidad] as [numDocumentoIdentificacion],  CASE 
- WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
- ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
+        en.[Documento Entidad] as [numDocumentoIdentificacion],  
+        --CASE 
+        --    WHEN LEN(tpe.[Código Tipo Entidad]) > 1 THEN tpe.[Código Tipo Entidad] 
+        --    ELSE '0' + tpe.[Código Tipo Entidad] END AS [tipoUsuario],
+        '12' AS [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
         País.País AS [codPaisResidencia], Dep.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
 		CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia], 
@@ -44,9 +47,9 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
 
         --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad] DESC) 
         --CAST(DENSE_RANK() OVER (ORDER BY en.[Documento Entidad] DESC) AS INT)
-        --1 AS consecutivo
+        1 AS consecutivo,
         --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
-	    Cast(ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) as int) AS consecutivo,
+	    --Cast(ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) as int) AS consecutivo,
          pais2.País AS [codPaisOrigen], eve.[Id Evaluación Entidad], everips.[Id Tipo de Rips], 
 		CASE
 			WHEN fc.[Documento Responsable] in (select [Documento Entidad] from [Función Por Entidad] where [Id Función] in ( select [Id Función] from Función where Función like ('%eps%' ) or Función like ('%prepa%') )) 
@@ -271,9 +274,10 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
     NULL AS [tipoNota], 
     tpd.[Tipo de Documento] AS [tipoDocumentoIdentificacion],
     en.[Documento Entidad] AS [numDocumentoIdentificacion], 
-     CASE 
- WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
- ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
+     --CASE 
+        --WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
+        --ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
+        '11' AS [tipoUsuario],
     CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], 
     Sexo.[Sexo] AS [codSexo], 
     País.País AS [codPaisResidencia], 
