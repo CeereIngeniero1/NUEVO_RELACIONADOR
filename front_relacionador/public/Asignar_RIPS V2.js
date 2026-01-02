@@ -5213,7 +5213,7 @@ Object.keys(CamposCheckBox).forEach((id) => {
 
 async function TraerFacturasPaciente(Select, DocumentoPaciente) {
   try {
-    console.log(DocumentoPaciente);
+    console.log("aca esta el doc que busco pa " +DocumentoPaciente);
     const FacturasPaciente = await fetch(
       `http://${servidor}:3000/apiv2/ConsultarFacturas/${DocumentoPaciente}`,
       {

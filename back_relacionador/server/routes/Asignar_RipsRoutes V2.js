@@ -1298,7 +1298,7 @@ router.get('/ConsultarFacturas/:DocumentoPaciente', async (req, res) => {
                 res.json(result.recordset);
     } catch (error) {
         console.error(`❌ Error al consultar facturas para el documento ${req.params.DocumentoPaciente}:`, error);
-        res.status(500).json({ error: 'Error al consultar las facturas del paciente.' });
+        res.status(500).json({ error: 'Error al consultar las facturas del paciente. doc' });
     }
 });
 
