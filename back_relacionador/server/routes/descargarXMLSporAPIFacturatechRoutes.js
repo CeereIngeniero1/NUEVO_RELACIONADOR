@@ -6,6 +6,7 @@ const path = require('path');
 const soap = require('soap');
 
 const router = Router();
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /* ENDPOINT PARA DESCARGAR LOS XMLS POR LA API DE FACTURATECH BY: CAMILO FLEZLADE */
 router.get('/mostrar-empresas-con-resoluciones-vigentes', async (req, res) => {
@@ -171,7 +172,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                     }
                 }
 
-                // const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
+                // const   = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
                 const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
 
 
@@ -400,7 +401,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
         
                 soap.createClient(soapUrl, async (err, client) => {
 
-                    await delay(100);
+                    await delay(1000);
                     if (err) {
                         console.error('Error creando el cliente SOAP:', err);
                         factura.estado = 'Error creando el cliente SOAP';
@@ -480,6 +481,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                                     factura.filePath = filePath;
                                     factura.estado = 'XML guardado exitosamente';
                                 }
+                                                           
                                 resultadosFinales.push(factura);  // Agrega la factura a los resultados
                                 processedCount++;
                                 processNextFactura(facturas[processedCount]);

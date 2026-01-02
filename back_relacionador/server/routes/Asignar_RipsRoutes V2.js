@@ -66,7 +66,7 @@ router.get('/UsuariosHC/:DocumentoUsuario/:fechaInicio/:fechaFin', async (req, r
             `SELECT  
                 [DocumentoPaciente]
                 ,[NombreCompletoPaciente]
-            FROM [Cnsta Relacionador Usuarios HC]
+            FROM [Cnsta Relacionador Usuarios HC V2]
             WHERE DocumentoUsuario = '${DocumentoUsuario}' AND CAST(FechaEvaluacion AS DATE) BETWEEN '${fechaInicio}' AND '${fechaFin}'
             GROUP BY DocumentoPaciente , NombreCompletoPaciente
         `,
@@ -145,7 +145,7 @@ router.get('/DatosdeHC/:DocumentoPaciente/:DocumentoUsuario/:fechaInicio/:fechaF
                 ,[DocumentoUsuario]
                 ,[IdEvaluaciónEntidad]
                 ,[HoraEvaluacion]
-        FROM            [Cnsta Relacionador Info Historias]
+        FROM            [Cnsta Relacionador Info Historias V2]
         WHERE        (DocumentoPaciente  like '%${DocumentoPaciente}%') 
         AND (CAST(FechaEvaluacion AS DATE) BETWEEN '${fechaInicio}' AND '${fechaFin}') 
         AND (DocumentoUsuario = N'${DocumentoUsuario}')
