@@ -1,0 +1,328 @@
+const { Request, TYPES } = require('tedious');
+const Router = require('express').Router;
+const connection = require('../db');
+
+const router = Router();
+
+// SERVIDOR DE OPCIÓN PREPAGADA
+router.get('/EPS/:fechaInicio/:fechaFin', (req, res) => {
+    const fechaInicio = req.params.fechaInicio;
+    const fechaFin = req.params.fechaFin;
+    const EPSData = [];
+    const EPSVistos = new Set(); // Utilizar un conjunto para rastrear nombres únicos
+
+    const request = new Request(`SELECT fc.[Id Factura], 
+        ISNULL(en.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(en.[Segundo Nombre Entidad], '') + ' ' +
+        ISNULL(en.[Primer Apellido Entidad], '') + ' ' +
+        ISNULL(en.[Segundo Apellido Entidad], '') + ' ' + EV.[Prefijo Resolución Facturación EmpresaV]+ fc.[No Factura] as [Nombre EPS]
+
+    FROM Factura as fc
+    
+    INNER JOIN FacturaII as fc2 ON fc.[Id Factura] = fc2.[Id Factura]
+    INNER JOIN Entidad as en ON fc.[Documento Paciente] = en.[Documento Entidad]
+    INNER JOIN [Plan de Tratamiento] as pt ON fc2.[Id Plan de Tratamiento] = pt.[Id Plan de Tratamiento]
+    INNER JOIN [Plan de Tratamiento Tratamientos] as ptt ON pt.[Id Plan de Tratamiento] = ptt.[Id Plan de Tratamiento]
+    INNER JOIN [Tipo Responsable] as tr ON ptt.[Id Tipo Responsable] = tr.[Id Tipo Responsable]
+	INNER JOIN  EmpresaV EV ON EV.[Id EmpresaV] = FC.[Id EmpresaV] 
+    
+    WHERE tr.[Tipo Responsable] IN ('Entidad Prepagada', 'EPS') AND fc.[Fecha Factura] BETWEEN @fechaInicio AND @fechaFin
+    `, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de las EPS:', err.message);
+            res.status(500).json({ error: 'Error al obtener datos de pacientes' });
+        } else {
+            console.log(`Consulta de EPS ejecutada con éxito. Filas afectadas: ${rowCount}`);
+
+            // Filtrar duplicados basados en el nombre
+            const pacientesUnicos = EPSData.filter(Eps => {
+                if (!EPSVistos.has(Eps['Nombre EPS'])) {
+                    EPSVistos.add(Eps['Nombre EPS']);
+                    return true;
+                }
+                return false;
+            });
+
+            // Enviar los datos de pacientes únicos como respuesta JSON
+            res.json(pacientesUnicos.map(row => ({
+                idFacturaEPS: row['Id Factura'],
+                nombreEPS: row['Nombre EPS']
+            })));
+
+            // console.log(pacientesUnicos);
+        }
+    });
+
+    // Ajustar los parámetros según las columnas y datos que estás insertando
+    request.addParameter('FechaInicio', TYPES.DateTime, fechaInicio);
+    request.addParameter('FechaFin', TYPES.DateTime, fechaFin);
+
+    // Manejar cada fila de resultados
+    request.on('row', (columns) => {
+        const EPS = {};
+        columns.forEach((column) => {
+            EPS[column.metadata.colName] = column.value;
+        });
+        EPSData.push(EPS);
+    });
+
+    connection.execSql(request);
+});
+
+router.get('/pacientesEPS/:idFacturaEPS', (req, res) => {
+    const idFacturaEPS = req.params.idFacturaEPS;
+    // const fechaInicio = req.params.fechaInicio;
+    // const fechaFin = req.params.fechaFin;
+    const pacientesEPSData = []; // Crear un array para almacenar los resultados
+
+    const request = new Request(`SELECT en.[Documento Entidad],
+        en.[Primer Nombre Entidad] + ' 
+' + en.[Segundo Nombre Entidad] + ' 
+' + en.[Primer Apellido Entidad] + ' 
+' + en.[Segundo Apellido Entidad]  as [Nombre Paciente]
+
+    FROM FacturaII as fc2
+        
+    INNER JOIN Factura as fc ON fc2.[Id Factura] = fc.[Id Factura]
+    INNER JOIN [Plan de Tratamiento] as pt ON fc2.[Id Plan de Tratamiento] = pt.[Id Plan de Tratamiento]
+    INNER JOIN Entidad as en ON pt.[Documento Paciente] = en.[Documento Entidad]
+ 
+    WHERE fc2.[Id Factura] = @idFacturaEPS
+        ORDER BY fc2.[Id Plan de Tratamiento] ASC`, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de evaluaciones:', err.message);
+            res.status(500).json({ error: 'Error al obtener datos de pacientes EPS' });
+        } else {
+            console.log(`Consulta de pacientes EPS ejecutada con éxito. Filas afectadas: ${rowCount}`);
+
+            // Enviar los datos de evaluaciones como respuesta JSON
+            res.json(pacientesEPSData.map(row => ({
+                documentoPacienteEPS: row['Documento Entidad'],
+                nombrePacienteEPS: row['Nombre Paciente']
+            })));
+        }
+    });
+
+    // Ajustar los parámetros según las columnas y datos que estás insertando
+    request.addParameter('idFacturaEPS', TYPES.VarChar, idFacturaEPS);
+    // request.addParameter('FechaInicio', TYPES.DateTime, fechaInicio);
+    // request.addParameter('FechaFin', TYPES.DateTime, fechaFin);
+
+    // Manejar cada fila de resultados
+    request.on('row', (columns) => {
+        const pacienteEPS = {};
+        columns.forEach((column) => {
+            pacienteEPS[column.metadata.colName] = column.value;
+        });
+        pacientesEPSData.push(pacienteEPS);
+    });
+
+    connection.execSql(request);
+});
+
+router.get('/hcPacientesEPS/:documentoPacienteEPS', (req, res) => {
+    const documentoPacienteEPS = req.params.documentoPacienteEPS;
+    const historiasEPSData = []; // Crear un array para almacenar los resultados
+
+    const request = new Request(`SELECT everips.[Id Evaluación Entidad Rips], everips.[Id Evaluación Entidad], eve.[Fecha Evaluación Entidad], everips.[Id Factura]
+
+    FROM [Evaluación Entidad Rips v2] as everips
+    
+    INNER JOIN [Evaluación Entidad] as eve ON everips.[Id Evaluación Entidad] = eve.[Id Evaluación Entidad]
+    
+    WHERE eve.[Documento Entidad] = @documentoPacienteEPS AND everips.[Id Factura] IS NULL`, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);
+            res.status(500).json({ error: 'Error al obtener datos de historias clinicas EPS' });
+        } else {
+            console.log(`Consulta de historias clinicas EPS ejecutada con éxito. Filas afectadas: ${rowCount}`);
+
+            // Enviar los datos de evaluaciones como respuesta JSON
+            res.json(historiasEPSData.map(row => ({
+                idEveRips: row['Id Evaluación Entidad Rips'],
+                fechaEveRips: row['Fecha Evaluación Entidad']
+            })));
+        }
+    });
+
+    // Ajustar los parámetros según las columnas y datos que estás insertando
+    request.addParameter('documentoPacienteEPS', TYPES.VarChar, documentoPacienteEPS);
+    // request.addParameter('FechaInicio', TYPES.DateTime, fechaInicio);
+    // request.addParameter('FechaFin', TYPES.DateTime, fechaFin);
+
+    // Manejar cada fila de resultados
+    request.on('row', (columns) => {
+        const historiasEPS = {};
+        columns.forEach((column) => {
+            historiasEPS[column.metadata.colName] = column.value;
+        });
+        historiasEPSData.push(historiasEPS);
+    });
+
+    connection.execSql(request);
+});
+
+router.post('/relacionarEPS/:idFacturaEPS/:idEveRips/:IdTratamiento', (req, res) => {
+    const idFacturaEPS = req.params.idFacturaEPS
+    const idEveRips = req.params.idEveRips
+    const IdTratamiento = req.params.IdTratamiento
+
+    // Realizar la inserción en la tabla [Evaluación Entidad Rips v2]
+    const requestInsert = new Request(`UPDATE [Evaluación Entidad Rips v2] 
+        SET 
+        [Id Factura] = @idFacturaEPS,
+        [Id Plan de Tratamiento] = @IdTratamiento
+
+    WHERE [Id Evaluación Entidad Rips] = @idEveRips`, (err) => {
+        if (err) {
+            console.error('Error al insertar el id factura de las EPS:', err.message);
+            res.status(500).json({ error: 'Error al insertar el id factura de las EPS:' });
+        } else {
+            console.log('Inserción ejecutada con éxito');
+            res.json({ success: true, message: 'Factura e historia relacionadas correctamente' });
+        }
+    });
+
+    // Ajustar los parámetros según las columnas y datos que estás insertando
+    requestInsert.addParameter('idFacturaEPS', TYPES.Int, idFacturaEPS);
+    requestInsert.addParameter('idEveRips', TYPES.Int, idEveRips);
+    requestInsert.addParameter('IdTratamiento', TYPES.Int, IdTratamiento);
+
+    console.log('Este es el Id Rips: ' + idEveRips);
+    console.log('Este es el Id de la factura: ' + idFacturaEPS);
+    console.log('Este es el Id de la Tratamiento: ' + IdTratamiento);
+
+
+    // Ejecutar la solicitud de inserción
+    connection.execSql(requestInsert);
+});
+
+
+//Actualizaciones Fernando
+//Este endpoint es para consultar los pacientes de los tratamientos que se encuentran dentro de la factura seleccionada
+router.get('/PacientesTratamientosFacturaEps/:IdFactura', (req, res) => {
+    const IdFactura = req.params.IdFactura;
+
+    const PacientesData = []; // Crear un array para almacenar los resultados
+
+    const request = new Request(`SELECT 
+        ISNULL(ent.[Primer Nombre Entidad], '') + ' ' +
+        ISNULL(ent.[Segundo Nombre Entidad], '') + ' ' +
+        ISNULL(ent.[Primer Apellido Entidad], '') + ' ' +
+        ISNULL(ent.[Segundo Apellido Entidad], '') + ' ' + ' ' + 'Pres ' + pt.[Nro Plan de Tratamiento] + ' ' + 'HC ' + CASE WHEN EVR.[Id Evaluación Entidad Rips] IS NULL THEN 'NO TIENE'
+		ELSE CONVERT (NVARCHAR, EVR.[Id Evaluación Entidad Rips]) END  as [NombrePaciente], 
+        PTT.[Documento Responsable] AS [DocumentoEPS], 
+        PT.[Documento Paciente] AS [DocumentoPaciente],
+        pt.[Id Plan de Tratamiento] AS [id_plan_tratamiento]
+        --COUNT(PT.[Documento Paciente])
+        FROM FacturaII FII
+            INNER JOIN [Plan de Tratamiento] PT ON PT.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento]
+            INNER JOIN [Plan de Tratamiento Tratamientos] PTT ON PTT.[Id Plan de Tratamiento] = PT.[Id Plan de Tratamiento]
+            INNER JOIN Entidad ENT ON ENT.[Documento Entidad] = PT.[Documento Paciente]
+			LEFT JOIN [Evaluación Entidad Rips v2] EVR ON EVR.[Id Plan de Tratamiento] = FII.[Id Plan de Tratamiento] AND FII.[Id Factura] = EVR.[Id Factura]
+           
+            WHERE FII.[Id Factura] = @idfactura
+            --   GROUP BY 
+            --PT.[Documento Paciente], 
+            --PTT.[Documento Responsable], 
+            --ENT.[Nombre Completo Entidad],
+            --PT.[Nro Plan de Tratamiento]
+
+            order by PT.[Documento Paciente] `, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);
+            res.status(500).json({ error: 'Error al obtener datos de historias clinicas EPS' });
+        } else {
+            console.log(`Consulta de historias clinicas EPS ejecutada con éxito. Filas afectadas: ${rowCount}`);
+
+            // Enviar los datos de evaluaciones como respuesta JSON
+            res.json(PacientesData.map(row => ({
+                DocumentoPaciente: row['DocumentoPaciente'],
+                NombrePaciente: row['NombrePaciente'],
+                DocumentoEps: row['DocumentoEPS'],
+                Idtratamiento: row['id_plan_tratamiento']
+            })));
+        }
+    });
+
+    console.log("PacientesData");
+    console.log(PacientesData);
+    request.addParameter('idfactura', TYPES.Int, IdFactura);
+
+    // Manejar cada fila de resultados
+    request.on('row', (columns) => {
+        const Pacientes = {};
+        columns.forEach((column) => {
+            Pacientes[column.metadata.colName] = column.value;
+        });
+        PacientesData.push(Pacientes);
+    });
+
+    connection.execSql(request);
+});
+
+
+//aca seran las hc con rips de los pacientes de la anterior consulta  que tambien tengan documentotipo rips la entidad prepagada
+router.get('/RipsPacientesTratamientosEps/:DocumentoPaciente/:DocumentoEPS/:IdTratamiento', (req, res) => {
+    const DocumentoPaciente = req.params.DocumentoPaciente;
+    const DocumentoEPS = req.params.DocumentoEPS;
+    const IdTratamiento = req.params.IdTratamiento;
+
+    const PacienteRipsData = []; // Crear un array para almacenar los resultados
+
+
+    const request = new Request(`SELECT 
+EVR.[Id Evaluación Entidad Rips]  AS [idEveRips],
+--EVA.[Fecha Evaluación Entidad] AS [FechaHC], 
+CASE WHEN 
+evr.[Id Factura] IS NULL 
+THEN 
+CONVERT(VARCHAR(20), EVA.[Fecha Evaluación Entidad], 100)  + '; NO TIENE'
+else  
+CONVERT(VARCHAR(20), EVA.[Fecha Evaluación Entidad], 100) + '; ' + CAST (fac.[No Factura] AS nvarchar(50)) END  AS [FechaHC],
+
+TE.[Tipo de Evaluación] AS [TipoEvaluacion]
+        FROM [Evaluación Entidad Rips v2] EVR 
+        INNER JOIN [Evaluación Entidad] EVA ON EVA.[Id Evaluación Entidad] = EVR.[Id Evaluación Entidad]
+        INNER JOIN [Tipo de Evaluación] TE ON TE.[Id Tipo de Evaluación] = EVA.[Id Tipo de Evaluación]
+        left join Factura fac on fac.[Id Factura] = evr.[Id Factura]
+        WHERE EVA.[Documento Entidad] = @DocumentoPaciente AND EVR.[Documento Tipo Rips] = @DocumentoEPS
+        order by EVA.[Fecha Evaluación Entidad] desc
+        --AND EVR.[Id Factura] IS NULL AND EVR.[Id Plan de Tratamiento] IS NULL`, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de historias clinicas EPS:', err.message);
+            res.status(500).json({ error: 'Error al obtener datos de historias clinicas EPS' });
+        } else {
+            console.log(`Consulta de historias clinicas EPS ejecutada con éxito. Filas afectadas: ${rowCount}`);
+
+            // Enviar los datos de evaluaciones como respuesta JSON
+            res.json(PacienteRipsData.map(row => ({
+                idEveRips: row['idEveRips'],
+                fechaEveRips: row['FechaHC'],
+                TipoEvaluacion: row['TipoEvaluacion']
+            })));
+        }
+    });
+
+
+    request.addParameter('DocumentoPaciente', TYPES.VarChar, DocumentoPaciente);
+    request.addParameter('DocumentoEPS', TYPES.VarChar, DocumentoEPS);
+
+    // Manejar cada fila de resultados
+    request.on('row', (columns) => {
+        const PacienteRips = {};
+        columns.forEach((column) => {
+            PacienteRips[column.metadata.colName] = column.value;
+        });
+        PacienteRipsData.push(PacienteRips);
+    });
+
+    connection.execSql(request);
+});
+
+
+
+
+
+
+module.exports = router;
