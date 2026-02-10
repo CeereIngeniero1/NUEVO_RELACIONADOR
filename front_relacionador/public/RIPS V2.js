@@ -841,8 +841,8 @@ async function DescargarArchivosJSON() {
     try {
         MensajeDeCarga("Descargando JSON...");
         await Esperar(1000);
-        // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
-        const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/rips/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        // const response = await fetch(`http://${servidor}:3000/RIPSv2/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`http://${servidor}:3000/RIPSv2/usuarios/rips/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
 
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
@@ -851,7 +851,7 @@ async function DescargarArchivosJSON() {
 
         console.log('Enviando datos al servidor para generar archivo ZIP...');
 
-        const zipResponse = await fetch(`http://${servidor}:3000/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
+        const zipResponse = await fetch(`http://${servidor}:3000/RIPSv2/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -928,8 +928,8 @@ async function DescargarArchivosJSONParticulares() {
     try {
         MensajeDeCarga("Descargando JSON...");
         await Esperar(1000);
-        // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
-        const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsParticular/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        // const response = await fetch(`http://${servidor}:3000/RIPSv2/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`http://${servidor}:3000/RIPSv2/usuarios/ripsParticular/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
 
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
@@ -938,7 +938,7 @@ async function DescargarArchivosJSONParticulares() {
 
         console.log('Enviando datos al servidor para generar archivo ZIP...');
 
-        const zipResponse = await fetch(`http://${servidor}:3000/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
+        const zipResponse = await fetch(`http://${servidor}:3000/RIPSv2/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -988,61 +988,6 @@ document.getElementById('obtenerDatosParticularesBtn').addEventListener('click',
 
 document.getElementById('descargarRIPS').addEventListener('click', async () => {
 
-
-    // try {
-    //     const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
-    //     if (!response.ok) {
-    //         throw new Error('Network response was not ok');
-    //     }
-    //     const empresas = await response.json();
-    //     console.log('Empresas recibidas:', empresas);
-
-    //     // Se captura el select de las empresas
-    //     const EmpresasRegistradasConFacturacionVigente = document.getElementById('EmpresasRips');
-    //     EmpresasRegistradasConFacturacionVigente.innerHTML = ''; // Limpia el elmento
-
-    //     // Agrega una opción por defecto
-    //     const defaultOption = document.createElement('option');
-    //     defaultOption.textContent = 'Seleccione una empresa';
-    //     defaultOption.value = '';
-    //     EmpresasRegistradasConFacturacionVigente.appendChild(defaultOption);
-
-    //     // Agrega una opción para cada empresa
-    //     empresas.forEach(empresa => {
-    //         const option = document.createElement('option');
-    //         option.textContent = empresa.NombreComercialEmpresa; // Cambia este campo si es necesario
-    //         option.value = empresa.DocumentoEmpresa; // Cambia este campo si es necesario
-    //         EmpresasRegistradasConFacturacionVigente.appendChild(option);
-    //     });
-    // } catch (error) {
-    //     console.error('Hubo un problema con la solicitud:', error);
-    // }
-
-    // })
-
-    // Para mostrar las resoluciones viegentes según la empresa seleccionada
-    // document.getElementById('EmpresasRips').addEventListener('change', async () => {
-
-    // const SelectEmpresas = document.getElementById('EmpresasRips');
-    // let EmpresaSeleccionada = SelectEmpresas.value;
-
-    // // Verifica si se ha seleccionado una empresa válida
-    // if (!EmpresaSeleccionada) {
-    //     // Si no hay selección, limpia el select de resoluciones y muestra un mensaje
-    //     const ResolucionesVigentes = document.getElementById('ResolucionesRips');
-    //     ResolucionesVigentes.innerHTML = ''; // Limpia el elemento
-
-    //     // Agrega una opción por defecto
-    //     const defaultOption = document.createElement('option');
-    //     defaultOption.textContent = 'Seleccione una resolución';
-    //     defaultOption.value = '';
-    //     ResolucionesVigentes.appendChild(defaultOption);
-
-    //     console.log('No se ha seleccionado ninguna empresa.');
-    //     return; // Sale de la función si no hay selección
-    // }
-
-    // console.log(EmpresaSeleccionada);
     try {
         // const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${EmpresaSeleccionada}`);
         const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
@@ -1084,63 +1029,7 @@ document.getElementById('descargarRIPS').addEventListener('click', async () => {
 
 // Para mostrar las empresas con las resoluciones vigentes
 document.getElementById('XMLS').addEventListener('click', async () => {
-
-    //     try {
-    //         const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
-    //         if (!response.ok) {
-    //             throw new Error('Network response was not ok');
-    //         }
-    //         const empresas = await response.json();
-    //         console.log('Empresas recibidas:', empresas);
-
-    //         // Se captura el select de las empresas
-    //         const EmpresasRegistradasConFacturacionVigente = document.getElementById('Empresas');
-    //         EmpresasRegistradasConFacturacionVigente.innerHTML = ''; // Limpia el elmento
-
-    //         // Agrega una opción por defecto
-    //         const defaultOption = document.createElement('option');
-    //         defaultOption.textContent = 'Seleccione una empresa';
-    //         defaultOption.value = '';
-    //         EmpresasRegistradasConFacturacionVigente.appendChild(defaultOption);
-
-    //         // Agrega una opción para cada empresa
-    //         empresas.forEach(empresa => {
-    //             const option = document.createElement('option');
-    //             option.textContent = empresa.NombreComercialEmpresa; // Cambia este campo si es necesario
-    //             option.value = empresa.DocumentoEmpresa; // Cambia este campo si es necesario
-    //             EmpresasRegistradasConFacturacionVigente.appendChild(option);
-    //         });
-    //     } catch (error) {
-    //         console.error('Hubo un problema con la solicitud:', error);
-    //     }
-
-    // })
-
-
-    // // Para mostrar las resoluciones viegentes según la empresa seleccionada
-    // document.getElementById('Empresas').addEventListener('change', async () => {
-
-    //     const SelectEmpresas = document.getElementById('Empresas');
-    //     let EmpresaSeleccionada = SelectEmpresas.value;
-
-
-    //     // Verifica si se ha seleccionado una empresa válida
-    //     if (!EmpresaSeleccionada) {
-    //         // Si no hay selección, limpia el select de resoluciones y muestra un mensaje
-    //         const ResolucionesVigentes = document.getElementById('Resoluciones');
-    //         ResolucionesVigentes.innerHTML = ''; // Limpia el elemento
-
-    //         // Agrega una opción por defecto
-    //         const defaultOption = document.createElement('option');
-    //         defaultOption.textContent = 'Seleccione una resolución';
-    //         defaultOption.value = '';
-    //         ResolucionesVigentes.appendChild(defaultOption);
-
-    //         console.log('No se ha seleccionado ninguna empresa.');
-    //         return; // Sale de la función si no hay selección
-    //     }
-
-    //     console.log(EmpresaSeleccionada);
+ 
     try {
         const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
         if (!response.ok) {

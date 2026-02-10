@@ -126,5 +126,6 @@ FROM     dbo.[Evaluación Entidad] INNER JOIN
 WHERE  (dbo.[Evaluación Entidad].[Id Tipo de Evaluación] <> 2) AND (dbo.[Evaluación Entidad].Rips <> 0) AND (dbo.[Evaluación Entidad Rips V2].[Id Evaluación Entidad Rips] IS NULL) AND (dbo.[Evaluación Entidad].[Id Estado] = 7)
 GO
 
-
+ALTER TABLE [Evaluación Entidad Rips V2]
+ADD ConsecutivoRipsFacturaEnCero INT NULL;
 

@@ -25,7 +25,7 @@ router.get('/pacientes/:fechaInicio/:fechaFin/:documentoEmpresaSeleccionada', (r
 
     WHERE CONVERT(DATE, eve.[Fecha Evaluación Entidad],101) BETWEEN @FechaInicio AND @FechaFin 
     AND EXISTS (SELECT 1 FROM [Evaluación Entidad Rips V2] AS rips WHERE rips.[Id Evaluación Entidad] = eve.[Id Evaluación Entidad]) 
-    AND everips.[Id Factura] IS NULL 
+    AND  (everips.[Id Factura] IS NULL OR everips.[Id Factura] = 0)
     --AND em.[Documento Empresa] = @documentoEmpresaSeleccionada
     ORDER BY [Nombre Paciente] ASC`, (err, rowCount) => {
 
@@ -96,7 +96,7 @@ router.get('/evaluaciones/:documento/:fechaInicio/:fechaFin', (req, res) => {
     
     WHERE eve.[Documento Entidad] = @Documento 
     AND everips.[Id Tipo de Rips] = 2 
-    AND everips.[Id Factura] IS NULL  
+    AND (everips.[Id Factura] IS NULL  or everips.[Id Factura] = 0 )
     AND CONVERT(DATE, eve.[Fecha Evaluación Entidad],101) BETWEEN @FechaInicio AND @FechaFin`, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de evaluaciones:', err.message);

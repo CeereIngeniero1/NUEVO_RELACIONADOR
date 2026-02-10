@@ -872,12 +872,12 @@ router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoS
     const Idpresupuesto = req.params.Idpresupuesto;
     const DocumentoEntidad = req.params.DocumentoEntidad;
 
-    const Cups1 = req.params.Cups1;
-    let Cups2 = req.params.Cups2;
+    const Cups1 = req.params.Cups1.trim();
+    let Cups2 = req.params.Cups2.trim();
     //Se evalua si viene = 0 para hacerlo NULL
     if(Cups2 == 0){Cups2 = 'null' }
     const Cie1 = req.params.Cie1.trim();
-    let Cie2 = req.params.Cie2;
+    let Cie2 = req.params.Cie2.trim();
     if(Cie2 == 0){Cie2 = 'null' }
     const TipoRips = req.params.TipoRips;
     var Actoquirurgico;
