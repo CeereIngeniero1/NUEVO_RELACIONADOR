@@ -1,0 +1,16 @@
+Listo, he revertido todos los cambios que hice anteriormente en:
+- RIPS.html (enlace vuelve a Asignar_RIPS.html)
+- Asignar_RIPS V3.html (script vuelve a V2.js)
+- app.js (ruta vuelve a Asignar_RIPS.html)
+
+Ahora solo necesito actualizar la sección "Datos del paciente" en Asignar_RIPS V3.html con los campos RDA que me proporcionaste.
+
+El problema es que el contenido exacto del archivo tiene caracteres especiales que dificultan el reemplazo automático. 
+
+Te recomiendo que:
+1. Abras el archivo Asignar_RIPS V3.html
+2. Busques la línea 135 que dice: <h5><b>Datos del paciente</b></h5>
+3. Selecciones desde esa línea hasta la línea 269 (justo antes de "</div>")
+4. Reemplaces todo ese contenido con el HTML que te proporcioné
+
+¿Quieres que te prepare el HTML completo listo para copiar y pegar?
