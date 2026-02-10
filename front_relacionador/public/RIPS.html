@@ -10,17 +10,20 @@
     <!-- GOOGLE FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&family=Be+Vietnam+Pro:wght@500;700&family=Roboto&family=Roboto+Condensed:wght@500&display=swap" el="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&family=Be+Vietnam+Pro:wght@500;700&family=Roboto&family=Roboto+Condensed:wght@500&display=swap"
+        el="stylesheet">
 
     <!-- SWEETALERT2 -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
     <title>RIPS MANUALES</title>
 
     <!-- BOOTSTRAP 5.3 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 
     <!-- ESTABLECIENDO HERRAMIENTA PARA TRABAJAR CON TABLA DE BOOTSTRAP -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.20/datatables.min.css"/> 
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.20/datatables.min.css" />
 
     <!--=============== REMIXICONS ===============-->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
@@ -40,9 +43,12 @@
     <div class="navbar">
         <img src="images/Ceere_logo.png" alt="">
         <h2 id="nombreUsuarioLink"></h2>
-        <button type="button" id="BotonMaestro" data-bs-toggle="modal" data-bs-target="#ModalParaMaestro">Maestro</button>
-        <button type="button" id="descargarRIPS" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Descargar RIPS JSON</button>
-        <button type="button" id="XMLS" data-bs-toggle="modal" data-bs-target="#ModalEmpresasResolucionVigente">XMLS</button>
+        <button type="button" id="BotonMaestro" data-bs-toggle="modal"
+            data-bs-target="#ModalParaMaestro">Maestro</button>
+        <button type="button" id="descargarRIPS" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Descargar RIPS
+            JSON</button>
+        <button type="button" id="XMLS" data-bs-toggle="modal"
+            data-bs-target="#ModalEmpresasResolucionVigente">XMLS</button>
         <a href="./GENERADOR_ARCHIVOS_RIPS_PART/index.php" id="generadorRIPS">GENERADOR INFORMES RIPS</a>
         <a href="Asignar_RIPS.html" id="generadorRIPS">Asignar Rips</a>
         <button type="button" id="closeSesion">Cerrar Sesión</button>
@@ -51,7 +57,8 @@
     <div class="container">
         <main>
 
-            <label for="" style="font-weight: bold;">Empresa de Trabajo: <span id="EmpresaDeTrabajo" style="font-weight: normal;"></span> </label>
+            <label for="" style="font-weight: bold;">Empresa de Trabajo: <span id="EmpresaDeTrabajo"
+                    style="font-weight: normal;"></span> </label>
             <div class="paciente">
 
                 <div class="divBuscar">
@@ -60,7 +67,8 @@
 
                 <div class="check" style="display: flex; align-items: center;">
                     <span style="margin-right: 10px;">Particular</span>
-                    <input type="checkbox" id="checkbox1" class="checkbox" style="margin-right: 20px; width: 50px !important;">
+                    <input type="checkbox" id="checkbox1" class="checkbox"
+                        style="margin-right: 20px; width: 50px !important;">
                     <span style="margin-right: 10px;">Prepagada</span>
                     <input type="checkbox" id="checkbox2" class="checkbox" style="width: 50px !important;">
                 </div>
@@ -127,29 +135,33 @@
             </div>
 
             <div class="facturaCero">
-                    <input type="checkbox" id="checkboxFacturaCero">
-                    <span>Relacionar historia con factura en 0 a RIPS</span>
+                <input type="checkbox" id="checkboxFacturaCero">
+                <span>Relacionar historia con factura en 0 a RIPS</span>
             </div>
 
             <div class="btn">
                 <button id="btnRelacionar">RELACIONAR</button>
-                <button type="button" id="AsignarFacturaManual" data-bs-toggle="modal" data-bs-target="#miModal">ASIGNAR FACTURA MANUAL</button>
+                <button type="button" id="AsignarFacturaManual" data-bs-toggle="modal" data-bs-target="#miModal">ASIGNAR
+                    FACTURA MANUAL</button>
             </div>
 
         </main>
 
         <!-- MODAL PARA MAESTRO DE LISTAS Y CÓDIGOS RIPS (CUPS Y CIE10)  -->
-        <div class="modal fade" id="ModalParaMaestro" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal fade" id="ModalParaMaestro" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-top">
                 <div class="modal-content">
                     <div class="modal-header">
-                        
+
                     </div>
                     <div class="modal-body">
                         <span class="fw-bolder">Selecciona el tipo:</span>
-                        <select name="" id="SelectListarDatosRIPS" class="form-select-sm w-30 mb-2 border border-secondary">
+                        <select name="" id="SelectListarDatosRIPS"
+                            class="form-select-sm w-30 mb-2 border border-secondary">
                             <option value="">Sin seleccionar</option>
-                            <option value="ModalidadGrupoServicioTecSal">Modalidad Grupo Servicio Tecnología Salud - [AC y AP]</option>
+                            <option value="ModalidadGrupoServicioTecSal">Modalidad Grupo Servicio Tecnología Salud - [AC
+                                y AP]</option>
                             <option value="GrupoServicios">Grupo Servicios - [AC y AP]</option>
                             <option value="CodServicio">Código Servicios - [AC y AP]</option>
                             <option value="FinalidadTecnologiaSalud">Finalidad Tecnología Salud - [AC y AP]</option>
@@ -196,18 +208,18 @@
 
                             <!-- TABLA PARA LISTAR TODA LA INFO SOBRE CÓDIGO SERVICIOS -->
                             <table id="TablaCodigoServicios" class="w-100" style="display: none;">
-                            <thead>
-                                <tr>
-                                    <th>Id</th>
-                                    <th>Código</th>
-                                    <th>Descripción</th>
-                                    <th>Grupo</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Id</th>
+                                        <th>Código</th>
+                                        <th>Descripción</th>
+                                        <th>Grupo</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
 
-                            </tbody>
+                                </tbody>
                             </table>
 
                             <!-- TABLA PARA LISTAR TODA LA INFO SOBRE FINALIDAD TECNOLOGÍA SALUD -->
@@ -248,25 +260,28 @@
                                         <th>Estado</th>
                                     </tr>
                                 </thead>
-                                <tbody></tbody> 
+                                <tbody></tbody>
                             </table>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary btn-sm fw-bolder" data-bs-dismiss="modal" id="CerrarModalMaestro">Cerrar</button>
+                        <button type="button" class="btn btn-secondary btn-sm fw-bolder" data-bs-dismiss="modal"
+                            id="CerrarModalMaestro">Cerrar</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Modal JSON -->
-        <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="staticBackdropLabel">Seleccione el rango de fechas en el que
                             esea descargar sus RIPS</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="width: 10px !important"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            style="width: 10px !important"></button>
                     </div>
                     <div class="modal-body">
                         <div class="EmpresasResolucion" style="display: flex; justify-content: space-around;">
@@ -298,14 +313,16 @@
                     <div class="modal-footer" style="align-items: center; justify-content: center;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                         <button type="button" id="obtenerDatosBtn" class="btn btn-primary">Descargar RIPS EPS</button>
-                        <button type="button" id="obtenerDatosParticularesBtn" class="btn btn-primary">Descargar RIPS Particulares</button>
+                        <button type="button" id="obtenerDatosParticularesBtn" class="btn btn-primary">Descargar RIPS
+                            Particulares</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- MODAL PARA MOSTRAR LAS EMPRESAS CON LAS RESOLUCIONES ACTIVAS/VIGENTES DESCARGAR XMLS POR MEDIO DE LA API DE FACTURATECH -->
-        <div class="modal fade" id="ModalEmpresasResolucionVigente" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal fade" id="ModalEmpresasResolucionVigente" data-bs-backdrop="static" data-bs-keyboard="false"
+            tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -352,7 +369,8 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="tituloPaciente"></h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="width: 10px !important"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            style="width: 10px !important"></button>
                     </div>
                     <div class="modal-body">
                         <select name="" id="selectBuscarFacturas">
@@ -391,7 +409,8 @@
                                 <label for="" id="">FACTURA No</label>
                                 <label for="" id="noFactura">No Factura</label>
                                 <span>FECHA: <label for="" id="fechaFactura">Fecha factura</label></span>
-                                <span>FECHA VENCIMIENTO: <label for="" id="fechaVencimientoFactura">Fecha vencimiento factura</label></span>
+                                <span>FECHA VENCIMIENTO: <label for="" id="fechaVencimientoFactura">Fecha vencimiento
+                                        factura</label></span>
                             </div>
                         </div>
 
@@ -488,13 +507,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 
 <!-- BOOTSTRAP 5.3 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
 
 <!-- Incluye JSZip en tu HTML -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
 
 <!-- Datatables-->
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.20/datatables.min.js"></script>  
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.3/css/responsive.dataTables.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.20/datatables.min.js"></script>
+<link rel="stylesheet" type="text/css"
+    href="https://cdn.datatables.net/responsive/2.2.3/css/responsive.dataTables.min.css">
 
 </html>

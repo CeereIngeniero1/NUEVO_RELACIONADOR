@@ -64,7 +64,7 @@ app.get('/api/executeQuery', (req, res) => {
     executeQuery()
         .then(result => res.send(result))
         .catch(err => res.status(500).send('Error al ejecutar la consulta: ' + err.message));
-}); 
+});
 
 // Endpoint para establecer la conexión SSE
 app.get('/api/sse', (req, res) => {
