@@ -30,3 +30,17 @@ CREATE TABLE [Entidad1888](
 	[Id Discapacidad] int Not null
 	
 )
+
+
+
+CREATE TABLE [Entidad1888](
+	[Id Entidad1888] [int] IDENTITY(1,1) NOT NULL,
+	[Documento Entidad] [nvarchar](50) NULL,
+	[Id Identidad Genero] int not null,
+	[Talla] varchar(10) not null ,
+	[Peso] varchar(10) not null ,
+	[Id Etnia] int Not null,
+	[Comunidad Etnica] varchar (50) not null,
+	[Id Discapacidad] int Not null
+	
+)
