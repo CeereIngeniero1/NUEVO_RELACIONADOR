@@ -8,8 +8,8 @@ CREATE TABLE [Entidad1888](
 	[Peso] varchar(10) not null ,
 	[Id Etnia] int Not null,
 	[Comunidad Etnica] varchar (50) not null,
-	[Id Discapacidad] int Not null
-    [Alergias] varchar (90) null,
+	[Id Discapacidad] int Not null,
+    [Alergias] varchar (90) null
 	
 )
 
