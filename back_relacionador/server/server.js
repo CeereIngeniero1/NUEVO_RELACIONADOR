@@ -18,6 +18,7 @@ const epsRoutes = require('./routes/epsRoutes');
 const epsRoutesv2 = require('./routes/epsRoutes V2');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
 const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
+const AsignarRipsv3 = require('./routes/Asignar_RipsRoutes V3');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 
@@ -128,6 +129,7 @@ app.use('/apiv2', epsRoutesv2);
 app.use('/api', AsignarRips);
 
 app.use('/apiV2', AsignarRipsv2);
+app.use('/apiV3', AsignarRipsv3);
 
 app.use('/api', MaestroListasRIPS);
 

@@ -13,11 +13,22 @@ CREATE TABLE [Entidad1888](
 	
 )
 
+ALTER TABLE Entidad1888
+ADD [Id Pais Nacionalidad] INT NULL;
+GO
+
+ALTER TABLE Entidad1888
+ADD [Id Pais Recidencia] INT NULL;
+GO
+
+ALTER TABLE Entidad1888
+ADD [Id Municipio Recidencia] INT NULL;
+GO
 
 create table Discapacidad (
 [Id Discapacidad] int identity(1,1) primary key  not null,
  [Codigo] varchar (10) Null, 
- [Discapacidad] varchar (30) Null,
+ [Discapacidad] varchar (60) Null,
  [Descripcion Discapacidad] varchar (60) Null,
  [Id Estado] int Null
 )
@@ -84,6 +95,11 @@ INSERT INTO [dbo].[Sexo Identidad Genero]
            'No lo declara',
            'No lo declara',
            '7')
+           ,
+           ('06',
+            'Sin asignar',
+            'Sin asignar',
+            '7')
 GO
 
 
@@ -132,4 +148,94 @@ INSERT INTO [dbo].[Etnia]
            'Otras etnias',
            1,
            '7')
+           ,
+           ('7',
+           'Sin Asignar',
+           'Sin Asignar',
+           1,
+           '7')
 GO
+
+INSERT INTO [dbo].[Discapacidad]
+           ([Codigo]
+           ,[Discapacidad]
+           ,[Descripcion Discapacidad]
+           ,[Id Estado])
+     VALUES
+           ('01',
+           'Discapacidad física',
+           'Discapacidad física', 
+           7)
+           ,
+            ('02',
+           'Discapacidad visual',
+           'Discapacidad visual', 
+           7)
+           ,
+            ('03',
+           'Discapacidad auditiva',
+           'Discapacidad auditiva', 
+           7)
+           ,
+            ('04',
+           'Discapacidad intelectual',
+           'Discapacidad intelectual', 
+           7)
+           ,
+            ('05',
+           'Discapacidad sicosocial (mental)',
+           'Discapacidad sicosocial (mental)', 
+           7)
+           
+           ,
+            ('06',
+           'Sordoceguera',
+           'Sordoceguera', 
+           7)
+           ,
+            ('07',
+           'Discapacidad múltiple',
+           'Discapacidad múltiple', 
+           7)
+           ,
+            ('08',
+           'Sin discapacidad',
+           'Sin discapacidad', 
+           7)
+           ,
+            ('09',
+            'Sin Asignar',
+            'Sin Asignar',  
+            7)
+
+GO
+
+
+
+ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
+AS
+SELECT dbo.Entidad.[Id Tipo de Documento], dbo.[Tipo de Documento].[Tipo de Documento], dbo.Entidad.[Documento Entidad] AS DocumentoPaciente, dbo.Entidad.[Primer Apellido Entidad] AS PrimerApellidoPaciente, 
+                  dbo.Entidad.[Segundo Apellido Entidad] AS SegundoApellidoPaciente, dbo.Entidad.[Primer Nombre Entidad] AS PrimerNombrePaciente, dbo.Entidad.[Segundo Nombre Entidad] AS SegundoNombrePaciente, 
+                  dbo.Entidad.[Nombre Completo Entidad] AS NombreCompletoPaciente, dbo.Sexo.[Descripción Sexo] AS Sexo, dbo.EntidadIII.[Edad EntidadIII] AS Edad, dbo.EntidadII.[Dirección EntidadII] AS Direccion, 
+                  dbo.EntidadII.[Teléfono Celular EntidadII] AS Tel, dbo.[Tipo de Documento].[Tipo de Documento] + N' ' + dbo.Entidad.[Documento Entidad] AS DocumentoTipoDOC, dbo.EntidadIII.[Fecha Nacimiento EntidadIII], dbo.EntidadIII.[Id Sexo], 
+                  dbo.Entidad1888.[Id Identidad Genero], dbo.[Sexo Identidad Genero].Codigo, dbo.[Sexo Identidad Genero].[Identidad Genero], País_recidencia.[Id País] AS id_País_recidencia, País_recidencia.[Código País] AS codigoPaís_recidencia, 
+                  País_recidencia.País AS País_recidencia, Pais_Nacionalidad.[Id País] AS id_Pais_Nacionalidad, Pais_Nacionalidad.[Código País] AS CodigoPais_Nacionalidad, Pais_Nacionalidad.País AS Pais_Nacionalidad, 
+                  dbo.EntidadIII.[Id Zona Residencia], dbo.[Zona Residencia].[Código Zona Residencia], dbo.[Zona Residencia].[Zona Residencia], dbo.Entidad1888.Talla, dbo.Entidad1888.Peso, dbo.Entidad1888.[Id Etnia], dbo.Etnia.[Código Etnia], 
+                  dbo.Etnia.Etnia, dbo.Entidad1888.[Comunidad Etnica], dbo.Entidad1888.[Id Discapacidad], dbo.Discapacidad.Codigo AS codigoDiscapacidad, dbo.Discapacidad.Discapacidad
+FROM     dbo.Entidad INNER JOIN
+                  dbo.EntidadII ON dbo.Entidad.[Documento Entidad] = dbo.EntidadII.[Documento Entidad] INNER JOIN
+                  dbo.EntidadIII ON dbo.Entidad.[Documento Entidad] = dbo.EntidadIII.[Documento Entidad] INNER JOIN
+                  dbo.Sexo ON dbo.EntidadIII.[Id Sexo] = dbo.Sexo.[Id Sexo] INNER JOIN
+                  dbo.[Tipo de Documento] ON dbo.Entidad.[Id Tipo de Documento] = dbo.[Tipo de Documento].[Id Tipo de Documento] INNER JOIN
+                  dbo.Entidad1888 ON dbo.Entidad.[Documento Entidad] = dbo.Entidad1888.[Documento Entidad] INNER JOIN
+                  dbo.[Sexo Identidad Genero] ON dbo.Entidad1888.[Id Identidad Genero] = dbo.[Sexo Identidad Genero].[Id Sexo Identidad Genero] INNER JOIN
+                  dbo.Ciudad AS [Ciudad Recidencia] ON dbo.Entidad1888.[Id Municipio Recidencia] = [Ciudad Recidencia].[Id Ciudad] INNER JOIN
+                  dbo.[Zona Residencia] ON dbo.EntidadIII.[Id Zona Residencia] = dbo.[Zona Residencia].[Id Zona Residencia] INNER JOIN
+                  dbo.Etnia ON dbo.Entidad1888.[Id Etnia] = dbo.Etnia.[Id Etnia] INNER JOIN
+                  dbo.Discapacidad ON dbo.Entidad1888.[Id Discapacidad] = dbo.Discapacidad.[Id Discapacidad] LEFT OUTER JOIN
+                  dbo.País AS País_recidencia ON dbo.Entidad1888.[Id Pais Recidencia] = País_recidencia.[Id País] LEFT OUTER JOIN
+                  dbo.País AS Pais_Nacionalidad ON dbo.Entidad1888.[Id Pais Nacionalidad] = Pais_Nacionalidad.[Id País]
+GO
+
+
+
