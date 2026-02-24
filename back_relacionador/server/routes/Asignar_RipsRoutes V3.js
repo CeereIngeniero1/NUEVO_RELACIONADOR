@@ -209,10 +209,10 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
             .query(`
                 SELECT 
-                    DocumentoPaciente, PrimerApellidoPaciente, SegundoApellidoPaciente, 
-                    PrimerNombrePaciente, SegundoNombrePaciente, NombreCompletoPaciente, 
-                    Sexo, Edad, Direccion, Tel, DocumentoTipoDOC
-                FROM [Cnsta Relacionador Usuarios Info]
+                    [Id Tipo de Documento], TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
+                  DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], Codigo, IdentidadGeneroBase, id_País_recidencia, codigoPaís_recidencia, País_recidencia, id_Pais_Nacionalidad, CodigoPais_Nacionalidad, Pais_Nacionalidad, 
+                  [Id Zona Residencia], [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, SexoPaciente
+                  FROM     [Cnsta Relacionador Usuarios Info]
                 WHERE DocumentoPaciente = @DocumentoPaciente
             `);
 
