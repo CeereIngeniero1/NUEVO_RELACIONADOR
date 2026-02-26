@@ -323,6 +323,25 @@ SelectPacientes.addEventListener("change", async function (e) {
   const DireccionPaciente = document.getElementById("DireccionPaciente");
   const TelefonoPaciente = document.getElementById("TelefonoPaciente");
   const SelectHistoriasSinRIPS = document.getElementById("HistoriasSinRIPS");
+  const TipoDocumentoBase = document.getElementById("TipoDocumentoBase");
+  const PrimerApellidoBase = document.getElementById("PrimerApellidoBase");
+  const SegundoApellidoBase = document.getElementById("SegundoApellidoBase");
+  const PrimerNombreBase = document.getElementById("PrimerNombreBase");
+  const SegundoNombreBase = document.getElementById("SegundoNombreBase");
+  const FechaNacimientoBase = document.getElementById("FechaNacimientoBase");
+  const IdentidadGeneroBase = document.getElementById("IdentidadGeneroBase");
+  // const CodPaisNacionalidadBase = document.getElementById("CodPaisNacionalidadBase");
+  // const NombrePaisNacionalidadBase = document.getElementById("NombrePaisNacionalidadBase");
+  // const TallaPaciente = document.getElementById("TallaPaciente");
+  // const PesoPaciente = document.getElementById("PesoPaciente");
+  // const CodPaisResidenciaBase = document.getElementById("CodPaisResidenciaBase");
+  // const NombrePaisResidenciaBase = document.getElementById("NombrePaisResidenciaBase");
+  // const CodMunicipioResidenciaBase = document.getElementById("CodMunicipioResidenciaBase");
+  // const NombreMunicipioResidenciaBase = document.getElementById("NombreMunicipioResidenciaBase");
+  // const ZonaTerritorialBase = document.getElementById("ZonaTerritorialBase");
+  // const EtniaBase = document.getElementById("EtniaBase");
+  // const ComunidadEtnicaBase = document.getElementById("ComunidadEtnicaBase");
+  // const DiscapacidadBase = document.getElementById("DiscapacidadBase");
 
   if (this.value === "") {
     document.getElementById("BuscarPorFacturas").disabled = true;
@@ -341,14 +360,24 @@ SelectPacientes.addEventListener("change", async function (e) {
         );
       }
       const CargarDatosPaciente = await DatosPaciente.json();
-      // console.log('Datos: ', CargarDatosPaciente);
+      console.log('Datos: ', CargarDatosPaciente);
 
       NombrePaciente.value = CargarDatosPaciente[0].NombreCompletoPaciente;
       DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
       EdadPaciente.value = CargarDatosPaciente[0].Edad;
-      SexoPaciente.value = CargarDatosPaciente[0].Sexo;
+      SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
       DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
       TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+
+      TipoDocumentoBase.value = CargarDatosPaciente[0].TipoDocumentoBase;
+      PrimerApellidoBase.value = CargarDatosPaciente[0].PrimerApellidoBase;
+      SegundoApellidoBase.value = CargarDatosPaciente[0].SegundoApellidoBase;
+      PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
+      SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
+      FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
+      IdentidadGeneroBase.value = parseInt(CargarDatosPaciente[0].codigoIdentidadGeneroBase);
+
+
       LlenarSelectDeHistoriasClinicas();
     } catch (error) {
       console.error(error);
@@ -362,6 +391,11 @@ SelectPacientes.addEventListener("change", async function (e) {
     DireccionPaciente.value = "";
     TelefonoPaciente.value = "";
     SelectHistoriasSinRIPS.innerHTML = "";
+
+    PrimerApellidoBase.value = "";
+    SegundoApellidoBase.value = "";
+    PrimerNombreBase.value = "";
+    SegundoNombreBase.value = "";
   }
 });
 
@@ -408,6 +442,7 @@ $(document).ready(function () {
     "#SelectPorDefectoProcedimientoRIPSAP2",
     "#SelectPorDefectoDiagnosticoRIPSAP1",
     "#SelectPorDefectoDiagnosticoRIPSAP2",
+    // "#SelectNombrePaisNacionalidadBase",
   ];
 
   for (let i = 0; i < ElementosSelectConTextoLargo.length; i += 1) {
@@ -456,6 +491,96 @@ $(document).ready(function () {
       });
     }
   }
+
+  ///Lista para conslta d epacienes Nacionalidad
+   $("#SelectNombrePaisNacionalidadBase").select2({
+    placeholder: "Selecciona un país",
+    allowClear: true,
+    minimumInputLength: 0,  
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+         
+        const q = term.length ? term : "a";
+
+        fetch(`http://${servidor}:3000/apiv3/Paises/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdPais1888,     // lo que se guarda como valor
+            text: p.Nombre        // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+ ///Lista para conslta d epacienes Nacionalidad
+   $("#SelectNombrePaisResidenciaBase").select2({
+    placeholder: "Selecciona un país",
+    allowClear: true,
+    minimumInputLength: 0,  
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+         
+        const q = term.length ? term : "a";
+
+        fetch(`http://${servidor}:3000/apiv3/Paises/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdPais1888,     // lo que se guarda como valor
+            text: p.Nombre        // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+SelectNombreMunicipioResidenciaBase
+
+ ///Lista para conslta de municipios
+   $("#SelectNombreMunicipioResidenciaBase").select2({
+    placeholder: "Selecciona un Municipio",
+    allowClear: true,
+    minimumInputLength: 0,  
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+         
+        const q = term.length ? term : "a";
+
+        fetch(`http://${servidor}:3000/apiv3/Ciudades/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdPais1888,     // lo que se guarda como valor
+            text: p.Nombre        // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
 });
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -496,6 +621,10 @@ radioAC.addEventListener("change", async function (e) {
   const SelectDiagnosticoRIPSAC2 = document.getElementById(
     "SelectDiagnosticoRIPSAC2"
   );
+
+  //  const SelectNombrePaisNacionalidadBase = document.getElementById(
+  //   "SelectNombrePaisNacionalidadBase"
+  // );
 
   // Desarrollo || y producción &&
   if (HistoriasSinRIPS !== "" || HistoriasSinRIPS !== "Sin Seleccionar") {
@@ -5376,3 +5505,5 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleRDA();
   }
 });
+
+ 

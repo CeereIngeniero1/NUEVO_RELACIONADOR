@@ -3,7 +3,7 @@ const Router = require('express').Router;
 const connection = require('../db');
 // const pool = require('../db2');
 // const { connectToDatabase, config } = require('../db2');
-const { sql, poolPromise } = require('../db2'); 
+const { sql, poolPromise } = require('../db2');
 
 const router = Router();
 
@@ -159,7 +159,7 @@ router.get('/UsuariosHC/:DocumentoUsuario/:fechaInicio/:fechaFin', async (req, r
 // router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
 //     try {
 //         const DocumentoPaciente = req.params.DocumentoPaciente;
-        
+
 
 //         const request = new Request(
 //             `
@@ -209,10 +209,11 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
             .query(`
                 SELECT 
-                    [Id Tipo de Documento], TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
-                  DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], Codigo, IdentidadGeneroBase, id_País_recidencia, codigoPaís_recidencia, País_recidencia, id_Pais_Nacionalidad, CodigoPais_Nacionalidad, Pais_Nacionalidad, 
-                  [Id Zona Residencia], [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, SexoPaciente
-                  FROM     [Cnsta Relacionador Usuarios Info]
+                     [Id Tipo de Documento], TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
+                  DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], codigoIdentidadGeneroBase, IdentidadGeneroBase, id_País_recidencia, codigoPaís_recidencia, País_recidencia, id_Pais_Nacionalidad, 
+                  CodigoPais_Nacionalidad, Pais_Nacionalidad, [Id Zona Residencia], [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, 
+                  SexoPaciente
+                FROM     [Cnsta Relacionador Usuarios Info]
                 WHERE DocumentoPaciente = @DocumentoPaciente
             `);
 
@@ -1100,11 +1101,11 @@ router.get('/Cie', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener los datos del CIE' });
     }
 });
-router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto',  (req, res) => {
-   
+router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto', (req, res) => {
 
 
-    
+
+
     const IdEvaluacion = req.params.IdEvaluacion;
     const TipoUsuario = req.params.TipoUsuario;
     const Entidad = req.params.Entidad;
@@ -1117,21 +1118,21 @@ router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoS
     const ViaIngresoServicioSalud = req.params.ViaIngresoServicioSalud;
 
     const idfactura = req.params.Idfactura;
-    
+
     const Idpresupuesto = req.params.Idpresupuesto;
 
     const Cups1 = req.params.Cups1;
     let Cups2 = req.params.Cups2;
     //Se evalua si viene = 0 para hacerlo NULL
-    if(Cups2 == 0){Cups2 = 'null' }
+    if (Cups2 == 0) { Cups2 = 'null' }
     const Cie1 = req.params.Cie1.trim();
     let Cie2 = req.params.Cie2;
-    if(Cie2 == 0){Cie2 = 'null' }
+    if (Cie2 == 0) { Cie2 = 'null' }
     const TipoRips = req.params.TipoRips;
     var Actoquirurgico;
     if (TipoRips == 'AC') {
         Actoquirurgico = 1;
-    } else if(TipoRips == 'AP') {
+    } else if (TipoRips == 'AP') {
         Actoquirurgico = 2;
     }
     // console.log(`IdEvaluacion ${IdEvaluacion}`);
@@ -1203,7 +1204,7 @@ router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoS
         }
     });
 
-      // Ajustar los parámetros según las columnas y datos que estás insertando
+    // Ajustar los parámetros según las columnas y datos que estás insertando
     requestInsert.addParameter('IdEvaluacion', TYPES.Int, IdEvaluacion);
     requestInsert.addParameter('TipoUsuario', TYPES.Int, TipoUsuario);
     requestInsert.addParameter('Entidad', TYPES.NVarChar, Entidad);
@@ -1223,19 +1224,19 @@ router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoS
     // const idFacturaValor = Number.isInteger(idfactura) ? idfactura : 0;
     // requestInsert.addParameter('IdFactura', TYPES.Int, idFacturaValor);
     let IdPresupuestoValor = (Idpresupuesto?.toLowerCase?.() === 'null' || Idpresupuesto == null) ? 0 : Idpresupuesto;
-    let idFacturaValor     = (idfactura?.toLowerCase?.() === 'null' || idfactura == null) ? 0 : idfactura;
+    let idFacturaValor = (idfactura?.toLowerCase?.() === 'null' || idfactura == null) ? 0 : idfactura;
 
     console.log(IdPresupuestoValor);
     requestInsert.addParameter('IdFactura', TYPES.Int, idFacturaValor);
     requestInsert.addParameter('Idpresupuesto', TYPES.Int, IdPresupuestoValor);
 
-    
-connection.execSql(requestInsert);
+
+    connection.execSql(requestInsert);
 });
 
 
-router.post('/TieneRips/:IdEvaluacion', (req, res) =>{
-    
+router.post('/TieneRips/:IdEvaluacion', (req, res) => {
+
     const IdEvaluacion = req.params.IdEvaluacion;
     console.log("sI ENTRE Y MIRA", IdEvaluacion);
     const requestUpdate = new Request(
@@ -1245,10 +1246,10 @@ router.post('/TieneRips/:IdEvaluacion', (req, res) =>{
         (err) => {
             if (err) {
                 console.error('Error al actualizar la historia:', err.message);
-                res.status(500).json({error: 'Error añ actualiza la historia'});
-            }else{
+                res.status(500).json({ error: 'Error añ actualiza la historia' });
+            } else {
                 console.log('Actualizacion ejecutada con exito');
-                res.json({success: true, message: 'Historia ACTUALIZADA Correctamente'})
+                res.json({ success: true, message: 'Historia ACTUALIZADA Correctamente' })
             }
         }
     );
@@ -1323,7 +1324,7 @@ router.get('/ConsultarRIPSPorDefecto/:DocumentoProfesional/:TipoRIPS', async (re
 // router.post('/GuardarRIPSPorDefecto/:DocumentoProfesional/:TipoRIPS', async (req, res) => {
 router.post('/GuardarRIPSPorDefecto', async (req, res) => {
     // Se reciben los datos enviados por el cliente
-    const { 
+    const {
         DocumentoProfesional,
         TipoRIPS,
         TipoUsuario,
@@ -1432,7 +1433,7 @@ router.post('/GuardarRIPSPorDefecto', async (req, res) => {
 })
 // Actualizar
 // router.post('/ActualizarRIPSPorDefecto/:DocumentoProfesional/:TipoRIPS', async (req, res) => {
-router.post('/ActualizarRIPSPorDefecto', async (req, res) => {    
+router.post('/ActualizarRIPSPorDefecto', async (req, res) => {
     const {
         DocumentoProfesional,
         TipoRIPS,
@@ -1500,7 +1501,7 @@ router.post('/ActualizarRIPSPorDefecto', async (req, res) => {
         connection.execSql(ActualizarRIPSPorDefecto);
     } catch (Error) {
         console.error('Error en la actualización:', Error);
-        return res.status(500).json({ error: `Error en la actualización => ${Error}`  });
+        return res.status(500).json({ error: `Error en la actualización => ${Error}` });
     }
 })
 // Eliminar
@@ -1538,74 +1539,26 @@ router.post('/EliminarRIPSPorDefecto', async (req, res) => {
 })
 
 
-// FUNCIONALIDAD PARA CONUSLTAR FACTURAS Y PRESUPUESTOS DEL PACIENTE
-// router.get('/ConsultarFacturas/:DocumentoPaciente', (req, res) => {
-//     const DocumentoPaciente = req.params.DocumentoPaciente;
-
-//     // Crear la consulta
-//     const request = new Request(`
-//         SELECT *
-//         FROM [ConsultaFacturasPaciente]
-//         WHERE [DocumentoPaciente] = @DocumentoPaciente
-//         ORDER BY [FechaFactura] DESC
-//     `, (err) => {
-//         if (err) {
-//             console.error(`Error al traer las facturas del paciente con documento ${DocumentoPaciente}. => [${err}]`);
-//             if (!res.headersSent) {
-//                 res.status(500).json(`Error al consultar las facturas del paciente con documento => ${DocumentoPaciente}. Error => ${err.message}`);
-//             }
-//         }
-//     });
-
-//     // Agregar el parámetro a la consulta
-//     request.addParameter('DocumentoPaciente', TYPES.VarChar, DocumentoPaciente);
-
-//     const resultados = [];
-//     request.on('row', (columns) => {
-//         const row = {};
-//         columns.forEach((column) => {
-//             row[column.metadata.colName] = column.value;
-//         });
-//         resultados.push(row);
-//     });
-
-//     request.on('requestCompleted', () => {
-//         console.log('Resultados de la consulta:', resultados);
-//         if (!res.headersSent) {
-//             res.json(resultados);
-//         }
-//     });
-
-//     request.on('error', (err) => {
-//         console.error('Error en la consulta:', err);
-//         if (!res.headersSent) {
-//             res.status(500).send('Error interno del servidor');
-//         }
-//     });
-
-//     // Ejecutar la consulta usando el pool
-//     pool.execSql(request);
-// });
 
 router.get('/ConsultarFacturas/:DocumentoPaciente', async (req, res) => {
     try {
         const DocumentoPaciente = req.params.DocumentoPaciente;
 
-                // Esperar el pool de conexión
-                const pool = await poolPromise;
+        // Esperar el pool de conexión
+        const pool = await poolPromise;
 
-                        // Ejecutar la consulta
+        // Ejecutar la consulta
         const result = await pool.request()
-        .input('DocumentoPaciente', sql.VarChar, DocumentoPaciente)
-        .query(`
+            .input('DocumentoPaciente', sql.VarChar, DocumentoPaciente)
+            .query(`
             SELECT *
             FROM [ConsultaFacturasPaciente]
             WHERE [DocumentoPaciente] = @DocumentoPaciente
             ORDER BY [FechaFactura] DESC
         `);
 
-                // Enviar resultados
-                res.json(result.recordset);
+        // Enviar resultados
+        res.json(result.recordset);
     } catch (error) {
         console.error(`❌ Error al consultar facturas para el documento ${req.params.DocumentoPaciente}:`, error);
         res.status(500).json({ error: 'Error al consultar las facturas del paciente.' });
@@ -1613,60 +1566,7 @@ router.get('/ConsultarFacturas/:DocumentoPaciente', async (req, res) => {
 });
 
 
-// router.get('/ConsultarPresupuestos/:DocumentoPaciente', async (req, res) => {
-//     try {
-//         const DocumentoPaciente = req.params.DocumentoPaciente;
-//         const request = new Request(`
-//             SELECT 
-//                 *
-//             FROM 
-//                 [ConsultaPresupuestosPaciente]
-//             WHERE
-//                 ( [DocumentoPaciente] = @DocumentoPaciente ) AND
-//                 ( [FormaDePago] = 5 )
-//             ORDER BY
-//                 [FechaPresupuesto] DESC
-//         `, (err) => {
-//             if (err) {
-//                 console.error(`Error al traer los presupuestos del paciente con documento ${req.params.DocumentoPaciente}. => [${err}]`);
-//                 if (!res.headersSent) {
-//                     res.status(500).json(`Error al consultar los presupuestos del paciente con documento => ${req.params.DocumentoPaciente}. Error => ${err.message}`);
-//                 }
-//             }
-//         });
 
-//         // Agregar el parámetro a la consulta
-//         request.addParameter('DocumentoPaciente', TYPES.VarChar, DocumentoPaciente);
-//         const resultados = [];
-//         request.on('row', (columns) => {
-//             const row = {};
-//             columns.forEach((column) => {
-//                 row[column.metadata.colName] = column.value;
-//             });
-//             resultados.push(row);
-//         });
-
-//         request.on('requestCompleted', () => {
-//             console.log('Resultados de la consulta:', resultados);
-//             if (!res.headersSent) {
-//                 res.json(resultados);
-//             }
-//         });
-
-//         request.on('error', (err) => {
-//             console.error('Error en la consulta:', err);
-//             if (!res.headersSent) {
-//                 res.status(500).send('Error interno del servidor');
-//             }
-//         });
-
-//         // Ejecutar la consulta usando el pool
-//         pool.execSql(request);
-//     } catch (Error) {
-//         console.error('Error en la consulta de presupuestos:', Error);
-//         return res.status(500).json({ error: `Error en la consulta de presupuestos => ${Error}` });
-//     }
-// });
 
 router.get('/ConsultarPresupuestos/:DocumentoPaciente', async (req, res) => {
     try {
@@ -1697,6 +1597,214 @@ router.get('/ConsultarPresupuestos/:DocumentoPaciente', async (req, res) => {
         console.error(`❌ Error al consultar presupuestos para el documento ${req.params.DocumentoPaciente}:`, error);
         res.status(500).json({ error: 'Error al consultar los presupuestos del paciente.' });
     }
+});
+
+
+
+router.get('/Paises', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdPais1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
+        FROM     [Cnsta Pais 1888]
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Paises/:NombrePais', async (req, res) => {
+    const NombrePais = req.params.NombrePais;
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdPais1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
+        FROM     [Cnsta Pais 1888]
+        Where Nombre like '%${NombrePais}%' OR Codigo like '%${NombrePais}%'
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Ciudades', async (req, res) => {
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdCiudad1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
+        FROM     [Cnsta Ciudad 1888]
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Ciudades/:NombreCiudad', async (req, res) => {
+    const NombreCiudad = req.params.NombreCiudad;
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdCiudad1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
+        FROM     [Cnsta Ciudad 1888]
+        Where Nombre like '%${NombreCiudad}%' OR Codigo like '%${NombreCiudad}%'
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+router.get('/TipoDocumento', async (req, res) => {
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdCiudad1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
+        FROM     [Cnsta Ciudad 1888]
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
 });
 // =================================================================================================
 module.exports = router;
