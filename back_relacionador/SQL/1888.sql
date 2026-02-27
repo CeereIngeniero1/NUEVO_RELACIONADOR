@@ -267,7 +267,11 @@ WHERE  (Sexo = N'F') OR
                   (Sexo = N'M')
 GO
 
-
+CREATE VIEW [dbo].[Cnsta SexoIdentidad 1888]
+AS
+SELECT [Id Sexo Identidad Genero] AS IdSexoIdentidadGenero, Codigo, [Identidad Genero] AS IdentidadGenero, [Descripcion Identidad Genero] AS DescripcionIdentidadGenero
+FROM     dbo.[Sexo Identidad Genero]
+GO
 
 CREATE VIEW [dbo].[Cnsta Relacionador Usuarios Info]
 AS
@@ -276,25 +280,25 @@ SELECT dbo.Entidad.[Id Tipo de Documento] AS IdTipodeDocumento, dbo.[Tipo de Doc
                   dbo.Entidad.[Primer Nombre Entidad] AS PrimerNombreBase, dbo.Entidad.[Segundo Nombre Entidad] AS SegundoNombreBase, dbo.Entidad.[Nombre Completo Entidad] AS NombreCompletoPaciente, dbo.Sexo.Sexo AS SexoPaciente, 
                   dbo.Sexo.[Descripción Sexo] AS Sexo, dbo.Sexo.[Código Sexo] AS CódigoSexo, dbo.Sexo.[Id Sexo] AS IdSexo, dbo.EntidadIII.[Edad EntidadIII] AS Edad, dbo.EntidadII.[Dirección EntidadII] AS Direccion, 
                   dbo.EntidadII.[Teléfono Celular EntidadII] AS Tel, dbo.[Tipo de Documento].[Tipo de Documento] + N' ' + dbo.Entidad.[Documento Entidad] AS DocumentoTipoDOC, dbo.EntidadIII.[Fecha Nacimiento EntidadIII] AS FechaNacimientoBase, 
-                  dbo.EntidadIII.[Id Sexo], dbo.Entidad1888.[Id Identidad Genero], dbo.[Sexo Identidad Genero].Codigo AS codigoIdentidadGeneroBase, dbo.[Sexo Identidad Genero].[Identidad Genero] AS IdentidadGeneroBase, 
-                  País_recidencia.[Id País] AS id_País_recidencia, País_recidencia.[Código País] AS codigoPaís_recidencia, País_recidencia.País AS País_recidencia, Pais_Nacionalidad.[Id País] AS id_Pais_Nacionalidad, 
-                  Pais_Nacionalidad.[Código País] AS CodigoPais_Nacionalidad, Pais_Nacionalidad.País AS Pais_Nacionalidad, dbo.EntidadIII.[Id Zona Residencia], dbo.[Zona Residencia].[Código Zona Residencia], dbo.[Zona Residencia].[Zona Residencia], 
-                  dbo.Entidad1888.Talla, dbo.Entidad1888.Peso, dbo.Entidad1888.[Id Etnia], dbo.Etnia.[Código Etnia], dbo.Etnia.Etnia, dbo.Entidad1888.[Comunidad Etnica], dbo.Entidad1888.[Id Discapacidad], 
-                  dbo.Discapacidad.Codigo AS codigoDiscapacidad, dbo.Discapacidad.Discapacidad
-FROM     dbo.Entidad INNER JOIN
+                  dbo.EntidadIII.[Id Sexo], dbo.Entidad1888.[Id Identidad Genero], dbo.[Sexo Identidad Genero].[Id Sexo Identidad Genero] AS IdSexoIdentidadGenero, dbo.[Sexo Identidad Genero].Codigo AS codigoIdentidadGeneroBase, 
+                  dbo.[Sexo Identidad Genero].[Identidad Genero] AS IdentidadGeneroBase, dbo.EntidadIII.[Id Zona Residencia], dbo.[Zona Residencia].[Código Zona Residencia], dbo.[Zona Residencia].[Zona Residencia], dbo.Entidad1888.Talla, 
+                  dbo.Entidad1888.Peso, dbo.Entidad1888.[Id Etnia], dbo.Etnia.[Código Etnia], dbo.Etnia.Etnia, dbo.Entidad1888.[Comunidad Etnica], dbo.Entidad1888.[Id Discapacidad], dbo.Discapacidad.Codigo AS codigoDiscapacidad, 
+                  dbo.Discapacidad.Discapacidad, Pais_Nacionalidad.[Id Pais1888] AS IdPaisNacionalidad, Pais_Nacionalidad.Codigo AS CodigoPaisNacionalidad, Pais_Nacionalidad.Nombre AS NombrePaisNACIONALIDAD, 
+                  [Pais Recidencia].[Id Pais1888] AS IdPaisRecidencia, [Pais Recidencia].Codigo AS CodigoPaisRecidencia, [Pais Recidencia].Nombre AS NombrePaisRecidencia, [Ciudad Recidencia].[Id Ciudad1888] AS IdMunicipioRecidencia, 
+                  [Ciudad Recidencia].Codigo AS CodigoMunicipioRecidencia, [Ciudad Recidencia].Nombre AS NombreMunicipioRecidencia
+FROM     dbo.País1888 AS [Pais Recidencia] LEFT OUTER JOIN
+                  dbo.Entidad1888 ON [Pais Recidencia].[Id Pais1888] = dbo.Entidad1888.[Id Pais Recidencia] LEFT OUTER JOIN
+                  dbo.Ciudad1888 AS [Ciudad Recidencia] ON dbo.Entidad1888.[Id Municipio Recidencia] = [Ciudad Recidencia].[Id Ciudad1888] RIGHT OUTER JOIN
+                  dbo.País1888 AS Pais_Nacionalidad ON dbo.Entidad1888.[Id Pais Nacionalidad] = Pais_Nacionalidad.[Id Pais1888] RIGHT OUTER JOIN
+                  dbo.Entidad INNER JOIN
                   dbo.EntidadII ON dbo.Entidad.[Documento Entidad] = dbo.EntidadII.[Documento Entidad] LEFT OUTER JOIN
                   dbo.EntidadIII ON dbo.Entidad.[Documento Entidad] = dbo.EntidadIII.[Documento Entidad] LEFT OUTER JOIN
                   dbo.Sexo ON dbo.EntidadIII.[Id Sexo] = dbo.Sexo.[Id Sexo] LEFT OUTER JOIN
-                  dbo.[Tipo de Documento] ON dbo.Entidad.[Id Tipo de Documento] = dbo.[Tipo de Documento].[Id Tipo de Documento] LEFT OUTER JOIN
-                  dbo.Entidad1888 ON dbo.Entidad.[Documento Entidad] = dbo.Entidad1888.[Documento Entidad] LEFT OUTER JOIN
+                  dbo.[Tipo de Documento] ON dbo.Entidad.[Id Tipo de Documento] = dbo.[Tipo de Documento].[Id Tipo de Documento] ON dbo.Entidad1888.[Documento Entidad] = dbo.Entidad.[Documento Entidad] LEFT OUTER JOIN
                   dbo.[Sexo Identidad Genero] ON dbo.Entidad1888.[Id Identidad Genero] = dbo.[Sexo Identidad Genero].[Id Sexo Identidad Genero] LEFT OUTER JOIN
-                  dbo.Ciudad AS [Ciudad Recidencia] ON dbo.Entidad1888.[Id Municipio Recidencia] = [Ciudad Recidencia].[Id Ciudad] LEFT OUTER JOIN
                   dbo.[Zona Residencia] ON dbo.EntidadIII.[Id Zona Residencia] = dbo.[Zona Residencia].[Id Zona Residencia] LEFT OUTER JOIN
                   dbo.Etnia ON dbo.Entidad1888.[Id Etnia] = dbo.Etnia.[Id Etnia] LEFT OUTER JOIN
-                  dbo.Discapacidad ON dbo.Entidad1888.[Id Discapacidad] = dbo.Discapacidad.[Id Discapacidad] LEFT OUTER JOIN
-                  dbo.País AS País_recidencia ON dbo.Entidad1888.[Id Pais Recidencia] = País_recidencia.[Id País] LEFT OUTER JOIN
-                  dbo.País AS Pais_Nacionalidad ON dbo.Entidad1888.[Id Pais Nacionalidad] = Pais_Nacionalidad.[Id País]
+                  dbo.Discapacidad ON dbo.Entidad1888.[Id Discapacidad] = dbo.Discapacidad.[Id Discapacidad]
 GO
-
 
 

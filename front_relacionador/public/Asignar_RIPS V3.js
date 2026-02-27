@@ -319,22 +319,23 @@ SelectPacientes.addEventListener("change", async function (e) {
   const NombrePaciente = document.getElementById("NombrePaciente");
   const DcoumentoPaciente = document.getElementById("DocumentoPaciente");
   const EdadPaciente = document.getElementById("EdadPaciente");
-  const SexoPaciente = document.getElementById("SexoPaciente");
+  // const SexoPaciente = document.getElementById("SexoPaciente");
   const DireccionPaciente = document.getElementById("DireccionPaciente");
   const TelefonoPaciente = document.getElementById("TelefonoPaciente");
   const SelectHistoriasSinRIPS = document.getElementById("HistoriasSinRIPS");
-  const TipoDocumentoBase = document.getElementById("TipoDocumentoBase");
+  // const TipoDocumentoBase = document.getElementById("TipoDocumentoBase");
+  const inputIMC = document.getElementById("IMCPaciente");
 
   const PrimerApellidoBase = document.getElementById("PrimerApellidoBase");
   const SegundoApellidoBase = document.getElementById("SegundoApellidoBase");
   const PrimerNombreBase = document.getElementById("PrimerNombreBase");
   const SegundoNombreBase = document.getElementById("SegundoNombreBase");
   const FechaNacimientoBase = document.getElementById("FechaNacimientoBase");
-  const IdentidadGeneroBase = document.getElementById("IdentidadGeneroBase");
+  // const IdentidadGeneroBase = document.getElementById("IdentidadGeneroBase");
   // const CodPaisNacionalidadBase = document.getElementById("CodPaisNacionalidadBase");
   // const NombrePaisNacionalidadBase = document.getElementById("NombrePaisNacionalidadBase");
-  // const TallaPaciente = document.getElementById("TallaPaciente");
-  // const PesoPaciente = document.getElementById("PesoPaciente");
+  const TallaPaciente = document.getElementById("TallaPaciente");
+  const PesoPaciente = document.getElementById("PesoPaciente");
   // const CodPaisResidenciaBase = document.getElementById("CodPaisResidenciaBase");
   // const NombrePaisResidenciaBase = document.getElementById("NombrePaisResidenciaBase");
   // const CodMunicipioResidenciaBase = document.getElementById("CodMunicipioResidenciaBase");
@@ -367,7 +368,7 @@ SelectPacientes.addEventListener("change", async function (e) {
       DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
       EdadPaciente.value = CargarDatosPaciente[0].Edad;
 
-      SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
+      // SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
 
       const idSexoPaciente = CargarDatosPaciente[0].IdSexo;
       const textoSexoPaciente = CargarDatosPaciente[0].Sexo;
@@ -375,12 +376,55 @@ SelectPacientes.addEventListener("change", async function (e) {
       const optionSexo = new Option(textoSexoPaciente, idSexoPaciente, true, true);
       selectSexo.append(optionSexo).trigger('change');
 
+      const IdSexoIdentidadGenero = CargarDatosPaciente[0].IdSexoIdentidadGenero;
+      const textoIdentidadGeneroBase = CargarDatosPaciente[0].IdentidadGeneroBase;
+      const selectIdentidadGenero = $("#IdentidadGeneroBase");
+      const optionIdentidadGenero = new Option(textoIdentidadGeneroBase, IdSexoIdentidadGenero, true, true);
+      selectIdentidadGenero.append(optionIdentidadGenero).trigger('change');
+
+      const IdPais1888 = CargarDatosPaciente[0].IdPaisNacionalidad;
+      const textoNombrePais1888 = CargarDatosPaciente[0].NombrePaisNACIONALIDAD;
+      const selectPais1888 = $("#SelectNombrePaisNacionalidadBase");
+      const optionPais1888 = new Option(textoNombrePais1888, IdPais1888, true, true);
+      selectPais1888.append(optionPais1888).trigger('change');
+
+
+      const IdPaisRecidencia = CargarDatosPaciente[0].IdPaisRecidencia;
+      const textoNombrePaisRecidencia = CargarDatosPaciente[0].NombrePaisRecidencia;
+      const selectPaisRecidencia = $("#SelectNombrePaisResidenciaBase");
+      const optionPaisRecidencia = new Option(textoNombrePaisRecidencia, IdPaisRecidencia, true, true);
+      selectPaisRecidencia.append(optionPaisRecidencia).trigger('change');
+
+      const IdMunicipioRecidencia = CargarDatosPaciente[0].IdMunicipioRecidencia;
+      const textoNombreMunicipioRecidencia = CargarDatosPaciente[0].NombreMunicipioRecidencia;
+      const selectMunicipioRecidencia = $("#SelectNombreMunicipioResidenciaBase");
+      const optionMunicipioRecidencia = new Option(textoNombreMunicipioRecidencia, IdMunicipioRecidencia, true, true);
+      selectMunicipioRecidencia.append(optionMunicipioRecidencia).trigger('change');
+
+
+      TallaPaciente.value = CargarDatosPaciente[0].Talla;
+      PesoPaciente.value = CargarDatosPaciente[0].Peso;
+
+
+
+
+
+      const tallaCm = parseFloat(parseFloat(inputTalla.value) || 0);
+      const pesoKg = parseFloat(CargarDatosPaciente[0].Peso);
+
+      // No funciono PERO HAY QUE BUSCAR ARREGLARLO
+      // const tallaM = tallaCm / 100;
+      // const imc = pesoKg / (tallaM * tallaM);
+      // inputIMC.value = imc.toFixed(2);
+
+
+
       DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
       TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
       const idTipoDoc = CargarDatosPaciente[0].IdTipodeDocumento;
       const textoTipoDoc = CargarDatosPaciente[0].DescripciTipoDocumento;
-      
-      
+
+
       // TipoDocumentoBase.value = CargarDatosPaciente[0].IdTipodeDocumento; 
       const select = $("#TipoDocumentoBase");
       const option = new Option(textoTipoDoc, idTipoDoc, true, true);
@@ -391,7 +435,6 @@ SelectPacientes.addEventListener("change", async function (e) {
       PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
       SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
       FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
-      IdentidadGeneroBase.value = parseInt(CargarDatosPaciente[0].codigoIdentidadGeneroBase);
 
 
       LlenarSelectDeHistoriasClinicas();
@@ -626,6 +669,68 @@ $(document).ready(function () {
       }
     }
   });
+
+
+
+  ///Lista para conslta de tipo documentos
+  $("#SexoPaciente").select2({
+    placeholder: "Selecciona Sexo",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/Sexo/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdSexo,     // lo que se guarda como valor
+            text: p.Sexo         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+  ///Lista para conslta de tipo documentos
+  $("#IdentidadGeneroBase").select2({
+    placeholder: "Selecciona Identidad de Género",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/identidadSexo/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdSexoIdentidadGenero,     // lo que se guarda como valor
+            text: p.DescripcionIdentidadGenero         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
 
 
 });

@@ -209,11 +209,11 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
             .query(`
                 SELECT 
-                     IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
-                  DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], codigoIdentidadGeneroBase, IdentidadGeneroBase, id_País_recidencia, codigoPaís_recidencia, País_recidencia, id_Pais_Nacionalidad, 
-                  CodigoPais_Nacionalidad, Pais_Nacionalidad, [Id Zona Residencia], [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, 
-                  SexoPaciente
-                FROM     [Cnsta Relacionador Usuarios Info]
+                  IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, SexoPaciente, Sexo, 
+                  CódigoSexo, IdSexo, Edad, Direccion, Tel, DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], IdSexoIdentidadGenero, codigoIdentidadGeneroBase, IdentidadGeneroBase, [Id Zona Residencia], 
+                  [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, IdPaisNacionalidad, CodigoPaisNacionalidad, 
+                  NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia, IdMunicipioRecidencia, CodigoMunicipioRecidencia, NombreMunicipioRecidencia
+FROM     [Cnsta Relacionador Usuarios Info]
                 WHERE DocumentoPaciente = @DocumentoPaciente
             `);
 
@@ -1892,13 +1892,97 @@ router.get('/Sexo/:Sexo', async (req, res) => {
 });
 
 router.get('/Sexo/', async (req, res) => { 
-    
+
     try {
 
         const request = new Request(
             `
-        SELECT   IdSexo, CódigoSexo, Sexo, [Descripción Sexo]
+        SELECT   IdSexo,   Sexo as CódigoSexo, [Descripción Sexo] as Sexo
         FROM     [Cnsta Sexo 1888] 
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/identidadSexo/:identidadSexo', async (req, res) => {
+    const identidadSexo = req.params.identidadSexo;
+    try {
+
+        const request = new Request(
+            `
+        SELECT   IdSexoIdentidadGenero, Codigo, IdentidadGenero, DescripcionIdentidadGenero
+        FROM     [Cnsta SexoIdentidad 1888]
+            where DescripcionIdentidadGenero like '%${identidadSexo}%'
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+router.get('/identidadSexo/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            `
+        SELECT   IdSexoIdentidadGenero, Codigo, IdentidadGenero, DescripcionIdentidadGenero
+        FROM     [Cnsta SexoIdentidad 1888]
 
         `,
             (err) => {
