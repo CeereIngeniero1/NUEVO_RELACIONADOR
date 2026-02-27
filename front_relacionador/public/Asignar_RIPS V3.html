@@ -138,10 +138,10 @@
                     <!-- Fila 1: Identificación y Nombres -->
                     <div class="col-md-2">
                         <label>Tipo Documento:</label>
-                        
 
-                         <select class="form-select-sm border border-secondary w-100 mb-2" id="TipoDocumentoBase">
-                             
+
+                        <select class="form-select-sm border border-secondary w-100 mb-2" id="TipoDocumentoBase">
+
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -186,7 +186,7 @@
                         
 
                         <select class="form-select-sm border border-secondary w-100 mb-2" id="SexoPaciente">
-                             
+
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -205,13 +205,13 @@
                             <!-- <input type="text" class="form-control border border-secondary" placeholder="Nombre País"
                                 id="NombrePaisNacionalidadBase"> -->
 
-                                <!-- <select id="SelectDiagnosticoRIPSAC1" -->
-                                <select id="SelectNombrePaisNacionalidadBase"
-                                    class="form-select-sm border border-secondary w-100">
-                                    <option value="Sin Seleccionar">Sin Seleccionar</option>
-                                </select>
+                            <!-- <select id="SelectDiagnosticoRIPSAC1" -->
+                            <select id="SelectNombrePaisNacionalidadBase"
+                                class="form-select-sm border border-secondary w-100">
+                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                            </select>
 
-                            
+
                         </div>
                     </div>
 
@@ -235,23 +235,23 @@
 
                     <div class="col-md-3">
                         <label>País Residencia:</label>
-                        <div class="input-group input-group-sm mb-2"> 
+                        <div class="input-group input-group-sm mb-2">
 
-                                 <select id="SelectNombrePaisResidenciaBase"
-                                    class="form-select-sm border border-secondary w-100">
-                                    <option value="Sin Seleccionar">Sin Seleccionar</option>
-                                </select>
+                            <select id="SelectNombrePaisResidenciaBase"
+                                class="form-select-sm border border-secondary w-100">
+                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label>Municipio Residencia:</label>
                         <div class="input-group input-group-sm mb-2">
-                            
 
-                                <select id="SelectNombreMunicipioResidenciaBase"
-                                    class="form-select-sm border border-secondary w-100">
-                                    <option value="Sin Seleccionar">Sin Seleccionar</option>
-                                </select>
+
+                            <select id="SelectNombreMunicipioResidenciaBase"
+                                class="form-select-sm border border-secondary w-100">
+                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -1284,7 +1284,431 @@
                             </div>
                         </div>
 
-                        <!-- ====== AQUÍ SE AGREGARÁN CAMPOS ADICIONALES DE CONSULTA EXTERNA ====== -->
+                        <!-- ====== CAMPOS ADICIONALES EXCLUSIVOS DE CONSULTA EXTERNA ====== -->
+
+                        <!-- Entorno de Atención y Factores de Riesgo -->
+                        <div class="row g-2 mt-3">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Entorno y Factores de Riesgo</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-4">
+                                            <label>Entorno donde se realizó la atención:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_EntornoAtencion">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Intramural</option>
+                                                <option value="02">02 - Extramural</option>
+                                                <option value="03">03 - Telemedicina interactiva</option>
+                                                <option value="04">04 - Telemedicina no interactiva</option>
+                                                <option value="05">05 - Teleasistencia</option>
+                                                <option value="06">06 - Teleorientación</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label>Tipo de factor de riesgo:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_TipoFactorRiesgo">
+                                                <option value="">Sin factor</option>
+                                                <option value="01">01 - Biológico</option>
+                                                <option value="02">02 - Social</option>
+                                                <option value="03">03 - Ambiental</option>
+                                                <option value="04">04 - Comportamental</option>
+                                                <option value="05">05 - Económico</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label>Nombre del factor de riesgo:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_NombreFactorRiesgo" placeholder="Describir factor de riesgo">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diagnóstico Principal CIE-10 -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Diagnóstico Principal (CIE-10)</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-4">
+                                            <label>Código diagnóstico principal CIE-10:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagPrincipalCIE10Codigo" placeholder="Código CIE-10">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label>Nombre diagnóstico principal CIE-10:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagPrincipalCIE10Nombre" placeholder="Nombre del diagnóstico"
+                                                readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Tipo diagnóstico principal:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_TipoDiagPrincipalCIE10">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Impresión diagnóstica</option>
+                                                <option value="02">02 - Confirmado nuevo</option>
+                                                <option value="03">03 - Confirmado repetido</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diagnósticos Relacionados (lista dinámica) -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Diagnósticos Relacionados</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-3">
+                                            <label>Código diag. relacionado CIE-10:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagRelacionadoCIE10Codigo" placeholder="CIE-10">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Nombre diag. relacionado CIE-10:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagRelacionadoCIE10Nombre" placeholder="Nombre" readonly>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Código diag. CIE-11:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Término diag. CIE-11:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagRelacionadoCIE11Termino" placeholder="Término">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarDiagRelacionado">+ Agregar</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaDiagRelacionados" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Condición Egreso y Remisión -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Egreso y Remisión</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-6">
+                                            <label>Condición y destino del usuario al egreso:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_CondicionDestinoEgreso">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Alta médica / domiciliario</option>
+                                                <option value="02">02 - Remisión a otra institución</option>
+                                                <option value="03">03 - Remisión a urgencias</option>
+                                                <option value="04">04 - Remisión a hospitalización</option>
+                                                <option value="05">05 - Alta voluntaria</option>
+                                                <option value="06">06 - Evasión</option>
+                                                <option value="07">07 - Muerte</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label>Código del prestador a donde se remite:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_CodigoPrestadorRemite" placeholder="Código REPS destino">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prescripción de Medicamentos (lista dinámica) -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Prescripción de Medicamentos (Tecnología en Salud)</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-3">
+                                            <label>Tipo tecnología salud:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_TipoTecSaludMed">
+                                                <option value="M">Medicamento</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Código medicamento:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_CodigoMedicamento" placeholder="Código ATC / CUM">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Nombre medicamento:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_NombreMedicamento" placeholder="Nombre comercial/genérico">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Descripción común (DCI):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DescripcionComunMed" placeholder="DCI">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-1 align-items-end">
+                                        <div class="col-md-2">
+                                            <label>Fecha prescripción:</label>
+                                            <input type="datetime-local"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_FechaPrescripcionMed">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Dosis ordenada:</label>
+                                            <input type="number" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DosisOrdenadaMed" placeholder="Cantidad" step="0.01">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Unidad medida dosis:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_UnidadMedidaDosis">
+                                                <option value="">Seleccionar</option>
+                                                <option value="mg">mg</option>
+                                                <option value="ml">ml</option>
+                                                <option value="g">g</option>
+                                                <option value="UI">UI</option>
+                                                <option value="mcg">mcg</option>
+                                                <option value="gotas">Gotas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Vía administración:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_ViaAdministracionMed">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">Oral</option>
+                                                <option value="02">Intravenosa (IV)</option>
+                                                <option value="03">Intramuscular (IM)</option>
+                                                <option value="04">Subcutánea (SC)</option>
+                                                <option value="05">Tópica</option>
+                                                <option value="06">Inhalatoria</option>
+                                                <option value="07">Rectal</option>
+                                                <option value="08">Sublingual</option>
+                                                <option value="09">Oftálmica</option>
+                                                <option value="10">Otra</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Duración cantidad:</label>
+                                            <input type="number" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DuracionCantidadMed" placeholder="Ej: 7">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Duración unid. tiempo:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_DuracionUnidadTiempoMed">
+                                                <option value="">Seleccionar</option>
+                                                <option value="d">Días</option>
+                                                <option value="s">Semanas</option>
+                                                <option value="m">Meses</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-1 align-items-end">
+                                        <div class="col-md-2">
+                                            <label>Frecuencia cantidad:</label>
+                                            <input type="number" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_FrecuenciaCantidadMed" placeholder="Ej: 8">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Frecuencia unid. tiempo:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_FrecuenciaUnidadTiempoMed">
+                                                <option value="">Seleccionar</option>
+                                                <option value="h">Horas</option>
+                                                <option value="d">Días</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Finalidad tec. salud (med):</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_FinalidadTecSaludMed">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Diagnóstico</option>
+                                                <option value="02">02 - Terapéutico</option>
+                                                <option value="03">03 - Protección específica</option>
+                                                <option value="04">04 - Detección temprana</option>
+                                                <option value="05">05 - Paliativo</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3"></div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarPrescripcionMed">+ Agregar Med.</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaPrescripcionMedicamentos" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prescripción de Procedimientos (lista dinámica) -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Prescripción de Procedimientos (Tecnología en Salud)</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-2">
+                                            <label>Tipo tec. salud:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_TipoTecSaludProc">
+                                                <option value="P">Procedimiento</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Código procedimiento (CUPS):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_CodigoProcedimiento" placeholder="Código CUPS">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Nombre procedimiento:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_NombreProcedimiento" placeholder="Nombre" readonly>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Finalidad tec. salud:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_FinalidadTecSaludProc">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Diagnóstico</option>
+                                                <option value="02">02 - Terapéutico</option>
+                                                <option value="03">03 - Protección específica</option>
+                                                <option value="04">04 - Detección temprana</option>
+                                                <option value="05">05 - Paliativo</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Fecha prescripción:</label>
+                                            <input type="datetime-local"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_FechaPrescripcionProc">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-1">
+                                        <div class="col-md-10"></div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarPrescripcionProc">+ Agregar Proc.</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaPrescripcionProcedimientos" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Otras Tecnologías en Salud (lista dinámica) -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Otras Tecnologías en Salud</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-2">
+                                            <label>Tipo tec. salud:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_TipoTecSaludOtra">
+                                                <option value="">Seleccionar</option>
+                                                <option value="03">03 - Dispositivo médico</option>
+                                                <option value="04">04 - Producto biológico</option>
+                                                <option value="05">05 - Nutricional</option>
+                                                <option value="06">06 - Otro</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Código otra tecnología:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_CodigoOtraTecnologia" placeholder="Código">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Nombre otra tecnología:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_NombreOtraTecnologia" placeholder="Nombre">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Fecha prescripción:</label>
+                                            <input type="datetime-local"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_FechaPrescripcionOtra">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Finalidad tec. salud:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_FinalidadTecSaludOtra">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Diagnóstico</option>
+                                                <option value="02">02 - Terapéutico</option>
+                                                <option value="03">03 - Protección específica</option>
+                                                <option value="04">04 - Detección temprana</option>
+                                                <option value="05">05 - Paliativo</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-1">
+                                        <div class="col-md-10"></div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarOtraTecnologia">+ Agregar Otra Tec.</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaOtrasTecnologias" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Incapacidad y Licencia -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Incapacidad y Licencia de Maternidad</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-4">
+                                            <label>Alcance de la incapacidad:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_AlcanceIncapacidad">
+                                                <option value="">No aplica</option>
+                                                <option value="01">01 - Laboral</option>
+                                                <option value="02">02 - Escolar</option>
+                                                <option value="03">03 - Laboral y escolar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label>Días de incapacidad:</label>
+                                            <input type="number" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiasIncapacidad" placeholder="0" min="0">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label>Días de licencia de maternidad:</label>
+                                            <input type="number" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiasLicenciaMaternidad" placeholder="0" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nombre Documento PDF -->
+                        <div class="row g-2 mt-2 mb-3">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Documento PDF</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-12">
+                                            <label>Nombre del documento PDF:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_NombreDocumentoPDF"
+                                                placeholder="Se genera automáticamente o ingrese nombre">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 

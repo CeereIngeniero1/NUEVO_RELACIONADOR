@@ -224,11 +224,191 @@
     }
 
     // ============================================
-    // 4. RDA CONSULTA EXTERNA — Campos adicionales
+    // 4. RDA CONSULTA EXTERNA — Listas dinámicas
     // ============================================
 
-    // TODO: Validaciones específicas de consulta externa
-    // TODO: Control de campos obligatorios según 1888
+    var listaDiagRelacionados = [];
+    var listaPrescripcionMed = [];
+    var listaPrescripcionProc = [];
+    var listaOtrasTec = [];
+
+    function inicializarListasCE() {
+
+        // --- Diagnósticos Relacionados ---
+        var btnDiagRel = document.getElementById("RDACE_BtnAgregarDiagRelacionado");
+        var inputDiagCIE10Cod = document.getElementById("RDACE_DiagRelacionadoCIE10Codigo");
+        var inputDiagCIE10Nom = document.getElementById("RDACE_DiagRelacionadoCIE10Nombre");
+        var inputDiagCIE11Cod = document.getElementById("RDACE_DiagRelacionadoCIE11Codigo");
+        var inputDiagCIE11Term = document.getElementById("RDACE_DiagRelacionadoCIE11Termino");
+        var contDiagRel = document.getElementById("RDACE_ListaDiagRelacionados");
+
+        btnDiagRel?.addEventListener("click", function () {
+            var codCIE10 = inputDiagCIE10Cod?.value?.trim();
+            if (!codCIE10) return;
+
+            listaDiagRelacionados.push({
+                codigoCIE10: codCIE10,
+                nombreCIE10: inputDiagCIE10Nom?.value || "",
+                codigoCIE11: inputDiagCIE11Cod?.value?.trim() || "",
+                terminoCIE11: inputDiagCIE11Term?.value?.trim() || ""
+            });
+            renderizarListaCE(contDiagRel, listaDiagRelacionados, "diagRel");
+
+            if (inputDiagCIE10Cod) inputDiagCIE10Cod.value = "";
+            if (inputDiagCIE10Nom) inputDiagCIE10Nom.value = "";
+            if (inputDiagCIE11Cod) inputDiagCIE11Cod.value = "";
+            if (inputDiagCIE11Term) inputDiagCIE11Term.value = "";
+        });
+
+        // --- Prescripción de Medicamentos ---
+        var btnMedCE = document.getElementById("RDACE_BtnAgregarPrescripcionMed");
+        var contMedCE = document.getElementById("RDACE_ListaPrescripcionMedicamentos");
+
+        btnMedCE?.addEventListener("click", function () {
+            var codigo = document.getElementById("RDACE_CodigoMedicamento")?.value?.trim();
+            var nombre = document.getElementById("RDACE_NombreMedicamento")?.value?.trim();
+            if (!codigo && !nombre) return;
+
+            listaPrescripcionMed.push({
+                tipo: document.getElementById("RDACE_TipoTecSaludMed")?.value || "M",
+                codigo: codigo || "",
+                nombre: nombre || "",
+                dci: document.getElementById("RDACE_DescripcionComunMed")?.value || "",
+                fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
+                dosis: document.getElementById("RDACE_DosisOrdenadaMed")?.value || "",
+                unidadDosis: document.getElementById("RDACE_UnidadMedidaDosis")?.value || "",
+                via: document.getElementById("RDACE_ViaAdministracionMed")?.options[
+                    document.getElementById("RDACE_ViaAdministracionMed")?.selectedIndex
+                ]?.text || "",
+                duracionCant: document.getElementById("RDACE_DuracionCantidadMed")?.value || "",
+                duracionUnid: document.getElementById("RDACE_DuracionUnidadTiempoMed")?.value || "",
+                frecuenciaCant: document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || "",
+                frecuenciaUnid: document.getElementById("RDACE_FrecuenciaUnidadTiempoMed")?.value || "",
+                finalidad: document.getElementById("RDACE_FinalidadTecSaludMed")?.value || ""
+            });
+            renderizarListaCE(contMedCE, listaPrescripcionMed, "medCE");
+
+            // Limpiar campos
+            ["RDACE_CodigoMedicamento", "RDACE_NombreMedicamento", "RDACE_DescripcionComunMed",
+                "RDACE_FechaPrescripcionMed", "RDACE_DosisOrdenadaMed"].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = "";
+                });
+            ["RDACE_UnidadMedidaDosis", "RDACE_ViaAdministracionMed", "RDACE_DuracionUnidadTiempoMed",
+                "RDACE_FrecuenciaUnidadTiempoMed", "RDACE_FinalidadTecSaludMed"].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = "";
+                });
+            var durCant = document.getElementById("RDACE_DuracionCantidadMed");
+            var freqCant = document.getElementById("RDACE_FrecuenciaCantidadMed");
+            if (durCant) durCant.value = "";
+            if (freqCant) freqCant.value = "";
+        });
+
+        // --- Prescripción de Procedimientos ---
+        var btnProcCE = document.getElementById("RDACE_BtnAgregarPrescripcionProc");
+        var contProcCE = document.getElementById("RDACE_ListaPrescripcionProcedimientos");
+
+        btnProcCE?.addEventListener("click", function () {
+            var codigo = document.getElementById("RDACE_CodigoProcedimiento")?.value?.trim();
+            if (!codigo) return;
+
+            listaPrescripcionProc.push({
+                tipo: "Procedimiento",
+                codigo: codigo,
+                nombre: document.getElementById("RDACE_NombreProcedimiento")?.value || "",
+                finalidad: document.getElementById("RDACE_FinalidadTecSaludProc")?.options[
+                    document.getElementById("RDACE_FinalidadTecSaludProc")?.selectedIndex
+                ]?.text || "",
+                fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionProc")?.value || ""
+            });
+            renderizarListaCE(contProcCE, listaPrescripcionProc, "procCE");
+
+            var codProc = document.getElementById("RDACE_CodigoProcedimiento");
+            var nomProc = document.getElementById("RDACE_NombreProcedimiento");
+            var finProc = document.getElementById("RDACE_FinalidadTecSaludProc");
+            var fechProc = document.getElementById("RDACE_FechaPrescripcionProc");
+            if (codProc) codProc.value = "";
+            if (nomProc) nomProc.value = "";
+            if (finProc) finProc.value = "";
+            if (fechProc) fechProc.value = "";
+        });
+
+        // --- Otras Tecnologías en Salud ---
+        var btnOtraCE = document.getElementById("RDACE_BtnAgregarOtraTecnologia");
+        var contOtraCE = document.getElementById("RDACE_ListaOtrasTecnologias");
+
+        btnOtraCE?.addEventListener("click", function () {
+            var codigo = document.getElementById("RDACE_CodigoOtraTecnologia")?.value?.trim();
+            if (!codigo) return;
+
+            listaOtrasTec.push({
+                tipo: document.getElementById("RDACE_TipoTecSaludOtra")?.options[
+                    document.getElementById("RDACE_TipoTecSaludOtra")?.selectedIndex
+                ]?.text || "",
+                codigo: codigo,
+                nombre: document.getElementById("RDACE_NombreOtraTecnologia")?.value || "",
+                fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionOtra")?.value || "",
+                finalidad: document.getElementById("RDACE_FinalidadTecSaludOtra")?.options[
+                    document.getElementById("RDACE_FinalidadTecSaludOtra")?.selectedIndex
+                ]?.text || ""
+            });
+            renderizarListaCE(contOtraCE, listaOtrasTec, "otraCE");
+
+            var codOtra = document.getElementById("RDACE_CodigoOtraTecnologia");
+            var nomOtra = document.getElementById("RDACE_NombreOtraTecnologia");
+            var tipOtra = document.getElementById("RDACE_TipoTecSaludOtra");
+            var fechOtra = document.getElementById("RDACE_FechaPrescripcionOtra");
+            var finOtra = document.getElementById("RDACE_FinalidadTecSaludOtra");
+            if (codOtra) codOtra.value = "";
+            if (nomOtra) nomOtra.value = "";
+            if (tipOtra) tipOtra.value = "";
+            if (fechOtra) fechOtra.value = "";
+            if (finOtra) finOtra.value = "";
+        });
+    }
+
+    // --- Renderizado de listas para Consulta Externa ---
+    function renderizarListaCE(contenedor, lista, tipo) {
+        if (!contenedor) return;
+        contenedor.innerHTML = "";
+
+        lista.forEach(function (item, index) {
+            var badge = document.createElement("span");
+            badge.className =
+                "badge bg-light text-dark border border-secondary me-1 mb-1 d-inline-flex align-items-center";
+            badge.style.fontSize = "0.85em";
+
+            var texto = "";
+            if (tipo === "diagRel") {
+                texto = item.codigoCIE10;
+                if (item.nombreCIE10) texto += " - " + item.nombreCIE10;
+                if (item.codigoCIE11) texto += " | CIE-11: " + item.codigoCIE11;
+            } else if (tipo === "medCE") {
+                texto = (item.codigo || "") + " " + (item.nombre || item.dci || "");
+                if (item.dosis) texto += " | " + item.dosis + " " + (item.unidadDosis || "");
+                if (item.via) texto += " | " + item.via;
+            } else if (tipo === "procCE") {
+                texto = item.codigo + " - " + (item.nombre || "");
+                if (item.finalidad) texto += " | " + item.finalidad;
+            } else if (tipo === "otraCE") {
+                texto = (item.tipo || "") + " | " + item.codigo + " - " + (item.nombre || "");
+            }
+
+            badge.innerHTML =
+                texto +
+                ' <button type="button" class="btn-close btn-close-sm ms-2" style="font-size:0.6em;" data-idx="' +
+                index +
+                '"></button>';
+
+            badge.querySelector("button").addEventListener("click", function () {
+                lista.splice(index, 1);
+                renderizarListaCE(contenedor, lista, tipo);
+            });
+
+            contenedor.appendChild(badge);
+        });
+    }
 
     // ============================================
     // 5. GENERACIÓN JSON 1888
@@ -250,6 +430,7 @@
     inicializarBiometria();
     inicializarControlRDA();
     inicializarListasDinamicas();
+    inicializarListasCE();
 
     console.log(
         "%c[RDA V3] Módulo cargado correctamente",
@@ -262,15 +443,14 @@
     // ============================================
 
     window.RDA = {
-        // Se irán exponiendo funciones conforme se necesiten
-        getAntecedentes: function () {
-            return listaAntecedentes;
-        },
-        getAntecedentesFamiliares: function () {
-            return listaAntecedentesFam;
-        },
-        getMedicamentos: function () {
-            return listaMedicamentos;
-        },
+        // RDA Paciente
+        getAntecedentes: function () { return listaAntecedentes; },
+        getAntecedentesFamiliares: function () { return listaAntecedentesFam; },
+        getMedicamentos: function () { return listaMedicamentos; },
+        // RDA Consulta Externa
+        getDiagRelacionados: function () { return listaDiagRelacionados; },
+        getPrescripcionMedicamentos: function () { return listaPrescripcionMed; },
+        getPrescripcionProcedimientos: function () { return listaPrescripcionProc; },
+        getOtrasTecnologias: function () { return listaOtrasTec; },
     };
 })();
