@@ -344,6 +344,8 @@ SelectPacientes.addEventListener("change", async function (e) {
   // const EtniaBase = document.getElementById("EtniaBase");
   // const ComunidadEtnicaBase = document.getElementById("ComunidadEtnicaBase");
   // const DiscapacidadBase = document.getElementById("DiscapacidadBase");
+  const CodigoOcupacionBase = document.getElementById("CodigoOcupacionBase");
+  const NombreOcupacionBase = document.getElementById("NombreOcupacionBase");
 
   if (this.value === "") {
     document.getElementById("BuscarPorFacturas").disabled = true;
@@ -421,6 +423,10 @@ SelectPacientes.addEventListener("change", async function (e) {
 
       DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
       TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+
+      // Ocupación
+      if (CodigoOcupacionBase) CodigoOcupacionBase.value = CargarDatosPaciente[0].CodigoOcupacion || "";
+      if (NombreOcupacionBase) NombreOcupacionBase.value = CargarDatosPaciente[0].NombreOcupacion || "";
       const idTipoDoc = CargarDatosPaciente[0].IdTipodeDocumento;
       const textoTipoDoc = CargarDatosPaciente[0].DescripciTipoDocumento;
 
@@ -455,6 +461,8 @@ SelectPacientes.addEventListener("change", async function (e) {
     SegundoApellidoBase.value = "";
     PrimerNombreBase.value = "";
     SegundoNombreBase.value = "";
+    if (CodigoOcupacionBase) CodigoOcupacionBase.value = "";
+    if (NombreOcupacionBase) NombreOcupacionBase.value = "";
   }
 });
 
