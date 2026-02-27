@@ -209,7 +209,7 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
             .query(`
                 SELECT 
-                     [Id Tipo de Documento], TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
+                     IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, Sexo, Edad, Direccion, Tel, 
                   DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], codigoIdentidadGeneroBase, IdentidadGeneroBase, id_País_recidencia, codigoPaís_recidencia, País_recidencia, id_Pais_Nacionalidad, 
                   CodigoPais_Nacionalidad, Pais_Nacionalidad, [Id Zona Residencia], [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, 
                   SexoPaciente
@@ -1772,8 +1772,8 @@ router.get('/TipoDocumento', async (req, res) => {
 
         const request = new Request(
             `
-        SELECT  IdCiudad1888, Codigo, Nombre + ' (' + Codigo + ')' as Nombre, Estado
-        FROM     [Cnsta Ciudad 1888]
+        SELECT  IdTipodeDocumento, CódigoTipoDocumento, TipoDocumento, DescripciónTipoDocumento
+            FROM     [Cnsta Tipodocumento 1888]
 
         `,
             (err) => {
@@ -1806,5 +1806,133 @@ router.get('/TipoDocumento', async (req, res) => {
     }
 
 });
+
+router.get('/TipoDocumento/:NombreTipoDocumento', async (req, res) => {
+    const NombreTipoDocumento = req.params.NombreTipoDocumento;
+    try {
+
+        const request = new Request(
+            `
+        SELECT  IdTipodeDocumento, CódigoTipoDocumento, TipoDocumento, DescripciónTipoDocumento
+            FROM     [Cnsta Tipodocumento 1888]
+            where TipoDocumento like '%${NombreTipoDocumento}%' OR CódigoTipoDocumento like '%${NombreTipoDocumento}%'
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Sexo/:Sexo', async (req, res) => {
+    const Sexo = req.params.Sexo;
+    try {
+
+        const request = new Request(
+            `
+        SELECT   IdSexo, CódigoSexo, Sexo, [Descripción Sexo]
+        FROM     [Cnsta Sexo 1888]
+            where Sexo like '%${Sexo}%'
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Sexo/', async (req, res) => { 
+    
+    try {
+
+        const request = new Request(
+            `
+        SELECT   IdSexo, CódigoSexo, Sexo, [Descripción Sexo]
+        FROM     [Cnsta Sexo 1888] 
+
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+
 // =================================================================================================
 module.exports = router;

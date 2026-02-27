@@ -324,6 +324,7 @@ SelectPacientes.addEventListener("change", async function (e) {
   const TelefonoPaciente = document.getElementById("TelefonoPaciente");
   const SelectHistoriasSinRIPS = document.getElementById("HistoriasSinRIPS");
   const TipoDocumentoBase = document.getElementById("TipoDocumentoBase");
+
   const PrimerApellidoBase = document.getElementById("PrimerApellidoBase");
   const SegundoApellidoBase = document.getElementById("SegundoApellidoBase");
   const PrimerNombreBase = document.getElementById("PrimerNombreBase");
@@ -365,11 +366,26 @@ SelectPacientes.addEventListener("change", async function (e) {
       NombrePaciente.value = CargarDatosPaciente[0].NombreCompletoPaciente;
       DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
       EdadPaciente.value = CargarDatosPaciente[0].Edad;
+
       SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
+
+      const idSexoPaciente = CargarDatosPaciente[0].IdSexo;
+      const textoSexoPaciente = CargarDatosPaciente[0].Sexo;
+      const selectSexo = $("#SexoPaciente");
+      const optionSexo = new Option(textoSexoPaciente, idSexoPaciente, true, true);
+      selectSexo.append(optionSexo).trigger('change');
+
       DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
       TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+      const idTipoDoc = CargarDatosPaciente[0].IdTipodeDocumento;
+      const textoTipoDoc = CargarDatosPaciente[0].DescripciTipoDocumento;
+      
+      
+      // TipoDocumentoBase.value = CargarDatosPaciente[0].IdTipodeDocumento; 
+      const select = $("#TipoDocumentoBase");
+      const option = new Option(textoTipoDoc, idTipoDoc, true, true);
+      select.append(option).trigger('change');
 
-      TipoDocumentoBase.value = CargarDatosPaciente[0].TipoDocumentoBase;
       PrimerApellidoBase.value = CargarDatosPaciente[0].PrimerApellidoBase;
       SegundoApellidoBase.value = CargarDatosPaciente[0].SegundoApellidoBase;
       PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
@@ -493,16 +509,16 @@ $(document).ready(function () {
   }
 
   ///Lista para conslta d epacienes Nacionalidad
-   $("#SelectNombrePaisNacionalidadBase").select2({
+  $("#SelectNombrePaisNacionalidadBase").select2({
     placeholder: "Selecciona un país",
     allowClear: true,
-    minimumInputLength: 0,  
+    minimumInputLength: 0,
     ajax: {
       delay: 250,
       transport: function (params, success, failure) {
         const term = (params.data.term || "").trim();
 
-         
+
         const q = term.length ? term : "a";
 
         fetch(`http://${servidor}:3000/apiv3/Paises/${encodeURIComponent(q)}`)
@@ -522,17 +538,17 @@ $(document).ready(function () {
   });
 
 
- ///Lista para conslta d epacienes Nacionalidad
-   $("#SelectNombrePaisResidenciaBase").select2({
+  ///Lista para conslta d epacienes Nacionalidad
+  $("#SelectNombrePaisResidenciaBase").select2({
     placeholder: "Selecciona un país",
     allowClear: true,
-    minimumInputLength: 0,  
+    minimumInputLength: 0,
     ajax: {
       delay: 250,
       transport: function (params, success, failure) {
         const term = (params.data.term || "").trim();
 
-         
+
         const q = term.length ? term : "a";
 
         fetch(`http://${servidor}:3000/apiv3/Paises/${encodeURIComponent(q)}`)
@@ -550,19 +566,19 @@ $(document).ready(function () {
       }
     }
   });
-SelectNombreMunicipioResidenciaBase
 
- ///Lista para conslta de municipios
-   $("#SelectNombreMunicipioResidenciaBase").select2({
+
+  ///Lista para conslta de municipios
+  $("#SelectNombreMunicipioResidenciaBase").select2({
     placeholder: "Selecciona un Municipio",
     allowClear: true,
-    minimumInputLength: 0,  
+    minimumInputLength: 0,
     ajax: {
       delay: 250,
       transport: function (params, success, failure) {
         const term = (params.data.term || "").trim();
 
-         
+
         const q = term.length ? term : "a";
 
         fetch(`http://${servidor}:3000/apiv3/Ciudades/${encodeURIComponent(q)}`)
@@ -573,13 +589,44 @@ SelectNombreMunicipioResidenciaBase
       processResults: function (data) {
         return {
           results: data.results.map(p => ({
-            id: p.IdPais1888,     // lo que se guarda como valor
+            id: p.IdCiudad1888,     // lo que se guarda como valor
             text: p.Nombre        // lo que se ve
           }))
         };
       }
     }
   });
+
+
+  ///Lista para conslta de tipo documentos
+  $("#TipoDocumentoBase").select2({
+    placeholder: "Selecciona Tipo Documento",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/TipoDocumento/${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdTipodeDocumento,     // lo que se guarda como valor
+            text: p.DescripciónTipoDocumento         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
 
 });
 
@@ -5506,4 +5553,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
- 
+
