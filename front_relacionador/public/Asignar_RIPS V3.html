@@ -1105,52 +1105,196 @@
 
                     <!-- ========== SECCIÓN: RDA CONSULTA EXTERNA ========== -->
                     <div id="SeccionRDAConsultaExterna" class="d-none">
-                        <h6 class="text-primary mb-3"><b>RDA Consulta Externa — Campos Adicionales</b></h6>
+                        <h6 class="text-primary mb-3"><b>RDA Consulta Externa — Campos Resolución 1888</b></h6>
 
-                        <!-- Signos Vitales -->
-                        <div class="col-md-12 mb-3">
-                            <label class="fw-bold mb-1">Signos Vitales del Momento:</label>
-                            <div class="row g-2">
-                                <div class="col-md-3">
-                                    <label>Tensión Arterial:</label>
-                                    <input type="text" id="RDA_TA" class="form-control-sm border border-secondary w-100"
-                                        placeholder="Ej: 120/80">
-                                </div>
-                                <div class="col-md-3">
-                                    <label>Frec. Cardíaca:</label>
-                                    <input type="number" id="RDA_FC"
-                                        class="form-control-sm border border-secondary w-100" placeholder="LPM">
-                                </div>
-                                <div class="col-md-3">
-                                    <label>Frec. Respiratoria:</label>
-                                    <input type="number" id="RDA_FR"
-                                        class="form-control-sm border border-secondary w-100" placeholder="RPM">
-                                </div>
-                                <div class="col-md-3">
-                                    <label>Temperatura (°C):</label>
-                                    <input type="number" id="RDA_Temp"
-                                        class="form-control-sm border border-secondary w-100" step="0.1"
-                                        placeholder="°C">
+                        <div class="row g-2">
+                            <!-- Código Prestador y Administrador Plan Beneficios -->
+                            <div class="col-md-3">
+                                <label class="fw-bold">Código Prestador:</label>
+                                <input type="text" class="form-control-sm border border-secondary w-100"
+                                    id="RDACE_CodigoPrestador" placeholder="Código REPS">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold">Código Administ. Plan Beneficios:</label>
+                                <input type="text" class="form-control-sm border border-secondary w-100"
+                                    id="RDACE_CodigoAdminPlanBeneficios" placeholder="Código EPS/SGSSS">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold">Nombre Administ. Plan Beneficios:</label>
+                                <input type="text" class="form-control-sm border border-secondary w-100"
+                                    id="RDACE_NombreAdminPlanBeneficios" placeholder="Nombre EPS/entidad">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-2">
+                            <!-- Fecha/Hora inicio y fin de atención -->
+                            <div class="col-md-4">
+                                <label class="fw-bold">Fecha y Hora Inicio Atención:</label>
+                                <input type="datetime-local" class="form-control-sm border border-secondary w-100"
+                                    id="RDACE_FechaHoraInicioAtencion">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold">Fecha y Hora Fin Atención:</label>
+                                <input type="datetime-local" class="form-control-sm border border-secondary w-100"
+                                    id="RDACE_FechaHoraFinAtencion">
+                            </div>
+
+                            <!-- Profesional de Salud -->
+                            <div class="col-md-4">
+                                <label class="fw-bold">Profesional de Salud que Atiende:</label>
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select border border-secondary" id="RDACE_TipoDocProfesional"
+                                        style="max-width: 90px;">
+                                        <option value="">Tipo</option>
+                                        <option value="CC">CC</option>
+                                        <option value="CE">CE</option>
+                                        <option value="PA">PA</option>
+                                        <option value="PE">PE</option>
+                                    </select>
+                                    <input type="text" class="form-control border border-secondary"
+                                        id="RDACE_NumDocProfesional" placeholder="Número documento">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Textareas -->
-                        <div class="col-md-12 mb-2">
-                            <label class="fw-bold">Hallazgos Examen Físico:</label>
-                            <textarea id="RDA_ExamenFisico" class="form-control border border-secondary"
-                                rows="2"></textarea>
+                        <!-- Diagnóstico Principal Ingreso CIE-11 -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Diagnóstico Principal de Ingreso (CIE-11)</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-5">
+                                            <label>Código Diagnóstico Ingreso CIE-11:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagnosticoIngresoCIE11Codigo" placeholder="Código CIE-11">
+                                        </div>
+                                        <div class="col-md-7">
+                                            <label>Término Diagnóstico Ingreso CIE-11:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_DiagnosticoIngresoCIE11Termino"
+                                                placeholder="Descripción del diagnóstico">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-12 mb-2">
-                            <label class="fw-bold">Antecedentes Clínicos Relevantes:</label>
-                            <textarea id="RDA_Antecedentes" class="form-control border border-secondary"
-                                rows="2"></textarea>
+
+                        <!-- Tipo de Alergia -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-4">
+                                <label class="fw-bold">Tipo de Alergia (complemento):</label>
+                                <select class="form-select-sm border border-secondary w-100" id="RDACE_TipoAlergia">
+                                    <option value="">Sin alergia</option>
+                                    <option value="01">01 - Medicamento</option>
+                                    <option value="02">02 - Alimento</option>
+                                    <option value="03">03 - Sustancia del ambiente</option>
+                                    <option value="04">04 - Sustancia en contacto con la piel</option>
+                                    <option value="05">05 - Picadura de insectos</option>
+                                    <option value="06">06 - Otra</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-12 mb-2">
-                            <label class="fw-bold">Recomendaciones y Plan de Manejo:</label>
-                            <textarea id="RDA_Plan" class="form-control border border-secondary" rows="3"></textarea>
+
+                        <!-- Antecedentes de Salud -->
+                        <div class="row g-2 mt-3">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Antecedentes de Salud (CIE-10)</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-5">
+                                            <label>Condición de salud (CIE-10):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_AntecedenteSaludCIE10" placeholder="Código o nombre CIE-10">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label>Descripción:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_AntecedenteSaludDescripcion"
+                                                placeholder="Nombre del diagnóstico" readonly>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarAntecedente">+ Agregar</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaAntecedentes" class="mt-2"></div>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Antecedentes Familiares -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Antecedentes Familiares</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-2">
+                                            <label>Parentesco:</label>
+                                            <select class="form-select-sm border border-secondary w-100"
+                                                id="RDACE_ParentescoFamiliar">
+                                                <option value="">Seleccionar</option>
+                                                <option value="01">01 - Padres</option>
+                                                <option value="02">02 - Hermanos</option>
+                                                <option value="03">03 - Tíos</option>
+                                                <option value="04">04 - Abuelos</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Condición salud (CIE-10):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_AntecedenteFamiliarCIE10" placeholder="Código CIE-10">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Condición salud (CIE-11):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_AntecedenteFamiliarCIE11" placeholder="Código CIE-11">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Descripción:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_AntecedenteFamiliarDescripcion"
+                                                placeholder="Nombre diagnóstico" readonly>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarAntecedenteFam">+ Agregar</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaAntecedentesFamiliares" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Medicamentos (Antecedentes Farmacológicos) -->
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-12">
+                                <div class="card p-2 border-secondary">
+                                    <h6 class="text-muted">Antecedentes Farmacológicos (Medicamentos)</h6>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-5">
+                                            <label>Descripción Común del Medicamento (DCI):</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_MedicamentoDCI" placeholder="Nombre del medicamento">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label>Observaciones:</label>
+                                            <input type="text" class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_MedicamentoObservacion" placeholder="Dosis, frecuencia, etc.">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                                id="RDACE_BtnAgregarMedicamento">+ Agregar</button>
+                                        </div>
+                                    </div>
+                                    <div id="RDACE_ListaMedicamentos" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ====== AQUÍ SE AGREGARÁN CAMPOS ADICIONALES DE CONSULTA EXTERNA ====== -->
+
                     </div>
+
 
                 </div>
             </div>
