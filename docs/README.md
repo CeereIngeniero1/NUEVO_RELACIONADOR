@@ -128,6 +128,7 @@ NUEVO_RELACIONADOR/
 | Documento | Descripción |
 |---|---|
 | [Arquitectura Frontend](arquitectura/estructura_frontend.md) | 3 versiones del frontend, cuál es activa, orden de carga |
+| [Arquitectura Backend](arquitectura/backend.md) | Conexión BD, despliegue PM2, configuración SQL Server |
 | [Pendientes](pendientes.md) | Tareas y bugs consolidados |
 | [Historial de Versiones](CHANGELOG.md) | Desde v1.0.5 hasta v3.1.1 |
 
