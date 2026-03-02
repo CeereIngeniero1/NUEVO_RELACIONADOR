@@ -129,6 +129,8 @@ NUEVO_RELACIONADOR/
 |---|---|
 | [Arquitectura Frontend](arquitectura/estructura_frontend.md) | 3 versiones del frontend, cuál es activa, orden de carga |
 | [Arquitectura Backend](arquitectura/backend.md) | Conexión BD, despliegue PM2, configuración SQL Server |
+| [API Endpoints](arquitectura/api_endpoints.md) | Documentación completa de rutas REST |
+| [Guía Scripts SQL](arquitectura/scripts_sql.md) | Orden de ejecución, tablas principales, triggers activos |
 | [Pendientes](pendientes.md) | Tareas y bugs consolidados |
 | [Historial de Versiones](CHANGELOG.md) | Desde v1.0.5 hasta v3.1.1 |
 

@@ -164,6 +164,6 @@ END;
 
 ## Referencia adicional
 
-- Scripts SQL: ver [scripts_sql.md](scripts_sql.md) *(pendiente)*
-- API endpoints: pendiente de documentar
+- Scripts SQL: ver [scripts_sql.md](scripts_sql.md)
+- API endpoints: ver [api_endpoints.md](api_endpoints.md)
 - Archivo original completo: `back_relacionador/Redme.txt`
