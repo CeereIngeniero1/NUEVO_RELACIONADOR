@@ -3,7 +3,7 @@
    (duplicado en Asignar_RIPS.css)
    ============================================ */
 :root {
-    --color-primary: var(--color-primary);
+    --color-primary: #007E82;
     --color-primary-hover: #006568;
     --color-primary-light: #E0F4F4;
     --color-success: #28A745;
@@ -257,6 +257,7 @@ body {
     color: #fff;
     border: 1px solid var(--color-primary);
 }
+
 .tabla {
     width: 100%;
     display: flex;
@@ -323,6 +324,7 @@ tr:hover {
     justify-content: center;
     transition: all 0.4s;
 }
+
 #BotonMaestro:hover {
     background-color: transparent;
     color: var(--color-primary);
