@@ -27,6 +27,28 @@
     --bs-primary-rgb: 0, 126, 130;
 }
 
+/* ============================================
+   DESIGN SYSTEM — Modo Oscuro
+   ============================================ */
+[data-theme="dark"] {
+    --color-bg: #121212;
+    --color-text: #E0E0E0;
+    --color-text-secondary: #AAAAAA;
+    --color-border: #333333;
+    --color-bg-row: #1E1E1E;
+    --color-bg-row-hover: #2C2C2C;
+}
+
+[data-theme="dark"] body.app-layout,
+[data-theme="dark"] body {
+    background: var(--color-bg) !important;
+    background-color: var(--color-bg) !important;
+}
+
+[data-theme="dark"] .cr-topbar {
+    border-bottom: 1px solid var(--color-border);
+}
+
 /* Override Bootstrap btn-primary → teal */
 .btn-primary {
     background-color: var(--color-primary);
@@ -193,4 +215,224 @@ select {
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 0.2rem rgba(0, 126, 130, 0.25);
     outline: none;
+}
+
+/* ============================================
+   NIVEL 3 — Rediseño Layout Principal
+   (Mockup: Top Navbar + Accordions limpios)
+   ============================================ */
+
+/* ── App Shell ─────────────────────────────── */
+body.app-layout {
+    min-height: 100vh;
+    background: #F5F6F8;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top Navbar ────────────────────────────── */
+.cr-topbar {
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(135deg, #00373A 0%, #007E82 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+}
+
+.cr-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cr-topbar-logo {
+    width: 28px;
+    height: 28px;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+}
+
+.cr-topbar-title {
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.cr-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cr-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.cr-topbar-user-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.cr-topbar-logout {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.cr-topbar-logout:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Page Content Wrapper ──────────────────── */
+.cr-page-content {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 32px 40px;
+}
+
+.cr-page-heading {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 20px;
+}
+
+/* ── Accordion Cards ───────────────────────── */
+.cr-card {
+    background: #fff;
+    border: 1px solid #E2E6E6;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.cr-card:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.cr-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.cr-card-header:hover {
+    background: #FAFBFB;
+}
+
+.cr-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cr-card-icon {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    width: 20px;
+    text-align: center;
+}
+
+.cr-card-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.cr-card-toggle {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    transition: transform 0.25s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.cr-card.collapsed .cr-card-toggle {
+    transform: rotate(-90deg);
+}
+
+.cr-card-body {
+    padding: 16px 20px 20px;
+    border-top: 1px solid #E2E6E6;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease, padding 0.3s ease;
+}
+
+.cr-card.collapsed .cr-card-body {
+    max-height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    border-top: none;
+    pointer-events: none;
+}
+
+/* ── Override container ────────────────────── */
+body.app-layout .container {
+    width: 100%;
+    margin: 0;
+    display: block;
+}
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 768px) {
+    .cr-topbar {
+        padding: 0 16px;
+    }
+
+    .cr-page-content {
+        padding: 16px;
+    }
+
+    .cr-topbar-title {
+        font-size: 0.85rem;
+    }
 }

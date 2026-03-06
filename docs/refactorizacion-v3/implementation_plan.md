@@ -1,29 +1,52 @@
-# Plan de Refactorización Frontend — Estado Actual
+# Plan de Modernización y Refactorización Frontend
 
-> **Estado:** ⏸️ En pausa — Se priorizó la implementación de campos RDA (Res. 1888) antes de refactorizar.
+**Última actualización:** 5 de marzo de 2026  
+**Rama activa:** `sebastian`  
+**Estado general:** Niveles 1, 2, 3 y 4 ✅ Todos completados
 
-## Diagnóstico Original
+---
 
-`Asignar_RIPS V3.js` tiene **~5,600 líneas** en un solo archivo (God Object).
+## 🎨 Fase 1: Pulido Visual y UX (En Ejecución)
 
-## Lo que se hizo (parcial)
+### Nivel 1: Variables CSS + Colores Unificados ✅
+- **Estado:** 100% completado.
+- **Cambios:** Introducción de `:root` con paleta teal (`#007E82`), unificación de colores en `style.css` y `style_login.css`, limpieza de fuentes (solo Roboto).
 
+### Nivel 2: Mejoras UX de Formularios ✅
+- **Estado:** 100% completado.
+- **Cambios:** Iconos en títulos de sección (👤, 📋, 📄, 🏥), spinners de carga en botones principales, focus teal en inputs y animación de error (shake).
+
+### Nivel 4: Rediseño de Login ✅
+- **Estado:** 100% completado (Adelantado por prioridad).
+- **Cambios:** Layout split-screen moderno, panel izquierdo con branding teal rico y panel derecho con card de acceso profesional. Uso de logo Ceere oficial.
+
+### Nivel 3: Rediseño de Layout Principal ✅
+- **Estado:** 100% completado. Adaptado al mockup del usuario.
+- **Cambios:**
+    - [x] Agregado *Top Navbar* (barra dark teal horizontal con marca, logo, nombre de usuario y botón "Salir").
+    - [x] Sustitución del wrapper central por `.cr-page-content` optimizado con ancho centrado.
+    - [x] Reemplazo visual de las secciones por *Cards minimalistas estilo Accordion* integradas.
+    - [x] Eliminado componente sidebar antiguo para hacer coincidir con el diseño UI del usuario.
+    - [x] Actualizada la jerarquía de carga de CSS para que el custom css anule frameworks y estilos globales viejos.
+
+---
+
+## ⚙️ Fase 2: Refactorización de Código (En Pausa)
+
+> **Nota:** Se priorizó el pulido visual y la implementación de la Res. 1888 antes de la división de archivos.
+
+### Diagnóstico
+`Asignar_RIPS V3.js` tiene **~5,600 líneas** y requiere división modular.
+
+### Avances Parciales
 | Acción | Estado |
 |---|---|
 | Crear `rda-v3.js` como módulo independiente | ✅ Hecho |
 | Separar lógica RDA del archivo principal | ✅ Hecho |
-| Separar API service, utils, rips-logic | ❌ No iniciado |
+| Dividir en `api-service`, `utils`, `rips-logic` | ❌ Pendiente |
 
-## Lo que falta
+---
 
-La refactorización completa (separar en 4+1 archivos) queda pendiente para después de completar la implementación de la Res. 1888. Ver [pendientes.md](../pendientes.md).
-
-## Arquitectura propuesta (referencia futura)
-
-| Archivo | Responsabilidad |
-|---|---|
-| `api-service-v3.js` | Solo `fetch()`, sin DOM |
-| `rips-logic-v3.js` | Lógica RIPS AC/AP, validaciones |
-| `rda-v3.js` | Lógica RDA 1888 *(ya existe)* |
-| `utils-ui-v3.js` | Helpers visuales reutilizables |
-| `main-v3.js` | Orquestador de eventos |
+## 🛠️ Correcciones Técnicas Aplicadas
+- **Caché:** Se desactivó `maxAge` en `app.js` para usar ETags automáticos y ver cambios de CSS/JS al instante.
+- **Git:** Estabilización de la rama `sebastian` como base para el nuevo diseño visual.
