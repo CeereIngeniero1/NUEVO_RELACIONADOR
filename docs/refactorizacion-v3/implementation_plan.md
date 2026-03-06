@@ -29,6 +29,16 @@
     - [x] Eliminado componente sidebar antiguo para hacer coincidir con el diseño UI del usuario.
     - [x] Actualizada la jerarquía de carga de CSS para que el custom css anule frameworks y estilos globales viejos.
 
+### Nivel 5: Modo Oscuro Avanzado (Reference-Based) ✅
+- **Estado:** 100% completado.
+- **Requiere Revisión del Usuario:** Validación visual del resultado final.
+- **Cambios Propuestos:**
+    - [x] Uso de CSS puro con variables locales para igualar la paleta de la imagen aportada por el usuario.
+    - [x] Fondo principal: Azul noche/Casi negro (`#0A0E17` o similar).
+    - [x] Fondo de tarjetas: Gris azulado elegante (`#0f172a`).
+    - [x] Botones, barra superior y barra de progreso: Verde Teal vibrante (`#059669`).
+    - [x] Input borders tenues y textos en luz fría.
+
 ---
 
 ## ⚙️ Fase 2: Refactorización de Código (En Pausa)
