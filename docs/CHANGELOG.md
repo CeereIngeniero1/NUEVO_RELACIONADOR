@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.0 — 2026-03-09
+- **UI/UX:** Rediseño completo de la pantalla de Login (layout split-screen teal/blanco con logo actualizado).
+- **Tema Oscuro:** Implementación de modo oscuro avanzado con sistema de tokens de color tipo Tailwind (slate theme).
+- **Interactividad:** Integración de la librería `select2` para mejorar los desplegables de RIPS y soporte para modales de Bootstrap.
+- **Componentes UI:** Nueva barra de progreso interactiva en el flujo de asignación y estados de carga (loading states).
+- **Arquitectura:** Creación de las guías de estilo `estandares.md` con reglas estrictas de UI, colores y nombrado de clases.
+- **Estilos:** Unificación de variables CSS globales (`--color-primary`, etc.) y separación más limpia en `style.css` y `style_login.css`.
+
 ## v3.1.1 — 2026-02-27
 - **Datos paciente:** Agregados campos Código y Nombre de Ocupación (CIUO) en HTML y JS
 - **Documentación:** Reorganización completa de `docs/` con subcarpetas por resolución
