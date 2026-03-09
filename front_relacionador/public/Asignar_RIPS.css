@@ -1,3 +1,283 @@
+/* ============================================
+   DESIGN SYSTEM — Variables CSS del Proyecto
+   ============================================ */
+:root {
+    /* Colores principales */
+    --color-primary: #007E82;
+    --color-primary-hover: #006568;
+    --color-primary-light: #E0F4F4;
+
+    /* Colores de estado */
+    --color-success: #28A745;
+    --color-danger: #F74040;
+    --color-warning: #FFC107;
+    --color-info: #049DB6;
+
+    /* Colores neutros */
+    --color-text: #1D2020;
+    --color-text-secondary: #5A6060;
+    --color-border: #A2A7A7;
+    --color-bg: #FFFFFF;
+    --color-bg-row: #F2F2F2;
+    --color-bg-row-hover: #D9D9D9;
+    --color-selected: #A3D3FF;
+
+    /* Override Bootstrap primary */
+    --bs-primary: #007E82;
+    --bs-primary-rgb: 0, 126, 130;
+}
+
+/* ============================================
+   DESIGN SYSTEM — Modo Oscuro Premium (Estilo Tailwind Slate/Emerald)
+   ============================================ */
+[data-theme="dark"] {
+    --color-bg: #020617;
+    /* slate-950 */
+    --color-bg-row: #0f172a;
+    /* slate-900 (Fondo tarjetas) */
+    --color-bg-row-hover: #1e293b;
+    /* slate-800 (Fondo inputs) */
+    --color-border: #1e293b;
+    /* slate-800 (Bordes división) */
+    --color-border-input: #334155;
+    /* slate-700 (Bordes inputs) */
+    --color-text: #e2e8f0;
+    /* slate-200 */
+    --color-text-secondary: #94a3b8;
+    /* slate-400 */
+
+    /* Acentos vibrantes */
+    --color-primary: #059669;
+    /* emerald-600 */
+    --color-primary-hover: #10b981;
+    /* emerald-500 */
+    --color-primary-light: #064e3b;
+    /* emerald-900 */
+    --color-success: #10b981;
+    /* teal/emerald */
+}
+
+/* ── Fondo Principal ── */
+[data-theme="dark"] body.app-layout,
+[data-theme="dark"] body {
+    background: var(--color-bg) !important;
+    background-color: var(--color-bg) !important;
+    color: var(--color-text);
+}
+
+/* ── Top Navbar ── */
+[data-theme="dark"] .cr-topbar {
+    background: rgba(6, 78, 59, 0.4) !important;
+    /* emerald-900/40 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(6, 78, 59, 0.5);
+    /* emerald-800/50 */
+}
+
+/* ── Tarjetas (Cards) ── */
+[data-theme="dark"] .cr-card {
+    background-color: var(--color-bg-row);
+    border-color: var(--color-border);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* Sub-tarjetas como el cuadro de Alergias */
+[data-theme="dark"] .cr-card .card {
+    background-color: rgba(30, 41, 59, 0.4) !important;
+    /* slate-800/40 */
+    border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cr-card-header {
+    background-color: rgba(30, 41, 59, 0.5);
+    /* slate-800/50 */
+    border-bottom-color: var(--color-border);
+    color: #f8fafc;
+    /* slate-50 */
+}
+
+[data-theme="dark"] .cr-card-body {
+    border-top-color: var(--color-border);
+    color: var(--color-text);
+}
+
+/* ── Ventanas Modales (Modals Bootstrap) ── */
+[data-theme="dark"] .modal-content {
+    background-color: var(--color-bg-row);
+    border-color: var(--color-border);
+    color: var(--color-text);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    /* shadow-2xl */
+}
+
+[data-theme="dark"] .modal-header {
+    border-bottom: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .modal-footer {
+    border-top: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .modal-title {
+    color: #f8fafc;
+    /* slate-50 */
+}
+
+/* ── Formularios e Inputs (INYECCIÓN DE MÁXIMA PRIORIDAD) ── */
+[data-theme="dark"] .cr-card input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),
+[data-theme="dark"] .cr-card select,
+[data-theme="dark"] .cr-card textarea,
+[data-theme="dark"] .cr-card .form-control,
+[data-theme="dark"] .cr-card .form-select,
+[data-theme="dark"] .cr-card .form-control-sm,
+[data-theme="dark"] .cr-card .form-select-sm,
+[data-theme="dark"] select.form-select-sm,
+[data-theme="dark"] input.form-control-sm,
+[data-theme="dark"] .input-group-text,
+[data-theme="dark"] .input-group .form-control {
+    background-color: var(--color-bg-row-hover) !important;
+    color: var(--color-text) !important;
+    border: 1px solid var(--color-border-input) !important;
+}
+
+[data-theme="dark"] .cr-card input:disabled,
+[data-theme="dark"] .cr-card select:disabled,
+[data-theme="dark"] .input-group .form-control:disabled {
+    background-color: var(--color-bg) !important;
+    /* slate-950 */
+    color: #64748b !important;
+    /* slate-500 */
+    border-color: var(--color-border) !important;
+}
+
+/* ── Checkboxes y Radios Especiales ── */
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"],
+[data-theme="dark"] .form-check-input,
+[data-theme="dark"] .cr-card input.form-check-input {
+    background-color: var(--color-bg-row-hover) !important;
+    border: 1px solid var(--color-border-input) !important;
+}
+
+/* Cuando están chequeados */
+[data-theme="dark"] input[type="checkbox"]:checked,
+[data-theme="dark"] input[type="radio"]:checked,
+[data-theme="dark"] .form-check-input:checked,
+[data-theme="dark"] .cr-card input.form-check-input:checked {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+}
+
+/* ── Focus de Inputs en Modo Oscuro ── */
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] .form-check-input:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 0.15rem rgba(5, 150, 105, 0.25) !important;
+    /* emerald focus ring */
+}
+
+/* ── Texto de Etiquetas (Labels) ── */
+[data-theme="dark"] .cr-card label,
+[data-theme="dark"] .cr-card h5,
+[data-theme="dark"] .cr-card h6,
+[data-theme="dark"] .cr-card span,
+[data-theme="dark"] label.form-label,
+[data-theme="dark"] .form-check-label {
+    color: var(--color-text-secondary) !important;
+    /* light slate */
+}
+
+/* ── Compatibilidad con Select2 (Librería Externa) ── */
+[data-theme="dark"] .select2-container--default .select2-selection--single,
+[data-theme="dark"] .select2-container .select2-selection--multiple,
+[data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered,
+[data-theme="dark"] .select2-results__option,
+[data-theme="dark"] .select2-dropdown {
+    background-color: var(--color-bg-row-hover) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border-input) !important;
+}
+
+[data-theme="dark"] .select2-container--default .select2-results__option--highlighted[aria-selected],
+[data-theme="dark"] .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: var(--color-primary) !important;
+    color: #fff !important;
+}
+
+[data-theme="dark"] .select2-search--dropdown .select2-search__field {
+    background-color: var(--color-bg-row) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border-input) !important;
+}
+
+[data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: var(--color-text-secondary) transparent transparent transparent !important;
+}
+
+/* ── Barra de Progreso ── */
+[data-theme="dark"] .cr-progress-wrapper {
+    background-color: var(--color-bg-row);
+    border: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .progress {
+    background-color: var(--color-bg-row-hover);
+}
+
+/* ── Scrollbars en general ── */
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--color-bg-row-hover);
+    border-radius: 8px;
+    border: 2px solid var(--color-bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-input);
+}
+
+
+
+/* Override Bootstrap btn-primary → teal */
+.btn-primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+}
+
+.btn-outline-primary {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
+/* ============================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -34,7 +314,7 @@ select {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
-    gap: 20px; 
+    gap: 20px;
 
 }
 
@@ -43,7 +323,7 @@ select {
     justify-content: center;
     align-items: center;
     display: grid;
-    
+
 }
 
 .codConsulta,
@@ -80,11 +360,18 @@ select {
 }
 
 
+/* ============================================
+   NIVEL 2 — Mejoras UX
+   ============================================ */
 
-.campo-faltante {
-    border: 2px solid #F74040 !important;
+/* 2A. Secciones con borde lateral de color */
+.cr-section {
+    border-left: 4px solid var(--color-primary);
+    padding-left: 12px;
+    margin-bottom: 1.5rem;
 }
 
+<<<<<<< HEAD
 
 
 
@@ -107,3 +394,272 @@ select {
   transform:translateY(-1px);
 }
 
+=======
+.cr-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 2C. Validación inline — shake + mensaje */
+.campo-faltante {
+    border: 2px solid var(--color-danger) !important;
+    animation: shake 0.3s ease-in-out;
+}
+
+.cr-error-msg {
+    color: var(--color-danger);
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+/* 2D. Focus mejorado en inputs y selects */
+.form-control-sm:focus,
+.form-select-sm:focus,
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 126, 130, 0.25);
+    outline: none;
+}
+
+/* ============================================
+   NIVEL 3 — Rediseño Layout Principal
+   (Mockup: Top Navbar + Accordions limpios)
+   ============================================ */
+
+/* ── App Shell ─────────────────────────────── */
+body.app-layout {
+    min-height: 100vh;
+    background: #F5F6F8;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top Navbar ────────────────────────────── */
+.cr-topbar {
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(135deg, #00373A 0%, #007E82 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+}
+
+.cr-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cr-topbar-logo {
+    width: 28px;
+    height: 28px;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+}
+
+.cr-topbar-title {
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.cr-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cr-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.cr-topbar-user-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.cr-topbar-logout {
+    background: var(--color-primary);
+    border: none;
+    border-radius: 50px;
+    color: #fff;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s, background-color 0.2s;
+}
+
+.cr-topbar-logout:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+}
+
+/* ── Page Content Wrapper ──────────────────── */
+.cr-page-content {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 32px 40px;
+}
+
+.cr-page-heading {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 20px;
+}
+
+/* ── Accordion Cards ───────────────────────── */
+.cr-card {
+    background: #fff;
+    border: 1px solid #E2E6E6;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.cr-card:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.cr-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.cr-card-header:hover {
+    background: #FAFBFB;
+}
+
+.cr-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cr-card-icon {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    width: 20px;
+    text-align: center;
+}
+
+.cr-card-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.cr-card-toggle {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    transition: transform 0.25s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.cr-card.collapsed .cr-card-toggle {
+    transform: rotate(-90deg);
+}
+
+.cr-card-body {
+    padding: 16px 20px 20px;
+    border-top: 1px solid #E2E6E6;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease, padding 0.3s ease;
+}
+
+.cr-card.collapsed .cr-card-body {
+    max-height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    border-top: none;
+    pointer-events: none;
+}
+
+/* ── Override container ────────────────────── */
+body.app-layout .container {
+    width: 100%;
+    margin: 0;
+    display: block;
+}
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 768px) {
+    .cr-topbar {
+        padding: 0 16px;
+    }
+
+    .cr-page-content {
+        padding: 16px;
+    }
+
+    .cr-topbar-title {
+        font-size: 0.85rem;
+    }
+}
+>>>>>>> 13b9d4fb22fd29cba587148c5cee29fefabcefcb

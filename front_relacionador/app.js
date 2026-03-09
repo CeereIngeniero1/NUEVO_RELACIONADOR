@@ -51,10 +51,11 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Middleware para servir archivos estáticos con caché
+// Middleware para servir archivos estáticos — SIN caché en desarrollo
 app.use(express.static(path.join(__dirname, 'public'), {
-    maxAge: '1d', // Cachear por 1 día
-    etag: false
+    maxAge: 0,
+    etag: true,
+    lastModified: true
 }));
 
 let connections = [];

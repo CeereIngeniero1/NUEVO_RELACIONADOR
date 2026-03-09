@@ -19,15 +19,15 @@ El frontend tiene **3 generaciones** de código que coexisten en `front_relacion
 ```
 front_relacionador/public/
 ├── Asignar_RIPS V3.html      ← Página principal (114 KB)
-├── Asignar_RIPS V3.js        ← Lógica RIPS + datos paciente (230 KB)
+├── Asignar_RIPS V3.js        ← Lógica RIPS + select2 + datos paciente (230 KB)
 ├── rda-v3.js                 ← Módulo RDA independiente (21 KB)
-├── Asignar_RIPS.css           ← Estilos
+├── Asignar_RIPS.css           ← Estilos específicos V3 (soporta variables modo oscuro)
 ├── NombreEquipoServidor.js    ← Config. servidor (localStorage)
 ├── MaestroListasRIPS.js       ← Catálogos RIPS
 ├── RIPS.html / RIPS.js        ← Pantalla principal de navegación
-├── index.html                 ← Login
+├── index.html                 ← Login (Rediseñado layout split-screen)
 ├── main.js / script.js        ← Lógica del login
-└── style.css / style_login.css ← Estilos generales y login
+└── style.css / style_login.css ← Variables CSS unificadas (tokens de color) y estilos login
 ```
 
 ---
@@ -151,6 +151,8 @@ graph TD
 
 ```html
 <!-- 1. Librerías externas -->
+<script src="jquery"></script>          <!-- Requerido para Select2 -->
+<script src="select2"></script>         <!-- Autocompletado mejorado en RIPS -->
 <script src="sweetalert2"></script>
 <script src="bootstrap"></script>
 <script src="alertify"></script>

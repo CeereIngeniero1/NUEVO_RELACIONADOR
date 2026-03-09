@@ -1,6 +1,19 @@
 // const servidor = "asdfasf";
 const servidor = localStorage.getItem("NombreEquipoServidor");
 
+// Utilidad: Loading state para botones (Nivel 2 UX)
+function setLoadingState(button, loading) {
+    if (loading) {
+        button.dataset.originalText = button.textContent;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Cargando...';
+    } else {
+        button.disabled = false;
+        button.textContent = button.dataset.originalText || button.textContent;
+    }
+}
+
+
 function VerificarLogin() {
   const TokenLogin = localStorage.getItem("token");
   const contenido = document.getElementById("Contenido"); // Contenedor principal de la página
