@@ -58,6 +58,18 @@
     /* slate-800/50 */
 }
 
+/* ── Dark Theme specific overrides ── */
+[data-theme="dark"] .cr-btn-outline {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .cr-btn-outline:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
 /* ── Fondo Principal ── */
 [data-theme="dark"] body {
     background: var(--color-bg) !important;

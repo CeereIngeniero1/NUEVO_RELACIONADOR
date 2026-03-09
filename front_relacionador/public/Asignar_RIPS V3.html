@@ -74,19 +74,12 @@
     <div class="cr-page-content">
         <h1 class="cr-page-heading">Gestión de Reporte Individual</h1>
 
-        <!-- ════════ PROGRESO DE DILIGENCIAMIENTO ════════ -->
-        <div class="cr-progress-wrapper mb-4" style="padding: 0 10px;">
-            <div class="d-flex justify-content-between align-items-end mb-1">
-                <span class="cr-progress-label fw-bold" style="color: var(--color-primary); font-size: 0.95rem;">
-                    <i class="fa-solid fa-bars-progress me-1"></i> Progreso de diligenciamiento
-                </span>
-                <span class="cr-progress-percentage fw-bolder text-secondary" id="crProgressText"
-                    style="font-size: 0.9rem;">0%</span>
-            </div>
-            <div class="progress shadow-sm" style="height: 12px; border-radius: 8px; background-color: #E2E6E6;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" id="crProgressBar"
-                    role="progressbar"
-                    style="width: 0%; background-color: var(--color-primary); transition: width 0.4s ease;"
+        <!-- ════════ PROGRESO DE DILIGENCIAMIENTO (Barra Fina Sticky) ════════ -->
+        <span class="d-none" id="crProgressText">0%</span>
+        <div class="cr-progress-wrapper position-sticky top-0 w-100" style="z-index: 1050;">
+            <div class="progress" style="height: 4px; border-radius: 0; background-color: transparent;">
+                <div class="progress-bar" id="crProgressBar" role="progressbar"
+                    style="width: 0%; background-color: var(--color-primary); transition: width 0.4s ease; box-shadow: 0 0 8px var(--color-primary);"
                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
@@ -212,470 +205,232 @@
                     <div class="row">
                         <div class="row">
 
-<<<<<<< HEAD
-            <div class="row mt-4">
-                <div class="row">
-                    <h5><b>Datos del paciente</b></h5>
-                   
+                            <div class="row mt-4">
+                                <div class="row">
+                                    <h5><b>Datos del paciente</b></h5>
+                                    <!-- Fila 1: Identificación y Nombres -->
+                                    <div class="col-md-2">
+                                        <label>Tipo Documento:</label>
 
 
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="TipoDocumentoBase">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Número Documento:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="DocumentoPaciente">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Primer Apellido:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="PrimerApellidoBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Segundo Apellido:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="SegundoApellidoBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Primer Nombre:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="PrimerNombreBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Segundo Nombre:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="SegundoNombreBase">
+                                    </div>
+
+                                    <!-- Fila 2: Nacimiento, Género y Nacionalidad -->
+                                    <div class="col-md-3">
+                                        <label>Fecha y Hora Nacimiento:</label>
+                                        <input type="datetime-local"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="FechaNacimientoBase">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label>Edad:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            readonly id="EdadPaciente">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Sexo Biológico:</label>
 
 
-                    <!-- Fila 1: Identificación y Nombres -->
-                    <div class="col-md-2">
-                        <label>Tipo Documento:</label>
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="SexoPaciente">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Identidad de Género:</label>
 
 
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
-                            id="TipoDocumentoBase">
-
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label>Número Documento:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="DocumentoPaciente">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Primer Apellido:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="PrimerApellidoBase">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Segundo Apellido:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="SegundoApellidoBase">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Primer Nombre:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="PrimerNombreBase">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Segundo Nombre:</label>
-                        <input  disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="SegundoNombreBase">
-                    </div>
-
-                    <!-- Fila 2: Nacimiento, Género y Nacionalidad -->
-                    <div class="col-md-3">
-                        <label>Fecha y Hora Nacimiento:</label>
-                        <input disabled type="datetime-local" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="FechaNacimientoBase">
-                    </div>
-                    <div class="col-md-1">
-                        <label>Edad:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2" readonly
-                            id="EdadPaciente">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Sexo Biológico:</label>
-
-
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="SexoPaciente">
-=======
-                            <!-- Fila 1: Identificación y Nombres -->
-                            <div class="col-md-2">
-                                <label>Tipo Documento:</label>
-
-
-                                <select class="form-select-sm border border-secondary w-100 mb-2"
-                                    id="TipoDocumentoBase">
-
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label>Número Documento:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="DocumentoPaciente">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Primer Apellido:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="PrimerApellidoBase">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Segundo Apellido:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="SegundoApellidoBase">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Primer Nombre:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="PrimerNombreBase">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Segundo Nombre:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="SegundoNombreBase">
-                            </div>
-
-                            <!-- Fila 2: Nacimiento, Género y Nacionalidad -->
-                            <div class="col-md-3">
-                                <label>Fecha y Hora Nacimiento:</label>
-                                <input type="datetime-local" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="FechaNacimientoBase">
-                            </div>
-                            <div class="col-md-1">
-                                <label>Edad:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2" readonly
-                                    id="EdadPaciente">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Sexo Biológico:</label>
-
-
-                                <select class="form-select-sm border border-secondary w-100 mb-2" id="SexoPaciente">
->>>>>>> 13b9d4fb22fd29cba587148c5cee29fefabcefcb
-
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Identidad de Género:</label>
-
-
-<<<<<<< HEAD
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
-                            id="IdentidadGeneroBase">
-=======
-                                <select class="form-select-sm border border-secondary w-100 mb-2"
-                                    id="IdentidadGeneroBase">
->>>>>>> 13b9d4fb22fd29cba587148c5cee29fefabcefcb
-
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Nacionalidad (País):</label>
-                                <div class="input-group input-group-sm">
-                                    <!-- <input type="text" class="form-control border border-secondary" placeholder="Cod"
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="IdentidadGeneroBase">
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Nacionalidad (País):</label>
+                                        <div class="input-group input-group-sm">
+                                            <!-- <input type="text" class="form-control border border-secondary" placeholder="Cod"
                                 id="CodPaisNacionalidadBase" style="max-width: 50px;"> -->
-                                    <!-- <input type="text" class="form-control border border-secondary" placeholder="Nombre País"
+                                            <!-- <input type="text" class="form-control border border-secondary" placeholder="Nombre País"
                                 id="NombrePaisNacionalidadBase"> -->
 
-<<<<<<< HEAD
-                            <!-- <select id="SelectDiagnosticoRIPSAC1" -->
-                            <select disabled id="SelectNombrePaisNacionalidadBase"
-                                class="form-select-sm border border-secondary w-100">
-                                <option value="Sin Seleccionar">Sin Seleccionar</option>
-                            </select>
+                                            <select disabled id="SelectNombrePaisNacionalidadBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
 
 
-                        </div>
-                    </div>
+                                        </div>
+                                    </div>
 
-                    <!-- Fila 3: Ubicación y Demografía Social -->
-                    <!-- Fila 2.5: Datos Biométricos -->
-                    <div class="col-md-2">
-                        <label>Talla (cm):</label>
-                        <input disabled type="number" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="TallaPaciente" placeholder="Ej: 170">
-                    </div>
-                    <div class="col-md-2">
-                        <label>Peso (kg):</label>
-                        <input disabled type="number" step="0.1"
-                            class="form-control-sm border border-secondary w-100 mb-2" id="PesoPaciente"
-                            placeholder="Ej: 70.5">
-                    </div>
-                    <div class="col-md-2">
-                        <label>IMC:</label>
-                        <input disabled type="text"
-                            class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold" id="IMCPaciente"
-                            readonly placeholder="Auto">
-                    </div>
+                                    <!-- Fila 3: Ubicación y Demografía Social -->
+                                    <!-- Fila 2.5: Datos Biométricos -->
+                                    <div class="col-md-2">
+                                        <label>Talla (cm):</label>
+                                        <input disabled type="number"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="TallaPaciente" placeholder="Ej: 170">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Peso (kg):</label>
+                                        <input disabled type="number" step="0.1"
+                                            class="form-control-sm border border-secondary w-100 mb-2" id="PesoPaciente"
+                                            placeholder="Ej: 70.5">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>IMC:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold"
+                                            id="IMCPaciente" readonly placeholder="Auto">
+                                    </div>
 
-                    <div class="col-md-3">
-                        <label>País Residencia:</label>
-                        <div class="input-group input-group-sm mb-2">
+                                    <div class="col-md-3">
+                                        <label>País Residencia:</label>
+                                        <div class="input-group input-group-sm mb-2">
 
-                            <select disabled id="SelectNombrePaisResidenciaBase"
-                                class="form-select-sm border border-secondary w-100">
-                                <option value="Sin Seleccionar">Sin Seleccionar</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Municipio Residencia:</label>
-                        <div class="input-group input-group-sm mb-2">
+                                            <select disabled id="SelectNombrePaisResidenciaBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Municipio Residencia:</label>
+                                        <div class="input-group input-group-sm mb-2">
 
 
-                            <select disabled id="SelectNombreMunicipioResidenciaBase"
-                                class="form-select-sm border border-secondary w-100">
-                                <option value="Sin Seleccionar">Sin Seleccionar</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Zona Territorial:</label>
-                        <!-- <select class="form-select-sm border border-secondary w-100 mb-2" id="ZonaTerritorialBase">
+                                            <select disabled id="SelectNombreMunicipioResidenciaBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Zona Territorial:</label>
+                                        <!-- <select class="form-select-sm border border-secondary w-100 mb-2" id="ZonaTerritorialBase">
                             <option value="">Seleccionar</option>
                             <option value="01">Urbana</option>
                             <option value="02">Rural</option>
                         </select> -->
 
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
-                            id="ListaZonaTerritorialBase">
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Dirección:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="DireccionPaciente">
-                    </div>
-
-                    <!-- Fila 4: Extra Social y Alergias -->
-                    <div class="col-md-3">
-                        <label>Etnia:</label>
-
-
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="EtniaBase">
-
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Comunidad Étnica:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="ComunidadEtnicaBase">
-                    </div>
-                    <div class="col-md-3">
-                        <label>Discapacidad:</label>
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="DiscapacidadBase">
-
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Teléfono:</label>
-                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="TelefonoPaciente">
-                    </div>
-
-                    <div class="col-md-3">
-                        <label>Ocupación:</label>
-                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="OcupacionBase">
-
-                        </select>
-                    </div>
-
-                     <div class="col-md-3">
-                        <button class="btn-actualizar" id="BtnActualizarPaciente">
-                            <span class="icon">⟳</span>
-                            Actualizar datos paciente
-                        </button>
-                         
-                    </div>
-
-
-                    <!-- Fila 5: Alergias -->
-                    <div class="col-md-12 mt-2">
-                        <div class="card p-2 border-secondary">
-                            <h6 class="text-muted">Alergias</h6>
-                            <div class="row align-items-center">
-                                <div class="col-md-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="TieneAlergiaBase">
-                                        <label class="form-check-label" for="TieneAlergiaBase">
-                                            ¿Tiene Alergias?
-                                        </label>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="ListaZonaTerritorialBase">
+                                        </select>
                                     </div>
-                                </div>
-                                <div class="col-md-10">
-                                    <label>Nombre del Alérgeno / Detalles:</label>
-                                    <input type="text" class="form-control-sm border border-secondary w-100"
-                                        id="NombreAlergenoBase"
-                                        placeholder="Describa la alergia si marca la casilla presione ENTER para agregar"
-                                        disabled>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                    <div class="col-md-3">
+                                        <label>Dirección:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="DireccionPaciente">
+                                    </div>
 
-                    <!-- Input oculto para compatibilidad temporal con JS existente -->
-                    <input type="hidden" id="NombrePaciente">
-                </div>
-
-                <h5><b>Selección de historia clínica y tipo de RIPS</b></h5>
-                <div class="col-md-4">
-                    <label for="">Seleccione la historia clínica a asignarle el RIPS</label>
-                    <select name="" class="form-select-sm w-100 border border-secondary" id="HistoriasSinRIPS">
-                        <option value="Sin Seleccionar">Sin Seleccionar</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="">Tipo de rips a diligenciar</label>
-                    <br>
-                    <label for="ac">AC <input type="radio" name="tipoRipsss" id="AC"></label>
-                    <label for="ap">AP <input type="radio" name="tipoRips" id="AP"></label>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="">RIPS por defecto</label>
-                    <br>
-                    <button type="button" class="btn btn-success btn-sm fw-bolder" data-bs-toggle="modal"
-                        data-bs-target="#ModalRIPSPorDefecto" id="BotonModalAsignarRIPSPorDefecto">Asignar</button>
-                    <button type="button" class="btn btn-success btn-sm fw-bolder"
-                        id="BotonCargarRIPSPorDefecto">Cargar</button>
-
-                    <!-- MODAL PARA ASIGNAR RIPS POR DEFECTO -->
-                    <div class="modal fade modal-lg" id="ModalRIPSPorDefecto" data-bs-backdrop="static"
-                        data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title fw-bold" id="ModalRIPSPorDefecto">Asignación de RIPS por
-                                        defecto</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
-                                        id="Boton1CerrarModalAsignarRIPSPordefecto"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <span>Selecciona el tipo de RIPS</span>
-                                    <select class="form-select-sm w-30 mb-2 border border-secondary" name=""
-                                        id="SelectTipoRIPSPorDefecto">
-                                        <option value=""></option>
-                                        <option value="1">AC</option>
-                                        <option value="2">AP</option>
-=======
-                                    <!-- <select id="SelectDiagnosticoRIPSAC1" -->
-                                    <select id="SelectNombrePaisNacionalidadBase"
-                                        class="form-select-sm border border-secondary w-100">
-                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
->>>>>>> 13b9d4fb22fd29cba587148c5cee29fefabcefcb
-                                    </select>
+                                    <!-- Fila 4: Extra Social y Alergias -->
+                                    <div class="col-md-3">
+                                        <label>Etnia:</label>
 
 
-                                </div>
-                            </div>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="EtniaBase">
 
-                            <!-- Fila 3: Ubicación y Demografía Social -->
-                            <!-- Fila 2.5: Datos Biométricos -->
-                            <div class="col-md-2">
-                                <label>Talla (cm):</label>
-                                <input type="number" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="TallaPaciente" placeholder="Ej: 170">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Peso (kg):</label>
-                                <input type="number" step="0.1"
-                                    class="form-control-sm border border-secondary w-100 mb-2" id="PesoPaciente"
-                                    placeholder="Ej: 70.5">
-                            </div>
-                            <div class="col-md-2">
-                                <label>IMC:</label>
-                                <input type="text"
-                                    class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold"
-                                    id="IMCPaciente" readonly placeholder="Auto">
-                            </div>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Comunidad Étnica:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="ComunidadEtnicaBase">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Discapacidad:</label>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="DiscapacidadBase">
 
-                            <div class="col-md-3">
-                                <label>País Residencia:</label>
-                                <div class="input-group input-group-sm mb-2">
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Teléfono:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="TelefonoPaciente">
+                                    </div>
 
-                                    <select id="SelectNombrePaisResidenciaBase"
-                                        class="form-select-sm border border-secondary w-100">
-                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Municipio Residencia:</label>
-                                <div class="input-group input-group-sm mb-2">
+                                    <div class="col-md-3">
+                                        <label>Ocupación:</label>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="OcupacionBase">
+
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <button type="button"
+                                            class="cr-btn-outline w-100 mt-4 d-flex justify-content-center"
+                                            id="BtnActualizarPaciente">
+                                            <i class="ri-refresh-line me-2"></i>
+                                            Actualizar datos paciente
+                                        </button>
+                                    </div>
 
 
-                                    <select id="SelectNombreMunicipioResidenciaBase"
-                                        class="form-select-sm border border-secondary w-100">
-                                        <option value="Sin Seleccionar">Sin Seleccionar</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Zona Territorial:</label>
-                                <select class="form-select-sm border border-secondary w-100 mb-2"
-                                    id="ZonaTerritorialBase">
-                                    <option value="">Seleccionar</option>
-                                    <option value="01">Urbana</option>
-                                    <option value="02">Rural</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Dirección:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="DireccionPaciente">
-                            </div>
-
-                            <!-- Fila 4: Extra Social y Alergias -->
-                            <div class="col-md-3">
-                                <label>Etnia:</label>
-                                <select class="form-select-sm border border-secondary w-100 mb-2" id="EtniaBase">
-                                    <option value="">Seleccionar</option>
-                                    <option value="01">Indígena</option>
-                                    <option value="02">Rrom (gitano)</option>
-                                    <option value="03">Raizal (San Andrés y Providencia)</option>
-                                    <option value="04">Palenquero (San Basilio)</option>
-                                    <option value="05">Negro(a), Mulato(a), Afrocolombiano(a)</option>
-                                    <option value="06">Ninguno</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Comunidad Étnica:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="ComunidadEtnicaBase">
-                            </div>
-                            <div class="col-md-3">
-                                <label>Discapacidad:</label>
-                                <select class="form-select-sm border border-secondary w-100 mb-2" id="DiscapacidadBase">
-                                    <option value="">Seleccionar</option>
-                                    <option value="00">No aplica</option>
-                                    <option value="01">Física</option>
-                                    <option value="02">Auditiva</option>
-                                    <option value="03">Visual</option>
-                                    <option value="04">Sordoceguera</option>
-                                    <option value="05">Intelectual</option>
-                                    <option value="06">Mental</option>
-                                    <option value="07">Múltiple</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Teléfono:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="TelefonoPaciente">
-                            </div>
-
-                            <div class="col-md-3">
-                                <label>Código Ocupación:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="CodigoOcupacionBase" placeholder="Código CIUO">
-                            </div>
-                            <div class="col-md-3">
-                                <label>Nombre Ocupación:</label>
-                                <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                                    id="NombreOcupacionBase" placeholder="Nombre de la ocupación" readonly>
-                            </div>
-
-                            <!-- Fila 5: Alergias -->
-                            <div class="col-md-12 mt-2">
-                                <div class="card p-2 border-secondary">
-                                    <h6 class="text-muted">Alergias</h6>
-                                    <div class="row align-items-center">
-                                        <div class="col-md-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="TieneAlergiaBase">
-                                                <label class="form-check-label" for="TieneAlergiaBase">
-                                                    ¿Tiene Alergias?
-                                                </label>
+                                    <!-- Fila 5: Alergias -->
+                                    <div class="col-md-12 mt-2">
+                                        <div class="card p-2 border-secondary">
+                                            <h6 class="text-muted">Alergias</h6>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                            id="TieneAlergiaBase">
+                                                        <label class="form-check-label" for="TieneAlergiaBase">
+                                                            ¿Tiene Alergias?
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <label>Nombre del Alérgeno / Detalles:</label>
+                                                    <input type="text"
+                                                        class="form-control-sm border border-secondary w-100"
+                                                        id="NombreAlergenoBase"
+                                                        placeholder="Describa la alergia si marca la casilla presione ENTER para agregar"
+                                                        disabled>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-10">
-                                            <label>Nombre del Alérgeno / Detalles:</label>
-                                            <input type="text" class="form-control-sm border border-secondary w-100"
-                                                id="NombreAlergenoBase"
-                                                placeholder="Describa la alergia si marca la casilla presione ENTER para agregar"
-                                                disabled>
-                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Input oculto para compatibilidad temporal con JS existente -->
-                            <input type="hidden" id="NombrePaciente">
+                                    <!-- Input oculto para compatibilidad temporal con JS existente -->
+                                    <input type="hidden" id="NombrePaciente">
+                                </div>
+
+
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -688,7 +443,8 @@
                 <div class="cr-card-header" onclick="crToggleCard('cardHistoriaClinica')">
                     <div class="cr-card-header-left">
                         <i class="fa-solid fa-file-medical cr-card-icon"></i>
-                        <span class="cr-card-title">Selección de historia clínica y tipo de RIPS</span>
+                        <span class="cr-card-title">Selección de historia clínica y tipo de
+                            RIPS</span>
                     </div>
                     <button class="cr-card-toggle" tabindex="-1">▼</button>
                 </div>
@@ -747,14 +503,16 @@
                                                         <label>Tipo de usuario</label>
                                                         <select name="" id="SelectPorDefectoTipoUsuarioRIPS"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label>Entidad</label>
                                                         <select name="" id="SelectPorDefectoEntidadAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -762,7 +520,8 @@
                                                         <select name=""
                                                             id="SelectPorDefectoModalidadGrupoServicioTecSalAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -772,21 +531,24 @@
                                                         <label for="">GrupoServicios</label>
                                                         <select name="" id="SelectPoDefectoGrupoServiciosAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">CodServicio</label>
                                                         <select name="" id="SelectPorDefectoCodigoServicioAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="">Sin Seleccionar</option>
+                                                            <option value="">Sin Seleccionar
+                                                            </option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">FinalidadTecnologiaSalud</label>
                                                         <select name="" id="SelectPorDefectoFinalidadTecnologiaSaludAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -796,14 +558,16 @@
                                                         <label for="">CausaMotivoAtención</label>
                                                         <select name="" id="SelectPorDefectoCausaMotivoAtencionAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">TipoDiagnósticoPrincipal</label>
                                                         <select name="" id="SelectPorDefectoTipoDiagnosticoPrincipalAC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -815,7 +579,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoConsultaRIPS1AC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -827,7 +592,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoConsultaRIPS2AC"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -839,7 +605,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoDiagnosticoRIPSAC1"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -851,7 +618,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoDiagnosticoRIPSAC2"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -864,21 +632,24 @@
                                                         <label for="">Tipo de usuario</label>
                                                         <select name="" id="SelectPorDefectoTipoUsuarioRIPSAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">Entidad</label>
                                                         <select name="" id="SelectPorDefectoEntidadAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">ViaIngresoServicioSalud</label>
                                                         <select name="" id="SelectPorDefectoViaIngresoServicioSaludAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -888,21 +659,24 @@
                                                         <select name=""
                                                             id="SelectPorDefectoModalidadGrupoServicioTecSalAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">GrupoServicios</label>
                                                         <select name="" id="SelectPorDefectoGrupoServiciosAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="">CodServicio</label>
                                                         <select name="" id="SelectPorDefectoCodServicioAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="">Sin Seleccionar</option>
+                                                            <option value="">Sin Seleccionar
+                                                            </option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -911,7 +685,8 @@
                                                         <label for="">FinalidadTecnologíaSalud</label>
                                                         <select name="" id="SelectPorDefectoFinalidadTecnologíaSaludAP"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -924,7 +699,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoProcedimientoRIPSAP1"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -936,7 +712,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoProcedimientoRIPSAP2"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -948,7 +725,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoDiagnosticoRIPSAP1"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -960,7 +738,8 @@
                                                     <div class="col-md-8">
                                                         <select name="" id="SelectPorDefectoDiagnosticoRIPSAP2"
                                                             class="form-select-sm w-100 border border-secondary">
-                                                            <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                            <option value="Sin Seleccionar">Sin
+                                                                Seleccionar</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -1076,7 +855,8 @@
                                         <div class="col-12 col-md-12">
                                             <select id="SelectConsultaRIPSAC1"
                                                 class="form-select-sm border border-dark w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                         <!-- <div class="col-12 col-md-2">
@@ -1085,7 +865,8 @@
                                         <div class="col-12 col-md-12">
                                             <select id="SelectConsultaRIPSAC2"
                                                 class="form-select-sm border border-dark w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                     </div>
@@ -1106,7 +887,8 @@
                                         <div class="col-12 col-md-12">
                                             <select id="SelectDiagnosticoRIPSAC1"
                                                 class="form-select-sm border border-secondary w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                         <!-- <div class="col-md-2">
@@ -1116,11 +898,13 @@
                                             <select id="SelectDiagnosticoRIPSAC2"
                                                 class="form-select-sm border border-secondary w-100"
                                                 style="white-space: normal;">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                     </div>
-                                    <button class="btn btn-success d-none" id="MostrarValue">Mostrar Value</button>
+                                    <button class="btn btn-success d-none" id="MostrarValue">Mostrar
+                                        Value</button>
                                 </div>
                             </div>
                         </div>
@@ -1199,7 +983,8 @@
                                         <div class="col-12 col-md-12">
                                             <select id="SelectProcedimientoRIPSAP1"
                                                 class="form-select-sm border border-dark w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                         <!-- <div class="col-12 col-md-2">
@@ -1208,7 +993,8 @@
                                         <div class="col-12 col-md-12">
                                             <select id="SelectProcedimientoRIPSAP2"
                                                 class="form-select-sm border border-dark w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                     </div>
@@ -1229,7 +1015,8 @@
                                         <div class="col-md-12">
                                             <select id="SelectDiagnosticoRIPSAP1"
                                                 class="form-select-sm border border-secondary w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                         <!-- <div class="col-md-2">
@@ -1238,7 +1025,8 @@
                                         <div class="col-md-12">
                                             <select id="SelectDiagnosticoRIPSAP2"
                                                 class="form-select-sm border border-secondary w-100">
-                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                                <option value="Sin Seleccionar">Sin Seleccionar
+                                                </option>
                                             </select>
                                         </div>
                                     </div>
@@ -1305,7 +1093,8 @@
 
                                 <!-- ========== SECCIÓN: RDA PACIENTE ========== -->
                                 <div id="SeccionRDAPaciente" class="d-none">
-                                    <h6 class="text-primary mb-3"><b>RDA Paciente — Campos Resolución 1888</b></h6>
+                                    <h6 class="text-primary mb-3"><b>RDA Paciente — Campos
+                                            Resolución 1888</b></h6>
 
                                     <div class="row g-2">
                                         <!-- Código Prestador y Administrador Plan Beneficios -->
@@ -1315,12 +1104,14 @@
                                                 id="RDA_CodigoPrestador" placeholder="Código REPS">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Código Administ. Plan Beneficios:</label>
+                                            <label class="fw-bold">Código Administ. Plan
+                                                Beneficios:</label>
                                             <input type="text" class="form-control-sm border border-secondary w-100"
                                                 id="RDA_CodigoAdminPlanBeneficios" placeholder="Código EPS/SGSSS">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="fw-bold">Nombre Administ. Plan Beneficios:</label>
+                                            <label class="fw-bold">Nombre Administ. Plan
+                                                Beneficios:</label>
                                             <input type="text" class="form-control-sm border border-secondary w-100"
                                                 id="RDA_NombreAdminPlanBeneficios" placeholder="Nombre EPS/entidad">
                                         </div>
@@ -1329,13 +1120,15 @@
                                     <div class="row g-2 mt-2">
                                         <!-- Fecha/Hora inicio y fin de atención -->
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio Atención:</label>
+                                            <label class="fw-bold">Fecha y Hora Inicio
+                                                Atención:</label>
                                             <input type="datetime-local"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDA_FechaHoraInicioAtencion">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin Atención:</label>
+                                            <label class="fw-bold">Fecha y Hora Fin
+                                                Atención:</label>
                                             <input type="datetime-local"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDA_FechaHoraFinAtencion">
@@ -1343,7 +1136,8 @@
 
                                         <!-- Profesional de Salud -->
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Profesional de Salud que Atiende:</label>
+                                            <label class="fw-bold">Profesional de Salud que
+                                                Atiende:</label>
                                             <div class="input-group input-group-sm">
                                                 <select class="form-select border border-secondary"
                                                     id="RDA_TipoDocProfesional" style="max-width: 90px;">
@@ -1363,17 +1157,20 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Diagnóstico Principal de Ingreso (CIE-11)</h6>
+                                                <h6 class="text-muted">Diagnóstico Principal de
+                                                    Ingreso (CIE-11)</h6>
                                                 <div class="row g-2">
                                                     <div class="col-md-5">
-                                                        <label>Código Diagnóstico Ingreso CIE-11:</label>
+                                                        <label>Código Diagnóstico Ingreso
+                                                            CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDA_DiagnosticoIngresoCIE11Codigo"
                                                             placeholder="Código CIE-11">
                                                     </div>
                                                     <div class="col-md-7">
-                                                        <label>Término Diagnóstico Ingreso CIE-11:</label>
+                                                        <label>Término Diagnóstico Ingreso
+                                                            CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDA_DiagnosticoIngresoCIE11Termino"
@@ -1388,15 +1185,19 @@
                                     <!-- Tipo de Alergia -->
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Tipo de Alergia (complemento):</label>
+                                            <label class="fw-bold">Tipo de Alergia
+                                                (complemento):</label>
                                             <select class="form-select-sm border border-secondary w-100"
                                                 id="RDA_TipoAlergia">
                                                 <option value="">Sin alergia</option>
                                                 <option value="01">01 - Medicamento</option>
                                                 <option value="02">02 - Alimento</option>
-                                                <option value="03">03 - Sustancia del ambiente</option>
-                                                <option value="04">04 - Sustancia en contacto con la piel</option>
-                                                <option value="05">05 - Picadura de insectos</option>
+                                                <option value="03">03 - Sustancia del ambiente
+                                                </option>
+                                                <option value="04">04 - Sustancia en contacto con la
+                                                    piel</option>
+                                                <option value="05">05 - Picadura de insectos
+                                                </option>
                                                 <option value="06">06 - Otra</option>
                                             </select>
                                         </div>
@@ -1406,7 +1207,8 @@
                                     <div class="row g-2 mt-3">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes de Salud (CIE-10)</h6>
+                                                <h6 class="text-muted">Antecedentes de Salud
+                                                    (CIE-10)</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-5">
                                                         <label>Condición de salud (CIE-10):</label>
@@ -1425,7 +1227,8 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDA_BtnAgregarAntecedente">+ Agregar</button>
+                                                            id="RDA_BtnAgregarAntecedente">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
                                                 <div id="RDA_ListaAntecedentes" class="mt-2"></div>
@@ -1445,7 +1248,8 @@
                                                             id="RDA_ParentescoFamiliar">
                                                             <option value="">Seleccionar</option>
                                                             <option value="01">01 - Padres</option>
-                                                            <option value="02">02 - Hermanos</option>
+                                                            <option value="02">02 - Hermanos
+                                                            </option>
                                                             <option value="03">03 - Tíos</option>
                                                             <option value="04">04 - Abuelos</option>
                                                         </select>
@@ -1474,7 +1278,8 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDA_BtnAgregarAntecedenteFam">+ Agregar</button>
+                                                            id="RDA_BtnAgregarAntecedenteFam">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
                                                 <div id="RDA_ListaAntecedentesFamiliares" class="mt-2"></div>
@@ -1486,10 +1291,12 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes Farmacológicos (Medicamentos)</h6>
+                                                <h6 class="text-muted">Antecedentes Farmacológicos
+                                                    (Medicamentos)</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-5">
-                                                        <label>Descripción Común del Medicamento (DCI):</label>
+                                                        <label>Descripción Común del Medicamento
+                                                            (DCI):</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDA_MedicamentoDCI"
@@ -1505,7 +1312,8 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDA_BtnAgregarMedicamento">+ Agregar</button>
+                                                            id="RDA_BtnAgregarMedicamento">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
                                                 <div id="RDA_ListaMedicamentos" class="mt-2"></div>
@@ -1516,7 +1324,8 @@
 
                                 <!-- ========== SECCIÓN: RDA CONSULTA EXTERNA ========== -->
                                 <div id="SeccionRDAConsultaExterna" class="d-none">
-                                    <h6 class="text-primary mb-3"><b>RDA Consulta Externa — Campos Resolución 1888</b>
+                                    <h6 class="text-primary mb-3"><b>RDA Consulta Externa — Campos
+                                            Resolución 1888</b>
                                     </h6>
 
                                     <div class="row g-2">
@@ -1527,12 +1336,14 @@
                                                 id="RDACE_CodigoPrestador" placeholder="Código REPS">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Código Administ. Plan Beneficios:</label>
+                                            <label class="fw-bold">Código Administ. Plan
+                                                Beneficios:</label>
                                             <input type="text" class="form-control-sm border border-secondary w-100"
                                                 id="RDACE_CodigoAdminPlanBeneficios" placeholder="Código EPS/SGSSS">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="fw-bold">Nombre Administ. Plan Beneficios:</label>
+                                            <label class="fw-bold">Nombre Administ. Plan
+                                                Beneficios:</label>
                                             <input type="text" class="form-control-sm border border-secondary w-100"
                                                 id="RDACE_NombreAdminPlanBeneficios" placeholder="Nombre EPS/entidad">
                                         </div>
@@ -1541,13 +1352,15 @@
                                     <div class="row g-2 mt-2">
                                         <!-- Fecha/Hora inicio y fin de atención -->
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio Atención:</label>
+                                            <label class="fw-bold">Fecha y Hora Inicio
+                                                Atención:</label>
                                             <input type="datetime-local"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDACE_FechaHoraInicioAtencion">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin Atención:</label>
+                                            <label class="fw-bold">Fecha y Hora Fin
+                                                Atención:</label>
                                             <input type="datetime-local"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDACE_FechaHoraFinAtencion">
@@ -1555,7 +1368,8 @@
 
                                         <!-- Profesional de Salud -->
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Profesional de Salud que Atiende:</label>
+                                            <label class="fw-bold">Profesional de Salud que
+                                                Atiende:</label>
                                             <div class="input-group input-group-sm">
                                                 <select class="form-select border border-secondary"
                                                     id="RDACE_TipoDocProfesional" style="max-width: 90px;">
@@ -1575,17 +1389,20 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Diagnóstico Principal de Ingreso (CIE-11)</h6>
+                                                <h6 class="text-muted">Diagnóstico Principal de
+                                                    Ingreso (CIE-11)</h6>
                                                 <div class="row g-2">
                                                     <div class="col-md-5">
-                                                        <label>Código Diagnóstico Ingreso CIE-11:</label>
+                                                        <label>Código Diagnóstico Ingreso
+                                                            CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagnosticoIngresoCIE11Codigo"
                                                             placeholder="Código CIE-11">
                                                     </div>
                                                     <div class="col-md-7">
-                                                        <label>Término Diagnóstico Ingreso CIE-11:</label>
+                                                        <label>Término Diagnóstico Ingreso
+                                                            CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagnosticoIngresoCIE11Termino"
@@ -1599,15 +1416,19 @@
                                     <!-- Tipo de Alergia -->
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Tipo de Alergia (complemento):</label>
+                                            <label class="fw-bold">Tipo de Alergia
+                                                (complemento):</label>
                                             <select class="form-select-sm border border-secondary w-100"
                                                 id="RDACE_TipoAlergia">
                                                 <option value="">Sin alergia</option>
                                                 <option value="01">01 - Medicamento</option>
                                                 <option value="02">02 - Alimento</option>
-                                                <option value="03">03 - Sustancia del ambiente</option>
-                                                <option value="04">04 - Sustancia en contacto con la piel</option>
-                                                <option value="05">05 - Picadura de insectos</option>
+                                                <option value="03">03 - Sustancia del ambiente
+                                                </option>
+                                                <option value="04">04 - Sustancia en contacto con la
+                                                    piel</option>
+                                                <option value="05">05 - Picadura de insectos
+                                                </option>
                                                 <option value="06">06 - Otra</option>
                                             </select>
                                         </div>
@@ -1617,7 +1438,8 @@
                                     <div class="row g-2 mt-3">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes de Salud (CIE-10)</h6>
+                                                <h6 class="text-muted">Antecedentes de Salud
+                                                    (CIE-10)</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-5">
                                                         <label>Condición de salud (CIE-10):</label>
@@ -1636,10 +1458,12 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarAntecedente">+ Agregar</button>
+                                                            id="RDACE_BtnAgregarAntecedente">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
-                                                <div id="RDACE_ListaAntecedentes" class="mt-2"></div>
+                                                <div id="RDACE_ListaAntecedentes" class="mt-2">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1656,7 +1480,8 @@
                                                             id="RDACE_ParentescoFamiliar">
                                                             <option value="">Seleccionar</option>
                                                             <option value="01">01 - Padres</option>
-                                                            <option value="02">02 - Hermanos</option>
+                                                            <option value="02">02 - Hermanos
+                                                            </option>
                                                             <option value="03">03 - Tíos</option>
                                                             <option value="04">04 - Abuelos</option>
                                                         </select>
@@ -1685,7 +1510,8 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarAntecedenteFam">+ Agregar</button>
+                                                            id="RDACE_BtnAgregarAntecedenteFam">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
                                                 <div id="RDACE_ListaAntecedentesFamiliares" class="mt-2"></div>
@@ -1697,10 +1523,12 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes Farmacológicos (Medicamentos)</h6>
+                                                <h6 class="text-muted">Antecedentes Farmacológicos
+                                                    (Medicamentos)</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-5">
-                                                        <label>Descripción Común del Medicamento (DCI):</label>
+                                                        <label>Descripción Común del Medicamento
+                                                            (DCI):</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_MedicamentoDCI"
@@ -1716,10 +1544,12 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarMedicamento">+ Agregar</button>
+                                                            id="RDACE_BtnAgregarMedicamento">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
-                                                <div id="RDACE_ListaMedicamentos" class="mt-2"></div>
+                                                <div id="RDACE_ListaMedicamentos" class="mt-2">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1730,19 +1560,27 @@
                                     <div class="row g-2 mt-3">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Entorno y Factores de Riesgo</h6>
+                                                <h6 class="text-muted">Entorno y Factores de Riesgo
+                                                </h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-4">
-                                                        <label>Entorno donde se realizó la atención:</label>
+                                                        <label>Entorno donde se realizó la
+                                                            atención:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_EntornoAtencion">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Intramural</option>
-                                                            <option value="02">02 - Extramural</option>
-                                                            <option value="03">03 - Telemedicina interactiva</option>
-                                                            <option value="04">04 - Telemedicina no interactiva</option>
-                                                            <option value="05">05 - Teleasistencia</option>
-                                                            <option value="06">06 - Teleorientación</option>
+                                                            <option value="01">01 - Intramural
+                                                            </option>
+                                                            <option value="02">02 - Extramural
+                                                            </option>
+                                                            <option value="03">03 - Telemedicina
+                                                                interactiva</option>
+                                                            <option value="04">04 - Telemedicina no
+                                                                interactiva</option>
+                                                            <option value="05">05 - Teleasistencia
+                                                            </option>
+                                                            <option value="06">06 - Teleorientación
+                                                            </option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -1750,11 +1588,15 @@
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoFactorRiesgo">
                                                             <option value="">Sin factor</option>
-                                                            <option value="01">01 - Biológico</option>
+                                                            <option value="01">01 - Biológico
+                                                            </option>
                                                             <option value="02">02 - Social</option>
-                                                            <option value="03">03 - Ambiental</option>
-                                                            <option value="04">04 - Comportamental</option>
-                                                            <option value="05">05 - Económico</option>
+                                                            <option value="03">03 - Ambiental
+                                                            </option>
+                                                            <option value="04">04 - Comportamental
+                                                            </option>
+                                                            <option value="05">05 - Económico
+                                                            </option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -1773,17 +1615,20 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Diagnóstico Principal (CIE-10)</h6>
+                                                <h6 class="text-muted">Diagnóstico Principal
+                                                    (CIE-10)</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-4">
-                                                        <label>Código diagnóstico principal CIE-10:</label>
+                                                        <label>Código diagnóstico principal
+                                                            CIE-10:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagPrincipalCIE10Codigo"
                                                             placeholder="Código CIE-10">
                                                     </div>
                                                     <div class="col-md-5">
-                                                        <label>Nombre diagnóstico principal CIE-10:</label>
+                                                        <label>Nombre diagnóstico principal
+                                                            CIE-10:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagPrincipalCIE10Nombre"
@@ -1794,9 +1639,12 @@
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoDiagPrincipalCIE10">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Impresión diagnóstica</option>
-                                                            <option value="02">02 - Confirmado nuevo</option>
-                                                            <option value="03">03 - Confirmado repetido</option>
+                                                            <option value="01">01 - Impresión
+                                                                diagnóstica</option>
+                                                            <option value="02">02 - Confirmado nuevo
+                                                            </option>
+                                                            <option value="03">03 - Confirmado
+                                                                repetido</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -1808,16 +1656,19 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Diagnósticos Relacionados</h6>
+                                                <h6 class="text-muted">Diagnósticos Relacionados
+                                                </h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-3">
-                                                        <label>Código diag. relacionado CIE-10:</label>
+                                                        <label>Código diag. relacionado
+                                                            CIE-10:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagRelacionadoCIE10Codigo" placeholder="CIE-10">
                                                     </div>
                                                     <div class="col-md-3">
-                                                        <label>Nombre diag. relacionado CIE-10:</label>
+                                                        <label>Nombre diag. relacionado
+                                                            CIE-10:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagRelacionadoCIE10Nombre" placeholder="Nombre"
@@ -1839,10 +1690,12 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarDiagRelacionado">+ Agregar</button>
+                                                            id="RDACE_BtnAgregarDiagRelacionado">+
+                                                            Agregar</button>
                                                     </div>
                                                 </div>
-                                                <div id="RDACE_ListaDiagRelacionados" class="mt-2"></div>
+                                                <div id="RDACE_ListaDiagRelacionados" class="mt-2">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1854,21 +1707,28 @@
                                                 <h6 class="text-muted">Egreso y Remisión</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-6">
-                                                        <label>Condición y destino del usuario al egreso:</label>
+                                                        <label>Condición y destino del usuario al
+                                                            egreso:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_CondicionDestinoEgreso">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Alta médica / domiciliario</option>
-                                                            <option value="02">02 - Remisión a otra institución</option>
-                                                            <option value="03">03 - Remisión a urgencias</option>
-                                                            <option value="04">04 - Remisión a hospitalización</option>
-                                                            <option value="05">05 - Alta voluntaria</option>
+                                                            <option value="01">01 - Alta médica /
+                                                                domiciliario</option>
+                                                            <option value="02">02 - Remisión a otra
+                                                                institución</option>
+                                                            <option value="03">03 - Remisión a
+                                                                urgencias</option>
+                                                            <option value="04">04 - Remisión a
+                                                                hospitalización</option>
+                                                            <option value="05">05 - Alta voluntaria
+                                                            </option>
                                                             <option value="06">06 - Evasión</option>
                                                             <option value="07">07 - Muerte</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label>Código del prestador a donde se remite:</label>
+                                                        <label>Código del prestador a donde se
+                                                            remite:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_CodigoPrestadorRemite"
@@ -1883,7 +1743,8 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Prescripción de Medicamentos (Tecnología en
+                                                <h6 class="text-muted">Prescripción de Medicamentos
+                                                    (Tecnología en
                                                     Salud)
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
@@ -1947,9 +1808,12 @@
                                                             id="RDACE_ViaAdministracionMed">
                                                             <option value="">Seleccionar</option>
                                                             <option value="01">Oral</option>
-                                                            <option value="02">Intravenosa (IV)</option>
-                                                            <option value="03">Intramuscular (IM)</option>
-                                                            <option value="04">Subcutánea (SC)</option>
+                                                            <option value="02">Intravenosa (IV)
+                                                            </option>
+                                                            <option value="03">Intramuscular (IM)
+                                                            </option>
+                                                            <option value="04">Subcutánea (SC)
+                                                            </option>
                                                             <option value="05">Tópica</option>
                                                             <option value="06">Inhalatoria</option>
                                                             <option value="07">Rectal</option>
@@ -1996,18 +1860,24 @@
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludMed">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico</option>
-                                                            <option value="02">02 - Terapéutico</option>
-                                                            <option value="03">03 - Protección específica</option>
-                                                            <option value="04">04 - Detección temprana</option>
-                                                            <option value="05">05 - Paliativo</option>
+                                                            <option value="01">01 - Diagnóstico
+                                                            </option>
+                                                            <option value="02">02 - Terapéutico
+                                                            </option>
+                                                            <option value="03">03 - Protección
+                                                                específica</option>
+                                                            <option value="04">04 - Detección
+                                                                temprana</option>
+                                                            <option value="05">05 - Paliativo
+                                                            </option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3"></div>
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarPrescripcionMed">+ Agregar Med.</button>
+                                                            id="RDACE_BtnAgregarPrescripcionMed">+
+                                                            Agregar Med.</button>
                                                     </div>
                                                 </div>
                                                 <div id="RDACE_ListaPrescripcionMedicamentos" class="mt-2"></div>
@@ -2019,7 +1889,8 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Prescripción de Procedimientos (Tecnología en
+                                                <h6 class="text-muted">Prescripción de
+                                                    Procedimientos (Tecnología en
                                                     Salud)
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
@@ -2048,11 +1919,16 @@
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludProc">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico</option>
-                                                            <option value="02">02 - Terapéutico</option>
-                                                            <option value="03">03 - Protección específica</option>
-                                                            <option value="04">04 - Detección temprana</option>
-                                                            <option value="05">05 - Paliativo</option>
+                                                            <option value="01">01 - Diagnóstico
+                                                            </option>
+                                                            <option value="02">02 - Terapéutico
+                                                            </option>
+                                                            <option value="03">03 - Protección
+                                                                específica</option>
+                                                            <option value="04">04 - Detección
+                                                                temprana</option>
+                                                            <option value="05">05 - Paliativo
+                                                            </option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
@@ -2067,7 +1943,8 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarPrescripcionProc">+ Agregar
+                                                            id="RDACE_BtnAgregarPrescripcionProc">+
+                                                            Agregar
                                                             Proc.</button>
                                                     </div>
                                                 </div>
@@ -2080,16 +1957,20 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Otras Tecnologías en Salud</h6>
+                                                <h6 class="text-muted">Otras Tecnologías en Salud
+                                                </h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-2">
                                                         <label>Tipo tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludOtra">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="03">03 - Dispositivo médico</option>
-                                                            <option value="04">04 - Producto biológico</option>
-                                                            <option value="05">05 - Nutricional</option>
+                                                            <option value="03">03 - Dispositivo
+                                                                médico</option>
+                                                            <option value="04">04 - Producto
+                                                                biológico</option>
+                                                            <option value="05">05 - Nutricional
+                                                            </option>
                                                             <option value="06">06 - Otro</option>
                                                         </select>
                                                     </div>
@@ -2116,11 +1997,16 @@
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludOtra">
                                                             <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico</option>
-                                                            <option value="02">02 - Terapéutico</option>
-                                                            <option value="03">03 - Protección específica</option>
-                                                            <option value="04">04 - Detección temprana</option>
-                                                            <option value="05">05 - Paliativo</option>
+                                                            <option value="01">01 - Diagnóstico
+                                                            </option>
+                                                            <option value="02">02 - Terapéutico
+                                                            </option>
+                                                            <option value="03">03 - Protección
+                                                                específica</option>
+                                                            <option value="04">04 - Detección
+                                                                temprana</option>
+                                                            <option value="05">05 - Paliativo
+                                                            </option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -2129,11 +2015,13 @@
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
-                                                            id="RDACE_BtnAgregarOtraTecnologia">+ Agregar Otra
+                                                            id="RDACE_BtnAgregarOtraTecnologia">+
+                                                            Agregar Otra
                                                             Tec.</button>
                                                     </div>
                                                 </div>
-                                                <div id="RDACE_ListaOtrasTecnologias" class="mt-2"></div>
+                                                <div id="RDACE_ListaOtrasTecnologias" class="mt-2">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2142,7 +2030,8 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Incapacidad y Licencia de Maternidad</h6>
+                                                <h6 class="text-muted">Incapacidad y Licencia de
+                                                    Maternidad</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-4">
                                                         <label>Alcance de la incapacidad:</label>
@@ -2151,7 +2040,8 @@
                                                             <option value="">No aplica</option>
                                                             <option value="01">01 - Laboral</option>
                                                             <option value="02">02 - Escolar</option>
-                                                            <option value="03">03 - Laboral y escolar</option>
+                                                            <option value="03">03 - Laboral y
+                                                                escolar</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -2161,7 +2051,8 @@
                                                             id="RDACE_DiasIncapacidad" placeholder="0" min="0">
                                                     </div>
                                                     <div class="col-md-4">
-                                                        <label>Días de licencia de maternidad:</label>
+                                                        <label>Días de licencia de
+                                                            maternidad:</label>
                                                         <input type="number"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiasLicenciaMaternidad" placeholder="0" min="0">
