@@ -312,40 +312,23 @@ SelectPacientes.addEventListener("change", async function (e) {
   if (document.getElementById("BuscarPorPresupuestos").checked === true) {
     document.getElementById("BuscarPorPresupuestos").click();
   }
-  // document.getElementById('BuscarPorFacturas').checked = false;
-  // document.getElementById('BuscarPorPresupuestos').checked = false;
-  // document.getElementById('BuscarPorFacturas').click();
+
 
   const NombrePaciente = document.getElementById("NombrePaciente");
   const DcoumentoPaciente = document.getElementById("DocumentoPaciente");
   const EdadPaciente = document.getElementById("EdadPaciente");
-  // const SexoPaciente = document.getElementById("SexoPaciente");
   const DireccionPaciente = document.getElementById("DireccionPaciente");
-  const TelefonoPaciente = document.getElementById("TelefonoPaciente");
   const SelectHistoriasSinRIPS = document.getElementById("HistoriasSinRIPS");
-  // const TipoDocumentoBase = document.getElementById("TipoDocumentoBase");
-  const inputIMC = document.getElementById("IMCPaciente");
 
   const PrimerApellidoBase = document.getElementById("PrimerApellidoBase");
   const SegundoApellidoBase = document.getElementById("SegundoApellidoBase");
   const PrimerNombreBase = document.getElementById("PrimerNombreBase");
   const SegundoNombreBase = document.getElementById("SegundoNombreBase");
   const FechaNacimientoBase = document.getElementById("FechaNacimientoBase");
-  // const IdentidadGeneroBase = document.getElementById("IdentidadGeneroBase");
-  // const CodPaisNacionalidadBase = document.getElementById("CodPaisNacionalidadBase");
-  // const NombrePaisNacionalidadBase = document.getElementById("NombrePaisNacionalidadBase");
   const TallaPaciente = document.getElementById("TallaPaciente");
   const PesoPaciente = document.getElementById("PesoPaciente");
-  // const CodPaisResidenciaBase = document.getElementById("CodPaisResidenciaBase");
-  // const NombrePaisResidenciaBase = document.getElementById("NombrePaisResidenciaBase");
-  // const CodMunicipioResidenciaBase = document.getElementById("CodMunicipioResidenciaBase");
-  // const NombreMunicipioResidenciaBase = document.getElementById("NombreMunicipioResidenciaBase");
-  // const ZonaTerritorialBase = document.getElementById("ZonaTerritorialBase");
-  // const EtniaBase = document.getElementById("EtniaBase");
-  // const ComunidadEtnicaBase = document.getElementById("ComunidadEtnicaBase");
-  // const DiscapacidadBase = document.getElementById("DiscapacidadBase");
-  const CodigoOcupacionBase = document.getElementById("CodigoOcupacionBase");
-  const NombreOcupacionBase = document.getElementById("NombreOcupacionBase");
+  const ComunidadEtnicaBase = document.getElementById("ComunidadEtnicaBase");
+  const TelefonoPaciente = document.getElementById("TelefonoPaciente");
 
   if (this.value === "") {
     document.getElementById("BuscarPorFacturas").disabled = true;
@@ -363,85 +346,120 @@ SelectPacientes.addEventListener("change", async function (e) {
           `Error al obtener los datos de Pacientes con HC sin RIPS: ${DatosPaciente.statusText}`
         );
       }
-      const CargarDatosPaciente = await DatosPaciente.json();
-      console.log('Datos: ', CargarDatosPaciente);
 
-      NombrePaciente.value = CargarDatosPaciente[0].NombreCompletoPaciente;
-      DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
-      EdadPaciente.value = CargarDatosPaciente[0].Edad;
-
-      // SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
-
-      const idSexoPaciente = CargarDatosPaciente[0].IdSexo;
-      const textoSexoPaciente = CargarDatosPaciente[0].Sexo;
-      const selectSexo = $("#SexoPaciente");
-      const optionSexo = new Option(textoSexoPaciente, idSexoPaciente, true, true);
-      selectSexo.append(optionSexo).trigger('change');
-
-      const IdSexoIdentidadGenero = CargarDatosPaciente[0].IdSexoIdentidadGenero;
-      const textoIdentidadGeneroBase = CargarDatosPaciente[0].IdentidadGeneroBase;
-      const selectIdentidadGenero = $("#IdentidadGeneroBase");
-      const optionIdentidadGenero = new Option(textoIdentidadGeneroBase, IdSexoIdentidadGenero, true, true);
-      selectIdentidadGenero.append(optionIdentidadGenero).trigger('change');
-
-      const IdPais1888 = CargarDatosPaciente[0].IdPaisNacionalidad;
-      const textoNombrePais1888 = CargarDatosPaciente[0].NombrePaisNACIONALIDAD;
-      const selectPais1888 = $("#SelectNombrePaisNacionalidadBase");
-      const optionPais1888 = new Option(textoNombrePais1888, IdPais1888, true, true);
-      selectPais1888.append(optionPais1888).trigger('change');
+      try {
 
 
-      const IdPaisRecidencia = CargarDatosPaciente[0].IdPaisRecidencia;
-      const textoNombrePaisRecidencia = CargarDatosPaciente[0].NombrePaisRecidencia;
-      const selectPaisRecidencia = $("#SelectNombrePaisResidenciaBase");
-      const optionPaisRecidencia = new Option(textoNombrePaisRecidencia, IdPaisRecidencia, true, true);
-      selectPaisRecidencia.append(optionPaisRecidencia).trigger('change');
+        const CargarDatosPaciente = await DatosPaciente.json();
+        console.log('Datos: ', CargarDatosPaciente);
 
-      const IdMunicipioRecidencia = CargarDatosPaciente[0].IdMunicipioRecidencia;
-      const textoNombreMunicipioRecidencia = CargarDatosPaciente[0].NombreMunicipioRecidencia;
-      const selectMunicipioRecidencia = $("#SelectNombreMunicipioResidenciaBase");
-      const optionMunicipioRecidencia = new Option(textoNombreMunicipioRecidencia, IdMunicipioRecidencia, true, true);
-      selectMunicipioRecidencia.append(optionMunicipioRecidencia).trigger('change');
+        NombrePaciente.value = CargarDatosPaciente[0].NombreCompletoPaciente;
+        DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
+        EdadPaciente.value = CargarDatosPaciente[0].Edad;
 
+        // SexoPaciente.value = CargarDatosPaciente[0].SexoPaciente;
 
-      TallaPaciente.value = CargarDatosPaciente[0].Talla;
-      PesoPaciente.value = CargarDatosPaciente[0].Peso;
+        const idSexoPaciente = CargarDatosPaciente[0].IdSexo;
+        const textoSexoPaciente = CargarDatosPaciente[0].Sexo;
+        const selectSexo = $("#SexoPaciente");
+        const optionSexo = new Option(textoSexoPaciente, idSexoPaciente, true, true);
+        selectSexo.append(optionSexo).trigger('change');
 
+        const IdSexoIdentidadGenero = CargarDatosPaciente[0].IdSexoIdentidadGenero;
+        const textoIdentidadGeneroBase = CargarDatosPaciente[0].IdentidadGeneroBase;
+        const selectIdentidadGenero = $("#IdentidadGeneroBase");
+        const optionIdentidadGenero = new Option(textoIdentidadGeneroBase, IdSexoIdentidadGenero, true, true);
+        selectIdentidadGenero.append(optionIdentidadGenero).trigger('change');
 
-
-
-
-      const tallaCm = parseFloat(parseFloat(inputTalla.value) || 0);
-      const pesoKg = parseFloat(CargarDatosPaciente[0].Peso);
-
-      // No funciono PERO HAY QUE BUSCAR ARREGLARLO
-      // const tallaM = tallaCm / 100;
-      // const imc = pesoKg / (tallaM * tallaM);
-      // inputIMC.value = imc.toFixed(2);
-
+        const IdPais1888 = CargarDatosPaciente[0].IdPaisNacionalidad;
+        const textoNombrePais1888 = CargarDatosPaciente[0].NombrePaisNACIONALIDAD;
+        const selectPais1888 = $("#SelectNombrePaisNacionalidadBase");
+        const optionPais1888 = new Option(textoNombrePais1888, IdPais1888, true, true);
+        selectPais1888.append(optionPais1888).trigger('change');
 
 
-      DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
-      TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+        const IdPaisRecidencia = CargarDatosPaciente[0].IdPaisRecidencia;
+        const textoNombrePaisRecidencia = CargarDatosPaciente[0].NombrePaisRecidencia;
+        const selectPaisRecidencia = $("#SelectNombrePaisResidenciaBase");
+        const optionPaisRecidencia = new Option(textoNombrePaisRecidencia, IdPaisRecidencia, true, true);
+        selectPaisRecidencia.append(optionPaisRecidencia).trigger('change');
 
-      // Ocupación
-      if (CodigoOcupacionBase) CodigoOcupacionBase.value = CargarDatosPaciente[0].CodigoOcupacion || "";
-      if (NombreOcupacionBase) NombreOcupacionBase.value = CargarDatosPaciente[0].NombreOcupacion || "";
-      const idTipoDoc = CargarDatosPaciente[0].IdTipodeDocumento;
-      const textoTipoDoc = CargarDatosPaciente[0].DescripciTipoDocumento;
+        const IdMunicipioRecidencia = CargarDatosPaciente[0].IdMunicipioRecidencia;
+        const textoNombreMunicipioRecidencia = CargarDatosPaciente[0].NombreMunicipioRecidencia;
+        const selectMunicipioRecidencia = $("#SelectNombreMunicipioResidenciaBase");
+        const optionMunicipioRecidencia = new Option(textoNombreMunicipioRecidencia, IdMunicipioRecidencia, true, true);
+        selectMunicipioRecidencia.append(optionMunicipioRecidencia).trigger('change');
 
 
-      // TipoDocumentoBase.value = CargarDatosPaciente[0].IdTipodeDocumento; 
-      const select = $("#TipoDocumentoBase");
-      const option = new Option(textoTipoDoc, idTipoDoc, true, true);
-      select.append(option).trigger('change');
+        TallaPaciente.value = CargarDatosPaciente[0].Talla;
+        PesoPaciente.value = CargarDatosPaciente[0].Peso;
 
-      PrimerApellidoBase.value = CargarDatosPaciente[0].PrimerApellidoBase;
-      SegundoApellidoBase.value = CargarDatosPaciente[0].SegundoApellidoBase;
-      PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
-      SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
-      FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
 
+        const IdZonaTerritorialBase = CargarDatosPaciente[0].IdZonaResidencia;
+        const textoNombreZonaTerritorialBase = CargarDatosPaciente[0].DescripciónZonaResidencia;
+        const selectZonaTerritorialBase = $("#ListaZonaTerritorialBase");
+        const optionZonaTerritorialBase = new Option(textoNombreZonaTerritorialBase, IdZonaTerritorialBase, true, true);
+        selectZonaTerritorialBase.append(optionZonaTerritorialBase).trigger('change');
+
+
+
+
+        const IdEtnia = CargarDatosPaciente[0].IdEtnia;
+        const textoNombreEtnia = CargarDatosPaciente[0].DescripciónEtnia;
+        const selectEtniaBase = $("#EtniaBase");
+        const optionEtniaBase = new Option(textoNombreEtnia, IdEtnia, true, true);
+        selectEtniaBase.append(optionEtniaBase).trigger('change');
+
+        ComunidadEtnicaBase.value = CargarDatosPaciente[0].ComunidadEtnica;
+
+
+        const IdDiscapacidad = CargarDatosPaciente[0].IdDiscapacidad;
+        const textoNombreDiscapacidad = CargarDatosPaciente[0].DescripcionDiscapacidad;
+        const selectDiscapacidadBase = $("#DiscapacidadBase");
+        const optionDiscapacidadBase = new Option(textoNombreDiscapacidad, IdDiscapacidad, true, true);
+        selectDiscapacidadBase.append(optionDiscapacidadBase).trigger('change');
+
+        TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+
+        // Ocupacion
+        // console.log(CargarDatosPaciente[0].IdOcupación);
+        // console.log(CargarDatosPaciente[0].DescripciónOcupación);
+
+        const IdOcupación = CargarDatosPaciente[0].IdOcupación;
+        const textoDescripciónOcupación = CargarDatosPaciente[0].DescripciónOcupación;
+        const selectocupacionBase = $("#OcupacionBase");
+        const optionOcupacionBase = new Option(textoDescripciónOcupación, IdOcupación, true, true);
+        selectocupacionBase.append(optionOcupacionBase).trigger('change');
+
+
+
+
+
+
+        DireccionPaciente.value = CargarDatosPaciente[0].Direccion;
+        TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
+
+
+
+
+        const IdTipodeDocumento = CargarDatosPaciente[0].IdTipodeDocumento;
+        const textoDescripciónTipoDocumento = CargarDatosPaciente[0].DescripciTipoDocumento;
+
+
+
+        const selectTipoDocumentoBase = $("#TipoDocumentoBase");
+        const optionTipoDocumentoBase = new Option(textoDescripciónTipoDocumento, IdTipodeDocumento, true, true);
+        selectTipoDocumentoBase.append(optionTipoDocumentoBase).trigger('change');
+
+        PrimerApellidoBase.value = CargarDatosPaciente[0].PrimerApellidoBase;
+        SegundoApellidoBase.value = CargarDatosPaciente[0].SegundoApellidoBase;
+        PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
+        SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
+        FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
+      } catch (error) {
+        console.error("Error al cargar los datos del paciente:", error);
+
+      }
 
       LlenarSelectDeHistoriasClinicas();
     } catch (error) {
@@ -452,7 +470,6 @@ SelectPacientes.addEventListener("change", async function (e) {
     NombrePaciente.value = "";
     DcoumentoPaciente.value = "";
     EdadPaciente.value = "";
-    SexoPaciente.value = "";
     DireccionPaciente.value = "";
     TelefonoPaciente.value = "";
     SelectHistoriasSinRIPS.innerHTML = "";
@@ -461,8 +478,7 @@ SelectPacientes.addEventListener("change", async function (e) {
     SegundoApellidoBase.value = "";
     PrimerNombreBase.value = "";
     SegundoNombreBase.value = "";
-    if (CodigoOcupacionBase) CodigoOcupacionBase.value = "";
-    if (NombreOcupacionBase) NombreOcupacionBase.value = "";
+
   }
 });
 
@@ -739,6 +755,254 @@ $(document).ready(function () {
     }
   });
 
+
+  ///Lista para conslta de tipo documentos
+  $("#ListaZonaTerritorialBase").select2({
+    placeholder: "Selecciona Zona Territorial",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "U";
+
+        fetch(`http://${servidor}:3000/apiv3/ZonaTerritorial/${encodeURIComponent(q)}`)
+          // fetch(`http://${servidor}:3000/apiv3/ZonaTerritorial`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdZonaResidencia,     // lo que se guarda como valor
+            text: p.DescripciónZonaResidencia         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+
+  ///Lista para conslta de tipo documentos
+  $("#EtniaBase").select2({
+    placeholder: "Selecciona Etnia",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/Etnia/${encodeURIComponent(q)}`)
+          // fetch(`http://${servidor}:3000/apiv3/ZonaTerritorial`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdEtnia,     // lo que se guarda como valor
+            text: p.DescripciónEtnia         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+  ///Lista para conslta de tipo documentos
+  $("#DiscapacidadBase").select2({
+    placeholder: "Selecciona DiscapacidadBase",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/Discapacidad/${encodeURIComponent(q)}`)
+          // fetch(`http://${servidor}:3000/apiv3/ZonaTerritorial`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdDiscapacidad,     // lo que se guarda como valor
+            text: p.DescripcionDiscapacidad         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+  ///Lista para conslta de tipo documentos
+  $("#OcupacionBase").select2({
+    placeholder: "Selecciona Ocupación",
+    allowClear: true,
+    minimumInputLength: 0,
+    ajax: {
+      delay: 250,
+      transport: function (params, success, failure) {
+        const term = (params.data.term || "").trim();
+
+
+        const q = term.length ? term : "";
+
+        fetch(`http://${servidor}:3000/apiv3/ocupacion/${encodeURIComponent(q)}`)
+          // fetch(`http://${servidor}:3000/apiv3/ZonaTerritorial`)
+          .then(r => r.json())
+          .then(data => success({ results: data }))
+          .catch(failure);
+      },
+      processResults: function (data) {
+        return {
+          results: data.results.map(p => ({
+            id: p.IdOcupacion,     // lo que se guarda como valor
+            text: p.DescripcionOcupacion         // lo que se ve
+          }))
+        };
+      }
+    }
+  });
+
+
+  let modoEdicionPaciente = false;
+
+  const camposPaciente = [
+    "TipoDocumentoBase",
+    //"DocumentoPaciente", // mejor dejarlo bloqueado siempre
+    "PrimerApellidoBase",
+    "SegundoApellidoBase",
+    "PrimerNombreBase",
+    "SegundoNombreBase",
+    "FechaNacimientoBase",
+    //"EdadPaciente", // mejor readonly si la calculas
+    "SexoPaciente",
+    "IdentidadGeneroBase",
+    "SelectNombrePaisNacionalidadBase",
+    "TallaPaciente",
+    "PesoPaciente",
+    "SelectNombrePaisResidenciaBase",
+    "SelectNombreMunicipioResidenciaBase",
+    "ListaZonaTerritorialBase",
+    "DireccionPaciente",
+    "EtniaBase",
+    "ComunidadEtnicaBase",
+    "DiscapacidadBase",
+    "TelefonoPaciente",
+    "OcupacionBase"
+  ];
+
+  function setCamposPacienteDisabled(disabled) {
+    camposPaciente.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = disabled;
+    });
+
+    // estos mejor dejarlos controlados aparte
+    const documento = document.getElementById("DocumentoPaciente");
+    if (documento) documento.disabled = true;
+
+    const edad = document.getElementById("EdadPaciente");
+    if (edad) edad.disabled = true;
+  }
+
+  function obtenerPayloadPaciente() {
+    return {
+      IdTipoDocumento: parseInt(document.getElementById("TipoDocumentoBase").value) || null,
+      Documento: document.getElementById("DocumentoPaciente").value.trim(),
+      PrimerApellido: document.getElementById("PrimerApellidoBase").value.trim(),
+      SegundoApellido: document.getElementById("SegundoApellidoBase").value.trim(),
+      PrimerNombre: document.getElementById("PrimerNombreBase").value.trim(),
+      SegundoNombre: document.getElementById("SegundoNombreBase").value.trim(),
+      FechaNacimiento: document.getElementById("FechaNacimientoBase").value || null,
+      Edad: document.getElementById("EdadPaciente").value.trim(),
+      SexoBio: parseInt(document.getElementById("SexoPaciente").value) || null,
+      SexoIdenti: parseInt(document.getElementById("IdentidadGeneroBase").value) || null,
+      IdNacionalidad: parseInt(document.getElementById("SelectNombrePaisNacionalidadBase").value) || null,
+      Talla: document.getElementById("TallaPaciente").value.trim(),
+      Peso: document.getElementById("PesoPaciente").value.trim(),
+      IdResidencia: parseInt(document.getElementById("SelectNombrePaisResidenciaBase").value) || null,
+      IdMunicipio: parseInt(document.getElementById("SelectNombreMunicipioResidenciaBase").value) || null,
+      IdZonaTerritorial: parseInt(document.getElementById("ListaZonaTerritorialBase").value) || null,
+      Direccion: document.getElementById("DireccionPaciente").value.trim(),
+      IdEtnia: parseInt(document.getElementById("EtniaBase").value) || null,
+      ComunidadEtnica: document.getElementById("ComunidadEtnicaBase").value.trim(),
+      IdDiscapacidad: parseInt(document.getElementById("DiscapacidadBase").value) || null,
+      Telefono: document.getElementById("TelefonoPaciente").value.trim(),
+      IdOcupacion: parseInt(document.getElementById("OcupacionBase").value) || null
+    };
+  }
+
+  async function guardarPaciente() {
+    const payload = obtenerPayloadPaciente();
+
+    if (!payload.Documento) {
+      alert("Debe existir un documento antes de actualizar.");
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(`http://${servidor}:3000/apiv3/ActualizarPaciente`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await respuesta.json();
+
+      if (!respuesta.ok || !data.success) {
+        throw new Error(data.message || data.error || "No se pudo actualizar el paciente");
+      }
+
+      alert(data.message || "Paciente actualizado correctamente");
+      setCamposPacienteDisabled(true);
+      modoEdicionPaciente = false;
+      $("#BtnActualizarPaciente").html('<span class="icon">⟳</span> Actualizar datos paciente');
+    } catch (error) {
+      console.error("Error al guardar paciente:", error);
+      alert(error.message || "Error al guardar los cambios");
+    }
+  }
+
+  $("#BtnActualizarPaciente").click(async function () {
+    const documento = document.getElementById("DocumentoPaciente").value.trim();
+
+    if (!documento) {
+      alert("Primero consulta un paciente.");
+      return;
+    }
+
+    if (!modoEdicionPaciente) {
+      setCamposPacienteDisabled(false);
+      modoEdicionPaciente = true;
+      $(this).html('<span class="icon">💾</span> Guardar cambios');
+    } else {
+      await guardarPaciente();
+    }
+  });
+
+setCamposPacienteDisabled(true);
+    modoEdicionPaciente = false;
+
+    $("#BtnActualizarPaciente").html('<span class="icon">⟳</span> Actualizar datos paciente');
 
 
 });

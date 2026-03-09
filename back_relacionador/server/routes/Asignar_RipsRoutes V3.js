@@ -209,10 +209,11 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
             .query(`
                 SELECT 
-                  IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, SexoPaciente, Sexo, 
-                  CódigoSexo, IdSexo, Edad, Direccion, Tel, DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], IdSexoIdentidadGenero, codigoIdentidadGeneroBase, IdentidadGeneroBase, [Id Zona Residencia], 
-                  [Código Zona Residencia], [Zona Residencia], Talla, Peso, [Id Etnia], [Código Etnia], Etnia, [Comunidad Etnica], [Id Discapacidad], codigoDiscapacidad, Discapacidad, IdPaisNacionalidad, CodigoPaisNacionalidad, 
-                  NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia, IdMunicipioRecidencia, CodigoMunicipioRecidencia, NombreMunicipioRecidencia
+                 IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, SexoPaciente, Sexo, 
+                  CódigoSexo, IdSexo, Edad, Direccion, Tel, DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], IdSexoIdentidadGenero, codigoIdentidadGeneroBase, IdentidadGeneroBase, [Id Zona Residencia], Talla, Peso, 
+                  [Id Etnia], ComunidadEtnica, [Id Discapacidad], IdPaisNacionalidad, CodigoPaisNacionalidad, NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia, IdMunicipioRecidencia, 
+                  CodigoMunicipioRecidencia, NombreMunicipioRecidencia, IdZonaResidencia, DescripciónZonaResidencia, CódigoZonaResidencia, ZonaResidencia, IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdDiscapacidad, Codigo, Discapacidad, 
+                  DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación
 FROM     [Cnsta Relacionador Usuarios Info]
                 WHERE DocumentoPaciente = @DocumentoPaciente
             `);
@@ -1599,6 +1600,8 @@ router.get('/ConsultarPresupuestos/:DocumentoPaciente', async (req, res) => {
     }
 });
 
+// =================================================================================================
+// =====ReSOLUCION 1888======
 
 
 router.get('/Paises', async (req, res) => {
@@ -1641,6 +1644,7 @@ router.get('/Paises', async (req, res) => {
     }
 
 });
+
 
 router.get('/Paises/:NombrePais', async (req, res) => {
     const NombrePais = req.params.NombrePais;
@@ -1891,7 +1895,7 @@ router.get('/Sexo/:Sexo', async (req, res) => {
 
 });
 
-router.get('/Sexo/', async (req, res) => { 
+router.get('/Sexo/', async (req, res) => {
 
     try {
 
@@ -1981,8 +1985,8 @@ router.get('/identidadSexo/', async (req, res) => {
 
         const request = new Request(
             `
-        SELECT   IdSexoIdentidadGenero, Codigo, IdentidadGenero, DescripcionIdentidadGenero
-        FROM     [Cnsta SexoIdentidad 1888]
+         SELECT   IdSexoIdentidadGenero, Codigo, IdentidadGenero, DescripcionIdentidadGenero
+        FROM     [Cnsta SexoIdentidad 1888] 
 
         `,
             (err) => {
@@ -2016,6 +2020,439 @@ router.get('/identidadSexo/', async (req, res) => {
 
 });
 
+router.get('/ZonaTerritorial/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            `
+      SELECT   IdZonaResidencia, ZonaResidencia, DescripciónZonaResidencia
+FROM     [Cnsta ZonaResidencia 1888]
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+router.get('/ZonaTerritorial/:ZonaTerritorial', async (req, res) => {
+
+    const ZonaTerritorial = req.params.ZonaTerritorial;
+    try {
+
+        const request = new Request(
+            `
+        SELECT    IdZonaResidencia, ZonaResidencia, DescripciónZonaResidencia
+FROM     [Cnsta ZonaResidencia 1888]
+            where DescripciónZonaResidencia like '%${ZonaTerritorial}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+router.get('/Etnia/:Etnia', async (req, res) => {
+
+    const Etnia = req.params.Etnia;
+    try {
+
+        const request = new Request(
+            ` 
+            SELECT  IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdEstado
+FROM     [Cnsta Etnia 1888]
+where DescripciónEtnia like '%${Etnia}%' OR CódigoEtnia like '%${Etnia}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Etnia', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+            SELECT  IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdEstado
+FROM     [Cnsta Etnia 1888] 
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Discapacidad/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+           SELECT  IdDiscapacidad, Codigo, Discapacidad, DescripcionDiscapacidad
+FROM     [Cnsta Discapacidad 1888] 
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Discapacidad/:Discapacidad', async (req, res) => {
+
+    const Discapacidad = req.params.Discapacidad;
+    try {
+
+        const request = new Request(
+            ` 
+          SELECT   IdDiscapacidad, Codigo, Discapacidad, DescripcionDiscapacidad
+FROM     [Cnsta Discapacidad 1888]
+where DescripcionDiscapacidad like '%${Discapacidad}%' OR Codigo like '%${Discapacidad}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Ocupacion/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   IdOcupacion, CodigoOcupacion, DescripcionOcupacion, [Id Estado]
+FROM     [Cnsta Ocupacion 1888]
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+router.get('/Ocupacion/:Ocupacion', async (req, res) => {
+
+    const Ocupacion = req.params.Ocupacion;
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   IdOcupacion, CodigoOcupacion, DescripcionOcupacion, [Id Estado]
+FROM     [Cnsta Ocupacion 1888]
+where DescripcionOcupacion like '%${Ocupacion}%' OR CodigoOcupacion like '%${Ocupacion}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+// =================================================================================================
+
+// ==============================Actualizar paciente desde asignar rips ==============
+
+router.post('/ActualizarPaciente', async (req, res) => {
+    const {
+        IdTipoDocumento,
+        Documento,
+        PrimerApellido,
+        SegundoApellido,
+        PrimerNombre,
+        SegundoNombre,
+        FechaNacimiento,
+        Edad,
+        SexoBio,
+        SexoIdenti,
+        IdNacionalidad,
+        Talla,
+        Peso,
+        IdResidencia,
+        IdMunicipio,
+        IdZonaTerritorial,
+        Direccion,
+        IdEtnia,
+        ComunidadEtnica,
+        IdDiscapacidad,
+        Telefono,
+        IdOcupacion
+    } = req.body;
+
+    const fechaNacimientoValida = FechaNacimiento ? new Date(FechaNacimiento) : null;
+
+    if (FechaNacimiento && isNaN(fechaNacimientoValida.getTime())) {
+        return res.status(400).json({
+            success: false,
+            message: 'FechaNacimiento no tiene un formato válido'
+        });
+    }
+    
+
+    if (!Documento || Documento.trim() === '') {
+        return res.status(400).json({
+            success: false,
+            message: 'El campo Documento es obligatorio'
+        });
+    }
+
+    const resultados = [];
+
+    const request = new Request('sp_Paciente_Guardar', (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar el procedimiento:', err.message);
+            return res.status(500).json({
+                success: false,
+                error: 'Error al ejecutar el procedimiento almacenado'
+            });
+        }
+
+        console.log('Procedimiento ejecutado con éxito');
+        return res.json({
+            success: true,
+            message: 'Paciente guardado correctamente',
+            rowsAffected: rowCount,
+            data: resultados
+        });
+    });
+
+    request.addParameter('IdTipoDocumento', TYPES.Int, IdTipoDocumento);
+    request.addParameter('Documento', TYPES.NVarChar, Documento);
+    request.addParameter('PrimerApellido', TYPES.NVarChar, PrimerApellido || null);
+    request.addParameter('SegundoApellido', TYPES.NVarChar, SegundoApellido || null);
+    request.addParameter('PrimerNombre', TYPES.NVarChar, PrimerNombre || null);
+    request.addParameter('SegundoNombre', TYPES.NVarChar, SegundoNombre || null);
+    request.addParameter('FechaNacimiento', TYPES.DateTime, fechaNacimientoValida);
+    request.addParameter('Edad', TYPES.NVarChar, Edad || null);
+    request.addParameter('SexoBio', TYPES.Int, SexoBio);
+    request.addParameter('SexoIdenti', TYPES.Int, SexoIdenti);
+    request.addParameter('IdNacionalidad', TYPES.Int, IdNacionalidad);
+    request.addParameter('Talla', TYPES.NVarChar, Talla || null);
+    request.addParameter('Peso', TYPES.NVarChar, Peso || null);
+    request.addParameter('IdResidencia', TYPES.Int, IdResidencia);
+    request.addParameter('IdMunicipio', TYPES.Int, IdMunicipio);
+    request.addParameter('IdZonaTerritorial', TYPES.Int, IdZonaTerritorial);
+    request.addParameter('Direccion', TYPES.NVarChar, Direccion || null);
+    request.addParameter('IdEtnia', TYPES.Int, IdEtnia);
+    request.addParameter('ComunidadEtnica', TYPES.NVarChar, ComunidadEtnica || null);
+    request.addParameter('IdDiscapacidad', TYPES.Int, IdDiscapacidad);
+    request.addParameter('Telefono', TYPES.NVarChar, Telefono || null);
+    request.addParameter('IdOcupacion', TYPES.Int, IdOcupacion);
+
+    request.on('row', columns => {
+        const fila = {};
+
+        columns.forEach(column => {
+            fila[column.metadata.colName] = column.value;
+        });
+
+        resultados.push(fila);
+    });
+
+    connection.callProcedure(request);
+});
 
 
 // =================================================================================================
