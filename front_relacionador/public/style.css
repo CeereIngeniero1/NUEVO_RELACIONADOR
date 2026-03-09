@@ -609,6 +609,67 @@ body {
 }
 
 /* ══════════════════════════════════════════════
+   ADVANCED PROGRESS BAR
+══════════════════════════════════════════════ */
+.cr-advanced-progress {
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background-color 0.3s ease;
+}
+
+.cr-progress-label {
+    font-size: 10px;
+    letter-spacing: -0.5px;
+}
+
+.cr-progress-percentage {
+    font-size: 14px;
+}
+
+.cr-progress-track {
+    height: 10px;
+    max-width: 450px;
+}
+
+.cr-progress-inner {
+    height: 52px;
+    gap: 16px;
+}
+
+/* Status Badge dynamic states */
+.cr-badge-complete {
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0f5132 !important;
+}
+
+/* ── Dark Theme Overrides for Progress Bar ── */
+[data-theme="dark"] .cr-advanced-progress {
+    background-color: rgba(30, 41, 59, 0.9);
+    /* slate-800 con opacidad */
+    border-color: #334155 !important;
+    /* slate-700 */
+}
+
+[data-theme="dark"] .cr-advanced-progress .bg-light {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .cr-advanced-progress .text-secondary {
+    color: #94a3b8 !important;
+    /* slate-400 */
+}
+
+[data-theme="dark"] .cr-badge-complete {
+    background-color: rgba(25, 135, 84, 0.2) !important;
+    border-color: rgba(25, 135, 84, 0.5) !important;
+    color: #75b798 !important;
+    /* text-success */
+}
+
+/* ══════════════════════════════════════════════
    MODALES (preservando estilos existentes)
 ══════════════════════════════════════════════ */
 /* Modales: Bootstrap se encarga del layout interno */

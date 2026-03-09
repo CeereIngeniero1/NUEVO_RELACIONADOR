@@ -68,21 +68,38 @@
         </div>
     </nav>
 
+    <!-- ════════ PROGRESO DE DILIGENCIAMIENTO (Barra Avanzada Sticky) ════════ -->
+    <div id="crProgressWrapper" class="cr-advanced-progress w-100 shadow-sm border-bottom"
+        style="position: sticky; top: 52px; z-index: 150;">
+        <div class="cr-progress-inner d-flex align-items-center justify-content-between px-4">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+                <div class="d-none d-md-flex flex-column lh-1">
+                    <span class="cr-progress-label text-uppercase fw-bold text-secondary">Progreso del Reporte</span>
+                    <span id="crProgressText" class="cr-progress-percentage fw-bold text-success mt-1">0%
+                        completado</span>
+                </div>
+
+                <div class="cr-progress-track flex-grow-1 bg-light rounded-pill overflow-hidden border ms-0 ms-md-3">
+                    <div id="crProgressBar" class="h-100 rounded-pill"
+                        style="width: 0%; background-color: var(--color-primary); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(20, 184, 166, 0.3);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center ms-3">
+                <div id="crProgressBadge"
+                    class="badge rounded-pill border bg-light text-secondary px-3 py-2 fw-semibold">
+                    En proceso
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════════════════════════════════════════
      PAGE CONTENT
      ═══════════════════════════════════════════ -->
     <div class="cr-page-content">
         <h1 class="cr-page-heading">Gestión de Reporte Individual</h1>
-
-        <!-- ════════ PROGRESO DE DILIGENCIAMIENTO (Barra Fina Sticky) ════════ -->
-        <span class="d-none" id="crProgressText">0%</span>
-        <div class="cr-progress-wrapper position-sticky top-0 w-100" style="z-index: 1050;">
-            <div class="progress" style="height: 4px; border-radius: 0; background-color: transparent;">
-                <div class="progress-bar" id="crProgressBar" role="progressbar"
-                    style="width: 0%; background-color: var(--color-primary); transition: width 0.4s ease; box-shadow: 0 0 8px var(--color-primary);"
-                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-        </div>
 
         <div class="container" id="Contenido">
 
@@ -480,7 +497,8 @@
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title fw-bold" id="ModalRIPSPorDefecto">Asignación de RIPS
+                                            <h5 class="modal-title fw-bold" id="ModalRIPSPorDefecto">Asignación de
+                                                RIPS
                                                 por
                                                 defecto</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"
@@ -1038,7 +1056,8 @@
                     <div class="button">
                         <button id="btnRegistrarRIPS" class="btn btn-success btn-sm mt-3 fw-bolder">Registrar
                             RIPS</button>
-                        <button id="BtnNoRegistrarRIPS" class="btn btn-warning btn-sm mt-3 fw-bolder">No registrar RIPS
+                        <button id="BtnNoRegistrarRIPS" class="btn btn-warning btn-sm mt-3 fw-bolder">No registrar
+                            RIPS
                             a
                             historia</button>
                     </div>
@@ -2143,14 +2162,23 @@
                 if (progressBar && progressText) {
                     progressBar.style.width = percentage + '%';
                     progressBar.setAttribute('aria-valuenow', percentage);
-                    progressText.innerText = percentage + '%';
+                    progressText.innerText = percentage + '% completado';
 
+                    const badge = document.getElementById('crProgressBadge');
                     if (percentage === 100) {
-                        progressBar.style.backgroundColor = 'var(--color-success)'; // Verde si está al 100%
-                        progressBar.classList.remove('progress-bar-animated');
+                        progressBar.style.backgroundColor = 'var(--color-success, #198754)';
+                        progressBar.style.boxShadow = '0 0 10px rgba(25, 135, 84, 0.5)';
+                        if (badge) {
+                            badge.innerText = 'Listo para enviar';
+                            badge.className = 'badge rounded-pill border px-3 py-2 fw-semibold cr-badge-complete';
+                        }
                     } else {
-                        progressBar.style.backgroundColor = 'var(--color-primary)'; // Teal mientras está en progreso
-                        progressBar.classList.add('progress-bar-animated');
+                        progressBar.style.backgroundColor = 'var(--color-primary)';
+                        progressBar.style.boxShadow = '0 0 10px rgba(20, 184, 166, 0.3)';
+                        if (badge) {
+                            badge.innerText = 'En proceso';
+                            badge.className = 'badge rounded-pill border bg-light text-secondary px-3 py-2 fw-semibold';
+                        }
                     }
                 }
             }
