@@ -84,3 +84,26 @@ select {
 .campo-faltante {
     border: 2px solid #F74040 !important;
 }
+
+
+
+
+.btn-actualizar{
+  display:inline-flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.85rem 1.15rem;
+  border:0;
+  border-radius:14px;
+  cursor:pointer;
+  font:600 15px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  color:#fff;
+  background:linear-gradient(135deg, #2563eb, #06b6d4);
+  box-shadow:0 10px 25px rgba(37,99,235,.25);
+  transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+
+.btn-actualizar:hover{
+  transform:translateY(-1px);
+}
+

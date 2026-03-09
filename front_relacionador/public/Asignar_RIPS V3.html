@@ -134,58 +134,63 @@
             <div class="row mt-4">
                 <div class="row">
                     <h5><b>Datos del paciente</b></h5>
+                   
+
+
+
 
                     <!-- Fila 1: Identificación y Nombres -->
                     <div class="col-md-2">
                         <label>Tipo Documento:</label>
 
 
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="TipoDocumentoBase">
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                            id="TipoDocumentoBase">
 
                         </select>
                     </div>
                     <div class="col-md-2">
                         <label>Número Documento:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="DocumentoPaciente">
                     </div>
                     <div class="col-md-2">
                         <label>Primer Apellido:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="PrimerApellidoBase">
                     </div>
                     <div class="col-md-2">
                         <label>Segundo Apellido:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="SegundoApellidoBase">
                     </div>
                     <div class="col-md-2">
                         <label>Primer Nombre:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="PrimerNombreBase">
                     </div>
                     <div class="col-md-2">
                         <label>Segundo Nombre:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input  disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="SegundoNombreBase">
                     </div>
 
                     <!-- Fila 2: Nacimiento, Género y Nacionalidad -->
                     <div class="col-md-3">
                         <label>Fecha y Hora Nacimiento:</label>
-                        <input type="datetime-local" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="datetime-local" class="form-control-sm border border-secondary w-100 mb-2"
                             id="FechaNacimientoBase">
                     </div>
                     <div class="col-md-1">
                         <label>Edad:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2" readonly
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2" readonly
                             id="EdadPaciente">
                     </div>
                     <div class="col-md-2">
                         <label>Sexo Biológico:</label>
 
 
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="SexoPaciente">
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="SexoPaciente">
 
                         </select>
                     </div>
@@ -193,7 +198,8 @@
                         <label>Identidad de Género:</label>
 
 
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="IdentidadGeneroBase">
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                            id="IdentidadGeneroBase">
 
                         </select>
                     </div>
@@ -206,7 +212,7 @@
                                 id="NombrePaisNacionalidadBase"> -->
 
                             <!-- <select id="SelectDiagnosticoRIPSAC1" -->
-                            <select id="SelectNombrePaisNacionalidadBase"
+                            <select disabled id="SelectNombrePaisNacionalidadBase"
                                 class="form-select-sm border border-secondary w-100">
                                 <option value="Sin Seleccionar">Sin Seleccionar</option>
                             </select>
@@ -219,25 +225,27 @@
                     <!-- Fila 2.5: Datos Biométricos -->
                     <div class="col-md-2">
                         <label>Talla (cm):</label>
-                        <input type="number" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="number" class="form-control-sm border border-secondary w-100 mb-2"
                             id="TallaPaciente" placeholder="Ej: 170">
                     </div>
                     <div class="col-md-2">
                         <label>Peso (kg):</label>
-                        <input type="number" step="0.1" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="PesoPaciente" placeholder="Ej: 70.5">
+                        <input disabled type="number" step="0.1"
+                            class="form-control-sm border border-secondary w-100 mb-2" id="PesoPaciente"
+                            placeholder="Ej: 70.5">
                     </div>
                     <div class="col-md-2">
                         <label>IMC:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold"
-                            id="IMCPaciente" readonly placeholder="Auto">
+                        <input disabled type="text"
+                            class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold" id="IMCPaciente"
+                            readonly placeholder="Auto">
                     </div>
 
                     <div class="col-md-3">
                         <label>País Residencia:</label>
                         <div class="input-group input-group-sm mb-2">
 
-                            <select id="SelectNombrePaisResidenciaBase"
+                            <select disabled id="SelectNombrePaisResidenciaBase"
                                 class="form-select-sm border border-secondary w-100">
                                 <option value="Sin Seleccionar">Sin Seleccionar</option>
                             </select>
@@ -248,7 +256,7 @@
                         <div class="input-group input-group-sm mb-2">
 
 
-                            <select id="SelectNombreMunicipioResidenciaBase"
+                            <select disabled id="SelectNombreMunicipioResidenciaBase"
                                 class="form-select-sm border border-secondary w-100">
                                 <option value="Sin Seleccionar">Sin Seleccionar</option>
                             </select>
@@ -256,66 +264,63 @@
                     </div>
                     <div class="col-md-3">
                         <label>Zona Territorial:</label>
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="ZonaTerritorialBase">
+                        <!-- <select class="form-select-sm border border-secondary w-100 mb-2" id="ZonaTerritorialBase">
                             <option value="">Seleccionar</option>
                             <option value="01">Urbana</option>
                             <option value="02">Rural</option>
+                        </select> -->
+
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                            id="ListaZonaTerritorialBase">
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label>Dirección:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="DireccionPaciente">
                     </div>
 
                     <!-- Fila 4: Extra Social y Alergias -->
                     <div class="col-md-3">
                         <label>Etnia:</label>
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="EtniaBase">
-                            <option value="">Seleccionar</option>
-                            <option value="01">Indígena</option>
-                            <option value="02">Rrom (gitano)</option>
-                            <option value="03">Raizal (San Andrés y Providencia)</option>
-                            <option value="04">Palenquero (San Basilio)</option>
-                            <option value="05">Negro(a), Mulato(a), Afrocolombiano(a)</option>
-                            <option value="06">Ninguno</option>
+
+
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="EtniaBase">
+
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label>Comunidad Étnica:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="ComunidadEtnicaBase">
                     </div>
                     <div class="col-md-3">
                         <label>Discapacidad:</label>
-                        <select class="form-select-sm border border-secondary w-100 mb-2" id="DiscapacidadBase">
-                            <option value="">Seleccionar</option>
-                            <option value="00">No aplica</option>
-                            <option value="01">Física</option>
-                            <option value="02">Auditiva</option>
-                            <option value="03">Visual</option>
-                            <option value="04">Sordoceguera</option>
-                            <option value="05">Intelectual</option>
-                            <option value="06">Mental</option>
-                            <option value="07">Múltiple</option>
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="DiscapacidadBase">
+
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label>Teléfono:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                        <input disabled type="text" class="form-control-sm border border-secondary w-100 mb-2"
                             id="TelefonoPaciente">
                     </div>
 
                     <div class="col-md-3">
-                        <label>Código Ocupación:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="CodigoOcupacionBase" placeholder="Código CIUO">
+                        <label>Ocupación:</label>
+                        <select disabled class="form-select-sm border border-secondary w-100 mb-2" id="OcupacionBase">
+
+                        </select>
                     </div>
-                    <div class="col-md-3">
-                        <label>Nombre Ocupación:</label>
-                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
-                            id="NombreOcupacionBase" placeholder="Nombre de la ocupación" readonly>
+
+                     <div class="col-md-3">
+                        <button class="btn-actualizar" id="BtnActualizarPaciente">
+                            <span class="icon">⟳</span>
+                            Actualizar datos paciente
+                        </button>
+                         
                     </div>
+
 
                     <!-- Fila 5: Alergias -->
                     <div class="col-md-12 mt-2">
@@ -1753,6 +1758,7 @@
 
 <!-- RDA V3 - Archivo independiente (Resolución 1888) -->
 <script src="rda-v3.js"></script>
+
 
 
 </html>

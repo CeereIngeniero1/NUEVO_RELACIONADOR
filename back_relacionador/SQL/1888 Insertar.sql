@@ -76,3 +76,8 @@ BEGIN
     FROM inserted i;
 END;
 GO
+
+Update Ocupación set [Id Estado] = 8
+
+
+
