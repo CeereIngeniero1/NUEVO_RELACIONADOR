@@ -7,12 +7,10 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css" />
 
-    <!-- GOOGLE FONTS -->
+    <!-- GOOGLE FONTS — Solo Roboto (estándar visual del proyecto) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&family=Be+Vietnam+Pro:wght@500;700&family=Roboto&family=Roboto+Condensed:wght@500&display=swap"
-        el="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- SWEETALERT2 -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
@@ -35,117 +33,189 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Evitar el parpadeo de contenido sin estilo (FOUC) aplicando el tema temprano
+        if (localStorage.getItem('ceere_theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
     <!-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
 </head>
 
 <body>
 
-    <div class="navbar">
-        <img src="images/Ceere_logo.png" alt="">
-        <h2 id="nombreUsuarioLink"></h2>
-        <button type="button" id="BotonMaestro" data-bs-toggle="modal"
-            data-bs-target="#ModalParaMaestro">Maestro</button>
-        <button type="button" id="descargarRIPS" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Descargar RIPS
-            JSON</button>
-        <button type="button" id="XMLS" data-bs-toggle="modal"
-            data-bs-target="#ModalEmpresasResolucionVigente">XMLS</button>
-        <a href="./GENERADOR_ARCHIVOS_RIPS_PART/index.php" id="generadorRIPS">GENERADOR INFORMES RIPS</a>
-        <a href="Asignar_RIPS.html" id="generadorRIPS">Asignar Rips</a>
-        <button type="button" id="closeSesion">Cerrar Sesión</button>
+    <!-- NAVBAR -->
+    <div class="cr-navbar">
+        <div class="d-flex align-items-center gap-3">
+            <img src="images/Ceere_logo.png" alt="Ceere" class="cr-navbar-logo">
+            <h2 id="nombreUsuarioLink"></h2>
+        </div>
+        <div class="cr-nav-actions">
+            <button class="cr-nav-btn" id="crBtnThemeToggle">
+                <i class="ri-moon-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Oscuro</span>
+            </button>
+            <button type="button" id="BotonMaestro" data-bs-toggle="modal" data-bs-target="#ModalParaMaestro"
+                class="cr-nav-btn">Maestro</button>
+            <button type="button" id="descargarRIPS" data-bs-toggle="modal" data-bs-target="#staticBackdrop"
+                class="cr-nav-btn">Descargar RIPS JSON</button>
+            <button type="button" id="XMLS" data-bs-toggle="modal" data-bs-target="#ModalEmpresasResolucionVigente"
+                class="cr-nav-btn">XMLS</button>
+            <a href="./GENERADOR_ARCHIVOS_RIPS_PART/index.php" id="generadorRIPS" class="cr-nav-btn">GENERADOR INFORMES
+                RIPS</a>
+            <a href="Asignar_RIPS.html" class="cr-nav-btn">Asignar Rips</a>
+            <button type="button" id="closeSesion" class="cr-nav-btn cr-nav-btn-close">Cerrar Sesión</button>
+        </div>
     </div>
 
-    <div class="container">
+    <div class="cr-page-content">
         <main>
 
-            <label for="" style="font-weight: bold;">Empresa de Trabajo: <span id="EmpresaDeTrabajo"
-                    style="font-weight: normal;"></span> </label>
-            <div class="paciente">
+            <!-- ═══════════════════════════════════════════
+                 TARJETA 1: Empresa y Selección de Paciente
+            ═══════════════════════════════════════════ -->
+            <div class="cr-card cr-card-left-border mb-4">
+                <div class="cr-card-body">
 
-                <div class="divBuscar">
-                    <input type="text" id="documentoInput" placeholder="Buscar Paciente">
-                </div>
+                    <!-- Empresa de Trabajo -->
+                    <div class="cr-empresa-header mb-3">
+                        <i class="ri-hospital-line"></i>
+                        <label style="font-weight: 600; font-size: 14px;">
+                            Empresa de Trabajo:
+                            <span id="EmpresaDeTrabajo" style="font-weight: 400; color: var(--color-primary);"></span>
+                        </label>
+                    </div>
 
-                <div class="check" style="display: flex; align-items: center;">
-                    <span style="margin-right: 10px;">Particular</span>
-                    <input type="checkbox" id="checkbox1" class="checkbox"
-                        style="margin-right: 20px; width: 50px !important;">
-                    <span style="margin-right: 10px;">Prepagada</span>
-                    <input type="checkbox" id="checkbox2" class="checkbox" style="width: 50px !important;">
-                </div>
+                    <!-- Checkboxes -->
+                    <div class="cr-check-group mb-3">
+                        <label class="cr-checkbox-wrapper">
+                            <input type="checkbox" id="checkbox1" class="checkbox cr-checkbox-input">
+                            <span class="cr-checkbox-box"></span>
+                            <span class="cr-checkbox-label">Particular</span>
+                        </label>
+                        <label class="cr-checkbox-wrapper">
+                            <input type="checkbox" id="checkbox2" class="checkbox cr-checkbox-input">
+                            <span class="cr-checkbox-box"></span>
+                            <span class="cr-checkbox-label">Prepagada</span>
+                        </label>
+                    </div>
 
-                <span id="span_paciente">Seleccionar paciente:</span>
+                    <!-- Buscador + Select Paciente -->
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="cr-form-label">Buscar Paciente</label>
+                            <div class="cr-input-icon-wrapper">
+                                <i class="ri-search-line cr-input-icon"></i>
+                                <input type="text" id="documentoInput" class="form-control cr-input-with-icon"
+                                    placeholder="Nombre o documento...">
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="cr-form-label" id="span_paciente">Seleccionar paciente:</label>
+                            <select name="" id="listaPaciente" class="form-select cr-select">
+                                <option value="" selected>Sin Seleccionar</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <select name="" id="listaPaciente">
-                    <option value="" selected>Sin Seleccionar</option>
-                </select>
-            </div>
-
-            <div class="tabla">
-
-                <div class="tablaHC">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="ColumnaCheckBox">Seleccionar</th>
-                                <th>Id HC</th>
-                                <th>HC Realizada por</th>
-                                <th>Historia clinica a relacionar</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaFilas"></tbody>
-                    </table>
-                </div>
-
-                <div class="tablaFactura">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="ColumnaCheckBox">Seleccionar</th>
-                                <th>Id Factura</th>
-                                <th>Factura realizada por</th>
-                                <th>Factura a relacionar</th>
-                                <th>Ver factura</th>
-
-                            </tr>
-                        </thead>
-                        <tbody id="tablaFilasFacturas"></tbody>
-                    </table>
-                </div>
-
-            </div>
-
-            <div class="listasPrepagada">
-                <div class="paciente">
-
-                    <span id="span_paciente">Seleccionar paciente:</span>
-
-                    <select name="" id="listaPacientePrepagada">
-                        <option value="" selected>Sin Seleccionar</option>
-                    </select>
-
-                    <br>
-
-                    <span id="span_paciente">Seleccionar Historia Clinica:</span>
-
-                    <select name="" id="listaHistoriaClinica">
-                        <option value="" selected>Sin Seleccionar</option>
-                    </select>
+                    <!-- Listas Prepagada (Aparecen al dar click en 'Prepagada' mediante display:flex por JS) -->
+                    <div class="listasPrepagada mt-3 w-100 flex-column" style="display: none;">
+                        <div class="row g-3 w-100 m-0">
+                            <div class="col-md-6 ps-0">
+                                <label class="cr-form-label" id="span_paciente">Seleccionar paciente:</label>
+                                <select name="" id="listaPacientePrepagada" class="form-select cr-select w-100">
+                                    <option value="" selected>Sin Seleccionar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 pe-0">
+                                <label class="cr-form-label" id="span_paciente">Seleccionar Historia Clinica:</label>
+                                <select name="" id="listaHistoriaClinica" class="form-select cr-select w-100">
+                                    <option value="" selected>Sin Seleccionar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
             </div>
 
-            <div class="facturaCero">
-                <input type="checkbox" id="checkboxFacturaCero">
-                <span>Relacionar historia con factura en 0 a RIPS</span>
+            <!-- ═══════════════════════════════════════════
+                 TARJETA 2: Tablas HC + Facturas
+            ═══════════════════════════════════════════ -->
+            <div class="cr-card mb-4">
+                <!-- Header de la tarjeta -->
+                <div class="cr-table-card-header">
+                    <h5 class="cr-table-card-title">Relación Historia Clínica y Facturación</h5>
+                </div>
+
+                <div class="row g-0">
+                    <!-- Tabla Historias Clínicas -->
+                    <div class="col-md-6 cr-table-pane">
+                        <div class="tabla tablaHC table-responsive">
+                            <table class="table cr-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ColumnaCheckBox">SEL.</th>
+                                        <th>ID HC</th>
+                                        <th>HC REALIZADA POR</th>
+                                        <th>HISTORIA CLÍNICA A RELACIONAR</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaFilas"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tabla Facturas -->
+                    <div class="col-md-6 cr-table-pane cr-table-pane-divider">
+                        <div class="tabla tablaFactura table-responsive">
+                            <table class="table cr-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ColumnaCheckBox">SEL.</th>
+                                        <th>ID FACTURA</th>
+                                        <th>FACTURA REALIZADA POR</th>
+                                        <th>FACTURA A RELACIONAR</th>
+                                        <th>VER</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaFilasFacturas"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="btn">
-                <button id="btnRelacionar">RELACIONAR</button>
-                <button type="button" id="AsignarFacturaManual" data-bs-toggle="modal" data-bs-target="#miModal">ASIGNAR
-                    FACTURA MANUAL</button>
+
+
+            <!-- ═══════════════════════════════════════════
+                 TARJETA 3: Acciones
+            ═══════════════════════════════════════════ -->
+            <div class="cr-card mb-4">
+                <div class="cr-card-body d-flex flex-column align-items-center py-5">
+
+                    <label class="cr-checkbox-wrapper facturaCero mb-4 fs-6">
+                        <input type="checkbox" id="checkboxFacturaCero" class="cr-checkbox-input">
+                        <span class="cr-checkbox-box"></span>
+                        <span class="cr-checkbox-label" style="font-weight: 500; font-size: 16px;">
+                            Relacionar historia con factura en 0 a RIPS
+                        </span>
+                    </label>
+
+                    <div class="d-flex gap-3">
+                        <button id="btnRelacionar" class="cr-btn-primary">
+                            <i class="ri-link me-1"></i> RELACIONAR
+                        </button>
+                        <button type="button" id="AsignarFacturaManual" data-bs-toggle="modal" data-bs-target="#miModal"
+                            class="cr-btn-outline">
+                            ASIGNAR FACTURA MANUAL
+                        </button>
+                    </div>
+
+                </div>
             </div>
 
         </main>
+
 
         <!-- MODAL PARA MAESTRO DE LISTAS Y CÓDIGOS RIPS (CUPS Y CIE10)  -->
         <div class="modal fade" id="ModalParaMaestro" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
@@ -493,6 +563,33 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggleBtn = document.getElementById('crBtnThemeToggle');
+            const savedTheme = localStorage.getItem('ceere_theme') || 'light';
+
+            // Actualizar el estado del botón al cargar la página si ya está oscuro
+            if (savedTheme === 'dark') {
+                themeToggleBtn.innerHTML = '<i class="ri-sun-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Claro</span>';
+            }
+
+            // Alternar tema
+            themeToggleBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+                if (isDark) {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.setItem('ceere_theme', 'light');
+                    themeToggleBtn.innerHTML = '<i class="ri-moon-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Oscuro</span>';
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('ceere_theme', 'dark');
+                    themeToggleBtn.innerHTML = '<i class="ri-sun-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Claro</span>';
+                }
+            });
+        });
+    </script>
 </body>
 
 <!-- SE CARGA ARCHIVO PARA MANEJO DEL NOMBRE DEL SERVIDOR -->
