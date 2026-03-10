@@ -697,3 +697,15 @@ GO
 -------------------------------------------------------------------
     -- FINAL ETNTIDADES SGSSS
     -------------------------------------------------------------------
+
+CREATE VIEW [dbo].[Cnsta Entidad SSGSSS 1888]
+AS
+SELECT dbo.[Entidades sgsss 1888].[Id sgsss] AS Idsgsss, dbo.[Entidades sgsss 1888].Codigo, dbo.[Entidades sgsss 1888].Nombre, dbo.[Entidades sgsss 1888].[Id Estado] AS IdEstado, dbo.[Entidades sgsss 1888].[Id Regimen] AS IdRegimen, 
+                  dbo.Regimen.Nombre AS NombreRegimen, dbo.[Entidades sgsss 1888].Nombre + ' (' + dbo.Regimen.Nombre + ') ' AS Descripcion
+FROM     dbo.[Entidades sgsss 1888] INNER JOIN
+                  dbo.Regimen ON dbo.[Entidades sgsss 1888].[Id Regimen] = dbo.Regimen.[Id Regimen]
+GO
+
+
+
+

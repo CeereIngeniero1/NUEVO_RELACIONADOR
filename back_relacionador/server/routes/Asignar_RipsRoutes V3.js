@@ -2389,7 +2389,7 @@ router.post('/ActualizarPaciente', async (req, res) => {
             message: 'FechaNacimiento no tiene un formato válido'
         });
     }
-    
+
 
     if (!Documento || Documento.trim() === '') {
         return res.status(400).json({
@@ -2454,6 +2454,180 @@ router.post('/ActualizarPaciente', async (req, res) => {
     connection.callProcedure(request);
 });
 
+
+// =================================================================================================
+
+
+// ==============================RDA PACIENTE ==============
+
+
+
+
+router.get('/SSGSSS/:SSGSSS', async (req, res) => {
+
+    const SSGSSS = req.params.SSGSSS;
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   Idsgsss, Codigo, Nombre, IdEstado, IdRegimen, NombreRegimen, Descripcion
+            FROM     [Cnsta Entidad SSGSSS 1888]
+            where Descripcion like '%${SSGSSS}%' OR Codigo like '%${SSGSSS}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/SSGSSS/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   Idsgsss, Codigo, Nombre, IdEstado, IdRegimen, NombreRegimen, Descripcion
+            FROM     [Cnsta Entidad SSGSSS 1888] 
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+
+router.get('/Profesionales/:Profesional', async (req, res) => {
+
+    const Profesional = req.params.Profesional;
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   Documento, Nombres
+            FROM     [Cnsta VB Todos - Profesional - Orden Alfabético]
+            where Nombres like '%${Profesional}%' OR Documento like '%${Profesional}%'
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+router.get('/Profesionales/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+         SELECT   Documento, Nombres
+            FROM     [Cnsta VB Todos - Profesional - Orden Alfabético]
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
 
 // =================================================================================================
 module.exports = router;
