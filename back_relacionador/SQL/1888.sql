@@ -517,3 +517,179 @@ GO
 -- Alter table to add Alergeno column
 -- Se agrega la columna Alergeno a la tabla Entidad1888 para almacenar información sobre alergias específicas del paciente, con un tamaño máximo de 200 caracteres y permitiendo valores nulos.
 alter table [entidad1888] add Alergeno varchar (200) null
+
+
+-------------------------------------------------------------------
+    -- ETNTIDADES SGSSS
+    -------------------------------------------------------------------
+
+
+/*==============================================================
+  1) ELIMINAR TABLAS SI YA EXISTEN
+==============================================================*/
+IF OBJECT_ID('dbo.[Entidades sgsss 1888]', 'U') IS NOT NULL
+    DROP TABLE dbo.[Entidades sgsss 1888];
+GO
+
+IF OBJECT_ID('dbo.[Regimen]', 'U') IS NOT NULL
+    DROP TABLE dbo.[Regimen];
+GO
+
+/*==============================================================
+  2) TABLA DE REGIMEN
+==============================================================*/
+CREATE TABLE dbo.[Regimen]
+(
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    Nombre          NVARCHAR(100) NOT NULL,
+    IdEstado        INT NOT NULL,
+    CONSTRAINT UQ_Regimen_Nombre UNIQUE (Nombre)
+);
+GO
+
+/*==============================================================
+  3) TABLA DE ENTIDADES SGSSS
+==============================================================*/
+CREATE TABLE dbo.[Entidades sgsss 1888]
+(
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo          NVARCHAR(20) NOT NULL,
+    Nombre          NVARCHAR(500) NOT NULL,
+    IdEstado        INT NOT NULL,
+    IdRegimen       INT NOT NULL,
+    CONSTRAINT FK_EntidadesSGSSS_Regimen
+        FOREIGN KEY (IdRegimen) REFERENCES dbo.[Regimen](Id),
+    CONSTRAINT UQ_EntidadesSGSSS_Codigo UNIQUE (Codigo)
+);
+GO
+
+/*==============================================================
+  4) INSERTAR REGIMENES
+==============================================================*/
+INSERT INTO dbo.[Regimen] (Nombre, IdEstado)
+VALUES
+    (N'Contributivo', 1),
+    (N'Subsidiado', 1);
+GO
+
+DECLARE @IdRegimenContributivo INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Contributivo');
+DECLARE @IdRegimenSubsidiado  INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
+
+/*==============================================================
+  5) INSERTAR ENTIDADES - RÉGIMEN CONTRIBUTIVO
+==============================================================*/
+INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, IdEstado, IdRegimen)
+VALUES
+(N'CCFC07', N'CAJA DE COMPENSACIÓN FAMILIAR DE CARTAGENA Y BOLÍVAR COMFAMILIAR -CM', 1, @IdRegimenContributivo),
+(N'CCFC20', N'CAJA DE COMPENSACIÓN FAMILIAR DEL CHOCÓ -CM', 1, @IdRegimenContributivo),
+(N'CCFC23', N'CAJA DE COMPENSACIÓN FAMILIAR DE LA GUAJIRA "COMFAGUAJIRA" -CM', 1, @IdRegimenContributivo),
+(N'CCFC24', N'CAJA DE COMPENSACIÓN FAMILIAR DEL HUILA "COMFAMILIAR" -CM', 1, @IdRegimenContributivo),
+(N'CCFC27', N'CAJA DE COMPENSACIÓN FAMILIAR DE NARIÑO -CM', 1, @IdRegimenContributivo),
+(N'CCFC33', N'CAJA DE COMPENSACIÓN FAMILIAR DE SUCRE -CM', 1, @IdRegimenContributivo),
+(N'CCFC50', N'CAJA DE COMPENSACIÓN FAMILIAR DEL ORIENTE COLOMBIANO "COMFAORIENTE" -CM', 1, @IdRegimenContributivo),
+(N'CCFC53', N'CAJA DE COMPENSACIÓN FAMILIAR DE CUNDINAMARCA "COMFACUNDI" -CM', 1, @IdRegimenContributivo),
+(N'CCFC55', N'CAJA DE COMPENSACIÓN FAMILIAR CAJACOPI ATLÁNTICO -CM', 1, @IdRegimenContributivo),
+(N'EAS016', N'EMPRESAS PUBLICAS DE MEDELLIN - DEPARTAMENTO MEDICO', 1, @IdRegimenContributivo),
+(N'EAS027', N'FONDO PASIVO SOCIAL DE LOS FERROCARRILES NACIONALES', 1, @IdRegimenContributivo),
+(N'EPS001', N'ALIANSALUD EPS S.A.', 1, @IdRegimenContributivo),
+(N'EPS002', N'SALUD TOTAL ENTIDAD PROMOTORA DE SALUD DEL REGIMEN CONTRIBUTIVO Y DEL REGIMEN SUBSIDIADO S.A.', 1, @IdRegimenContributivo),
+(N'EPS005', N'ENTIDAD PROMOTORA DE SALUD SANITAS S.A.S.', 1, @IdRegimenContributivo),
+(N'EPS008', N'CAJA DE COMPENSACIÓN FAMILIAR COMPENSAR', 1, @IdRegimenContributivo),
+(N'EPS010', N'EPS SURAMERICANA S.A.', 1, @IdRegimenContributivo),
+(N'EPS012', N'CAJA DE COMPENSACION FAMILIAR DEL VALLE DEL CAUCA "COMFENALCO VALLE DE LA GENTE"', 1, @IdRegimenContributivo),
+(N'EPS016', N'COOMEVA ENTIDAD PROMOTORA DE SALUD S.A. "COOMEVA E.P.S. S.A."', 1, @IdRegimenContributivo),
+(N'EPS017', N'EPS FAMISANAR S.A.S.', 1, @IdRegimenContributivo),
+(N'EPS018', N'ENTIDAD PROMOTORA DE SALUD SERVICIO OCCIDENTAL DE SALUD S.A. S.O.S.', 1, @IdRegimenContributivo),
+(N'EPS037', N'NUEVA EPS S.A.', 1, @IdRegimenContributivo),
+(N'EPS040', N'ALIANZA MEDELLIN ANTIOQUIA EPS S.A.S. "SAVIA SALUD EPS" -CM', 1, @IdRegimenContributivo),
+(N'EPS041', N'NUEVA EPS S.A. -CM', 1, @IdRegimenContributivo),
+(N'EPS042', N'COOSALUD EPS S.A.', 1, @IdRegimenContributivo),
+(N'EPS044', N'MEDIMAS EPS S.A.S.', 1, @IdRegimenContributivo),
+(N'EPS045', N'MEDIMAS EPS S.A.S. -CM', 1, @IdRegimenContributivo),
+(N'EPS046', N'FUDACIÓN SALUD MIA', 1, @IdRegimenContributivo),
+(N'EPS048', N'ASOCIACION MUTUAL SER EMPRESA SOLIDARIA DE SALUD ENTIDAD PROMOTORA DE SALUD - MUTUAL SER EPS', 1, @IdRegimenContributivo),
+(N'EPSC22', N'ENTIDAD PROMOTORA DE SALUD DEL REGIMEN SUBSIDIADO EPS CONVIDA -CM', 1, @IdRegimenContributivo),
+(N'EPSC25', N'CAPRESOCA E.P.S. -CM', 1, @IdRegimenContributivo),
+(N'EPSC34', N'CAPITAL SALUD ENTIDAD PROMOTORA DE SALUD DEL RÉGIMEN SUBSIDIADO SAS "CAPITAL SALUD EPS-S S.A.S." -CM', 1, @IdRegimenContributivo),
+(N'EPSIC1', N'ASOCIACIÓN DE CABILDOS INDÍGENAS DEL CESAR Y GUAJIRA "DUSAKAWI A.R.S.I." -CM', 1, @IdRegimenContributivo),
+(N'EPSIC3', N'ASOCIACIÓN INDÍGENA DEL CAUCA A.I.C. EPSI -CM', 1, @IdRegimenContributivo),
+(N'EPSIC4', N'EMPRESA PROMOTORA DE SALUD INDÍGENA ANAS WAYUU EPSI -CM', 1, @IdRegimenContributivo),
+(N'EPSIC5', N'ENTIDAD PROMOTORA DE SALUD MALLAMAS EPSI -CM', 1, @IdRegimenContributivo),
+(N'EPSIC6', N'PIJAOS SALUD EPSI -CM', 1, @IdRegimenContributivo),
+(N'ESSC07', N'ASOCIACION MUTUAL SER EMPRESA SOLIDARIA DE SALUD ENTIDAD PROMOTORA DE SALUD - MUTUAL SER EPS -CM', 1, @IdRegimenContributivo),
+(N'ESSC18', N'EMSSANAR S.A.S. -CM', 1, @IdRegimenContributivo),
+(N'ESSC24', N'COOSALUD EPS S.A. -CM', 1, @IdRegimenContributivo),
+(N'ESSC33', N'COOPERATIVA DE SALUD COMUNITARIA EMPRESA PROMOTORA SUBSIDIADA "COMPARTA EPS-S" -CM', 1, @IdRegimenContributivo),
+(N'ESSC62', N'ASMET SALUD EPS S.A.S. -CM', 1, @IdRegimenContributivo),
+(N'ESSC76', N'ASOCIACIÓN MUTUAL BARRIOS UNIDOS DE QUIBDO AMBUQ EPS - S - ESS - CM', 1, @IdRegimenContributivo),
+(N'ESSC91', N'ECOOPSOS EPS SAS -CM', 1, @IdRegimenContributivo);
+GO
+
+/*==============================================================
+  6) INSERTAR ENTIDADES - RÉGIMEN SUBSIDIADO
+==============================================================*/
+DECLARE @IdRegimenSubsidiado2 INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
+
+INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, IdEstado, IdRegimen)
+VALUES
+(N'CCF007', N'CAJA DE COMPENSACIÓN FAMILIAR DE CARTAGENA Y BOLÍVAR COMFAMILIAR', 1, @IdRegimenSubsidiado2),
+(N'CCF023', N'CAJA DE COMPENSACIÓN FAMILIAR DE LA GUAJIRA "COMFAGUAJIRA"', 1, @IdRegimenSubsidiado2),
+(N'CCF024', N'CAJA DE COMPENSACIÓN FAMILIAR DEL HUILA "COMFAMILIAR"', 1, @IdRegimenSubsidiado2),
+(N'CCF027', N'CAJA DE COMPENSACIÓN FAMILIAR DE NARIÑO', 1, @IdRegimenSubsidiado2),
+(N'CCF033', N'CAJA DE COMPENSACIÓN FAMILIAR DE SUCRE', 1, @IdRegimenSubsidiado2),
+(N'CCF050', N'CAJA DE COMPENSACIÓN FAMILIAR DEL ORIENTE COLOMBIANO "COMFAORIENTE"', 1, @IdRegimenSubsidiado2),
+(N'CCF053', N'CAJA DE COMPENSACIÓN FAMILIAR DE CUNDINAMARCA "COMFACUNDI"', 1, @IdRegimenSubsidiado2),
+(N'CCF055', N'CAJA DE COMPENSACIÓN FAMILIAR CAJACOPI ATLÁNTICO', 1, @IdRegimenSubsidiado2),
+(N'CCF102', N'CAJA DE COMPENSACIÓN FAMILIAR DEL CHOCÓ', 1, @IdRegimenSubsidiado2),
+(N'EPS022', N'ENTIDAD PROMOTORA DE SALUD DEL REGIMEN SUBSIDIADO EPS CONVIDA', 1, @IdRegimenSubsidiado2),
+(N'EPS025', N'CAPRESOCA E.P.S.', 1, @IdRegimenSubsidiado2),
+(N'EPSI01', N'ASOCIACIÓN DE CABILDOS INDÍGENAS DEL CESAR Y GUAJIRA "DUSAKAWI A.R.S.I."', 1, @IdRegimenSubsidiado2),
+(N'EPSI03', N'ASOCIACIÓN INDÍGENA DEL CAUCA A.I.C. EPSI', 1, @IdRegimenSubsidiado2),
+(N'EPSI04', N'EMPRESA PROMOTORA DE SALUD INDÍGENA ANAS WAYUU EPSI', 1, @IdRegimenSubsidiado2),
+(N'EPSI05', N'ENTIDAD PROMOTORA DE SALUD MALLAMAS EPSI', 1, @IdRegimenSubsidiado2),
+(N'EPSI06', N'PIJAOS SALUD EPSI', 1, @IdRegimenSubsidiado2),
+(N'EPSS01', N'ALIANSALUD EPS S.A. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS02', N'SALUD TOTAL ENTIDAD PROMOTORA DE SALUD DEL REGIMEN CONTRIBUTIVO Y DEL REGIMEN SUBSIDIADO S.A. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS05', N'ENTIDAD PROMOTORA DE SALUD SANITAS S.A.S. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS08', N'CAJA DE COMPENSACIÓN FAMILIAR COMPENSAR -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS10', N'EPS SURAMERICANA S.A. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS12', N'CAJA DE COMPENSACION FAMILIAR DEL VALLE DEL CAUCA "COMFENALCO VALLE DE LA GENTE" -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS16', N'COOMEVA ENTIDAD PROMOTORA DE SALUD S.A. "COOMEVA E.P.S. S.A." -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS17', N'EPS FAMISANAR S.A.S. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS18', N'ENTIDAD PROMOTORA DE SALUD SERVICIO OCCIDENTAL DE SALUD S.A. S.O.S. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS34', N'CAPITAL SALUD ENTIDAD PROMOTORA DE SALUD DEL RÉGIMEN SUBSIDIADO SAS "CAPITAL SALUD EPS-S S.A.S."', 1, @IdRegimenSubsidiado2),
+(N'EPSS37', N'NUEVA EPS S.A. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS40', N'ALIANZA MEDELLIN ANTIOQUIA EPS S.A.S. "SAVIA SALUD EPS"', 1, @IdRegimenSubsidiado2),
+(N'EPSS41', N'NUEVA EPS S.A.', 1, @IdRegimenSubsidiado2),
+(N'EPSS42', N'COOSALUD EPS S.A. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS44', N'MEDIMAS EPS S.A.S. -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS45', N'MEDIMAS EPS S.A.S.', 1, @IdRegimenSubsidiado2),
+(N'EPSS46', N'FUDACIÓN SALUD MIA -CM', 1, @IdRegimenSubsidiado2),
+(N'EPSS48', N'ASOCIACION MUTUAL SER EMPRESA SOLIDARIA DE SALUD ENTIDAD PROMOTORA DE SALUD - MUTUAL SER EPS -CM', 1, @IdRegimenSubsidiado2),
+(N'ESS024', N'COOSALUD EPS S.A.', 1, @IdRegimenSubsidiado2),
+(N'ESS062', N'ASMET SALUD EPS S.A.S.', 1, @IdRegimenSubsidiado2),
+(N'ESS076', N'ASOCIACIÓN MUTUAL BARRIOS UNIDOS DE QUIBDO AMBUQ EPS - S - ESS', 1, @IdRegimenSubsidiado2),
+(N'ESS091', N'ECOOPSOS EPS SAS', 1, @IdRegimenSubsidiado2),
+(N'ESS118', N'EMSSANAR S.A.S.', 1, @IdRegimenSubsidiado2),
+(N'ESS133', N'COOPERATIVA DE SALUD COMUNITARIA EMPRESA PROMOTORA SUBSIDIADA "COMPARTA EPS-S"', 1, @IdRegimenSubsidiado2),
+(N'ESS207', N'ASOCIACION MUTUAL SER EMPRESA SOLIDARIA DE SALUD ENTIDAD PROMOTORA DE SALUD - MUTUAL SER EPS', 1, @IdRegimenSubsidiado2);
+GO
+
+/*==============================================================
+  7) CONSULTA DE VALIDACIÓN
+==============================================================*/
+SELECT 
+    E.Id,
+    E.Codigo,
+    E.Nombre,
+    E.IdEstado,
+    R.Nombre AS Regimen
+FROM dbo.[Entidades sgsss 1888] E
+INNER JOIN dbo.[Regimen] R
+    ON E.IdRegimen = R.Id
+ORDER BY R.Nombre, E.Codigo;
+GO
+
+-------------------------------------------------------------------
+    -- FINAL ETNTIDADES SGSSS
+    -------------------------------------------------------------------
