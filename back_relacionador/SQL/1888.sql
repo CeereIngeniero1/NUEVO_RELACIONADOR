@@ -535,14 +535,18 @@ IF OBJECT_ID('dbo.[Regimen]', 'U') IS NOT NULL
     DROP TABLE dbo.[Regimen];
 GO
 
+    DROP TABLE dbo.[Regimen];
+    DROP TABLE dbo.[Entidades sgsss 1888];
+
+
 /*==============================================================
   2) TABLA DE REGIMEN
 ==============================================================*/
 CREATE TABLE dbo.[Regimen]
 (
-    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    [Id Regimen]             INT IDENTITY(1,1) PRIMARY KEY,
     Nombre          NVARCHAR(100) NOT NULL,
-    IdEstado        INT NOT NULL,
+    [Id Estado]        INT NOT NULL,
     CONSTRAINT UQ_Regimen_Nombre UNIQUE (Nombre)
 );
 GO
@@ -552,13 +556,13 @@ GO
 ==============================================================*/
 CREATE TABLE dbo.[Entidades sgsss 1888]
 (
-    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    [Id sgsss]            INT IDENTITY(1,1) PRIMARY KEY,
     Codigo          NVARCHAR(20) NOT NULL,
     Nombre          NVARCHAR(500) NOT NULL,
-    IdEstado        INT NOT NULL,
-    IdRegimen       INT NOT NULL,
+    [Id Estado]        INT NOT NULL,
+    [Id Regimen]       INT NOT NULL,
     CONSTRAINT FK_EntidadesSGSSS_Regimen
-        FOREIGN KEY (IdRegimen) REFERENCES dbo.[Regimen](Id),
+        FOREIGN KEY ([Id Regimen]) REFERENCES dbo.[Regimen]([Id Regimen]),
     CONSTRAINT UQ_EntidadesSGSSS_Codigo UNIQUE (Codigo)
 );
 GO
@@ -566,19 +570,19 @@ GO
 /*==============================================================
   4) INSERTAR REGIMENES
 ==============================================================*/
-INSERT INTO dbo.[Regimen] (Nombre, IdEstado)
+INSERT INTO dbo.[Regimen] (Nombre, [Id Estado])
 VALUES
     (N'Contributivo', 1),
     (N'Subsidiado', 1);
 GO
 
-DECLARE @IdRegimenContributivo INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Contributivo');
-DECLARE @IdRegimenSubsidiado  INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
+DECLARE @IdRegimenContributivo INT = (SELECT [Id Regimen] FROM dbo.[Regimen] WHERE Nombre = N'Contributivo');
+DECLARE @IdRegimenSubsidiado  INT = (SELECT [Id Regimen] FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
 
 /*==============================================================
   5) INSERTAR ENTIDADES - RÉGIMEN CONTRIBUTIVO
 ==============================================================*/
-INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, IdEstado, IdRegimen)
+INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, [Id Estado], [Id Regimen])
 VALUES
 (N'CCFC07', N'CAJA DE COMPENSACIÓN FAMILIAR DE CARTAGENA Y BOLÍVAR COMFAMILIAR -CM', 1, @IdRegimenContributivo),
 (N'CCFC20', N'CAJA DE COMPENSACIÓN FAMILIAR DEL CHOCÓ -CM', 1, @IdRegimenContributivo),
@@ -628,9 +632,9 @@ GO
 /*==============================================================
   6) INSERTAR ENTIDADES - RÉGIMEN SUBSIDIADO
 ==============================================================*/
-DECLARE @IdRegimenSubsidiado2 INT = (SELECT Id FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
+DECLARE @IdRegimenSubsidiado2 INT = (SELECT [Id Regimen] FROM dbo.[Regimen] WHERE Nombre = N'Subsidiado');
 
-INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, IdEstado, IdRegimen)
+INSERT INTO dbo.[Entidades sgsss 1888] (Codigo, Nombre, [Id Estado], [Id Regimen])
 VALUES
 (N'CCF007', N'CAJA DE COMPENSACIÓN FAMILIAR DE CARTAGENA Y BOLÍVAR COMFAMILIAR', 1, @IdRegimenSubsidiado2),
 (N'CCF023', N'CAJA DE COMPENSACIÓN FAMILIAR DE LA GUAJIRA "COMFAGUAJIRA"', 1, @IdRegimenSubsidiado2),
