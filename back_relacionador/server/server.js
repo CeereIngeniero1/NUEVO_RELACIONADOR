@@ -19,6 +19,7 @@ const epsRoutesv2 = require('./routes/epsRoutes V2');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
 const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
 const AsignarRipsv3 = require('./routes/Asignar_RipsRoutes V3');
+const AsignarRipsv3Experimental = require('./routes/Asignar_RipsRoutes V3 experimental');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 
@@ -53,7 +54,7 @@ let connections = [];
 app.get('/api/executeQuery', (req, res) => {
     executeQuery();
     res.send('Funciono el envio');
-}); 
+});
 
 // Endpoint para establecer la conexión SSE
 app.get('/api/sse', (req, res) => {
@@ -130,6 +131,7 @@ app.use('/api', AsignarRips);
 
 app.use('/apiV2', AsignarRipsv2);
 app.use('/apiV3', AsignarRipsv3);
+app.use('/apiV3Experimental', AsignarRipsv3Experimental);
 
 app.use('/api', MaestroListasRIPS);
 
@@ -138,17 +140,17 @@ app.use('/XMLS', Facturador);
 const port = 3000;
 
 /* Funcionamiento para lanzar servicio del FrontEnd */
-    // // Servir archivos estáticos
-    // app.use(express.static(path.join(__dirname, '../')));
+// // Servir archivos estáticos
+// app.use(express.static(path.join(__dirname, '../')));
 
-    // // Ruta comodín para el SPA
-    // app.get('*', (req, res) => {
-    //     res.sendFile(path.join(__dirname, '../index.html'));
-    // });
+// // Ruta comodín para el SPA
+// app.get('*', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../index.html'));
+// });
 
-    // app.listen(port, () => {
-    //     console.log(`Servidor escuchando en http://localhost:${port}`);
-    // });
+// app.listen(port, () => {
+//     console.log(`Servidor escuchando en http://localhost:${port}`);
+// });
 /* FIN FIN FIN */
 
 app.listen(port, () => {
