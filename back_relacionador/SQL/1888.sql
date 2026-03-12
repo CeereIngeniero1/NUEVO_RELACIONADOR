@@ -709,3 +709,14 @@ GO
 
 
 
+
+Create table [Tipo Antecedentes 1888] (
+[ID Tipo Antecedentes 1888] INT PRIMARY KEY IDENTITY (1,1) ,
+[Codigo] varchar (2),
+[Descripcion] Varchar (150),
+[Id Estado] int
+)
+
+
+
+
