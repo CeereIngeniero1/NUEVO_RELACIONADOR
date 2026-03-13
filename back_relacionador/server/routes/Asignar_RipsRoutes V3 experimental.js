@@ -2716,4 +2716,49 @@ router.get('/Profesionales/', async (req, res) => {
 });
 
 // =================================================================================================
+// ==========================RDA=====================================
+
+router.get('/Empresas/', async (req, res) => {
+
+    try {
+
+        const request = new Request(
+            ` 
+        SELECT   IdEmpresa, DocumentoEmpresa, IdTipodeDocumento, FechaExpediciónEmpresa, IdCiudad, NombreComercialEmpresa, RazonSocialEmpresa, [FechaInscripción}Empresa], CódigoEmpresa, ObservacionesEmpresa, 
+                  FotoEmpresa, IdEstado, NroIDPrestador 
+            FROM     [Cnsta Empresa 1888]
+        `,
+            (err) => {
+                if (err) {
+                    console.error(`Error de ejecución: ${err}`);
+                    // En caso de error, enviamos una respuesta y salimos de la función
+                    if (!res.headersSent) {
+                        res.status(500).send('Error interno del servidor');
+                    }
+                }
+            }
+
+        );
+        const resultados = [];
+        request.on('row', (columns) => {
+            const row = {};
+            columns.forEach((column) => {
+                row[column.metadata.colName] = column.value;
+            });
+            resultados.push(row);
+        });
+
+        request.on('requestCompleted', () => {
+            res.json(resultados);
+        })
+        // console.log(resultados);
+        connection.execSql(request);
+    } catch (error) {
+
+    }
+
+});
+
+
+// =================================================================================================
 module.exports = router;

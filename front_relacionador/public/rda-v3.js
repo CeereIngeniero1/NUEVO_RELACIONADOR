@@ -127,7 +127,7 @@
             listaAntecedentes.push(item);
             renderizarLista(contenedorLista, listaAntecedentes, "antecedente");
 
-            if (inputCIE10) inputCIE10.value = "";
+            if (inputCIE10) $(inputCIE10).val("").trigger("change");
             if (inputDesc) inputDesc.value = "";
         });
 
@@ -159,7 +159,7 @@
             renderizarLista(contenedorFam, listaAntecedentesFam, "familiar");
 
             if (selectParentesco) selectParentesco.value = "";
-            if (inputFamCIE10) inputFamCIE10.value = "";
+            if (inputFamCIE10) $(inputFamCIE10).val("").trigger("change");
             if (inputFamDesc) inputFamDesc.value = "";
         });
 
@@ -227,12 +227,45 @@
     // 4. RDA CONSULTA EXTERNA — Listas dinámicas
     // ============================================
 
+    var listaAntecedentesCE = [];
+    var listaAntecedentesFamCE = [];
     var listaDiagRelacionados = [];
     var listaPrescripcionMed = [];
     var listaPrescripcionProc = [];
     var listaOtrasTec = [];
 
     function inicializarListasCE() {
+        // --- Antecedentes de Salud RDACE ---
+        var btnAntecedenteCE = document.getElementById("RDACE_BtnAgregarAntecedente");
+        var inputCIE10CE = document.getElementById("RDACE_AntecedenteSaludCIE10");
+        var inputDescCE = document.getElementById("RDACE_AntecedenteSaludDescripcion");
+        var contenedorListaCE = document.getElementById("RDACE_ListaAntecedentes");
+
+        btnAntecedenteCE?.addEventListener("click", function () {
+            var codigo = inputCIE10CE?.value?.trim();
+            if (!codigo) return;
+            var item = { codigo: codigo, descripcion: inputDescCE?.value || "" };
+            listaAntecedentesCE.push(item);
+            renderizarLista(contenedorListaCE, listaAntecedentesCE, "antecedente");
+            if (inputCIE10CE) $(inputCIE10CE).val("").trigger("change");
+            if (inputDescCE) inputDescCE.value = "";
+        });
+
+        // --- Antecedentes Familiares RDACE ---
+        var btnFamCE = document.getElementById("RDACE_BtnAgregarAntecedenteFam");
+        var inputFamCIE10CE = document.getElementById("RDACE_AntecedenteFamiliarCIE10");
+        var inputFamDescCE = document.getElementById("RDACE_AntecedenteFamiliarDescripcion");
+        var contenedorFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
+
+        btnFamCE?.addEventListener("click", function () {
+            var codigo = inputFamCIE10CE?.value?.trim();
+            if (!codigo) return;
+            var item = { codigo: codigo, descripcion: inputFamDescCE?.value || "" };
+            listaAntecedentesFamCE.push(item);
+            renderizarLista(contenedorFamCE, listaAntecedentesFamCE, "antecedente");
+            if (inputFamCIE10CE) $(inputFamCIE10CE).val("").trigger("change");
+            if (inputFamDescCE) inputFamDescCE.value = "";
+        });
 
         // --- Diagnósticos Relacionados ---
         var btnDiagRel = document.getElementById("RDACE_BtnAgregarDiagRelacionado");
@@ -448,6 +481,8 @@
         getAntecedentesFamiliares: function () { return listaAntecedentesFam; },
         getMedicamentos: function () { return listaMedicamentos; },
         // RDA Consulta Externa
+        getAntecedentesCE: function () { return listaAntecedentesCE; },
+        getAntecedentesFamiliaresCE: function () { return listaAntecedentesFamCE; },
         getDiagRelacionados: function () { return listaDiagRelacionados; },
         getPrescripcionMedicamentos: function () { return listaPrescripcionMed; },
         getPrescripcionProcedimientos: function () { return listaPrescripcionProc; },

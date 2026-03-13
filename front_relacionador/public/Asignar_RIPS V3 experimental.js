@@ -1063,14 +1063,75 @@ $(document).ready(function () {
     });
   }
 
+  /// Función reutilizable para inicializar campos CIE-10 con Select2 (Experimental)
+  let cacheCie10 = null;
+  async function getCie10Data() {
+    if (cacheCie10) return cacheCie10;
+    try {
+      const resp = await fetch(`http://${servidor}:3000/apiV3Experimental/Cie`);
+      cacheCie10 = await resp.json();
+      return cacheCie10;
+    } catch (e) {
+      console.error("Error fetching CIE-10:", e);
+      return [];
+    }
+  }
+
+  async function initCIE10Select2(selector, descSelector) {
+    const data = await getCie10Data();
+    const select = $(selector);
+
+    // Limpiar opciones existentes (excepto la primera por defecto)
+    select.find('option:not(:first)').remove();
+
+    // Ordenar datos
+    data.sort((a, b) => (a.Nombre < b.Nombre ? -1 : 1));
+
+    // Agregar opciones
+    data.forEach(item => {
+      const option = new Option(`${item.Codigo} - ${item.Nombre}`, item.Codigo, false, false);
+      select.append(option);
+    });
+
+    select.select2({
+      width: "100%",
+      dropdownAutoWidth: true,
+      placeholder: "Seleccione un diagnóstico CIE-10",
+      templateSelection: function (selection) {
+        if (!selection.id) return selection.text;
+        return selection.text.length > 50 ? selection.text.substring(0, 50) + "..." : selection.text;
+      }
+    });
+
+    if (descSelector) {
+      select.on("change", function () {
+        const val = $(this).val();
+        if (val) {
+          const item = data.find(i => i.Codigo === val);
+          if (item) {
+            $(descSelector).val(item.Nombre).trigger('change');
+          }
+        } else {
+          $(descSelector).val('').trigger('change');
+        }
+      });
+    }
+  }
+
   // Inicializar todos los campos CIE-11 detectados en el formulario
   initCIE11Select2("#RDA_DiagnosticoIngresoCIE11Termino", "#RDA_DiagnosticoIngresoCIE11Codigo");
   initCIE11Select2("#RDACE_DiagnosticoIngresoCIE11Termino", "#RDACE_DiagnosticoIngresoCIE11Codigo");
   initCIE11Select2("#RDACE_DiagRelacionadoCIE11Termino", "#RDACE_DiagRelacionadoCIE11Codigo");
 
-  // Para los antecedentes, el campo mismo es el select, y llenamos la descripción
+  // Para los antecedentes CIE-11
   initCIE11Select2("#RDA_AntecedenteFamiliarCIE11", null, "#RDA_AntecedenteFamiliarDescripcion");
   initCIE11Select2("#RDACE_AntecedenteFamiliarCIE11", null, "#RDACE_AntecedenteFamiliarDescripcion");
+
+  // Para los antecedentes CIE-10
+  initCIE10Select2("#RDA_AntecedenteSaludCIE10", "#RDA_AntecedenteSaludDescripcion");
+  initCIE10Select2("#RDA_AntecedenteFamiliarCIE10", "#RDA_AntecedenteFamiliarDescripcion");
+  initCIE10Select2("#RDACE_AntecedenteSaludCIE10", "#RDACE_AntecedenteSaludDescripcion");
+  initCIE10Select2("#RDACE_AntecedenteFamiliarCIE10", "#RDACE_AntecedenteFamiliarDescripcion");
 
 });
 

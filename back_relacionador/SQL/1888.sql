@@ -718,5 +718,71 @@ Create table [Tipo Antecedentes 1888] (
 )
 
 
+Insert into [Tipo Antecedentes 1888]
+values
+('01', 'Antecedentes de Salud', 7),
+('02', 'Antecedentes Familiares', 7),
+('03', 'Antecedentes Farmacológicos', 7) 
 
 
+CREATE VIEW [dbo].[Cnsta Empresa 1888]
+AS
+SELECT [Id Empresa] AS IdEmpresa, [Documento Empresa] AS DocumentoEmpresa, [Id Tipo de Documento] AS IdTipodeDocumento, [Fecha Expedición Empresa] AS FechaExpediciónEmpresa, [Id Ciudad] AS IdCiudad, 
+                  [Nombre Comercial Empresa] AS NombreComercialEmpresa, [Razon Social Empresa] AS RazonSocialEmpresa, [Fecha Inscripción Empresa] AS [FechaInscripción}Empresa], [Código Empresa] AS CódigoEmpresa, 
+                  [Observaciones Empresa] AS ObservacionesEmpresa, [Foto Empresa] AS FotoEmpresa, [Id Estado] AS IdEstado, NroIDPrestador
+FROM     dbo.Empresa
+GO
+
+
+create table [Entidades Prepagadas 1888]
+(
+[Id Entidades Prepagadas 1888] int identity(1,1) primary key,
+[Codigo] varchar (50),
+[Nombre]varchar (150),
+[Id Estado] int default 7
+)
+
+
+INSERT INTO [Entidades Prepagadas 1888] (Codigo, Nombre)
+VALUES
+('EMP002','MEDPLUS MEDICINA PREPAGADA S.A.'),
+('EMP012','HUMANA GOLDEN CROSS S.A. MEDICINA PREPAGADA'),
+('EMP014','MEDISALUD - COMPAÑÍA COLOMBIANA DE MEDICINA PREPAGADA S.A. (en liquidación)'),
+('EMP015','MEDISANITAS S A COMPAÑIA DE MEDICINA PREPAGADA'),
+('EMP017','COLMEDICA MEDICINA PREPAGADA'),
+('EMP021','EPS Y MEDICINA PREPAGADA SURAMERICANA S.A.'),
+('EMP022','VIVIR S.A.'),
+('EMP023','COMPAÑIA DE MEDICINA PREPAGADA COLSANITAS S.A.'),
+('EMP024','SERVICIO DE SALUD INMEDIATO MEDICINA PREPAGADA S.A.'),
+('EMP025','PLAN U.H.C.M. MEDICINA PREPAGADA COMFENALCO VALLE'),
+('EMP028','COOMEVA MEDICINA PREPAGADA S.A.'),
+('EMP029','COLPATRIA MEDICINA PREPAGADA S.A.'),
+('SAP008','EMERGENCIA MEDICA INTEGRAL COLOMBIA S.A.'),
+('SAP026','EMERMEDICA S.A. SERVICIOS DE AMBULANCIA PREPAGADOS'),
+('SAP030','EMPRESA DE MEDICINA INTEGRAL EMI SA SERVICIO DE AMBULANCIA PREPAGADA'),
+('SAP031','ASISTENCIA MEDICA INMEDIATA-SERVICIO DE AMBULANCIA PREPAGADA S.A.'),
+('SAP032','SERVICIO DE EMERGENCIAS REGIONAL (SERVICIO DE AMBULANCIA PREPAGADO) S.A.'),
+('SAP033','COOMEVA EMERGENCIAS MÉDICAS'),
+('SAP034','ASISTENCIA MEDICA SAS SERVICIO DE AMBULANCIA PREPAGADO'),
+('SAP035','SERVICIO DE ASISTENCIA MEDICA INMEDIATA S.A. - SERVICIO DE AMBULANCIA PREPAGADO'),
+('SAP036','SISTEMA DE TRASLADO APOYO DIAGNOSTICO Y TERAPEUTICO EN SALUD TRASMEDICA S.A. S.A.P. EN LIQUIDACION'),
+('SAP037','SERVICIOS MEDICOS INTEGRALES DE COLOMBIA SERVICIO DE AMBULANCIAS PREPAGADO S.A.S “SEMI SAP S.A.S.”'),
+('SAP038','RED MEDICA MÉDICA VITAL S.A.S. SERVICIO DE AMBULANCIA PREPAGADO (SAP)');
+
+
+
+
+
+CREATE VIEW [dbo].[Cnsta Entidades Prepagadas 1888]
+AS
+SELECT [Id Entidades Prepagadas 1888] AS IdEntidadesPrepagadas1888, Codigo, Nombre, [Id Estado] AS IdEstado
+FROM     dbo.[Entidades Prepagadas 1888]
+GO
+
+
+CREATE VIEW [dbo].[Cnsta sgsss 1888]
+AS
+SELECT [Id sgsss] AS Idsgsss, Codigo, Nombre, [Id Estado] AS IdEstado
+FROM     dbo.[Entidades sgsss 1888]
+WHERE  ([Id Estado] = 7)
+GO
