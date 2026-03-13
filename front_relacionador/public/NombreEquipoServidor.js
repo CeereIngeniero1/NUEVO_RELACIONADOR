@@ -1,2 +1,2 @@
-const NombreServidor = "Fer-Developer";
+const NombreServidor = "TUFF16";
 localStorage.setItem('NombreEquipoServidor', NombreServidor);

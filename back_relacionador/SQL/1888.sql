@@ -710,19 +710,36 @@ GO
 
 
 
-Create table [Tipo Antecedentes 1888] (
-[ID Tipo Antecedentes 1888] INT PRIMARY KEY IDENTITY (1,1) ,
-[Codigo] varchar (2),
-[Descripcion] Varchar (150),
-[Id Estado] int
-)
+-- Create table [Tipo Antecedentes 1888] (
+-- [ID Tipo Antecedentes 1888] INT PRIMARY KEY IDENTITY (1,1) ,
+-- [Codigo] varchar (2), 
+-- [Descripcion] Varchar (150),
+-- [Id Estado] int
+-- )
+
+-- Insert into [Tipo Antecedentes 1888]
+-- values
+-- ('01', 'Antecedentes de Salud', 7),
+-- ('02', 'Antecedentes Familiares', 7),
+-- ('03', 'Antecedentes Farmacológicos', 7) 
 
 
-Insert into [Tipo Antecedentes 1888]
-values
-('01', 'Antecedentes de Salud', 7),
-('02', 'Antecedentes Familiares', 7),
-('03', 'Antecedentes Farmacológicos', 7) 
+-- CREATE TABLE [Antecedentes 1888] (
+--     [ID Antecedente 1888] INT PRIMARY KEY IDENTITY (1,1),
+--     [ID Tipo Antecedentes 1888] INT,
+--     [Parentesco] VARCHAR(100),
+--     [Documento Entidad] nVARCHAR(50),
+--     [Descripcion] VARCHAR(200),
+--     [Id Estado] INT,
+
+--     CONSTRAINT FK_ANTECEDENTES_ENTIDAD
+--     FOREIGN KEY ([Documento Entidad])
+--     REFERENCES ENTIDAD([Documento Entidad]),
+
+--     CONSTRAINT FK_Antecedentes_TipoAntecedente
+--     FOREIGN KEY ([ID Tipo Antecedentes 1888])
+--     REFERENCES [Tipo Antecedentes 1888]([ID Tipo Antecedentes 1888])
+-- );
 
 
 CREATE VIEW [dbo].[Cnsta Empresa 1888]
@@ -788,10 +805,42 @@ WHERE  ([Id Estado] = 7)
 GO
 
 
+CREATE TABLE [Antecedentes Salud 1888] (
+    [ID Antecedente Salud 1888] INT PRIMARY KEY IDENTITY(1,1),
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
+
+    CONSTRAINT FK_AntecedentesSalud_Entidad
+    FOREIGN KEY ([Documento Entidad])
+    REFERENCES ENTIDAD([Documento Entidad])
+);
+
+CREATE TABLE [Antecedentes Familiares 1888] (
+    [ID Antecedente Familiar 1888] INT PRIMARY KEY IDENTITY(1,1),
+    [Documento Entidad] NVARCHAR(50) NOT NULL, 
+    [Parentesco] VARCHAR(100) NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
+
+    CONSTRAINT FK_AntecedentesFamiliares_Entidad
+    FOREIGN KEY ([Documento Entidad])
+    REFERENCES ENTIDAD([Documento Entidad]),
+ 
+);
 
 
 
+CREATE TABLE [Antecedentes Farmacologicos 1888] (
+    [ID Antecedente Farmacologico 1888] INT PRIMARY KEY IDENTITY(1,1),
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
 
+    CONSTRAINT FK_AntecedentesFarmacologicos_Entidad
+    FOREIGN KEY ([Documento Entidad])
+    REFERENCES ENTIDAD([Documento Entidad])
+);
 
 
 

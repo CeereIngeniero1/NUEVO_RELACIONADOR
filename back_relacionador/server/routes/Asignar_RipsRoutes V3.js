@@ -5,7 +5,93 @@ const connection = require('../db');
 // const { connectToDatabase, config } = require('../db2');
 const { sql, poolPromise } = require('../db2');
 
+class ICD11_API {
+    constructor(clientId, clientSecret) {
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.token = null;
+        this.tokenExpiry = null;
+        this.baseUrl = 'https://id.who.int/icd/release/11/2024-01/mms';
+    }
+
+    async getAccessToken() {
+        if (this.token && Date.now() < this.tokenExpiry) {
+            return this.token;
+        }
+
+        const authUrl = 'https://icdaccessmanagement.who.int/connect/token';
+        const params = new URLSearchParams({
+            'client_id': this.clientId,
+            'client_secret': this.clientSecret,
+            'scope': 'icdapi_access',
+            'grant_type': 'client_credentials'
+        });
+
+        try {
+            const response = await fetch(authUrl, {
+                method: 'POST',
+                body: params,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+            const data = await response.json();
+            this.token = data.access_token;
+            this.tokenExpiry = Date.now() + (data.expires_in * 1000);
+            return this.token;
+        } catch (error) {
+            console.error('Error obteniendo el token:', error);
+        }
+    }
+
+    async search(query) {
+        const token = await this.getAccessToken();
+
+        try {
+            const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'Accept-Language': 'es',
+                    'API-Version': 'v2'
+                }
+            });
+            const data = await response.json();
+            return data.destinationEntities;
+        } catch (error) {
+            console.error('Error en la búsqueda:', error);
+        }
+    }
+}
+
+const icd11 = new ICD11_API(
+    '1913f18a-af2d-48d8-9df4-9433f2bf9731_5f1075a7-1c1d-4769-b8ad-b781f383f2cd',
+    'BG8b5btjWH12ePWemxjurAfyOLXTllz7HL4C2BpohUk='
+);
+
+const defaultCIE11 = [
+    { theCode: '1B10', title: 'Tuberculosis de los pulmones' },
+    { theCode: '5A11', title: 'Diabetes mellitus tipo 2' },
+    { theCode: 'BA41', title: 'Insuficiencia cardíaca' },
+    { theCode: '1D0Z', title: 'Infección viral de sitio no especificado' },
+    { theCode: '6D70', title: 'Trastorno de ansiedad generalizada' }
+];
+
 const router = Router();
+
+router.get('/icd11/search/:query?', async (req, res) => {
+    try {
+        const query = req.params.query;
+        if (!query || query.trim() === "" || query === "undefined") {
+            return res.json(defaultCIE11);
+        }
+        const results = await icd11.search(query);
+        res.json(results || []);
+    } catch (error) {
+        console.error('Error en ruta de búsqueda CIE-11:', error);
+        res.status(500).send(error.message);
+    }
+});
 
 router.get('/pruebaHC', async (req, res) => {
 
@@ -2506,43 +2592,19 @@ router.get('/SSGSSS/:SSGSSS', async (req, res) => {
 });
 
 router.get('/SSGSSS/', async (req, res) => {
-
     try {
-
-        const request = new Request(
-            ` 
-         SELECT   Idsgsss, Codigo, Nombre, IdEstado, IdRegimen, NombreRegimen, Descripcion
-            FROM     [Cnsta Entidad SSGSSS 1888] 
-        `,
-            (err) => {
-                if (err) {
-                    console.error(`Error de ejecución: ${err}`);
-                    // En caso de error, enviamos una respuesta y salimos de la función
-                    if (!res.headersSent) {
-                        res.status(500).send('Error interno del servidor');
-                    }
-                }
-            }
-
-        );
-        const resultados = [];
-        request.on('row', (columns) => {
-            const row = {};
-            columns.forEach((column) => {
-                row[column.metadata.colName] = column.value;
-            });
-            resultados.push(row);
-        });
-
-        request.on('requestCompleted', () => {
-            res.json(resultados);
-        })
-        // console.log(resultados);
-        connection.execSql(request);
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT Idsgsss, Codigo, Nombre, IdEstado, IdRegimen, NombreRegimen, Descripcion
+            FROM [Cnsta Entidad SSGSSS 1888]
+        `);
+        res.json(result.recordset);
     } catch (error) {
-
+        console.error('❌ Error al obtener SSGSSS:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
     }
-
 });
 
 
@@ -2633,44 +2695,20 @@ router.get('/Profesionales/', async (req, res) => {
 // ==========================RDA=====================================
 
 router.get('/Empresas/', async (req, res) => {
-
     try {
-
-        const request = new Request(
-            ` 
-        SELECT   IdEmpresa, DocumentoEmpresa, IdTipodeDocumento, FechaExpediciónEmpresa, IdCiudad, NombreComercialEmpresa, RazonSocialEmpresa, [FechaInscripción}Empresa], CódigoEmpresa, ObservacionesEmpresa, 
-                  FotoEmpresa, IdEstado, NroIDPrestador 
-            FROM     [Cnsta Empresa 1888]
-        `,
-            (err) => {
-                if (err) {
-                    console.error(`Error de ejecución: ${err}`);
-                    // En caso de error, enviamos una respuesta y salimos de la función
-                    if (!res.headersSent) {
-                        res.status(500).send('Error interno del servidor');
-                    }
-                }
-            }
-
-        );
-        const resultados = [];
-        request.on('row', (columns) => {
-            const row = {};
-            columns.forEach((column) => {
-                row[column.metadata.colName] = column.value;
-            });
-            resultados.push(row);
-        });
-
-        request.on('requestCompleted', () => {
-            res.json(resultados);
-        })
-        // console.log(resultados);
-        connection.execSql(request);
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT IdEmpresa, DocumentoEmpresa, IdTipodeDocumento, FechaExpediciónEmpresa, IdCiudad, NombreComercialEmpresa, RazonSocialEmpresa, [FechaInscripción}Empresa], CódigoEmpresa, ObservacionesEmpresa, 
+                   FotoEmpresa, IdEstado, NroIDPrestador 
+            FROM [Cnsta Empresa 1888]
+        `);
+        res.json(result.recordset);
     } catch (error) {
-
+        console.error('❌ Error al obtener Empresas:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
     }
-
 });
 
 
