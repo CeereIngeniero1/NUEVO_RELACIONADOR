@@ -786,3 +786,13 @@ SELECT [Id sgsss] AS Idsgsss, Codigo, Nombre, [Id Estado] AS IdEstado
 FROM     dbo.[Entidades sgsss 1888]
 WHERE  ([Id Estado] = 7)
 GO
+
+
+
+
+
+
+
+
+
+

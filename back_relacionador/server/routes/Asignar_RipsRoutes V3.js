@@ -2639,8 +2639,8 @@ router.get('/Empresas/', async (req, res) => {
         const request = new Request(
             ` 
         SELECT   IdEmpresa, DocumentoEmpresa, IdTipodeDocumento, FechaExpediciónEmpresa, IdCiudad, NombreComercialEmpresa, RazonSocialEmpresa, [FechaInscripción}Empresa], CódigoEmpresa, ObservacionesEmpresa, 
-                  FotoEmpresa, IdEstado, NroIDPrestador
-FROM     [Cnsta Empresa 1888]
+                  FotoEmpresa, IdEstado, NroIDPrestador 
+            FROM     [Cnsta Empresa 1888]
         `,
             (err) => {
                 if (err) {
