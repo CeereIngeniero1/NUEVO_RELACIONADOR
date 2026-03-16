@@ -1318,10 +1318,10 @@
                                                     <div class="col-md-5">
                                                         <label>Descripción Común del Medicamento
                                                             (DCI):</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDA_MedicamentoDCI"
-                                                            placeholder="Nombre del medicamento">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDA_MedicamentoDCI">
+                                                            <option value="">Seleccionar medicamento DCI</option>
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-5">
                                                         <label>Observaciones:</label>
@@ -1341,6 +1341,19 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Botón Guardar RDA Paciente -->
+                                    <div class="row g-2 mt-3">
+                                        <div class="col-md-12 d-flex justify-content-end">
+                                            <button type="button"
+                                                class="btn btn-success btn-sm fw-bold px-4"
+                                                id="RDA_BtnGuardarPaciente">
+                                                <i class="fa-solid fa-floppy-disk me-2"></i>
+                                                Guardar RDA Paciente
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
 
                                 <!-- ========== SECCIÓN: RDA CONSULTA EXTERNA ========== -->
@@ -1552,10 +1565,10 @@
                                                     <div class="col-md-5">
                                                         <label>Descripción Común del Medicamento
                                                             (DCI):</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_MedicamentoDCI"
-                                                            placeholder="Nombre del medicamento">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_MedicamentoDCI">
+                                                            <option value="">Seleccionar medicamento DCI</option>
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-5">
                                                         <label>Observaciones:</label>
@@ -1644,10 +1657,10 @@
                                                     <div class="col-md-4">
                                                         <label>Código diagnóstico principal
                                                             CIE-10:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagPrincipalCIE10Codigo"
-                                                            placeholder="Código CIE-10">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagPrincipalCIE10Codigo">
+                                                            <option value="">Buscar CIE-10...</option>
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-5">
                                                         <label>Nombre diagnóstico principal
@@ -1685,9 +1698,10 @@
                                                     <div class="col-md-3">
                                                         <label>Código diag. relacionado
                                                             CIE-10:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE10Codigo" placeholder="CIE-10">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE10Codigo">
+                                                            <option value="">Seleccionar CIE-10</option>
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label>Nombre diag. relacionado
@@ -1701,14 +1715,13 @@
                                                         <label>Código diag. CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11">
+                                                            id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11" readonly>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label>Término diag. CIE-11:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_DiagRelacionadoCIE11Termino">
-                                                            <option value="">Seleccione o busque un diagnóstico...
-                                                            </option>
+                                                            <option value="">Busque un diagnóstico CIE-11...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
@@ -1794,9 +1807,10 @@
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label>Descripción común (DCI):</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DescripcionComunMed" placeholder="DCI">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DescripcionComunMed">
+                                                            <option value="">Seleccionar DCI</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="row g-2 mt-1 align-items-end">
@@ -1927,9 +1941,10 @@
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label>Código procedimiento (CUPS):</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_CodigoProcedimiento" placeholder="Código CUPS">
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_CodigoProcedimiento">
+                                                            <option value="">Buscar procedimiento CUPS...</option>
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label>Nombre procedimiento:</label>
@@ -2291,6 +2306,153 @@
             });
         }
     })();
+</script>
+
+<!-- ═══════════════════════════════════════════
+     RDA PACIENTE — Guardar
+     ═══════════════════════════════════════════ -->
+<script>
+(function () {
+    'use strict';
+
+    document.getElementById('RDA_BtnGuardarPaciente')?.addEventListener('click', async function () {
+        await guardarRDAPaciente();
+    });
+
+    async function guardarRDAPaciente() {
+        const btn = document.getElementById('RDA_BtnGuardarPaciente');
+
+        // ── Datos del paciente (sección superior) ──────────────────────
+        const documento   = document.getElementById('DocumentoPaciente')?.value?.trim();
+        const tipoDoc     = document.getElementById('TipoDocumentoBase')?.value?.trim();
+
+        if (!documento) {
+            Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA.' });
+            return;
+        }
+
+        // Construir payload principal
+        const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+        // CIE-11 término viene de un Select2; se obtiene el texto seleccionado
+        const cie11TerminoData = $('#RDA_DiagnosticoIngresoCIE11Termino').select2('data');
+        const cie11Termino = cie11TerminoData?.length ? cie11TerminoData[0].text : (document.getElementById('RDA_DiagnosticoIngresoCIE11Termino')?.value || null);
+
+        const payload = {
+            // ── Datos del paciente ─────────────────────────────────────────
+            DocumentoEntidad:               documento,
+            FechaRDA:                       ahora,
+            IdTipoDocumento:                tipoDoc                                                                        || null,
+            PrimerApellidoEntidad:          document.getElementById('PrimerApellidoBase')?.value                          || null,
+            SegundoApellidoEntidad:         document.getElementById('SegundoApellidoBase')?.value                         || null,
+            PrimerNombreEntidad:            document.getElementById('PrimerNombreBase')?.value                            || null,
+            SegundoNombreEntidad:           document.getElementById('SegundoNombreBase')?.value                           || null,
+            FechaNacimiento:                document.getElementById('FechaNacimientoBase')?.value                         || null,
+            Edad:                           document.getElementById('EdadPaciente')?.value                                || null,
+            IdUnidaddeMedidaEdad:           null,
+            IdSexoBiologico:                document.getElementById('SexoPaciente')?.value                                || null,
+            IdIdentidadGenero:              document.getElementById('IdentidadGeneroBase')?.value                         || null,
+            IdPaisNacionalidad:             document.getElementById('SelectNombrePaisNacionalidadBase')?.value            || null,
+            Talla:                          document.getElementById('TallaPaciente')?.value                               || null,
+            Peso:                           document.getElementById('PesoPaciente')?.value                                || null,
+            IdPaisRecidencia:               document.getElementById('SelectNombrePaisResidenciaBase')?.value              || null,
+            IdMunicipioRecidencia:          document.getElementById('SelectNombreMunicipioResidenciaBase')?.value         || null,
+            IdZonaResidencia:               document.getElementById('ListaZonaTerritorialBase')?.value                    || null,
+            Direccion:                      document.getElementById('DireccionPaciente')?.value                           || null,
+            IdEtnia:                        document.getElementById('EtniaBase')?.value                                   || null,
+            ComunidadEtnica:                document.getElementById('ComunidadEtnicaBase')?.value                        || null,
+            IdDiscapacidad:                 document.getElementById('DiscapacidadBase')?.value                            || null,
+            TelefonoCelular:                document.getElementById('TelefonoPaciente')?.value                            || null,
+            Alergeno:                       document.getElementById('NombreAlergenoBase')?.value                          || null,
+            // ── Campos RDA Paciente (Resolución 1888) ──────────────────────
+            CodigoPrestador:                document.getElementById('RDA_CodigoPrestador')?.value                         || null,
+            CodigoAdminPlanBeneficios:      document.getElementById('RDA_CodigoAdminPlanBeneficios')?.value               || null,
+            NombreAdminPlanBeneficios:      document.getElementById('RDA_NombreAdminPlanBeneficios')?.value               || null,
+            FechaHoraInicioAtencion:        document.getElementById('RDA_FechaHoraInicioAtencion')?.value                 || null,
+            FechaHoraFinAtencion:           document.getElementById('RDA_FechaHoraFinAtencion')?.value                    || null,
+            TipoDocProfesional:             document.getElementById('RDA_TipoDocProfesional')?.value                      || null,
+            NumDocProfesional:              document.getElementById('RDA_NumDocProfesional')?.value                       || null,
+            DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
+            DiagnosticoIngresoCIE11Termino: cie11Termino                                                                  || null,
+            TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
+        };
+
+        // ── Loading ────────────────────────────────────────────────────
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
+        const base     = `http://${servidor}:3000/apiV3`;
+
+        try {
+            // 1) Insertar registro principal y obtener ID
+            const respPrincipal = await fetch(`${base}/EvaluacionEntidadRDA/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const dataPrincipal = await respPrincipal.json();
+
+            if (!respPrincipal.ok || !dataPrincipal.ok) {
+                throw new Error(dataPrincipal.error || 'Error al guardar el RDA principal');
+            }
+
+            const idRDA = dataPrincipal.IdEvaluacionEntidadRDA;
+
+            // 2) Antecedentes de Salud
+            const antSalud = (window.RDA?.getAntecedentes?.() || []);
+            for (const item of antSalud) {
+                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesSalud`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ IdEvaluacionEntidadRDA: idRDA, DocumentoEntidad: documento, Descripcion: desc, IdEstado: 1 })
+                });
+                if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Salud'); }
+            }
+
+            // 3) Antecedentes Familiares
+            const antFam = (window.RDA?.getAntecedentesFamiliares?.() || []);
+            for (const item of antFam) {
+                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesFamiliares`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ IdEvaluacionEntidadRDA: idRDA, DocumentoEntidad: documento, Parentesco: item.parentesco || null, Descripcion: desc, IdEstado: 1 })
+                });
+                if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Familiares'); }
+            }
+
+            // 4) Antecedentes Farmacológicos (medicamentos)
+            const medic = (window.RDA?.getMedicamentos?.() || []);
+            for (const item of medic) {
+                const desc = item.nombre + (item.observacion ? ' (' + item.observacion + ')' : '');
+                const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesFarmacologicos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ IdEvaluacionEntidadRDA: idRDA, DocumentoEntidad: documento, Descripcion: desc, IdEstado: 1 })
+                });
+                if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Farmacológicos'); }
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'RDA Paciente guardado',
+                html: `<b>ID Evaluación:</b> ${idRDA}<br>Antecedentes de salud: ${antSalud.length} | Familiares: ${antFam.length} | Medicamentos: ${medic.length}`,
+                timer: 4000,
+                timerProgressBar: true
+            });
+
+        } catch (error) {
+            console.error('[RDA Paciente] Error al guardar:', error);
+            Swal.fire({ icon: 'error', title: 'Error al guardar', text: error.message || 'Ocurrió un error inesperado.' });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
+    }
+})();
 </script>
 
 

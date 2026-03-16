@@ -678,6 +678,106 @@ $(document).ready(function () {
   });
 
 
+  /// Medicamentos DCI - AJAX (búsqueda bajo demanda, mínimo 2 caracteres)
+  function initMedicamentosDCISelect2(selector, fillCodigoId, fillNombreId) {
+    const select = $(selector);
+    select.select2({
+      placeholder: "Buscar medicamento DCI...",
+      allowClear: true,
+      minimumInputLength: 2,
+      ajax: {
+        delay: 300,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const url = term.length
+            ? `http://${servidor}:3000/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`
+            : `http://${servidor}:3000/apiV3/MedicamentosDCI/`;
+          fetch(url)
+            .then(r => r.json())
+            .then(data => success({ results: data }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data;
+          return {
+            results: arr.map(m => ({
+              id: m.Descripcion,
+              text: (m.Codigo ? m.Codigo + " - " : "") + m.Descripcion,
+              codigo: m.Codigo || "",
+              descripcion: m.Descripcion || ""
+            }))
+          };
+        }
+      }
+    });
+    if (fillCodigoId || fillNombreId) {
+      select.on("select2:select", function (e) {
+        const d = e.params.data;
+        if (fillCodigoId) $(fillCodigoId).val(d.codigo || "");
+        if (fillNombreId) $(fillNombreId).val(d.descripcion || "");
+      });
+      select.on("select2:clear", function () {
+        if (fillCodigoId) $(fillCodigoId).val("");
+        if (fillNombreId) $(fillNombreId).val("");
+      });
+    }
+  }
+
+  initMedicamentosDCISelect2("#RDA_MedicamentoDCI");
+  initMedicamentosDCISelect2("#RDACE_MedicamentoDCI");
+  initMedicamentosDCISelect2("#RDACE_DescripcionComunMed", "#RDACE_CodigoMedicamento", "#RDACE_NombreMedicamento");
+
+  /// Cups 1888 - Procedimientos (AJAX, mínimo 2 caracteres)
+  function initCups1888Select2(selector, fillNombreId) {
+    $(selector).select2({
+      placeholder: "Buscar procedimiento CUPS...",
+      allowClear: true,
+      minimumInputLength: 2,
+      ajax: {
+        delay: 300,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          if (term.length < 2) {
+            success({ results: [] });
+            return;
+          }
+          const url = `http://${servidor}:3000/apiV3/Cups1888/${encodeURIComponent(term)}`;
+          fetch(url)
+            .then(r => r.json())
+            .then(data => success({ results: data }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data;
+          return {
+            results: arr.map(m => ({
+              id: m.Codigo,
+              text: (m.Codigo ? m.Codigo + " - " : "") + (m.Nombre || m.Descripcion || ""),
+              codigo: m.Codigo || "",
+              nombre: m.Nombre || m.Descripcion || ""
+            }))
+          };
+        }
+      },
+      templateSelection: function (selection) {
+        if (!selection.id) return selection.text;
+        return selection.text.length > 50 ? selection.text.substring(0, 50) + "..." : selection.text;
+      }
+    });
+    if (fillNombreId) {
+      $(selector).on("select2:select", function (e) {
+        const d = e.params.data;
+        $(fillNombreId).val(d.nombre || "").trigger("change");
+      });
+      $(selector).on("select2:clear", function () {
+        $(fillNombreId).val("").trigger("change");
+      });
+    }
+  }
+
+  initCups1888Select2("#RDACE_CodigoProcedimiento", "#RDACE_NombreProcedimiento");
+
+
   ///Lista para conslta de tipo documentos
   $("#TipoDocumentoBase").select2({
     placeholder: "Selecciona Tipo Documento",
@@ -1063,40 +1163,38 @@ $(document).ready(function () {
     });
   }
 
-  /// Función reutilizable para inicializar campos CIE-10 con Select2 (Experimental)
-  let cacheCie10 = null;
-  async function getCie10Data() {
-    if (cacheCie10) return cacheCie10;
-    try {
-      const resp = await fetch(`http://${servidor}:3000/apiV3/Cie`);
-      cacheCie10 = await resp.json();
-      return cacheCie10;
-    } catch (e) {
-      console.error("Error fetching CIE-10:", e);
-      return [];
-    }
-  }
-
-  async function initCIE10Select2(selector, descSelector) {
-    const data = await getCie10Data();
-    const select = $(selector);
-
-    // Limpiar opciones existentes (excepto la primera por defecto)
-    select.find('option:not(:first)').remove();
-
-    // Ordenar datos
-    data.sort((a, b) => (a.Nombre < b.Nombre ? -1 : 1));
-
-    // Agregar opciones
-    data.forEach(item => {
-      const option = new Option(`${item.Codigo} - ${item.Nombre}`, item.Codigo, false, false);
-      select.append(option);
-    });
-
-    select.select2({
-      width: "100%",
-      dropdownAutoWidth: true,
-      placeholder: "Seleccione un diagnóstico CIE-10",
+  /// Función CIE-10 con AJAX (búsqueda bajo demanda, mínimo 2 caracteres)
+  function initCIE10Select2(selector, descSelector) {
+    $(selector).select2({
+      placeholder: "Buscar diagnóstico CIE-10...",
+      allowClear: true,
+      minimumInputLength: 2,
+      ajax: {
+        delay: 300,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          if (term.length < 2) {
+            success({ results: [] });
+            return;
+          }
+          const url = `http://${servidor}:3000/apiV3/Cie/${encodeURIComponent(term)}`;
+          fetch(url)
+            .then(r => r.json())
+            .then(data => success({ results: data }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data;
+          return {
+            results: arr.map(item => ({
+              id: item.Codigo,
+              text: (item.Codigo || "") + " - " + (item.Nombre || item.Descripcion || ""),
+              codigo: item.Codigo,
+              nombre: item.Nombre || item.Descripcion || ""
+            }))
+          };
+        }
+      },
       templateSelection: function (selection) {
         if (!selection.id) return selection.text;
         return selection.text.length > 50 ? selection.text.substring(0, 50) + "..." : selection.text;
@@ -1104,16 +1202,12 @@ $(document).ready(function () {
     });
 
     if (descSelector) {
-      select.on("change", function () {
-        const val = $(this).val();
-        if (val) {
-          const item = data.find(i => i.Codigo === val);
-          if (item) {
-            $(descSelector).val(item.Nombre).trigger('change');
-          }
-        } else {
-          $(descSelector).val('').trigger('change');
-        }
+      $(selector).on("select2:select", function (e) {
+        const d = e.params.data;
+        $(descSelector).val(d.nombre || "").trigger("change");
+      });
+      $(selector).on("select2:clear", function () {
+        $(descSelector).val("").trigger("change");
       });
     }
   }
@@ -1132,6 +1226,12 @@ $(document).ready(function () {
   initCIE10Select2("#RDA_AntecedenteFamiliarCIE10", "#RDA_AntecedenteFamiliarDescripcion");
   initCIE10Select2("#RDACE_AntecedenteSaludCIE10", "#RDACE_AntecedenteSaludDescripcion");
   initCIE10Select2("#RDACE_AntecedenteFamiliarCIE10", "#RDACE_AntecedenteFamiliarDescripcion");
+
+  // Diagnóstico Principal - CIE-10 (RDACE)
+  initCIE10Select2("#RDACE_DiagPrincipalCIE10Codigo", "#RDACE_DiagPrincipalCIE10Nombre");
+
+  // Diagnósticos Relacionados - CIE-10 (RDACE)
+  initCIE10Select2("#RDACE_DiagRelacionadoCIE10Codigo", "#RDACE_DiagRelacionadoCIE10Nombre");
 
 });
 

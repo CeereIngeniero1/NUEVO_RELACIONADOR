@@ -165,19 +165,25 @@
 
         // --- Medicamentos ---
         var btnMed = document.getElementById("RDA_BtnAgregarMedicamento");
-        var inputDCI = document.getElementById("RDA_MedicamentoDCI");
+        var selectDCI = document.getElementById("RDA_MedicamentoDCI");
         var inputObs = document.getElementById("RDA_MedicamentoObservacion");
         var contenedorMed = document.getElementById("RDA_ListaMedicamentos");
 
         btnMed?.addEventListener("click", function () {
-            var nombre = inputDCI?.value?.trim();
-            if (!nombre) return;
+            var nombre = "";
+            if (selectDCI && typeof $ !== "undefined") {
+                var selData = $(selectDCI).select2("data")[0];
+                nombre = selData ? selData.text : ($(selectDCI).val() || "");
+            } else {
+                nombre = selectDCI?.value || "";
+            }
+            if (!nombre || !String(nombre).trim()) return;
 
-            var item = { nombre: nombre, observacion: inputObs?.value || "" };
+            var item = { nombre: String(nombre).trim(), observacion: inputObs?.value || "" };
             listaMedicamentos.push(item);
             renderizarLista(contenedorMed, listaMedicamentos, "medicamento");
 
-            if (inputDCI) inputDCI.value = "";
+            if (selectDCI && typeof $ !== "undefined") $(selectDCI).val(null).trigger("change");
             if (inputObs) inputObs.value = "";
         });
     }
@@ -229,6 +235,7 @@
 
     var listaAntecedentesCE = [];
     var listaAntecedentesFamCE = [];
+    var listaMedicamentosCE = [];
     var listaDiagRelacionados = [];
     var listaPrescripcionMed = [];
     var listaPrescripcionProc = [];
@@ -267,6 +274,30 @@
             if (inputFamDescCE) inputFamDescCE.value = "";
         });
 
+        // --- Medicamentos (Antecedentes Farmacológicos) RDACE ---
+        var btnMedCE = document.getElementById("RDACE_BtnAgregarMedicamento");
+        var selectDCICE = document.getElementById("RDACE_MedicamentoDCI");
+        var inputObsCE = document.getElementById("RDACE_MedicamentoObservacion");
+        var contenedorMedCE = document.getElementById("RDACE_ListaMedicamentos");
+
+        btnMedCE?.addEventListener("click", function () {
+            var nombre = "";
+            if (selectDCICE && typeof $ !== "undefined") {
+                var selData = $(selectDCICE).select2("data")[0];
+                nombre = selData ? selData.text : ($(selectDCICE).val() || "");
+            } else {
+                nombre = selectDCICE?.value || "";
+            }
+            if (!nombre || !String(nombre).trim()) return;
+
+            var item = { nombre: String(nombre).trim(), observacion: inputObsCE?.value || "" };
+            listaMedicamentosCE.push(item);
+            renderizarLista(contenedorMedCE, listaMedicamentosCE, "medicamento");
+
+            if (selectDCICE && typeof $ !== "undefined") $(selectDCICE).val(null).trigger("change");
+            if (inputObsCE) inputObsCE.value = "";
+        });
+
         // --- Diagnósticos Relacionados ---
         var btnDiagRel = document.getElementById("RDACE_BtnAgregarDiagRelacionado");
         var inputDiagCIE10Cod = document.getElementById("RDACE_DiagRelacionadoCIE10Codigo");
@@ -287,10 +318,12 @@
             });
             renderizarListaCE(contDiagRel, listaDiagRelacionados, "diagRel");
 
-            if (inputDiagCIE10Cod) inputDiagCIE10Cod.value = "";
+            if (inputDiagCIE10Cod && typeof $ !== "undefined") $(inputDiagCIE10Cod).val(null).trigger("change");
+            else if (inputDiagCIE10Cod) inputDiagCIE10Cod.value = "";
             if (inputDiagCIE10Nom) inputDiagCIE10Nom.value = "";
             if (inputDiagCIE11Cod) inputDiagCIE11Cod.value = "";
-            if (inputDiagCIE11Term) inputDiagCIE11Term.value = "";
+            if (inputDiagCIE11Term && typeof $ !== "undefined") $(inputDiagCIE11Term).val(null).trigger("change");
+            else if (inputDiagCIE11Term) inputDiagCIE11Term.value = "";
         });
 
         // --- Prescripción de Medicamentos ---
@@ -302,11 +335,13 @@
             var nombre = document.getElementById("RDACE_NombreMedicamento")?.value?.trim();
             if (!codigo && !nombre) return;
 
+            var elDCI = document.getElementById("RDACE_DescripcionComunMed");
+            var dciVal = (elDCI && typeof $ !== "undefined") ? $(elDCI).val() : (elDCI?.value || "");
             listaPrescripcionMed.push({
                 tipo: document.getElementById("RDACE_TipoTecSaludMed")?.value || "M",
                 codigo: codigo || "",
                 nombre: nombre || "",
-                dci: document.getElementById("RDACE_DescripcionComunMed")?.value || "",
+                dci: dciVal ? String(dciVal).trim() : "",
                 fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
                 dosis: document.getElementById("RDACE_DosisOrdenadaMed")?.value || "",
                 unidadDosis: document.getElementById("RDACE_UnidadMedidaDosis")?.value || "",
@@ -322,7 +357,8 @@
             renderizarListaCE(contMedCE, listaPrescripcionMed, "medCE");
 
             // Limpiar campos
-            ["RDACE_CodigoMedicamento", "RDACE_NombreMedicamento", "RDACE_DescripcionComunMed",
+            if (elDCI && typeof $ !== "undefined") $(elDCI).val(null).trigger("change");
+            ["RDACE_CodigoMedicamento", "RDACE_NombreMedicamento",
                 "RDACE_FechaPrescripcionMed", "RDACE_DosisOrdenadaMed"].forEach(function (id) {
                     var el = document.getElementById(id);
                     if (el) el.value = "";
@@ -361,7 +397,8 @@
             var nomProc = document.getElementById("RDACE_NombreProcedimiento");
             var finProc = document.getElementById("RDACE_FinalidadTecSaludProc");
             var fechProc = document.getElementById("RDACE_FechaPrescripcionProc");
-            if (codProc) codProc.value = "";
+            if (codProc && typeof $ !== "undefined") $(codProc).val(null).trigger("change");
+            else if (codProc) codProc.value = "";
             if (nomProc) nomProc.value = "";
             if (finProc) finProc.value = "";
             if (fechProc) fechProc.value = "";
@@ -557,6 +594,7 @@
         // RDA Consulta Externa
         getAntecedentesCE: function () { return listaAntecedentesCE; },
         getAntecedentesFamiliaresCE: function () { return listaAntecedentesFamCE; },
+        getMedicamentosCE: function () { return listaMedicamentosCE; },
         getDiagRelacionados: function () { return listaDiagRelacionados; },
         getPrescripcionMedicamentos: function () { return listaPrescripcionMed; },
         getPrescripcionProcedimientos: function () { return listaPrescripcionProc; },
