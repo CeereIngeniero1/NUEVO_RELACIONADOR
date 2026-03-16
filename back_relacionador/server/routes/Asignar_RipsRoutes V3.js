@@ -1168,10 +1168,7 @@ router.get('/Cups/:Tipo', async (req, res) => {
 
 router.get('/Cie', async (req, res) => {
     try {
-        // Esperar a que se resuelva el pool de conexión
-        const pool = await poolPromise;  // Asumiendo que tienes un poolPromise configurado
-
-        // Ejecutar la consulta con el pool
+        const pool = await poolPromise;
         const result = await pool.request()
             .query(`
                 SELECT 
@@ -1179,13 +1176,29 @@ router.get('/Cie', async (req, res) => {
                     GrupoMortalidad, Extra_V, Extra_VI_Capitulo, SubGrupo, Sexo
                 FROM [Cnsta Relacionador Cie10]
             `);
-
-        // Enviar los resultados
-        res.json(result.recordset);  // 'recordset' contiene los datos de la consulta
-
+        res.json(result.recordset);
     } catch (error) {
         console.error('Error al consultar los datos CIE:', error);
         res.status(500).json({ error: 'Error al obtener los datos del CIE' });
+    }
+});
+
+router.get('/Cie/:Busqueda', async (req, res) => {
+    const Busqueda = req.params.Busqueda;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + Busqueda + '%')
+            .query(`
+                SELECT TOP 100 Codigo, Nombre, Descripcion, AplicaASexo, EdadMinima, EdadMaxima, 
+                    GrupoMortalidad, Extra_V, Extra_VI_Capitulo, SubGrupo, Sexo
+                FROM [Cnsta Relacionador Cie10]
+                WHERE Codigo LIKE @Busqueda OR Nombre LIKE @Busqueda OR Descripcion LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Error al buscar CIE:', error);
+        res.status(500).json({ error: 'Error al buscar CIE' });
     }
 });
 router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto', (req, res) => {
@@ -2707,6 +2720,258 @@ router.get('/Empresas/', async (req, res) => {
         console.error('❌ Error al obtener Empresas:', error);
         if (!res.headersSent) {
             res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+// =================================================================================================
+// ==========================Medicamentos DCI=====================================
+
+router.get('/MedicamentosDCI/', async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT   IDMedicamentoDCI1888, Codigo, Descripcion, IdEstado
+            FROM     [Cnsta Medicamentos DCI 1888]
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Medicamentos DCI:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+router.get('/MedicamentosDCI/:MedicamentoDCI', async (req, res) => {
+    const MedicamentoDCI = req.params.MedicamentoDCI;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT  IDMedicamentoDCI1888, Codigo, Descripcion, IdEstado
+            FROM     [Cnsta Medicamentos DCI 1888]
+            Where Descripcion like '%${MedicamentoDCI}%' OR Codigo like '%${MedicamentoDCI}%'
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Medicamentos DCI:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.get('/Cups1888/', async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT Tabla, Codigo, Nombre, Descripcion, Tipo
+            FROM [Cnsta Cups 1888]
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Cups:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+router.get('/Cups1888/:Cups', async (req, res) => {
+    const Cups = req.params.Cups;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + Cups + '%')
+            .query(`
+            SELECT TOP 100 Tabla, Codigo, Nombre, Descripcion, Tipo
+            FROM [Cnsta Cups 1888]
+            WHERE Descripcion LIKE @Busqueda OR Codigo LIKE @Busqueda OR Nombre LIKE @Busqueda
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Cups:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.post('/EvaluacionEntidadRDA/', async (req, res) => {
+    const {
+        DocumentoEntidad, FechaRDA, IdTipoDocumento,
+        PrimerApellidoEntidad, SegundoApellidoEntidad, PrimerNombreEntidad, SegundoNombreEntidad,
+        FechaNacimiento, Edad, IdUnidaddeMedidaEdad, IdSexoBiologico, IdIdentidadGenero,
+        IdPaisNacionalidad, Talla, Peso, IdPaisRecidencia, IdMunicipioRecidencia,
+        IdZonaResidencia, Direccion, IdEtnia, ComunidadEtnica, IdDiscapacidad,
+        TelefonoCelular, Alergeno,
+        // Campos RDA Paciente (Resolución 1888)
+        CodigoPrestador, CodigoAdminPlanBeneficios, NombreAdminPlanBeneficios,
+        FechaHoraInicioAtencion, FechaHoraFinAtencion,
+        TipoDocProfesional, NumDocProfesional,
+        DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
+        TipoAlergia
+    } = req.body;
+
+    // Convierte un string de fecha en objeto Date; null si no es válido
+    const toDate = (str) => {
+        if (!str) return null;
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('DocumentoEntidad',              sql.NVarChar,  DocumentoEntidad                 || null)
+            .input('FechaRDA',                      sql.DateTime2, toDate(FechaRDA)                 || new Date())
+            .input('IdTipoDocumento',               sql.Int,       IdTipoDocumento                  ? parseInt(IdTipoDocumento)         : null)
+            .input('PrimerApellidoEntidad',         sql.NVarChar,  PrimerApellidoEntidad            || null)
+            .input('SegundoApellidoEntidad',        sql.NVarChar,  SegundoApellidoEntidad           || null)
+            .input('PrimerNombreEntidad',           sql.NVarChar,  PrimerNombreEntidad              || null)
+            .input('SegundoNombreEntidad',          sql.NVarChar,  SegundoNombreEntidad             || null)
+            .input('FechaNacimiento',               sql.DateTime2, toDate(FechaNacimiento)          || null)
+            .input('Edad',                          sql.Float,     Edad                             ? parseFloat(Edad) : null)
+            .input('IdUnidaddeMedidaEdad',          sql.Int,       IdUnidaddeMedidaEdad             ? parseInt(IdUnidaddeMedidaEdad)    : null)
+            .input('IdSexoBiologico',               sql.Int,       IdSexoBiologico                  ? parseInt(IdSexoBiologico)         : null)
+            .input('IdIdentidadGenero',             sql.Int,       IdIdentidadGenero                ? parseInt(IdIdentidadGenero)       : 0)
+            .input('IdPaisNacionalidad',            sql.Int,       IdPaisNacionalidad               ? parseInt(IdPaisNacionalidad)      : null)
+            .input('Talla',                         sql.NVarChar,  Talla                            || '0')
+            .input('Peso',                          sql.NVarChar,  Peso                             || '0')
+            .input('IdPaisRecidencia',              sql.Int,       IdPaisRecidencia                 ? parseInt(IdPaisRecidencia)        : null)
+            .input('IdMunicipioRecidencia',         sql.Int,       IdMunicipioRecidencia            ? parseInt(IdMunicipioRecidencia)   : null)
+            .input('IdZonaResidencia',              sql.Int,       IdZonaResidencia                 ? parseInt(IdZonaResidencia)        : null)
+            .input('Direccion',                     sql.NVarChar,  Direccion                        || null)
+            .input('IdEtnia',                       sql.Int,       IdEtnia                          ? parseInt(IdEtnia)                 : 0)
+            .input('ComunidadEtnica',               sql.NVarChar,  ComunidadEtnica                  || '')
+            .input('IdDiscapacidad',                sql.Int,       IdDiscapacidad                   ? parseInt(IdDiscapacidad)          : 0)
+            .input('TelefonoCelular',               sql.NVarChar,  TelefonoCelular                  || null)
+            .input('Alergeno',                      sql.NVarChar,  Alergeno                         || null)
+            // Campos RDA Paciente (Resolución 1888)
+            .input('CodigoPrestador',               sql.NVarChar,  CodigoPrestador                  || null)
+            .input('CodigoAdminPlanBeneficios',     sql.NVarChar,  CodigoAdminPlanBeneficios        || null)
+            .input('NombreAdminPlanBeneficios',     sql.NVarChar,  NombreAdminPlanBeneficios        || null)
+            .input('FechaHoraInicioAtencion',       sql.DateTime2, toDate(FechaHoraInicioAtencion)  || null)
+            .input('FechaHoraFinAtencion',          sql.DateTime2, toDate(FechaHoraFinAtencion)     || null)
+            .input('TipoDocProfesional',            sql.NVarChar,  TipoDocProfesional               || null)
+            .input('NumDocProfesional',             sql.NVarChar,  NumDocProfesional                || null)
+            .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar,  DiagnosticoIngresoCIE11Codigo    || null)
+            .input('DiagnosticoIngresoCIE11Termino',sql.NVarChar,  DiagnosticoIngresoCIE11Termino   || null)
+            .input('TipoAlergia',                   sql.NVarChar,  TipoAlergia                      || null)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA]
+                (
+                    [Documento Entidad], [Fecha RDA], [Id Tipo Documento],
+                    [Primer Apellido Entidad], [Segundo Apellido Entidad],
+                    [Primer Nombre Entidad], [Segundo Nombre Entidad],
+                    [Fecha Nacimiento], [Edad], [Id Unidad de Medida Edad],
+                    [Id Sexo Biologico], [Id Identidad Genero], [Id Pais Nacionalidad],
+                    [Talla], [Peso], [Id Pais Recidencia], [Id Municipio Recidencia],
+                    [Id Zona Residencia], [Dirección], [Id Etnia], [Comunidad Etnica],
+                    [Id Discapacidad], [Teléfono Celular], [Alergeno],
+                    [Codigo Prestador], [Codigo Admin Plan Beneficios], [Nombre Admin Plan Beneficios],
+                    [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
+                    [Tipo Doc Profesional], [Num Doc Profesional],
+                    [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
+                    [Tipo Alergia]
+                )
+                OUTPUT INSERTED.[Id Evaluacion Entidad RDA]
+                VALUES
+                (
+                    @DocumentoEntidad, @FechaRDA, @IdTipoDocumento,
+                    @PrimerApellidoEntidad, @SegundoApellidoEntidad,
+                    @PrimerNombreEntidad, @SegundoNombreEntidad,
+                    @FechaNacimiento, @Edad, @IdUnidaddeMedidaEdad,
+                    @IdSexoBiologico, @IdIdentidadGenero, @IdPaisNacionalidad,
+                    @Talla, @Peso, @IdPaisRecidencia, @IdMunicipioRecidencia,
+                    @IdZonaResidencia, @Direccion, @IdEtnia, @ComunidadEtnica,
+                    @IdDiscapacidad, @TelefonoCelular, @Alergeno,
+                    @CodigoPrestador, @CodigoAdminPlanBeneficios, @NombreAdminPlanBeneficios,
+                    @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
+                    @TipoDocProfesional, @NumDocProfesional,
+                    @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
+                    @TipoAlergia
+                )
+            `);
+        const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA'];
+        res.json({ ok: true, IdEvaluacionEntidadRDA: idInsertado });
+    } catch (error) {
+        console.error('❌ Error al insertar Evaluacion Entidad RDA:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDA/AntecedentesSalud', async (req, res) => {
+    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdEvaluacionEntidadRDA', sql.Int,      parseInt(IdEvaluacionEntidadRDA))
+            .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA Antecedentes Salud]
+                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error al insertar Antecedente Salud:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => {
+    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdEvaluacionEntidadRDA', sql.Int,      parseInt(IdEvaluacionEntidadRDA))
+            .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
+            .input('Parentesco',             sql.NVarChar, Parentesco       || null)
+            .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
+                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Parentesco], [Descripcion], [Id Estado])
+                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Parentesco, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error al insertar Antecedente Familiar:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res) => {
+    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdEvaluacionEntidadRDA', sql.Int,      parseInt(IdEvaluacionEntidadRDA))
+            .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA Antecedentes Farmacologicos]
+                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error al insertar Antecedente Farmacologico:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
         }
     }
 });

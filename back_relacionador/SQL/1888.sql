@@ -844,4 +844,127 @@ CREATE TABLE [Antecedentes Farmacologicos 1888] (
 
 
 
+CREATE VIEW [dbo].[Cnsta Medicamentos DCI 1888]
+AS
+SELECT [ID Medicamento DCI 1888] AS IDMedicamentoDCI1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM     dbo.[Medicamento DCI 1888]
+WHERE  ([Id Estado] = 7)
+GO
+
+
+
+CREATE VIEW [dbo].[Cnsta Cups 1888]
+AS
+SELECT Tabla, Codigo, Nombre, Descripcion, Tipo
+FROM     dbo.[Rips Cups]
+GO
+
+
+
+Create Table [Evaluacion Entidad RDA]
+(
+    [Id Evaluacion Entidad RDA]       INT          IDENTITY(1,1) PRIMARY KEY,
+    [Documento Entidad]               VARCHAR(50)  NULL,
+    [Fecha RDA]                       DATETIME     NOT NULL,   -- Fecha de ingreso/creación del RDA
+    [Id Tipo Documento]               INT          NULL,
+    [Primer Apellido Entidad]         NVARCHAR(100) NULL,
+    [Segundo Apellido Entidad]        NVARCHAR(100) NULL,
+    [Primer Nombre Entidad]           NVARCHAR(100) NULL,
+    [Segundo Nombre Entidad]          NVARCHAR(50)  NULL,
+    [Fecha Nacimiento]                DATETIME     NULL,
+    [Edad]                            FLOAT        NULL,
+    [Id Unidad de Medida Edad]        INT          NULL,
+    [Id Sexo Biologico]               INT          NULL,
+    [Id Identidad Genero]             INT          NOT NULL DEFAULT 0,
+    [Id Pais Nacionalidad]            INT          NULL,
+    [Talla]                           VARCHAR(10)  NOT NULL DEFAULT '0',
+    [Peso]                            VARCHAR(10)  NOT NULL DEFAULT '0',
+    [Id Pais Recidencia]              INT          NULL,
+    [Id Municipio Recidencia]         INT          NULL,
+    [Id Zona Residencia]              INT          NULL,
+    [Dirección]                       NVARCHAR(255) NULL,
+    [Id Etnia]                        INT          NOT NULL DEFAULT 0,
+    [Comunidad Etnica]                VARCHAR(50)  NOT NULL DEFAULT '',
+    [Id Discapacidad]                 INT          NOT NULL DEFAULT 0,
+    [Teléfono Celular]                NVARCHAR(50) NULL,
+    [Alergeno]                        VARCHAR(200) NULL,
+    -- Campos RDA Paciente (Resolución 1888)
+    [Codigo Prestador]                NVARCHAR(50)  NULL,
+    [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL,
+    [Nombre Admin Plan Beneficios]    NVARCHAR(200) NULL,
+    [Fecha Hora Inicio Atencion]      DATETIME     NULL,
+    [Fecha Hora Fin Atencion]         DATETIME     NULL,
+    [Tipo Doc Profesional]            VARCHAR(10)  NULL,
+    [Num Doc Profesional]             NVARCHAR(50) NULL,
+    [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
+    [Diagnostico Ingreso CIE11 Termino] NVARCHAR(200) NULL,
+    [Tipo Alergia]                    VARCHAR(5)   NULL
+)
+
+-- Si la tabla ya existe, ejecutar estos ALTER TABLE para agregar las columnas nuevas:
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Codigo Prestador]                NVARCHAR(50)  NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Admin Plan Beneficios]    NVARCHAR(200) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Fecha Hora Inicio Atencion]      DATETIME     NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Fecha Hora Fin Atencion]         DATETIME     NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Tipo Doc Profesional]            VARCHAR(10)  NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Num Doc Profesional]             NVARCHAR(50) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Ingreso CIE11 Codigo]  NVARCHAR(50)  NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Ingreso CIE11 Termino] NVARCHAR(200) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Tipo Alergia]                    VARCHAR(5)   NULL;
+
+
+
+
+
+
+
+CREATE TABLE [Evaluacion Entidad RDA Antecedentes Salud] (
+    [ID Antecedente Salud] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA] INT ,
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
+
+    
+
+     CONSTRAINT FK_evaentrdaAntecedentesSalud
+    FOREIGN KEY ([Id Evaluacion Entidad RDA])
+    REFERENCES [Evaluacion Entidad RDA]([Id Evaluacion Entidad RDA])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA Antecedentes Familiares] (
+    [ID Antecedente Familiar] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA] INT ,
+
+    [Documento Entidad] NVARCHAR(50) NOT NULL, 
+    [Parentesco] VARCHAR(100) NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
+
+   
+
+     CONSTRAINT FK_evaentrdaAntecedentesFamiliares
+    FOREIGN KEY ([Id Evaluacion Entidad RDA])
+    REFERENCES [Evaluacion Entidad RDA]([Id Evaluacion Entidad RDA])
+ 
+);
+
+
+
+CREATE TABLE [Evaluacion Entidad RDA Antecedentes Farmacologicos] (
+    [ID Antecedente Farmacologico] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA] INT ,
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL,
+
+
+   CONSTRAINT FK_evaentrdaAntecedentesFarmacologicos
+    FOREIGN KEY ([Id Evaluacion Entidad RDA])
+    REFERENCES [Evaluacion Entidad RDA]([Id Evaluacion Entidad RDA])
+);
+
+
+
 
