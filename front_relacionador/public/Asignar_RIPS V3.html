@@ -1067,7 +1067,7 @@
             <!-- ╔══════════════════════════════════════════╗
          ║  CARD 5 — Resumen Digital de Atención    ║
          ╚══════════════════════════════════════════╝ -->
-            <div class="cr-card" id="cardRDA">
+            <div class="cr-card" id="cardRDA" style="display: none !important;">
                 <div class="cr-card-header" onclick="crToggleCard('cardRDA')">
                     <div class="cr-card-header-left">
                         <i class="fa-solid fa-laptop-medical cr-card-icon"></i>
@@ -2256,7 +2256,7 @@
 <script src="Asignar_RIPS V3.js"></script>
 
 <!-- RDA V3 - Archivo independiente (Resolución 1888) -->
-<script src="rda-v3.js"></script>
+<!-- <script src="rda-v3.js"></script> -->
 
 <!-- ═══════════════════════════════════════════
      NIVEL 3 — Lógica de UI: cards + topbar
@@ -2308,9 +2308,7 @@
     })();
 </script>
 
-<!-- ═══════════════════════════════════════════
-     RDA PACIENTE — Guardar
-     ═══════════════════════════════════════════ -->
+<!-- RDA PACIENTE — Guardar (Oculto temporalmente)
 <script>
 (function () {
     'use strict';
@@ -2453,7 +2451,7 @@
         }
     }
 })();
-</script>
+</script> -->
 
 
 </html>

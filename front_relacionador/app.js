@@ -129,8 +129,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/Asignar_RIPS', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'Asignar_RIPS V3.html'))
+});
+
 app.get('/Asignar_RIPS.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'Asignar_RIPS.html'))
+    res.sendFile(path.join(__dirname, 'public', 'Asignar_RIPS V3.html'))
 });
 
 const PORT = process.env.PORT || 3100;

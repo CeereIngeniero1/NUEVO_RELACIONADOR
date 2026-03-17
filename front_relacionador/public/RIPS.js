@@ -2031,7 +2031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const descargarRIPSButton = document.getElementById('descargarRIPS');
         const generadorRIPSLink = document.getElementById('generadorRIPS');
-        const asignarRIPSLink = document.querySelector('a[href="Asignar_RIPS.html"]');
+        const asignarRIPSLink = document.querySelector('a[href="Asignar_RIPS V3.html"]');
         const descargarXMLS = document.getElementById('XMLS');
 
         // switch (level) {
