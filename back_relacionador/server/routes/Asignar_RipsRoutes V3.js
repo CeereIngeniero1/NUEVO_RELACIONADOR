@@ -1201,7 +1201,7 @@ router.get('/Cie/:Busqueda', async (req, res) => {
         res.status(500).json({ error: 'Error al buscar CIE' });
     }
 });
-router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto', (req, res) => {
+router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto/:DocumentoEntidad', (req, res) => {
 
 
 
@@ -1220,6 +1220,8 @@ router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoS
     const idfactura = req.params.Idfactura;
 
     const Idpresupuesto = req.params.Idpresupuesto;
+
+    const DocumentoEntidad = req.params.DocumentoEntidad;
 
     const Cups1 = req.params.Cups1;
     let Cups2 = req.params.Cups2;
