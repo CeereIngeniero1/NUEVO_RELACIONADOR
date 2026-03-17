@@ -366,6 +366,28 @@ SelectPacientes.addEventListener("change", async function (e) {
         const CargarDatosPaciente = await DatosPaciente.json();
         console.log('Datos: ', CargarDatosPaciente);
 
+        try {
+          const formValuesRda = {
+            pacienteId: CargarDatosPaciente[0].IdPaciente || CargarDatosPaciente[0].IdUsuario || undefined,
+            pacienteNombre: CargarDatosPaciente[0].NombreCompletoPaciente || "",
+            pacienteDocumento: CargarDatosPaciente[0].DocumentoPaciente || "",
+            pacienteTipoId: CargarDatosPaciente[0].TipoDocumentoPaciente || "",
+            ipsId: CargarDatosPaciente[0].IdIPS || undefined,
+            ipsNombre: CargarDatosPaciente[0].NombreIPS || "",
+            eapbId: CargarDatosPaciente[0].IdEAPB || undefined,
+            eapbNombre: CargarDatosPaciente[0].NombreEAPB || "",
+          };
+
+          if (window.RDA && typeof window.RDA.buildPacienteBundle === "function") {
+            const bundleRda = window.RDA.buildPacienteBundle(formValuesRda);
+            console.log("[RDA FHIR Bundle]", bundleRda);
+          } else {
+            console.warn("[RDA] buildPacienteBundle no está disponible en window.RDA");
+          }
+        } catch (e) {
+          console.error("[RDA] Error al construir el Bundle FHIR RDA Paciente:", e);
+        }
+
         NombrePaciente.value = CargarDatosPaciente[0].NombreCompletoPaciente;
         DcoumentoPaciente.value = CargarDatosPaciente[0].DocumentoPaciente;
         EdadPaciente.value = CargarDatosPaciente[0].Edad;
@@ -2583,7 +2605,7 @@ const AsignarRIPS = async () => {
         }
       );
 
-      if (!AsignarRIPSAP) {
+      if (!AsignarRIPSAP.ok) {
         throw new Error(
           `Error al obtener las entidades de RIPS: ${AsignarRIPSAP.statusText}`
         );
@@ -2769,7 +2791,7 @@ const AsignarRIPS = async () => {
         }
       );
 
-      if (!AsignarRIPSAC) {
+      if (!AsignarRIPSAC.ok) {
         throw new Error(
           `Error al obtener las entidades de RIPS: ${AsignarRIPSAC.statusText}`
         );

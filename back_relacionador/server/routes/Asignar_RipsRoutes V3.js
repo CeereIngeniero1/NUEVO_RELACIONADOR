@@ -881,7 +881,7 @@ router.get('/CausaExterna', async (req, res) => {
 
         const request = new Request(
             `
-              SELECT       [Id RIPS Causa Externa Version2], Codigo, 
+              SELECT       [Id RIPS Causa Externa Version2] AS IdRIPSCausaExternaVersion2, Codigo, 
               NombreRIPSCausaExternaVersion2, DescripcionRIPSCausaExternaVersion2, 
               RIPSCausaExternaVersion2, [Id Estado]
                 FROM            [Cnsta Relacionador Causa Externa]
