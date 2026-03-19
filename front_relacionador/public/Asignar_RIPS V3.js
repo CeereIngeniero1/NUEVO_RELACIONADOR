@@ -799,6 +799,38 @@ $(document).ready(function () {
 
   initCups1888Select2("#RDACE_CodigoProcedimiento", "#RDACE_NombreProcedimiento");
 
+  /// Profesionales - consume apiV3/Profesionales/ y apiV3/Profesionales/:term
+  function initProfesionalesSelect2(selector) {
+    $(selector).select2({
+      placeholder: "Buscar por nombre o documento...",
+      allowClear: true,
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const url = term
+            ? `http://${servidor}:3000/apiV3/Profesionales/${encodeURIComponent(term)}`
+            : `http://${servidor}:3000/apiV3/Profesionales/`;
+          fetch(url)
+            .then(r => r.json())
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(p => ({
+              id: p.Documento,
+              text: `${p.Nombres || ""} (${p.Documento || ""})`
+            }))
+          };
+        }
+      }
+    });
+  }
+  initProfesionalesSelect2("#RDA_NumDocProfesional");
+  initProfesionalesSelect2("#RDACE_NumDocProfesional");
 
   ///Lista para conslta de tipo documentos
   $("#TipoDocumentoBase").select2({
