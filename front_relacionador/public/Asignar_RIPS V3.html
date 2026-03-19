@@ -453,15 +453,15 @@
                 </div>
             </div>
 
-            <!-- ╔══════════════════════════════════════════╗
-             ║  CARD 3 — Historia clínica y tipo RIPS   ║
-             ╚══════════════════════════════════════════╝ -->
+            <!-- ╔══════════════════════════════════════════════════════════╗
+             ║  CARD 3 — Historia clínica, tipo RIPS y asignación (unificado) ║
+             ╚══════════════════════════════════════════════════════════╝ -->
             <div class="cr-card" id="cardHistoriaClinica">
                 <div class="cr-card-header" onclick="crToggleCard('cardHistoriaClinica')">
                     <div class="cr-card-header-left">
                         <i class="fa-solid fa-file-medical cr-card-icon"></i>
-                        <span class="cr-card-title">Selección de historia clínica y tipo de
-                            RIPS</span>
+                        <span class="cr-card-title">Historia clínica, tipo de RIPS y
+                            asignación</span>
                     </div>
                     <button class="cr-card-toggle" tabindex="-1">▼</button>
                 </div>
@@ -781,21 +781,8 @@
                             </div>
                         </div> <!-- /col-md-4 -->
                     </div> <!-- /row -->
-                </div> <!-- /cr-card-body -->
-            </div> <!-- cardHistoriaClinica -->
 
-            <!-- ╔══════════════════════════════════════════╗
-             ║  CARD 4 — Asignación de RIPS             ║
-             ╚══════════════════════════════════════════╝ -->
-            <div class="cr-card" id="cardAsignacionRIPS">
-                <div class="cr-card-header" onclick="crToggleCard('cardAsignacionRIPS')">
-                    <div class="cr-card-header-left">
-                        <i class="fa-solid fa-notes-medical cr-card-icon"></i>
-                        <span class="cr-card-title">Asignación de RIPS</span>
-                    </div>
-                    <button class="cr-card-toggle" tabindex="-1">▼</button>
-                </div>
-                <div class="cr-card-body">
+                    <hr class="border-secondary opacity-50 my-3" aria-hidden="true">
 
                     <!-- RIPS AC -->
                     <div class="" id="TipoAC">
@@ -1062,7 +1049,7 @@
                             historia</button>
                     </div>
                 </div><!-- /cr-card-body -->
-            </div><!-- /cr-card cardAsignacionRIPS -->
+            </div><!-- /cr-card cardHistoriaClinica (incluye asignación RIPS) -->
 
             <!-- ╔══════════════════════════════════════════╗
          ║  CARD 5 — Resumen Digital de Atención    ║

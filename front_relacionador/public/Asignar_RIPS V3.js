@@ -5152,6 +5152,7 @@ async function GuardarRIPSPorDefecto() {
         TipoRIPS: SelectTipoRIPSPorDefecto,
         TipoUsuario: SelectPorDefectoTipoUsuarioRIPS,
         Entidad: SelectPorDefectoEntidadAC,
+        ViaIngresoServicioSalud: "",
         ModalidadGrupoServicioTecSal:
           SelectPorDefectoModalidadGrupoServicioTecSalAC,
         GrupoServicio: SelectPoDefectoGrupoServiciosAC,
@@ -5254,6 +5255,8 @@ async function GuardarRIPSPorDefecto() {
         GrupoServicio: SelectPorDefectoGrupoServiciosAP,
         CodigoServicio: SelectPorDefectoCodServicioAP,
         FinalidadTecnologiaSalud: SelectPorDefectoFinalidadTecnologíaSaludAP,
+        CausaMotivoAtencion: "",
+        TipoDiagnosticoPrincipal: "",
         ConsultaRIPS1: SelectPorDefectoProcedimientoRIPSAP1,
         ConsultaRIPS2: SelectPorDefectoProcedimientoRIPSAP2,
         DiagnosticoRIPS1: SelectPorDefectoDiagnosticoRIPSAP1,
@@ -5361,6 +5364,7 @@ async function ActualizarRIPSPorDefecto() {
         TipoRIPS: SelectTipoRIPSPorDefecto.value,
         TipoUsuario: SelectPorDefectoTipoUsuarioRIPS,
         Entidad: SelectPorDefectoEntidadAC,
+        ViaIngresoServicioSalud: "",
         ModalidadGrupoServicioTecSal:
           SelectPorDefectoModalidadGrupoServicioTecSalAC,
         GrupoServicio: SelectPoDefectoGrupoServiciosAC,
@@ -5452,6 +5456,8 @@ async function ActualizarRIPSPorDefecto() {
         GrupoServicio: SelectPorDefectoGrupoServiciosAP,
         CodigoServicio: SelectPorDefectoCodServicioAP,
         FinalidadTecnologiaSalud: SelectPorDefectoFinalidadTecnologíaSaludAP,
+        CausaMotivoAtencion: "",
+        TipoDiagnosticoPrincipal: "",
         ConsultaRIPS1: SelectPorDefectoProcedimientoRIPSAP1,
         ConsultaRIPS2: SelectPorDefectoProcedimientoRIPSAP2,
         DiagnosticoRIPS1: SelectPorDefectoDiagnosticoRIPSAP1,
@@ -5481,7 +5487,7 @@ async function ActualizarRIPSPorDefecto() {
       } else {
         Swal.fire({
           icon: "error",
-          text: "Error al actualizar el RIPS AC por defecto",
+          text: "Error al actualizar el RIPS AP por defecto",
         });
         console.error(
           "Error en la solicitud:",
