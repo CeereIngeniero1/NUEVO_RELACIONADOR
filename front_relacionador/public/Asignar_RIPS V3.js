@@ -832,6 +832,38 @@ $(document).ready(function () {
   initProfesionalesSelect2("#RDA_NumDocProfesional");
   initProfesionalesSelect2("#RDACE_NumDocProfesional");
 
+  /// Egreso y Remisión - consume apiV3/EgresoRemision/ y apiV3/EgresoRemision/:term
+  function initEgresoRemisionSelect2(selector) {
+    $(selector).select2({
+      placeholder: "Buscar condición y destino al egreso...",
+      allowClear: true,
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const url = term
+            ? `http://${servidor}:3000/apiV3/EgresoRemision/${encodeURIComponent(term)}`
+            : `http://${servidor}:3000/apiV3/EgresoRemision/`;
+          fetch(url)
+            .then(r => r.json())
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => ({
+              id: item.Codigo,
+              text: `${item.Codigo || ""} - ${item.Descripcion || ""}`.trim()
+            }))
+          };
+        }
+      }
+    });
+  }
+  initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso");
+
   ///Lista para conslta de tipo documentos
   $("#TipoDocumentoBase").select2({
     placeholder: "Selecciona Tipo Documento",
