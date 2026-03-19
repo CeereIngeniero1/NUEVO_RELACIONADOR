@@ -37,13 +37,33 @@ function rerender(container, items, kind) {
 function clearFields(ids) {
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = "";
+        if (!el) return;
+        if (typeof $ !== "undefined" && $(el).data("select2")) {
+            $(el).val(null).trigger("change");
+        } else {
+            el.value = "";
+        }
     });
 }
 
 function getSelectText(id) {
     const el = document.getElementById(id);
-    return el?.options[el.selectedIndex]?.text || "";
+    if (!el) return "";
+    if (typeof $ !== "undefined" && $(el).data("select2")) {
+        const d = $(el).select2("data")[0];
+        return d ? (d.text || "") : "";
+    }
+    return el.options[el.selectedIndex]?.text || "";
+}
+
+function getSelectValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return "";
+    if (typeof $ !== "undefined" && $(el).data("select2")) {
+        const d = $(el).select2("data")[0];
+        return d && d.id != null ? String(d.id) : "";
+    }
+    return el.value || "";
 }
 
 export function initListasConsultaExterna() {
@@ -88,13 +108,13 @@ export function initListasConsultaExterna() {
             dci: document.getElementById("RDACE_DescripcionComunMed")?.value || "",
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
             dosis: document.getElementById("RDACE_DosisOrdenadaMed")?.value || "",
-            unidadDosis: document.getElementById("RDACE_UnidadMedidaDosis")?.value || "",
+            unidadDosis: getSelectValue("RDACE_UnidadMedidaDosis"),
             via: getSelectText("RDACE_ViaAdministracionMed"),
             duracionCant: document.getElementById("RDACE_DuracionCantidadMed")?.value || "",
-            duracionUnid: document.getElementById("RDACE_DuracionUnidadTiempoMed")?.value || "",
+            duracionUnid: getSelectValue("RDACE_DuracionUnidadTiempoMed"),
             frecuenciaCant: document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || "",
-            frecuenciaUnid: document.getElementById("RDACE_FrecuenciaUnidadTiempoMed")?.value || "",
-            finalidad: document.getElementById("RDACE_FinalidadTecSaludMed")?.value || "",
+            frecuenciaUnid: getSelectValue("RDACE_FrecuenciaUnidadTiempoMed"),
+            finalidad: getSelectValue("RDACE_FinalidadTecSaludMed"),
         });
         rerender(contMedCE, getPrescripcionMedicamentos(), "medCE");
 
@@ -102,7 +122,7 @@ export function initListasConsultaExterna() {
             "RDACE_CodigoMedicamento", "RDACE_NombreMedicamento", "RDACE_DescripcionComunMed",
             "RDACE_FechaPrescripcionMed", "RDACE_DosisOrdenadaMed",
             "RDACE_UnidadMedidaDosis", "RDACE_ViaAdministracionMed", "RDACE_DuracionUnidadTiempoMed",
-            "RDACE_FrecuenciaUnidadTiempoMed", "RDACE_FinalidadTecSaludMed",
+            "RDACE_FrecuenciaUnidadTiempoMed", "RDACE_FinalidadTecSaludMed", "RDACE_TipoTecSaludMed",
             "RDACE_DuracionCantidadMed", "RDACE_FrecuenciaCantidadMed",
         ]);
     });
@@ -126,7 +146,7 @@ export function initListasConsultaExterna() {
 
         clearFields([
             "RDACE_CodigoProcedimiento", "RDACE_NombreProcedimiento",
-            "RDACE_FinalidadTecSaludProc", "RDACE_FechaPrescripcionProc",
+            "RDACE_TipoTecSaludProc", "RDACE_FinalidadTecSaludProc", "RDACE_FechaPrescripcionProc",
         ]);
     });
 

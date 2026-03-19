@@ -33,6 +33,17 @@ create table Discapacidad (
  [Id Estado] int Null
 )
 
+CREATE TABLE [dbo].[Etnia](
+	[Id Etnia] [int] IDENTITY(1,1) PRIMARY KEY,
+	[Código Etnia] [nvarchar](50) NULL,
+	[Etnia] [nvarchar](200) NULL,
+	[Descripción Etnia] [nvarchar](200) NULL,
+	[Orden Etnia] [int] NULL,
+	[Id Estado] [int] NULL
+) ON [PRIMARY]
+GO
+
+
 select * from etnia
 
 Create table [Sexo Identidad Genero](
@@ -901,6 +912,14 @@ Create Table [Evaluacion Entidad RDA]
     [Tipo Alergia]                    VARCHAR(5)   NULL
 )
 
+-- ============================================================================
+-- RDA CONSULTA EXTERNA (Res. 1888) — equivalente a esta tabla pero solo datos CE:
+--   Principal: [Evaluacion Entidad RDA Consulta Externa]  (CREATE ~ línea 985)
+--   Listas:    [Evaluacion Entidad RDA CE ...]            (antecedentes, Dx rel., prescr., etc.)
+-- Script listo para ejecutar aparte:  SQL/Evaluacion Entidad RDA Consulta Externa - CREATE.sql
+-- API Node:  POST /apiV3/EvaluacionEntidadRDACE/  →  server/routes/Asignar_RipsRoutes V3.js
+-- ============================================================================
+
 -- Si la tabla ya existe, ejecutar estos ALTER TABLE para agregar las columnas nuevas:
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Codigo Prestador]                NVARCHAR(50)  NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL;
@@ -966,5 +985,441 @@ CREATE TABLE [Evaluacion Entidad RDA Antecedentes Farmacologicos] (
 );
 
 
+-- =============================================================================
+-- RDA CONSULTA EXTERNA — Tabla principal + hijas (misma lógica que RDA Paciente)
+-- Si la tabla ya existe en su BD, omitir CREATE o usar IF NOT EXISTS según versión SQL Server.
+-- =============================================================================
+
+CREATE TABLE [Evaluacion Entidad RDA Consulta Externa](
+    [Id Evaluacion Entidad RDA Consulta Externa] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Documento Entidad]               NVARCHAR(50)  NOT NULL,
+    [Fecha RDA]                       DATETIME      NOT NULL,
+    [Codigo Prestador]                NVARCHAR(50)  NULL,
+    [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL,
+    [Nombre Admin Plan Beneficios]    NVARCHAR(200) NULL,
+    [Fecha Hora Inicio Atencion]      DATETIME      NULL,
+    [Fecha Hora Fin Atencion]         DATETIME      NULL,
+    [Tipo Doc Profesional]            VARCHAR(10)   NULL,
+    [Num Doc Profesional]             NVARCHAR(50)  NULL,
+    [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
+    [Diagnostico Ingreso CIE11 Termino] NVARCHAR(500) NULL,
+    [Tipo Alergia]                    VARCHAR(10)   NULL,
+    [Entorno Atencion]                NVARCHAR(50)  NULL,
+    [Tipo Factor Riesgo]              NVARCHAR(50)  NULL,
+    [Nombre Factor Riesgo]            NVARCHAR(300) NULL,
+    [Diagnostico Principal CIE10 Codigo] NVARCHAR(20) NULL,
+    [Diagnostico Principal CIE10 Nombre] NVARCHAR(500) NULL,
+    [Tipo Diagnostico Principal]      NVARCHAR(20)  NULL,
+    [Condicion Destino Egreso]        NVARCHAR(50)  NULL,
+    [Codigo Prestador Remite]         NVARCHAR(50)  NULL,
+    [Alcance Incapacidad]             NVARCHAR(20)  NULL,
+    [Dias Incapacidad]                INT           NULL,
+    [Dias Licencia Maternidad]        INT           NULL,
+    [Nombre Documento PDF]            NVARCHAR(300) NULL,
+    [Id Estado]                       INT           NOT NULL DEFAULT 1
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Salud] (
+    [ID Antecedente Salud CE] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(500) NOT NULL,
+    [Id Estado] INT NOT NULL,
+    CONSTRAINT FK_RDACE_AntecedentesSalud
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Familiares] (
+    [ID Antecedente Familiar CE] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Parentesco] NVARCHAR(100) NULL,
+    [Descripcion] VARCHAR(500) NOT NULL,
+    [Id Estado] INT NOT NULL,
+    CONSTRAINT FK_RDACE_AntecedentesFamiliares
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Farmacologicos] (
+    [ID Antecedente Farmacologico CE] INT PRIMARY KEY IDENTITY(1,1),
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Documento Entidad] NVARCHAR(50) NOT NULL,
+    [Descripcion] VARCHAR(500) NOT NULL,
+    [Id Estado] INT NOT NULL,
+    CONSTRAINT FK_RDACE_AntecedentesFarmacologicos
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Diagnosticos Relacionados] (
+    [ID Diagnostico Relacionado CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Codigo CIE10] NVARCHAR(20) NULL,
+    [Nombre CIE10] NVARCHAR(500) NULL,
+    [Codigo CIE11] NVARCHAR(50) NULL,
+    [Termino CIE11] NVARCHAR(500) NULL,
+    [Id Estado] INT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_RDACE_DiagnosticosRelacionados
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Prescripcion Medicamentos] (
+    [ID Prescripcion Medicamento CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Tipo Tec Salud] NVARCHAR(20) NULL,
+    [Codigo Medicamento] NVARCHAR(50) NULL,
+    [Nombre Medicamento] NVARCHAR(300) NULL,
+    [Descripcion Comun DCI] NVARCHAR(500) NULL,
+    [Fecha Prescripcion] DATETIME NULL,
+    [Dosis Ordenada] NVARCHAR(50) NULL,
+    [Unidad Medida Dosis] NVARCHAR(50) NULL,
+    [Via Administracion] NVARCHAR(200) NULL,
+    [Duracion Cantidad] NVARCHAR(50) NULL,
+    [Duracion Unidad Tiempo] NVARCHAR(20) NULL,
+    [Frecuencia Cantidad] NVARCHAR(50) NULL,
+    [Frecuencia Unidad Tiempo] NVARCHAR(20) NULL,
+    [Finalidad Tec Salud] NVARCHAR(100) NULL,
+    [Id Estado] INT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_RDACE_PrescripcionMedicamentos
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Prescripcion Procedimientos] (
+    [ID Prescripcion Procedimiento CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Tipo Tec Salud] NVARCHAR(100) NULL,
+    [Codigo Procedimiento] NVARCHAR(50) NULL,
+    [Nombre Procedimiento] NVARCHAR(400) NULL,
+    [Finalidad Tec Salud] NVARCHAR(200) NULL,
+    [Fecha Prescripcion] DATETIME NULL,
+    [Id Estado] INT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_RDACE_PrescripcionProcedimientos
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
+
+CREATE TABLE [Evaluacion Entidad RDA CE Otras Tecnologias] (
+    [ID Otra Tecnologia CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
+    [Tipo Tec Salud] NVARCHAR(200) NULL,
+    [Codigo] NVARCHAR(100) NULL,
+    [Nombre] NVARCHAR(400) NULL,
+    [Fecha Prescripcion] DATETIME NULL,
+    [Finalidad Tec Salud] NVARCHAR(200) NULL,
+    [Id Estado] INT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_RDACE_OtrasTecnologias
+        FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
+        REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+);
 
 
+CREATE TABLE [Factor De Riesgo 1888]
+(
+[Id Factor De Riesgo 1888] INT IDENTITY (1,1) PRIMARY KEY,
+Codigo varchar (50),
+Descripcion varchar (50),
+[Id Estado] int default 7
+)
+
+
+INSERT INTO [Factor De Riesgo 1888] (Codigo, Descripcion)
+VALUES 
+('00', 'Sin factor'),
+('01', 'Biológico'),
+('02', 'Social'),
+('03', 'Ambiental'),
+('04', 'Comportamental'),
+('05', 'Económico');
+
+create view [dbo].[Cnsta Factor De Riesgo 1888]
+as
+select [Id Factor De Riesgo 1888] AS IdFactorDeRiesgo1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+from [Factor De Riesgo 1888]
+where [Id Estado] = 7
+go
+
+
+CREATE TABLE [Tipo de tecnología en salud 1888]
+(
+[Id Tipo de tecnología en salud 1888] INT IDENTITY (1,1) PRIMARY KEY,
+Codigo varchar (50),
+Descripcion varchar (50),
+[Id Estado] int default 7
+)
+
+
+INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion)
+VALUES 
+('02', 'Registro sanitario'),
+('03', 'Vital no disponible'),
+('04', 'Preparación magistral'),
+('05', 'UNIRS');
+
+
+create view [dbo].[Cnsta Tipo de tecnología en salud 1888]
+as
+select [Id Tipo de tecnología en salud 1888] AS IdTipoTecnologiaEnSalud1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+from [Tipo de tecnología en salud 1888]
+where [Id Estado] = 7
+go
+
+-- =============================================================================
+-- Catálogos RDA Consulta Externa (Resolución 1888) — listas desde BD
+-- Ejecutar después de crear las tablas base. Ajustar [Id Estado] = 7 según su catálogo de estados.
+-- =============================================================================
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Entorno de atencion 1888')
+CREATE TABLE [dbo].[Entorno de atencion 1888](
+    [Id Entorno de atencion 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Entorno de atencion 1888])
+INSERT INTO [Entorno de atencion 1888] (Codigo, Descripcion) VALUES
+('01', 'Unidad de atención en salud propia'),
+('02', 'Domiciliaria'),
+('03', 'Comunitaria'),
+('04', 'Escolar'),
+('05', 'Laboral'),
+('06', 'Institución de referencia u otra institución');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Entorno de atencion 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Entorno de atencion 1888] AS
+SELECT [Id Entorno de atencion 1888] AS IdEntornoAtencion1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Entorno de atencion 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tipo de alergia 1888')
+CREATE TABLE [dbo].[Tipo de alergia 1888](
+    [Id Tipo de alergia 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Tipo de alergia 1888])
+INSERT INTO [Tipo de alergia 1888] (Codigo, Descripcion) VALUES
+('01', 'Medicamento'),
+('02', 'Alimento'),
+('03', 'Sustancia del ambiente'),
+('04', 'Sustancia en contacto con la piel'),
+('05', 'Picadura de insectos'),
+('06', 'Otra');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Tipo de alergia 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Tipo de alergia 1888] AS
+SELECT [Id Tipo de alergia 1888] AS IdTipoAlergia1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Tipo de alergia 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Parentesco familiar RDA 1888')
+CREATE TABLE [dbo].[Parentesco familiar RDA 1888](
+    [Id Parentesco familiar RDA 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Parentesco familiar RDA 1888])
+INSERT INTO [Parentesco familiar RDA 1888] (Codigo, Descripcion) VALUES
+('01', 'Padres'),
+('02', 'Hermanos'),
+('03', 'Tíos'),
+('04', 'Abuelos');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Parentesco familiar RDA 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Parentesco familiar RDA 1888] AS
+SELECT [Id Parentesco familiar RDA 1888] AS IdParentescoFamiliarRDA1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Parentesco familiar RDA 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tipo diagnostico principal 1888')
+CREATE TABLE [dbo].[Tipo diagnostico principal 1888](
+    [Id Tipo diagnostico principal 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Tipo diagnostico principal 1888])
+INSERT INTO [Tipo diagnostico principal 1888] (Codigo, Descripcion) VALUES
+('01', 'Impresión diagnóstica'),
+('02', 'Confirmado nuevo'),
+('03', 'Confirmado repetido');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Tipo diagnostico principal 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Tipo diagnostico principal 1888] AS
+SELECT [Id Tipo diagnostico principal 1888] AS IdTipoDiagnosticoPrincipal1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Tipo diagnostico principal 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad medida dosis 1888')
+CREATE TABLE [dbo].[Unidad medida dosis 1888](
+    [Id Unidad medida dosis 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Unidad medida dosis 1888])
+INSERT INTO [Unidad medida dosis 1888] (Codigo, Descripcion) VALUES
+('mg', 'mg — Miligramos'),
+('ml', 'ml — Mililitros'),
+('g', 'g — Gramos'),
+('UI', 'UI — Unidades internacionales'),
+('mcg', 'mcg — Microgramos'),
+('gotas', 'Gotas');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Unidad medida dosis 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Unidad medida dosis 1888] AS
+SELECT [Id Unidad medida dosis 1888] AS IdUnidadMedidaDosis1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Unidad medida dosis 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Via administracion medicamento 1888')
+CREATE TABLE [dbo].[Via administracion medicamento 1888](
+    [Id Via administracion medicamento 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Via administracion medicamento 1888])
+INSERT INTO [Via administracion medicamento 1888] (Codigo, Descripcion) VALUES
+('01', 'Oral'),
+('02', 'Intravenosa (IV)'),
+('03', 'Intramuscular (IM)'),
+('04', 'Subcutánea (SC)'),
+('05', 'Tópica'),
+('06', 'Inhalatoria'),
+('07', 'Rectal'),
+('08', 'Sublingual'),
+('09', 'Oftálmica'),
+('10', 'Otra');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Via administracion medicamento 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Via administracion medicamento 1888] AS
+SELECT [Id Via administracion medicamento 1888] AS IdViaAdministracionMedicamento1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Via administracion medicamento 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo duracion 1888')
+CREATE TABLE [dbo].[Unidad tiempo duracion 1888](
+    [Id Unidad tiempo duracion 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Unidad tiempo duracion 1888])
+INSERT INTO [Unidad tiempo duracion 1888] (Codigo, Descripcion) VALUES
+('d', 'Días'),
+('s', 'Semanas'),
+('m', 'Meses');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo duracion 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo duracion 1888] AS
+SELECT [Id Unidad tiempo duracion 1888] AS IdUnidadTiempoDuracion1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Unidad tiempo duracion 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo frecuencia 1888')
+CREATE TABLE [dbo].[Unidad tiempo frecuencia 1888](
+    [Id Unidad tiempo frecuencia 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Unidad tiempo frecuencia 1888])
+INSERT INTO [Unidad tiempo frecuencia 1888] (Codigo, Descripcion) VALUES
+('h', 'Horas'),
+('d', 'Días');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo frecuencia 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo frecuencia 1888] AS
+SELECT [Id Unidad tiempo frecuencia 1888] AS IdUnidadTiempoFrecuencia1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Unidad tiempo frecuencia 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Finalidad tecnologia salud 1888')
+CREATE TABLE [dbo].[Finalidad tecnologia salud 1888](
+    [Id Finalidad tecnologia salud 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Finalidad tecnologia salud 1888])
+INSERT INTO [Finalidad tecnologia salud 1888] (Codigo, Descripcion) VALUES
+('01', 'Diagnóstico'),
+('02', 'Terapéutico'),
+('03', 'Protección específica'),
+('04', 'Detección temprana'),
+('05', 'Paliativo');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Finalidad tecnologia salud 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Finalidad tecnologia salud 1888] AS
+SELECT [Id Finalidad tecnologia salud 1888] AS IdFinalidadTecnologiaSalud1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Finalidad tecnologia salud 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Otra tecnologia categoria 1888')
+CREATE TABLE [dbo].[Otra tecnologia categoria 1888](
+    [Id Otra tecnologia categoria 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Otra tecnologia categoria 1888])
+INSERT INTO [Otra tecnologia categoria 1888] (Codigo, Descripcion) VALUES
+('03', 'Dispositivo médico'),
+('04', 'Producto biológico'),
+('05', 'Nutricional'),
+('06', 'Otro');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Otra tecnologia categoria 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Otra tecnologia categoria 1888] AS
+SELECT [Id Otra tecnologia categoria 1888] AS IdOtraTecnologiaCategoria1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Otra tecnologia categoria 1888] WHERE [Id Estado] = 7');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Alcance incapacidad 1888')
+CREATE TABLE [dbo].[Alcance incapacidad 1888](
+    [Id Alcance incapacidad 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM [Alcance incapacidad 1888])
+INSERT INTO [Alcance incapacidad 1888] (Codigo, Descripcion) VALUES
+('01', 'Laboral'),
+('02', 'Escolar'),
+('03', 'Laboral y escolar');
+GO
+IF OBJECT_ID(N'[dbo].[Cnsta Alcance incapacidad 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Alcance incapacidad 1888] AS
+SELECT [Id Alcance incapacidad 1888] AS IdAlcanceIncapacidad1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Alcance incapacidad 1888] WHERE [Id Estado] = 7');
+GO
+
+-- Tipos de tecnología en salud: códigos usados en RDA (Medicamento / Procedimiento)
+IF NOT EXISTS (SELECT 1 FROM [Tipo de tecnología en salud 1888] WHERE Codigo = '01')
+INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion) VALUES ('01', 'Medicamento');
+GO
+IF NOT EXISTS (SELECT 1 FROM [Tipo de tecnología en salud 1888] WHERE Codigo = 'M')
+INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion) VALUES ('M', 'Medicamento');
+GO
+IF NOT EXISTS (SELECT 1 FROM [Tipo de tecnología en salud 1888] WHERE Codigo = 'P')
+INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion) VALUES ('P', 'Procedimiento');
+GO
+
+ 

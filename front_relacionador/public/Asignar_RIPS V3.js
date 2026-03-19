@@ -832,37 +832,177 @@ $(document).ready(function () {
   initProfesionalesSelect2("#RDA_NumDocProfesional");
   initProfesionalesSelect2("#RDACE_NumDocProfesional");
 
-  /// Egreso y Remisión - consume apiV3/EgresoRemision/ y apiV3/EgresoRemision/:term
-  function initEgresoRemisionSelect2(selector) {
+  /// Egreso y Remisión — GET /apiV3/EgresoRemision (?q= opcional)
+  function initEgresoRemisionSelect2(selector, placeholderText) {
     $(selector).select2({
-      placeholder: "Buscar condición y destino al egreso...",
+      placeholder: placeholderText || "Buscar condición y destino al egreso...",
       allowClear: true,
+      width: "100%",
       minimumInputLength: 0,
       ajax: {
         delay: 250,
         transport: function (params, success, failure) {
           const term = (params.data.term || "").trim();
-          const url = term
-            ? `http://${servidor}:3000/apiV3/EgresoRemision/${encodeURIComponent(term)}`
-            : `http://${servidor}:3000/apiV3/EgresoRemision/`;
+          const base = `http://${servidor}:3000/apiV3/EgresoRemision`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
           fetch(url)
-            .then(r => r.json())
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
             .then(data => success({ results: data || [] }))
             .catch(failure);
         },
         processResults: function (data) {
           const arr = data.results || data || [];
           return {
-            results: arr.map(item => ({
-              id: item.Codigo,
-              text: `${item.Codigo || ""} - ${item.Descripcion || ""}`.trim()
-            }))
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
           };
         }
       }
     });
   }
-  initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso");
+  initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");
+
+  /// Catálogos RDA CE — GET /apiV3/Catalogo1888/:clave (?q= opcional)
+  function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
+    $(selector).select2({
+      placeholder: placeholderText || "Buscar...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/Catalogo1888/${claveCatalogo}`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
+          };
+        }
+      }
+    });
+  }
+  initRdaceCatalogSelect2("#RDACE_EntornoAtencion", "EntornoAtencion", "Buscar entorno de atención...");
+  initRdaceCatalogSelect2("#RDACE_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
+  initRdaceCatalogSelect2("#RDACE_ParentescoFamiliar", "ParentescoFamiliar", "Parentesco...");
+  initRdaceCatalogSelect2("#RDACE_TipoDiagPrincipalCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal...");
+  initRdaceCatalogSelect2("#RDACE_UnidadMedidaDosis", "UnidadMedidaDosis", "Unidad de medida de dosis...");
+  initRdaceCatalogSelect2("#RDACE_ViaAdministracionMed", "ViaAdministracionMedicamento", "Vía de administración...");
+  initRdaceCatalogSelect2("#RDACE_DuracionUnidadTiempoMed", "UnidadTiempoDuracion", "Unidad de duración...");
+  initRdaceCatalogSelect2("#RDACE_FrecuenciaUnidadTiempoMed", "UnidadTiempoFrecuencia", "Unidad de frecuencia...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludMed", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludProc", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludOtra", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_TipoTecSaludOtra", "OtraTecnologiaCategoria", "Categoría otra tecnología...");
+  initRdaceCatalogSelect2("#RDACE_AlcanceIncapacidad", "AlcanceIncapacidad", "Alcance de la incapacidad...");
+
+  /// Factor de Riesgo — GET /apiV3/FactorDeRiesgo (?q= opcional)
+  function initFactorDeRiesgoSelect2() {
+    const $tipo = $("#RDACE_TipoFactorRiesgo");
+    const $nombre = $("#RDACE_NombreFactorRiesgo");
+    $tipo.select2({
+      placeholder: "Buscar tipo de factor de riesgo...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/FactorDeRiesgo`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod, descripcion: desc };
+            })
+          };
+        }
+      }
+    });
+    $tipo.on("select2:select", function (e) {
+      const d = e.params.data;
+      if ($nombre.length && d.descripcion != null) {
+        $nombre.val(d.descripcion);
+      }
+    });
+    $tipo.on("select2:clear", function () {
+      if ($nombre.length) $nombre.val("");
+    });
+  }
+  initFactorDeRiesgoSelect2();
+
+  /// Tipo de tecnología en salud — GET /apiV3/TipoTecnologiaEnSalud (?q= opcional)
+  function initTipoTecnologiaEnSaludSelect2(selector, placeholderText) {
+    $(selector).select2({
+      placeholder: placeholderText || "Buscar tipo de tecnología en salud...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/TipoTecnologiaEnSalud`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
+          };
+        }
+      }
+    });
+  }
+  initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludMed", "Buscar tipo de tecnología en salud...");
+  initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludProc", "Buscar tipo (ej. Procedimiento)...");
 
   ///Lista para conslta de tipo documentos
   $("#TipoDocumentoBase").select2({

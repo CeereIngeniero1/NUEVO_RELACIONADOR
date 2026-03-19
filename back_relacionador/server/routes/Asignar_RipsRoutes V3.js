@@ -1444,8 +1444,6 @@ router.post('/GuardarRIPSPorDefecto', async (req, res) => {
         DiagnosticoRIPS2
     } = req.body;
 
-    const nv = (v) => (v === undefined || v === null ? '' : String(v));
-
     // Se ejecuta la consulta para guardar los datos en la base de datos
     try {
         const GuardarRIPSPorDefecto = new Request(`
@@ -1492,22 +1490,22 @@ router.post('/GuardarRIPSPorDefecto', async (req, res) => {
             return res.status(200).json({ message: 'Datos guardados correctamente', DocumentoProfesional, TipoRIPS });
         });
 
-        // Se le pasan los parámetros (nv: RIPS AP no envía causa/tipo diagnóstico; AC no envía vía ingreso)
-        GuardarRIPSPorDefecto.addParameter('DocumentoProfesional', TYPES.NVarChar, nv(DocumentoProfesional));
-        GuardarRIPSPorDefecto.addParameter('TipoRIPS', TYPES.NVarChar, nv(TipoRIPS));
-        GuardarRIPSPorDefecto.addParameter('TipoUsuario', TYPES.NVarChar, nv(TipoUsuario));
-        GuardarRIPSPorDefecto.addParameter('Entidad', TYPES.NVarChar, nv(Entidad));
-        GuardarRIPSPorDefecto.addParameter('ViaIngresoServicioSalud', TYPES.NVarChar, nv(ViaIngresoServicioSalud));
-        GuardarRIPSPorDefecto.addParameter('ModalidadGrupoServicioTecSal', TYPES.NVarChar, nv(ModalidadGrupoServicioTecSal));
-        GuardarRIPSPorDefecto.addParameter('GrupoServicio', TYPES.NVarChar, nv(GrupoServicio));
-        GuardarRIPSPorDefecto.addParameter('CodigoServicio', TYPES.NVarChar, nv(CodigoServicio));
-        GuardarRIPSPorDefecto.addParameter('FinalidadTecnologiaSalud', TYPES.NVarChar, nv(FinalidadTecnologiaSalud));
-        GuardarRIPSPorDefecto.addParameter('CausaMotivoAtencion', TYPES.NVarChar, nv(CausaMotivoAtencion));
-        GuardarRIPSPorDefecto.addParameter('TipoDiagnosticoPrincipal', TYPES.NVarChar, nv(TipoDiagnosticoPrincipal));
-        GuardarRIPSPorDefecto.addParameter('Diagnostico1', TYPES.NVarChar, nv(ConsultaRIPS1));
-        GuardarRIPSPorDefecto.addParameter('Diagnostico2', TYPES.NVarChar, nv(ConsultaRIPS2));
-        GuardarRIPSPorDefecto.addParameter('Procedimiento1', TYPES.NVarChar, nv(DiagnosticoRIPS1));
-        GuardarRIPSPorDefecto.addParameter('Procedimiento2', TYPES.NVarChar, nv(DiagnosticoRIPS2));
+        // Se le pasan los parámetros
+        GuardarRIPSPorDefecto.addParameter('DocumentoProfesional', TYPES.NVarChar, DocumentoProfesional);
+        GuardarRIPSPorDefecto.addParameter('TipoRIPS', TYPES.NVarChar, TipoRIPS);
+        GuardarRIPSPorDefecto.addParameter('TipoUsuario', TYPES.NVarChar, TipoUsuario);
+        GuardarRIPSPorDefecto.addParameter('Entidad', TYPES.NVarChar, Entidad);
+        GuardarRIPSPorDefecto.addParameter('ViaIngresoServicioSalud', TYPES.NVarChar, ViaIngresoServicioSalud);
+        GuardarRIPSPorDefecto.addParameter('ModalidadGrupoServicioTecSal', TYPES.NVarChar, ModalidadGrupoServicioTecSal);
+        GuardarRIPSPorDefecto.addParameter('GrupoServicio', TYPES.NVarChar, GrupoServicio);
+        GuardarRIPSPorDefecto.addParameter('CodigoServicio', TYPES.NVarChar, CodigoServicio);
+        GuardarRIPSPorDefecto.addParameter('FinalidadTecnologiaSalud', TYPES.NVarChar, FinalidadTecnologiaSalud);
+        GuardarRIPSPorDefecto.addParameter('CausaMotivoAtencion', TYPES.NVarChar, CausaMotivoAtencion);
+        GuardarRIPSPorDefecto.addParameter('TipoDiagnosticoPrincipal', TYPES.NVarChar, TipoDiagnosticoPrincipal);
+        GuardarRIPSPorDefecto.addParameter('Diagnostico1', TYPES.NVarChar, ConsultaRIPS1);
+        GuardarRIPSPorDefecto.addParameter('Diagnostico2', TYPES.NVarChar, ConsultaRIPS2);
+        GuardarRIPSPorDefecto.addParameter('Procedimiento1', TYPES.NVarChar, DiagnosticoRIPS1);
+        GuardarRIPSPorDefecto.addParameter('Procedimiento2', TYPES.NVarChar, DiagnosticoRIPS2);
 
         // Se ejecuta la consulta
         connection.execSql(GuardarRIPSPorDefecto);
@@ -1556,8 +1554,6 @@ router.post('/ActualizarRIPSPorDefecto', async (req, res) => {
         DiagnosticoRIPS2
     } = req.body;
 
-    const nv = (v) => (v === undefined || v === null ? '' : String(v));
-
     try {
         const ActualizarRIPSPorDefecto = new Request(`
             UPDATE [dbo].[API_RIPS_POR_DEFECTO]
@@ -1588,21 +1584,21 @@ router.post('/ActualizarRIPSPorDefecto', async (req, res) => {
             return res.status(200).json({ message: 'Datos actualizados correctamente' });
         })
         // Se le pasan los parámetros
-        ActualizarRIPSPorDefecto.addParameter('DocumentoEntidad', TYPES.NVarChar, nv(DocumentoProfesional));
-        ActualizarRIPSPorDefecto.addParameter('TipoDeRips', TYPES.NVarChar, nv(TipoRIPS));
-        ActualizarRIPSPorDefecto.addParameter('TipoDeUsuario', TYPES.NVarChar, nv(TipoUsuario));
-        ActualizarRIPSPorDefecto.addParameter('Entidad', TYPES.NVarChar, nv(Entidad));
-        ActualizarRIPSPorDefecto.addParameter('ViaIngresoServicioSalud', TYPES.NVarChar, nv(ViaIngresoServicioSalud));
-        ActualizarRIPSPorDefecto.addParameter('ModalidadGrupoServicioTecnologiaEnSalud', TYPES.NVarChar, nv(ModalidadGrupoServicioTecSal));
-        ActualizarRIPSPorDefecto.addParameter('GrupoServicios', TYPES.NVarChar, nv(GrupoServicio));
-        ActualizarRIPSPorDefecto.addParameter('CodigoServicio', TYPES.NVarChar, nv(CodigoServicio));
-        ActualizarRIPSPorDefecto.addParameter('FinalidadTecnologiaSalud', TYPES.NVarChar, nv(FinalidadTecnologiaSalud));
-        ActualizarRIPSPorDefecto.addParameter('CausaMotivoAtencion', TYPES.NVarChar, nv(CausaMotivoAtencion));
-        ActualizarRIPSPorDefecto.addParameter('TipoDiagnosticoPrincipal', TYPES.NVarChar, nv(TipoDiagnosticoPrincipal));
-        ActualizarRIPSPorDefecto.addParameter('Diagnostico1', TYPES.NVarChar, nv(ConsultaRIPS1));
-        ActualizarRIPSPorDefecto.addParameter('Diagnostico2', TYPES.NVarChar, nv(ConsultaRIPS2));
-        ActualizarRIPSPorDefecto.addParameter('Procedimiento1', TYPES.NVarChar, nv(DiagnosticoRIPS1));
-        ActualizarRIPSPorDefecto.addParameter('Procedimiento2', TYPES.NVarChar, nv(DiagnosticoRIPS2));
+        ActualizarRIPSPorDefecto.addParameter('DocumentoEntidad', TYPES.NVarChar, req.body.DocumentoProfesional);
+        ActualizarRIPSPorDefecto.addParameter('TipoDeRips', TYPES.NVarChar, req.body.TipoRIPS);
+        ActualizarRIPSPorDefecto.addParameter('TipoDeUsuario', TYPES.NVarChar, req.body.TipoUsuario);
+        ActualizarRIPSPorDefecto.addParameter('Entidad', TYPES.NVarChar, req.body.Entidad);
+        ActualizarRIPSPorDefecto.addParameter('ViaIngresoServicioSalud', TYPES.NVarChar, req.body.ViaIngresoServicioSalud);
+        ActualizarRIPSPorDefecto.addParameter('ModalidadGrupoServicioTecnologiaEnSalud', TYPES.NVarChar, req.body.ModalidadGrupoServicioTecSal);
+        ActualizarRIPSPorDefecto.addParameter('GrupoServicios', TYPES.NVarChar, req.body.GrupoServicio);
+        ActualizarRIPSPorDefecto.addParameter('CodigoServicio', TYPES.NVarChar, req.body.CodigoServicio);
+        ActualizarRIPSPorDefecto.addParameter('FinalidadTecnologiaSalud', TYPES.NVarChar, req.body.FinalidadTecnologiaSalud);
+        ActualizarRIPSPorDefecto.addParameter('CausaMotivoAtencion', TYPES.NVarChar, req.body.CausaMotivoAtencion);
+        ActualizarRIPSPorDefecto.addParameter('TipoDiagnosticoPrincipal', TYPES.NVarChar, req.body.TipoDiagnosticoPrincipal);
+        ActualizarRIPSPorDefecto.addParameter('Diagnostico1', TYPES.NVarChar, req.body.ConsultaRIPS1);
+        ActualizarRIPSPorDefecto.addParameter('Diagnostico2', TYPES.NVarChar, req.body.ConsultaRIPS2);
+        ActualizarRIPSPorDefecto.addParameter('Procedimiento1', TYPES.NVarChar, req.body.DiagnosticoRIPS1);
+        ActualizarRIPSPorDefecto.addParameter('Procedimiento2', TYPES.NVarChar, req.body.DiagnosticoRIPS2);
         // Se ejecuta la consulta
         connection.execSql(ActualizarRIPSPorDefecto);
     } catch (Error) {
@@ -2982,6 +2978,444 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
     }
 });
 
+// --- RDA Consulta Externa (tabla principal + hijas, análogo a Evaluacion Entidad RDA) ---
+const toDateTimeRDACE = (str) => {
+    if (!str) return null;
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+};
+
+router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
+    const {
+        DocumentoEntidad, FechaRDA,
+        CodigoPrestador, CodigoAdminPlanBeneficios, NombreAdminPlanBeneficios,
+        FechaHoraInicioAtencion, FechaHoraFinAtencion,
+        TipoDocProfesional, NumDocProfesional,
+        DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
+        TipoAlergia,
+        EntornoAtencion, TipoFactorRiesgo, NombreFactorRiesgo,
+        DiagnosticoPrincipalCIE10Codigo, DiagnosticoPrincipalCIE10Nombre, TipoDiagnosticoPrincipal,
+        CondicionDestinoEgreso, CodigoPrestadorRemite,
+        AlcanceIncapacidad, DiasIncapacidad, DiasLicenciaMaternidad,
+        NombreDocumentoPDF
+    } = req.body;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('FechaRDA', sql.DateTime2, toDateTimeRDACE(FechaRDA) || new Date())
+            .input('CodigoPrestador', sql.NVarChar, CodigoPrestador || null)
+            .input('CodigoAdminPlanBeneficios', sql.NVarChar, CodigoAdminPlanBeneficios || null)
+            .input('NombreAdminPlanBeneficios', sql.NVarChar, NombreAdminPlanBeneficios || null)
+            .input('FechaHoraInicioAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraInicioAtencion))
+            .input('FechaHoraFinAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraFinAtencion))
+            .input('TipoDocProfesional', sql.NVarChar, TipoDocProfesional || null)
+            .input('NumDocProfesional', sql.NVarChar, NumDocProfesional || null)
+            .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar, DiagnosticoIngresoCIE11Codigo || null)
+            .input('DiagnosticoIngresoCIE11Termino', sql.NVarChar, DiagnosticoIngresoCIE11Termino || null)
+            .input('TipoAlergia', sql.NVarChar, TipoAlergia || null)
+            .input('EntornoAtencion', sql.NVarChar, EntornoAtencion || null)
+            .input('TipoFactorRiesgo', sql.NVarChar, TipoFactorRiesgo || null)
+            .input('NombreFactorRiesgo', sql.NVarChar, NombreFactorRiesgo || null)
+            .input('DiagnosticoPrincipalCIE10Codigo', sql.NVarChar, DiagnosticoPrincipalCIE10Codigo || null)
+            .input('DiagnosticoPrincipalCIE10Nombre', sql.NVarChar, DiagnosticoPrincipalCIE10Nombre || null)
+            .input('TipoDiagnosticoPrincipal', sql.NVarChar, TipoDiagnosticoPrincipal || null)
+            .input('CondicionDestinoEgreso', sql.NVarChar, CondicionDestinoEgreso || null)
+            .input('CodigoPrestadorRemite', sql.NVarChar, CodigoPrestadorRemite || null)
+            .input('AlcanceIncapacidad', sql.NVarChar, AlcanceIncapacidad || null)
+            .input('DiasIncapacidad', sql.Int, DiasIncapacidad != null && DiasIncapacidad !== '' ? parseInt(DiasIncapacidad, 10) : null)
+            .input('DiasLicenciaMaternidad', sql.Int, DiasLicenciaMaternidad != null && DiasLicenciaMaternidad !== '' ? parseInt(DiasLicenciaMaternidad, 10) : null)
+            .input('NombreDocumentoPDF', sql.NVarChar, NombreDocumentoPDF || null)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA Consulta Externa]
+                (
+                    [Documento Entidad], [Fecha RDA],
+                    [Codigo Prestador], [Codigo Admin Plan Beneficios], [Nombre Admin Plan Beneficios],
+                    [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
+                    [Tipo Doc Profesional], [Num Doc Profesional],
+                    [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
+                    [Tipo Alergia],
+                    [Entorno Atencion], [Tipo Factor Riesgo], [Nombre Factor Riesgo],
+                    [Diagnostico Principal CIE10 Codigo], [Diagnostico Principal CIE10 Nombre], [Tipo Diagnostico Principal],
+                    [Condicion Destino Egreso], [Codigo Prestador Remite],
+                    [Alcance Incapacidad], [Dias Incapacidad], [Dias Licencia Maternidad],
+                    [Nombre Documento PDF]
+                )
+                OUTPUT INSERTED.[Id Evaluacion Entidad RDA Consulta Externa]
+                VALUES
+                (
+                    @DocumentoEntidad, @FechaRDA,
+                    @CodigoPrestador, @CodigoAdminPlanBeneficios, @NombreAdminPlanBeneficios,
+                    @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
+                    @TipoDocProfesional, @NumDocProfesional,
+                    @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
+                    @TipoAlergia,
+                    @EntornoAtencion, @TipoFactorRiesgo, @NombreFactorRiesgo,
+                    @DiagnosticoPrincipalCIE10Codigo, @DiagnosticoPrincipalCIE10Nombre, @TipoDiagnosticoPrincipal,
+                    @CondicionDestinoEgreso, @CodigoPrestadorRemite,
+                    @AlcanceIncapacidad, @DiasIncapacidad, @DiasLicenciaMaternidad,
+                    @NombreDocumentoPDF
+                )
+            `);
+        const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA Consulta Externa'];
+        res.json({ ok: true, IdEvaluacionEntidadRDACE: idInsertado });
+    } catch (error) {
+        console.error('❌ Error al insertar Evaluacion Entidad RDA Consulta Externa:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesSalud', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Salud]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Salud:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesFamiliares', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Parentesco', sql.NVarChar, Parentesco || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Familiares]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Parentesco], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Parentesco, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Familiar:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesFarmacologicos', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Farmacologicos]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Farmacológico:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/DiagnosticosRelacionados', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        CodigoCIE10, NombreCIE10, CodigoCIE11, TerminoCIE11,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('CodigoCIE10', sql.NVarChar, CodigoCIE10 || null)
+            .input('NombreCIE10', sql.NVarChar, NombreCIE10 || null)
+            .input('CodigoCIE11', sql.NVarChar, CodigoCIE11 || null)
+            .input('TerminoCIE11', sql.NVarChar, TerminoCIE11 || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Diagnosticos Relacionados]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Codigo CIE10], [Nombre CIE10], [Codigo CIE11], [Termino CIE11], [Id Estado])
+                VALUES (@IdRDACE, @CodigoCIE10, @NombreCIE10, @CodigoCIE11, @TerminoCIE11, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Diagnóstico relacionado:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/PrescripcionMedicamentos', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, dci, fechaPrescripcion,
+        dosis, unidadDosis, via,
+        duracionCant, duracionUnid, frecuenciaCant, frecuenciaUnid, finalidad,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('CodigoMed', sql.NVarChar, codigo || null)
+            .input('NombreMed', sql.NVarChar, nombre || null)
+            .input('Dci', sql.NVarChar, dci || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('Dosis', sql.NVarChar, dosis != null ? String(dosis) : null)
+            .input('UnidadDosis', sql.NVarChar, unidadDosis || null)
+            .input('Via', sql.NVarChar, via || null)
+            .input('DurCant', sql.NVarChar, duracionCant != null ? String(duracionCant) : null)
+            .input('DurUnid', sql.NVarChar, duracionUnid || null)
+            .input('FreqCant', sql.NVarChar, frecuenciaCant != null ? String(frecuenciaCant) : null)
+            .input('FreqUnid', sql.NVarChar, frecuenciaUnid || null)
+            .input('Finalidad', sql.NVarChar, finalidad != null ? String(finalidad) : null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos]
+                (
+                    [Id Evaluacion Entidad RDA Consulta Externa],
+                    [Tipo Tec Salud], [Codigo Medicamento], [Nombre Medicamento], [Descripcion Comun DCI],
+                    [Fecha Prescripcion], [Dosis Ordenada], [Unidad Medida Dosis], [Via Administracion],
+                    [Duracion Cantidad], [Duracion Unidad Tiempo], [Frecuencia Cantidad], [Frecuencia Unidad Tiempo],
+                    [Finalidad Tec Salud], [Id Estado]
+                )
+                VALUES
+                (
+                    @IdRDACE,
+                    @TipoTec, @CodigoMed, @NombreMed, @Dci,
+                    @FechaPresc, @Dosis, @UnidadDosis, @Via,
+                    @DurCant, @DurUnid, @FreqCant, @FreqUnid,
+                    @Finalidad, @IdEstado
+                )
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Prescripción medicamento:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/PrescripcionProcedimientos', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, finalidad, fechaPrescripcion,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('CodigoProc', sql.NVarChar, codigo || null)
+            .input('NombreProc', sql.NVarChar, nombre || null)
+            .input('Finalidad', sql.NVarChar, finalidad || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Tipo Tec Salud], [Codigo Procedimiento], [Nombre Procedimiento], [Finalidad Tec Salud], [Fecha Prescripcion], [Id Estado])
+                VALUES (@IdRDACE, @TipoTec, @CodigoProc, @NombreProc, @Finalidad, @FechaPresc, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Prescripción procedimiento:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/OtrasTecnologias', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, fechaPrescripcion, finalidad,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('Codigo', sql.NVarChar, codigo || null)
+            .input('Nombre', sql.NVarChar, nombre || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('Finalidad', sql.NVarChar, finalidad || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Otras Tecnologias]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Tipo Tec Salud], [Codigo], [Nombre], [Fecha Prescripcion], [Finalidad Tec Salud], [Id Estado])
+                VALUES (@IdRDACE, @TipoTec, @Codigo, @Nombre, @FechaPresc, @Finalidad, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Otra tecnología:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+
+// Egreso y Remisión 1888 — un solo GET: sin q = todo; con ?q= = filtro (evita conflicto de rutas /:param)
+router.get('/EgresoRemision', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT  Codigo, Descripcion, IdEstado
+                FROM [Cnsta Egreso y Remision 1888]
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT  Codigo, Descripcion, IdEstado
+                FROM [Cnsta Egreso y Remision 1888]
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Egreso y Remisión:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.get('/FactorDeRiesgo', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+
+    try {
+        const pool = await poolPromise;
+
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Factor De Riesgo 1888]
+            `);
+            return res.json(result.recordset);
+        }
+
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Factor De Riesgo 1888]
+                WHERE Descripcion LIKE @Busqueda 
+                   OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error('❌ Error al obtener Factor De Riesgo:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.get('/TipoTecnologiaEnSalud', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Tipo de tecnología en salud 1888]
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Tipo de tecnología en salud 1888]
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Tipo de tecnología en salud:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+/** Catálogos RDA Consulta Externa — vista [Cnsta ... 1888], ?q= opcional (whitelist) */
+const RDACE_CATALOGOS_1888 = {
+    EntornoAtencion: '[Cnsta Entorno de atencion 1888]',
+    TipoAlergia: '[Cnsta Tipo de alergia 1888]',
+    ParentescoFamiliar: '[Cnsta Parentesco familiar RDA 1888]',
+    TipoDiagnosticoPrincipal: '[Cnsta Tipo diagnostico principal 1888]',
+    UnidadMedidaDosis: '[Cnsta Unidad medida dosis 1888]',
+    ViaAdministracionMedicamento: '[Cnsta Via administracion medicamento 1888]',
+    UnidadTiempoDuracion: '[Cnsta Unidad tiempo duracion 1888]',
+    UnidadTiempoFrecuencia: '[Cnsta Unidad tiempo frecuencia 1888]',
+    FinalidadTecnologiaSalud: '[Cnsta Finalidad tecnologia salud 1888]',
+    OtraTecnologiaCategoria: '[Cnsta Otra tecnologia categoria 1888]',
+    AlcanceIncapacidad: '[Cnsta Alcance incapacidad 1888]',
+};
+
+router.get('/Catalogo1888/:clave', async (req, res) => {
+    const viewName = RDACE_CATALOGOS_1888[req.params.clave];
+    if (!viewName) {
+        return res.status(404).json({ error: 'Catálogo no encontrado', clave: req.params.clave });
+    }
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM ${viewName}
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM ${viewName}
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error catálogo 1888', req.params.clave, error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
 
 // =================================================================================================
 module.exports = router;
