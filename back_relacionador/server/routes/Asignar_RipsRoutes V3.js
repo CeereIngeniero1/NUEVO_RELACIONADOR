@@ -2978,6 +2978,374 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
     }
 });
 
+// ======================================================================================
+// RDA PACIENTE — Construcción FHIR Bundle desde BD
+// ======================================================================================
+// Body (recomendado): { "IdEvaluacionEntidadRDA": 123 }
+// Devuelve: Bundle FHIR type="document" (paciente) con Composition + Patient + entradas
+// (Condition, FamilyMemberHistory, MedicationStatement).
+router.post('/RdaPaciente/FhirBundle', async (req, res) => {
+    const { IdEvaluacionEntidadRDA } = req.body || {};
+
+    const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDA requerido (number)' });
+    }
+
+    const { randomUUID } = require('crypto');
+    const newUuid = () => {
+        try {
+            if (typeof randomUUID === 'function') return randomUUID();
+        } catch (_) {
+            // ignore
+        }
+        return `uuid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    const makeEntry = (resource) => {
+        const entryId = resource.id || newUuid();
+        resource.id = entryId;
+        return {
+            fullUrl: `urn:uuid:${entryId}`,
+            resource,
+        };
+    };
+
+    const nowIso = new Date().toISOString();
+
+    const parseCodigoDescripcion = (text) => {
+        const s = (text ?? '').toString().trim();
+        if (!s) return { codigo: '', descripcion: '' };
+        // En el frontend se guardan así: `${codigo} - ${descripcion}`
+        const parts = s.split(' - ');
+        if (parts.length >= 2) {
+            return {
+                codigo: (parts[0] ?? '').trim(),
+                descripcion: parts.slice(1).join(' - ').trim(),
+            };
+        }
+        return { codigo: s, descripcion: '' };
+    };
+
+    const parseNombreObservacion = (text) => {
+        const s = (text ?? '').toString().trim();
+        if (!s) return { nombre: '', observacion: '' };
+        // En el frontend se guarda así: `nombre (observacion)`
+        if (s.endsWith(')')) {
+            const idx = s.lastIndexOf(' (');
+            if (idx > -1) {
+                return {
+                    nombre: s.slice(0, idx).trim(),
+                    observacion: s.slice(idx + 3, -1).trim(),
+                };
+            }
+        }
+        return { nombre: s, observacion: '' };
+    };
+
+    const buildRdaPacienteBundle = ({ paciente, organization, antecedents, antecedentsFam, medications }) => {
+        const patientId = paciente.id;
+
+        const conditionEntries = (antecedents || []).map((item) =>
+            makeEntry({
+                resourceType: 'Condition',
+                meta: {
+                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/ConditionStatementRDA'],
+                },
+                subject: { reference: `urn:uuid:${patientId}` },
+                code: {
+                    coding: [
+                        {
+                            system: 'http://hl7.org/fhir/sid/icd-10',
+                            code: item.codigo,
+                            display: item.descripcion || undefined,
+                        },
+                    ],
+                    text: item.descripcion || item.codigo,
+                },
+            })
+        );
+
+        const familyHistoryEntries = (antecedentsFam || []).map((item) =>
+            makeEntry({
+                resourceType: 'FamilyMemberHistory',
+                meta: {
+                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/FamilyMemberHistoryRDA'],
+                },
+                status: 'completed',
+                patient: { reference: `urn:uuid:${patientId}` },
+                relationship: {
+                    coding: [
+                        {
+                            system: 'http://terminology.hl7.org/CodeSystem/v3-RoleCode',
+                            code: item.parentesco,
+                            display: item.textoParentesco || undefined,
+                        },
+                    ],
+                    text: item.textoParentesco || undefined,
+                },
+                condition: [
+                    {
+                        code: {
+                            coding: [
+                                {
+                                    system: 'http://hl7.org/fhir/sid/icd-10',
+                                    code: item.codigo,
+                                    display: item.descripcion || undefined,
+                                },
+                            ],
+                            text: item.descripcion || item.codigo,
+                        },
+                    },
+                ],
+            })
+        );
+
+        const medicationStatementEntries = (medications || []).map((item) =>
+            makeEntry({
+                resourceType: 'MedicationStatement',
+                meta: {
+                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/MedicationStatementRDA'],
+                },
+                status: 'active',
+                subject: { reference: `urn:uuid:${patientId}` },
+                medicationCodeableConcept: { text: item.nombre },
+                note: item.observacion ? [{ text: item.observacion }] : undefined,
+            })
+        );
+
+        const compositionId = newUuid();
+        const compositionResource = {
+            resourceType: 'Composition',
+            id: compositionId,
+            meta: {
+                profile: ['https://minsalud.fhir.co/rda/StructureDefinition/CompositionPatientStatementRDA'],
+            },
+            status: 'final',
+            type: {
+                coding: [
+                    {
+                        system: 'http://loinc.org',
+                        code: '60591-5',
+                        display: 'Patient summary Document',
+                    },
+                ],
+                text: 'RDA Paciente - Autoreporte de datos de salud',
+            },
+            date: nowIso,
+            title: 'Resumen Digital de Atención en Salud - RDA Paciente',
+            subject: { reference: `urn:uuid:${patientId}` },
+            author: [{ reference: `urn:uuid:${patientId}` }],
+            section: [
+                {
+                    title: 'Antecedentes farmacológicos',
+                    entry: medicationStatementEntries.map((e) => ({ reference: e.fullUrl })),
+                },
+                {
+                    title: 'Antecedentes alérgicos',
+                    entry: [],
+                },
+                {
+                    title: 'Antecedentes patológicos',
+                    entry: conditionEntries.map((e) => ({ reference: e.fullUrl })),
+                },
+                {
+                    title: 'Antecedentes familiares',
+                    entry: familyHistoryEntries.map((e) => ({ reference: e.fullUrl })),
+                },
+            ],
+        };
+
+        const bundleEntries = [
+            makeEntry(compositionResource),
+            makeEntry(paciente.resource),
+            ...(organization ? [makeEntry(organization.resource)] : []),
+            ...conditionEntries,
+            ...familyHistoryEntries,
+            ...medicationStatementEntries,
+        ];
+
+        return {
+            resourceType: 'Bundle',
+            type: 'document',
+            timestamp: nowIso,
+            entry: bundleEntries,
+        };
+    };
+
+    try {
+        const pool = await poolPromise;
+
+        // Verificación temprana: si las tablas RDA no existen en BD,
+        // el SQL falla con "El nombre de objeto ... no es válido".
+        const existsCheck = await pool
+            .request()
+            .query(`
+                SELECT
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA]') AS oidMain,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Salud]') AS oidAntSalud,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Familiares]') AS oidAntFam,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Farmacologicos]') AS oidAntFarm
+            `);
+
+        const chk = existsCheck.recordset && existsCheck.recordset[0] ? existsCheck.recordset[0] : null;
+        if (!chk || chk.oidMain == null) {
+            return res.status(500).json({
+                ok: false,
+                error:
+                    'Faltan tablas de RDA Paciente en la BD. Verifica haber ejecutado los scripts SQL de RDA (tabla Evaluacion Entidad RDA).',
+            });
+        }
+
+        // 1) Cabecera (Patient + Organization base)
+        const main = await pool
+            .request()
+            .input('IdEvaluacionEntidadRDA', sql.Int, id)
+            .query(`
+                SELECT
+                    e.[Id Evaluacion Entidad RDA] AS IdEvaluacionEntidadRDA,
+                    e.[Documento Entidad] AS DocumentoEntidad,
+                    e.[Primer Apellido Entidad] AS PrimerApellidoEntidad,
+                    e.[Segundo Apellido Entidad] AS SegundoApellidoEntidad,
+                    e.[Primer Nombre Entidad] AS PrimerNombreEntidad,
+                    e.[Segundo Nombre Entidad] AS SegundoNombreEntidad,
+                    e.[Id Tipo Documento] AS IdTipoDocumento,
+                    t.[CódigoTipoDocumento] AS CodigoTipoDocumento,
+                    e.[Codigo Prestador] AS CodigoPrestador,
+                    e.[Codigo Admin Plan Beneficios] AS CodigoAdminPlanBeneficios,
+                    e.[Nombre Admin Plan Beneficios] AS NombreAdminPlanBeneficios,
+                    e.[Fecha RDA] AS FechaRDA
+                FROM [dbo].[Evaluacion Entidad RDA] e
+                LEFT JOIN [dbo].[Cnsta Tipodocumento 1888] t
+                    ON t.[IdTipodeDocumento] = e.[Id Tipo Documento]
+                WHERE e.[Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA
+            `);
+
+        if (!main.recordset || !main.recordset.length) {
+            return res.status(404).json({ ok: false, error: 'No existe Evaluacion Entidad RDA para el Id indicado' });
+        }
+
+        const head = main.recordset[0];
+
+        // 2) Listas
+        const [antecedentsRes, antecedentsFamRes, medsRes, parentescosRes] = await Promise.all([
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Descripcion]
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Salud]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Parentesco], [Descripcion]
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Descripcion]
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Farmacologicos]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request().query(`
+                SELECT Codigo, Descripcion
+                FROM [dbo].[Cnsta Parentesco familiar RDA 1888]
+            `)
+        ]);
+
+        const parentescosMap = new Map(
+            (parentescosRes.recordset || []).map((r) => [String(r.Codigo), String(r.Descripcion)])
+        );
+
+        const antecedentes = (antecedentsRes.recordset || []).map((r) => {
+            const parsed = parseCodigoDescripcion(r.Descripcion);
+            return { codigo: parsed.codigo, descripcion: parsed.descripcion };
+        });
+
+        const antecedentesFam = (antecedentsFamRes.recordset || []).map((r) => {
+            const parsed = parseCodigoDescripcion(r.Descripcion);
+            const parentescoCodigo = r.Parentesco != null ? String(r.Parentesco) : '';
+            return {
+                parentesco: parentescoCodigo,
+                textoParentesco: parentescosMap.get(parentescoCodigo) || undefined,
+                codigo: parsed.codigo,
+                descripcion: parsed.descripcion,
+            };
+        });
+
+        const medicamentos = (medsRes.recordset || []).map((r) => {
+            const parsed = parseNombreObservacion(r.Descripcion);
+            return { nombre: parsed.nombre, observacion: parsed.observacion };
+        });
+
+        // 3) Resources base (Patient + Organization)
+        const pacienteId = newUuid();
+        const patientNombre = [
+            head.PrimerApellidoEntidad,
+            head.SegundoApellidoEntidad,
+            head.PrimerNombreEntidad,
+            head.SegundoNombreEntidad,
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+        const patientResource = {
+            resourceType: 'Patient',
+            id: pacienteId,
+            meta: {
+                profile: ['https://minsalud.fhir.co/rda/StructureDefinition/PatientRDA'],
+            },
+            identifier: head.DocumentoEntidad
+                ? [
+                    {
+                        system: 'http://minsalud.gov.co/identificacion',
+                        value: String(head.DocumentoEntidad),
+                        type: head.CodigoTipoDocumento
+                            ? {
+                                coding: [
+                                    {
+                                        system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                                        code: String(head.CodigoTipoDocumento),
+                                    },
+                                ],
+                            }
+                            : undefined,
+                    },
+                ]
+                : undefined,
+            name: patientNombre
+                ? [{ text: patientNombre }]
+                : undefined,
+        };
+
+        const organizationName = head.NombreAdminPlanBeneficios || '';
+        const organizationResource = organizationName
+            ? {
+                resourceType: 'Organization',
+                id: head.CodigoAdminPlanBeneficios ? String(head.CodigoAdminPlanBeneficios) : newUuid(),
+                name: organizationName,
+            }
+            : null;
+
+        const bundle = buildRdaPacienteBundle({
+            paciente: { id: pacienteId, resource: patientResource },
+            organization: organizationResource ? { resource: organizationResource } : null,
+            antecedents: antecedentes,
+            antecedentsFam: antecedentesFam,
+            medications: medicamentos,
+        });
+
+        return res.json(bundle);
+    } catch (error) {
+        console.error('❌ [RDA] Error al construir Bundle FHIR RDA Paciente:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
 // --- RDA Consulta Externa (tabla principal + hijas, análogo a Evaluacion Entidad RDA) ---
 const toDateTimeRDACE = (str) => {
     if (!str) return null;
