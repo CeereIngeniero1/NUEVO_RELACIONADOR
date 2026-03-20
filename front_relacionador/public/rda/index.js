@@ -16,6 +16,9 @@ const {
     getAntecedentes,
     getAntecedentesFamiliares,
     getMedicamentos,
+    getAntecedentesCE,
+    getAntecedentesFamiliaresCE,
+    getMedicamentosCE,
     getDiagRelacionados,
     getPrescripcionMedicamentos,
     getPrescripcionProcedimientos,
@@ -27,12 +30,14 @@ import { initControlRda } from "./ui/controlRda.js";
 import { initListasPaciente } from "./ui/listasPaciente.js";
 import { initListasConsultaExterna } from "./ui/listasConsultaExterna.js";
 import { buildRda1888 } from "./json/build1888.js";
+import { inicializarSelectsRDA } from "./api/selectsRda.js";
 
 // ── Inicialización (el script se carga al final del body, DOM ya existe) ──
 initBiometria();
 initControlRda();
 initListasPaciente();
 initListasConsultaExterna();
+inicializarSelectsRDA();
 
 console.log(
     "%c[RDA V3] Módulo cargado correctamente",
@@ -49,12 +54,19 @@ function buildPacienteBundle(formValues) {
 
 // ── API pública (contrato con el resto de la aplicación) ──────────────────
 window.RDA = {
+    // RDA Paciente
     getAntecedentes,
     getAntecedentesFamiliares,
     getMedicamentos,
+    // RDA Consulta Externa — Antecedentes
+    getAntecedentesCE,
+    getAntecedentesFamiliaresCE,
+    getMedicamentosCE,
+    // RDA Consulta Externa — Diagnósticos / Prescripciones
     getDiagRelacionados,
     getPrescripcionMedicamentos,
     getPrescripcionProcedimientos,
     getOtrasTecnologias,
+    // FHIR Bundle builder
     buildPacienteBundle,
 };

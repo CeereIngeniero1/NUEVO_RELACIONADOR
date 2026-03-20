@@ -6334,60 +6334,6 @@ async function AgregarOpcionPorDefecto(Select) {
 /* ========================================================================================================= */
 /* ==================================== LÓGICA V3 - RDA Y BIOMETRÍA ==================================== */
 /* ========================================================================================================= */
-
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. CÁLCULO DE IMC
-  const inputTalla = document.getElementById("TallaPaciente");
-  const inputPeso = document.getElementById("PesoPaciente");
-  const inputIMC = document.getElementById("IMCPaciente");
-
-  function calcularIMC() {
-    if (!inputTalla || !inputPeso || !inputIMC) return;
-
-    const tallaCm = parseFloat(inputTalla.value);
-    const pesoKg = parseFloat(inputPeso.value);
-
-    if (tallaCm > 0 && pesoKg > 0) {
-      const tallaM = tallaCm / 100;
-      const imc = pesoKg / (tallaM * tallaM);
-      inputIMC.value = imc.toFixed(2);
-    } else {
-      inputIMC.value = "";
-    }
-  }
-
-  if (inputTalla) inputTalla.addEventListener("input", calcularIMC);
-  if (inputPeso) inputPeso.addEventListener("input", calcularIMC);
-
-  // 2. LÓGICA DE ACTIVACIÓN RDA
-  const checkGenerarRDA = document.getElementById("GenerarRDABase");
-  const radiosTipoRDA = document.getElementsByName("tipoRDA");
-  const contenidoRDA = document.getElementById("ContenidoRDA");
-
-  function toggleRDA() {
-    if (!checkGenerarRDA) return;
-    const activo = checkGenerarRDA.checked;
-
-    if (radiosTipoRDA) {
-      radiosTipoRDA.forEach(radio => {
-        radio.disabled = !activo;
-        if (!activo) radio.checked = false;
-      });
-    }
-
-    if (contenidoRDA) {
-      if (activo) {
-        contenidoRDA.classList.remove("d-none");
-      } else {
-        contenidoRDA.classList.add("d-none");
-      }
-    }
-  }
-
-  if (checkGenerarRDA) {
-    checkGenerarRDA.addEventListener("change", toggleRDA);
-    toggleRDA();
-  }
-});
+/* Delegada al módulo ES rda/index.js (biometria.js + controlRda.js)                                       */
 
 

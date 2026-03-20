@@ -7,6 +7,12 @@
  */
 
 import {
+    getAntecedentesCE,
+    getAntecedentesFamiliaresCE,
+    getMedicamentosCE,
+    addAntecedenteCE,
+    addAntecedenteFamiliarCE,
+    addMedicamentoCE,
     getDiagRelacionados,
     getPrescripcionMedicamentos,
     getPrescripcionProcedimientos,
@@ -21,6 +27,9 @@ import {
 import { renderBadgeList } from "./renderBadges.js";
 
 const STATE_KEY = {
+    antecedente: "antecedentesCE",
+    familiar: "antecedentesFamCE",
+    medicamento: "medicamentosCE",
     diagRel: "diagRelacionados",
     medCE: "prescripcionMed",
     procCE: "prescripcionProc",
@@ -66,7 +75,73 @@ function getSelectValue(id) {
     return el.value || "";
 }
 
+function clearSelect2(selector) {
+    if (typeof $ !== "undefined") {
+        try { $(selector).val(null).trigger("change"); } catch (_) { /* noop */ }
+    } else {
+        const el = document.querySelector(selector);
+        if (el) el.value = "";
+    }
+}
+
 export function initListasConsultaExterna() {
+
+    // ── Antecedentes de Salud CE ────────────────────────────
+    const btnAntCE = document.getElementById("RDACE_BtnAgregarAntecedente");
+    const inputCIE10CE = document.getElementById("RDACE_AntecedenteSaludCIE10");
+    const inputDescCE = document.getElementById("RDACE_AntecedenteSaludDescripcion");
+    const contAntCE = document.getElementById("RDACE_ListaAntecedentes");
+
+    btnAntCE?.addEventListener("click", () => {
+        const codigo = inputCIE10CE?.value?.trim();
+        if (!codigo) return;
+
+        addAntecedenteCE({ codigo, descripcion: inputDescCE?.value || "" });
+        rerender(contAntCE, getAntecedentesCE(), "antecedente");
+
+        clearSelect2("#RDACE_AntecedenteSaludCIE10");
+        if (inputDescCE) inputDescCE.value = "";
+    });
+
+    // ── Antecedentes Familiares CE ──────────────────────────
+    const btnFamCE = document.getElementById("RDACE_BtnAgregarAntecedenteFam");
+    const inputFamCIE10CE = document.getElementById("RDACE_AntecedenteFamiliarCIE10");
+    const inputFamDescCE = document.getElementById("RDACE_AntecedenteFamiliarDescripcion");
+    const contFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
+
+    btnFamCE?.addEventListener("click", () => {
+        const codigo = inputFamCIE10CE?.value?.trim();
+        if (!codigo) return;
+
+        addAntecedenteFamiliarCE({ codigo, descripcion: inputFamDescCE?.value || "" });
+        rerender(contFamCE, getAntecedentesFamiliaresCE(), "antecedente");
+
+        clearSelect2("#RDACE_AntecedenteFamiliarCIE10");
+        if (inputFamDescCE) inputFamDescCE.value = "";
+    });
+
+    // ── Medicamentos (Antecedentes Farmacológicos) CE ───────
+    const btnMedCEAnt = document.getElementById("RDACE_BtnAgregarMedicamento");
+    const selectDCICE = document.getElementById("RDACE_MedicamentoDCI");
+    const inputObsCE = document.getElementById("RDACE_MedicamentoObservacion");
+    const contMedCEAnt = document.getElementById("RDACE_ListaMedicamentos");
+
+    btnMedCEAnt?.addEventListener("click", () => {
+        let nombre = "";
+        if (selectDCICE && typeof $ !== "undefined") {
+            const selData = $(selectDCICE).select2("data")[0];
+            nombre = selData ? selData.text : ($(selectDCICE).val() || "");
+        } else {
+            nombre = selectDCICE?.value || "";
+        }
+        if (!nombre || !String(nombre).trim()) return;
+
+        addMedicamentoCE({ nombre: String(nombre).trim(), observacion: inputObsCE?.value || "" });
+        rerender(contMedCEAnt, getMedicamentosCE(), "medicamento");
+
+        clearSelect2("#RDACE_MedicamentoDCI");
+        if (inputObsCE) inputObsCE.value = "";
+    });
 
     // ── Diagnósticos Relacionados ──────────────────────────
     const btnDiagRel = document.getElementById("RDACE_BtnAgregarDiagRelacionado");
