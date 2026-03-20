@@ -3043,7 +3043,21 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return { nombre: s, observacion: '' };
     };
 
-    const buildRdaPacienteBundle = ({ paciente, organization, antecedents, antecedentsFam, medications }) => {
+    // Maps Tipo Alergia codes (01-06) to FHIR AllergyIntolerance category values
+    const allergyTypeToCategory = (tipoAlergiaCodigo) => {
+        const map = {
+            '01': 'medication',
+            '02': 'food',
+            '03': 'environment',
+            '04': 'environment',
+            '05': 'biologic',
+            '06': 'environment',
+        };
+        const code = (tipoAlergiaCodigo ?? '').toString().trim();
+        return map[code] || null;
+    };
+
+    const buildRdaPacienteBundle = ({ paciente, organization, antecedents, antecedentsFam, medications, alergia }) => {
         const patientId = paciente.id;
 
         const conditionEntries = (antecedents || []).map((item) =>
@@ -3114,6 +3128,39 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })
         );
 
+        // AllergyIntolerance — only built when there is an allergen in the record
+        const hasAlergia = alergia && (alergia.alergeno || '').toString().trim().length > 0;
+        const allergyEntry = hasAlergia
+            ? (() => {
+                const category = allergyTypeToCategory(alergia.tipoAlergia);
+                return makeEntry({
+                    resourceType: 'AllergyIntolerance',
+                    meta: {
+                        profile: ['https://minsalud.fhir.co/rda/StructureDefinition/AllergyIntoleranceStatementRDA'],
+                    },
+                    clinicalStatus: {
+                        coding: [
+                            {
+                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
+                                code: 'active',
+                            },
+                        ],
+                    },
+                    verificationStatus: {
+                        coding: [
+                            {
+                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification',
+                                code: 'confirmed',
+                            },
+                        ],
+                    },
+                    ...(category ? { category: [category] } : {}),
+                    code: { text: alergia.alergeno.toString().trim() },
+                    patient: { reference: `urn:uuid:${patientId}` },
+                });
+            })()
+            : null;
+
         const compositionId = newUuid();
         const compositionResource = {
             resourceType: 'Composition',
@@ -3141,10 +3188,24 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     title: 'Antecedentes farmacológicos',
                     entry: medicationStatementEntries.map((e) => ({ reference: e.fullUrl })),
                 },
-                {
-                    title: 'Antecedentes alérgicos',
-                    entry: [],
-                },
+                allergyEntry
+                    ? {
+                        title: 'Antecedentes alérgicos',
+                        entry: [{ reference: allergyEntry.fullUrl }],
+                    }
+                    : {
+                        title: 'Antecedentes alérgicos',
+                        emptyReason: {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason',
+                                    code: 'nilknown',
+                                    display: 'Nil Known',
+                                },
+                            ],
+                            text: 'No se conocen alergias',
+                        },
+                    },
                 {
                     title: 'Antecedentes patológicos',
                     entry: conditionEntries.map((e) => ({ reference: e.fullUrl })),
@@ -3163,6 +3224,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             ...conditionEntries,
             ...familyHistoryEntries,
             ...medicationStatementEntries,
+            ...(allergyEntry ? [allergyEntry] : []),
         ];
 
         return {
@@ -3214,7 +3276,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     e.[Codigo Prestador] AS CodigoPrestador,
                     e.[Codigo Admin Plan Beneficios] AS CodigoAdminPlanBeneficios,
                     e.[Nombre Admin Plan Beneficios] AS NombreAdminPlanBeneficios,
-                    e.[Fecha RDA] AS FechaRDA
+                    e.[Fecha RDA] AS FechaRDA,
+                    e.[Alergeno] AS Alergeno,
+                    e.[Tipo Alergia] AS TipoAlergia
                 FROM [dbo].[Evaluacion Entidad RDA] e
                 LEFT JOIN [dbo].[Cnsta Tipodocumento 1888] t
                     ON t.[IdTipodeDocumento] = e.[Id Tipo Documento]
@@ -3337,6 +3401,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             antecedents: antecedentes,
             antecedentsFam: antecedentesFam,
             medications: medicamentos,
+            alergia: { alergeno: head.Alergeno, tipoAlergia: head.TipoAlergia },
         });
 
         return res.json(bundle);
