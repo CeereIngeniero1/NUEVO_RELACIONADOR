@@ -160,6 +160,19 @@
     background-color: var(--color-bg-row-hover) !important;
 }
 
+/* Tablas Bootstrap dentro de tarjetas: evita fondos claros en modo oscuro */
+[data-theme="dark"] .cr-card .table {
+    --bs-table-bg: var(--color-bg-row);
+    --bs-table-color: var(--color-text);
+    --bs-table-border-color: var(--color-border);
+    --bs-table-striped-bg: var(--color-bg-row-hover);
+    --bs-table-hover-bg: var(--color-bg-row-hover);
+}
+
+[data-theme="dark"] .cr-table .text-muted {
+    color: var(--color-text-secondary) !important;
+}
+
 /* ── Compatibilidad con Select2 (Librería Externa) ── */
 [data-theme="dark"] .select2-container--default .select2-selection--single,
 [data-theme="dark"] .select2-container .select2-selection--multiple,
@@ -261,6 +274,35 @@ body {
 .cr-nav-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
+}
+
+/* Ítem activo (misma idea que Asignar RIPS: primary en oscuro; blanco en barra verde claro) */
+.cr-navbar .cr-nav-btn.cr-nav-btn-active {
+    color: #ffffff !important;
+    font-weight: 700;
+    opacity: 1;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.9);
+}
+
+.cr-navbar .cr-nav-btn.cr-nav-btn-active:hover {
+    background: transparent;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .cr-navbar .cr-nav-btn.cr-nav-btn-active {
+    color: var(--color-primary) !important;
+    font-weight: 600;
+    box-shadow: none;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .cr-navbar .cr-nav-btn.cr-nav-btn-active:hover {
+    color: var(--color-primary-hover) !important;
+    border-bottom-color: var(--color-primary-hover);
 }
 
 .cr-nav-btn-close {
@@ -825,4 +867,100 @@ body {
         border-left: none;
         border-top: 1px solid var(--color-border);
     }
+}
+
+/* ══════════════════════════════════════════════
+   Desrelacionador RIPS (badges factura)
+══════════════════════════════════════════════ */
+.cr-des-badge {
+    display: inline-block;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.cr-des-badge-fev {
+    background: var(--color-success);
+    color: #fff;
+}
+
+.cr-des-badge-eps {
+    background: var(--color-info);
+    color: #fff;
+}
+
+/* Modo oscuro: el color !important de .cr-table td tapaba el blanco del badge */
+[data-theme="dark"] .cr-des-badge-fev {
+    background-color: #047857;
+    color: #fff !important;
+}
+
+[data-theme="dark"] .cr-des-badge-eps {
+    background-color: #0e7490;
+    color: #fff !important;
+}
+
+[data-theme="dark"] .cr-table td .cr-des-badge {
+    color: #fff !important;
+}
+
+.cr-des-nombre-display {
+    min-height: 38px;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    background: var(--color-card-bg);
+    color: var(--color-text);
+}
+
+/* Celda vacía / mensaje inicial — sin rayas Bootstrap ni text-muted fuera de tema */
+.cr-des-tabla-placeholder {
+    color: var(--color-text-secondary);
+    background-color: transparent !important;
+}
+
+.cr-des-tabla-placeholder strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════
+   Topbar compartido (Asignar RIPS V3 + Desrelacionar)
+══════════════════════════════════════════════ */
+.cr-topbar a.link-secondary {
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.cr-topbar a.link-secondary:hover {
+    color: #fff !important;
+}
+
+.cr-topbar .text-muted.small {
+    color: rgba(255, 255, 255, 0.45) !important;
+}
+
+body.desrelacionar-app .cr-page-content {
+    max-width: 1400px;
+    /* Tras Asignar_RIPS.css (padding shorthand) */
+    padding-bottom: 5rem !important;
+}
+
+.cr-topbar-signout {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50px;
+    color: #fff;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.cr-topbar-signout:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.65);
+    color: #fff;
 }
