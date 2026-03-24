@@ -1,0 +1,95 @@
+/**
+ * Tabla de relaciones RIPS y acción desrelacionar.
+ */
+
+import { deleteRelacionRips } from "../api/relacionesRipsApi.js";
+import { escapeHtml, formatCOP, formatFechaEval } from "../utils/format.js";
+
+function badgeFactura(tipo, etiqueta) {
+  if (tipo === "sin" || !etiqueta) {
+    return `<span class="text-muted">Sin factura</span>`;
+  }
+  const cls =
+    tipo === "eps"
+      ? "cr-des-badge cr-des-badge-eps"
+      : "cr-des-badge cr-des-badge-fev";
+  return `<span class="${cls}">${escapeHtml(etiqueta)}</span>`;
+}
+
+/**
+ * @param {object[]} items
+ * @param {{ getDocumentoPaciente: () => string, onRefrescar: () => Promise<void> }} deps
+ */
+export function renderTablaRelaciones(items, deps) {
+  const tbody = document.getElementById("tablaRelacionesBody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  if (!items.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="text-center py-4 cr-des-tabla-placeholder">No hay relaciones RIPS en el rango seleccionado.</td></tr>';
+    return;
+  }
+
+  items.forEach((row) => {
+    const tr = document.createElement("tr");
+    const idEvalTxt = `${row.prefijoEvalDisplay}-${row.idEvaluacion}`;
+    tr.innerHTML = `
+      <td class="font-monospace">${row.idRipsRelacion}</td>
+      <td class="font-monospace fw-semibold">${escapeHtml(idEvalTxt)}</td>
+      <td>${escapeHtml(formatFechaEval(row.fechaEvaluacion))}</td>
+      <td class="small">${escapeHtml(row.cupsCie || "—")}</td>
+      <td>${badgeFactura(row.facturaTipo, row.facturaEtiqueta)}</td>
+      <td class="text-end">${formatCOP(row.valorReportado)}</td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-danger cr-des-btn-unlink" title="Desrelacionar"
+          data-id="${row.idRipsRelacion}"
+          data-origen="${row.origenTabla === "RipsV2" ? "RipsV2" : "Rips"}"
+          data-eval="${row.idEvaluacion}">
+          <i class="ri-link-unlink-m"></i> Desrelacionar
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll(".cr-des-btn-unlink").forEach((btn) => {
+    btn.addEventListener("click", () => onDesrelacionarClick(btn, deps));
+  });
+}
+
+async function onDesrelacionarClick(btn, deps) {
+  const idRipsRelacion = parseInt(btn.getAttribute("data-id"), 10);
+  const origenTabla = btn.getAttribute("data-origen");
+  const doc = deps.getDocumentoPaciente().trim();
+
+  const r = await Swal.fire({
+    icon: "warning",
+    title: "¿Desrelacionar este RIPS?",
+    html: `Se eliminará el vínculo del registro RIPS <strong>${idRipsRelacion}</strong>. La historia podrá asignarse de nuevo en <strong>Asignar RIPS</strong>.`,
+    showCancelButton: true,
+    confirmButtonText: "Sí, desrelacionar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#dc3545",
+  });
+
+  if (!r.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: "Procesando…", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const result = await deleteRelacionRips({
+      idRipsRelacion,
+      origenTabla,
+      documentoPaciente: doc,
+    });
+    Swal.close();
+
+    if (!result.ok) {
+      throw new Error(result.error || "Error");
+    }
+    await Swal.fire({ icon: "success", title: "Listo", text: result.message || "RIPS desrelacionado." });
+    await deps.onRefrescar();
+  } catch (e) {
+    Swal.close();
+    Swal.fire({ icon: "error", title: "No se pudo desrelacionar", text: String(e.message || e) });
+  }
+}

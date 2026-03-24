@@ -4458,5 +4458,218 @@ router.get('/Catalogo1888/:clave', async (req, res) => {
     }
 });
 
+// ============================== Desrelacionador RIPS (listado + borrado) ==============================
+function mapRowDesrelacionadorRips(row, origenTabla) {
+    const idFactura = row.IdFactura != null ? Number(row.IdFactura) : 0;
+    const idPlan = row.IdPlanTratamiento != null ? Number(row.IdPlanTratamiento) : 0;
+    const totalCab = row.TotalFacturaCabecera != null ? Number(row.TotalFacturaCabecera) : null;
+    const valII = row.ValorFacturaII != null ? Number(row.ValorFacturaII) : null;
+
+    let facturaTipo = 'sin';
+    let facturaEtiqueta = 'Sin factura';
+    let valorReportado = null;
+
+    if (idPlan > 0) {
+        facturaTipo = 'eps';
+        const nro = row.NroPlanTratamiento != null ? String(row.NroPlanTratamiento).trim() : String(idPlan);
+        facturaEtiqueta = `PLAN-TR-${nro} (EPS)`;
+        valorReportado = valII != null && !Number.isNaN(valII) ? valII : totalCab;
+    } else if (idFactura > 0) {
+        facturaTipo = 'particular';
+        const pref = row.PrefijoFactura != null ? String(row.PrefijoFactura).trim() : '';
+        const nof = row.NoFactura != null ? String(row.NoFactura).trim() : '';
+        facturaEtiqueta = nof ? `FEV-${pref}${nof}` : `FEV-ID${idFactura}`;
+        valorReportado = totalCab != null && !Number.isNaN(totalCab) ? totalCab : valII;
+    }
+
+    const cups1 = row.Cups1 != null ? String(row.Cups1).trim() : '';
+    const cups2 = row.Cups2 != null ? String(row.Cups2).trim() : '';
+    const cie1 = row.Cie1 != null ? String(row.Cie1).trim() : '';
+    const cie2 = row.Cie2 != null ? String(row.Cie2).trim() : '';
+    const parts = [];
+    if (cups1) parts.push(cups1);
+    if (cups2 && cups2 !== 'null') parts.push(cups2);
+    const cupsStr = parts.length ? parts.join(' + ') : '';
+    const cieParts = [cie1, cie2 && cie2 !== 'null' ? cie2 : ''].filter(Boolean);
+    const cieStr = cieParts.join(' / ');
+    const cupsCie = [cupsStr, cieStr].filter(Boolean).join(' — ') || '—';
+
+    const esEv = row.EsEvolucion === 1 || row.EsEvolucion === true;
+    const prefijoEval = esEv ? 'EV' : 'HC';
+
+    return {
+        origenTabla,
+        idRipsRelacion: row.IdRipsRelacion,
+        idEvaluacion: row.IdEvaluacion,
+        fechaEvaluacion: row.FechaEvaluacion,
+        prefijoEvalDisplay: prefijoEval,
+        idTipoEvaluacion: row.IdTipoEvaluacion,
+        descripcionTipoEvaluacion: row.DescripcionTipoEvaluacion,
+        cupsCie,
+        facturaTipo,
+        facturaEtiqueta,
+        valorReportado,
+        idFactura: idFactura > 0 ? idFactura : null,
+        idPlanTratamiento: idPlan > 0 ? idPlan : null,
+    };
+}
+
+router.get('/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin', async (req, res) => {
+    try {
+        const documentoPaciente = (req.params.documentoPaciente || '').trim();
+        const documentoUsuario = (req.params.documentoUsuario || '').trim();
+        const fechaInicio = req.params.fechaInicio;
+        const fechaFin = req.params.fechaFin;
+
+        if (!documentoPaciente || !documentoUsuario || !fechaInicio || !fechaFin) {
+            return res.status(400).json({ ok: false, error: 'Parámetros incompletos' });
+        }
+
+        const pool = await poolPromise;
+
+        const sqlV1 = `
+            SELECT
+                er.[Id Evaluación Entidad Rips] AS IdRipsRelacion,
+                er.[Id Evaluación Entidad] AS IdEvaluacion,
+                ee.[Fecha Evaluación Entidad] AS FechaEvaluacion,
+                ee.[Id Tipo de Evaluación] AS IdTipoEvaluacion,
+                te.[Descripción Tipo de Evaluación] AS DescripcionTipoEvaluacion,
+                CASE WHEN te.[Descripción Tipo de Evaluación] LIKE N'%voluc%' THEN 1 ELSE 0 END AS EsEvolucion,
+                er.[Codigo Rips] AS Cups1,
+                er.[Codigo Rips2] AS Cups2,
+                er.[Diagnostico Rips] AS Cie1,
+                er.[Diagnostico Rips2] AS Cie2,
+                er.[Id Factura] AS IdFactura,
+                er.[Id Plan de Tratamiento] AS IdPlanTratamiento,
+                f.[No Factura] AS NoFactura,
+                ev.[Prefijo Resolución Facturación EmpresaV] AS PrefijoFactura,
+                f.[Total Factura] AS TotalFacturaCabecera,
+                fii.[Valor FacturaII] AS ValorFacturaII,
+                pt.[Nro Plan de Tratamiento] AS NroPlanTratamiento
+            FROM [Evaluación Entidad Rips] er
+            INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+            LEFT JOIN [Tipo de Evaluación] te ON te.[Id Tipo de Evaluación] = ee.[Id Tipo de Evaluación]
+            LEFT JOIN Factura f ON f.[Id Factura] = er.[Id Factura] AND NULLIF(er.[Id Factura], 0) IS NOT NULL
+            LEFT JOIN EmpresaV ev ON f.[Id EmpresaV] = ev.[Id EmpresaV]
+            LEFT JOIN FacturaII fii ON fii.[Id Factura] = er.[Id Factura]
+                AND fii.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+                AND NULLIF(er.[Id Plan de Tratamiento], 0) IS NOT NULL
+            LEFT JOIN [Plan de Tratamiento] pt ON pt.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+            WHERE ee.[Documento Entidad] = @docPac
+              AND ee.[Documento Usuario] = @docUsr
+              AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) BETWEEN CAST(@fechaIni AS DATE) AND CAST(@fechaFin AS DATE)
+        `;
+
+        const sqlV2 = `
+            SELECT
+                er.[Id Evaluación Entidad Rips] AS IdRipsRelacion,
+                er.[Id Evaluación Entidad] AS IdEvaluacion,
+                ee.[Fecha Evaluación Entidad] AS FechaEvaluacion,
+                ee.[Id Tipo de Evaluación] AS IdTipoEvaluacion,
+                te.[Descripción Tipo de Evaluación] AS DescripcionTipoEvaluacion,
+                CASE WHEN te.[Descripción Tipo de Evaluación] LIKE N'%voluc%' THEN 1 ELSE 0 END AS EsEvolucion,
+                er.[Cups] AS Cups1,
+                er.[Cups 2] AS Cups2,
+                er.[Cie] AS Cie1,
+                er.[Cie 2] AS Cie2,
+                er.[Id Factura] AS IdFactura,
+                er.[Id Plan de Tratamiento] AS IdPlanTratamiento,
+                f.[No Factura] AS NoFactura,
+                ev.[Prefijo Resolución Facturación EmpresaV] AS PrefijoFactura,
+                f.[Total Factura] AS TotalFacturaCabecera,
+                fii.[Valor FacturaII] AS ValorFacturaII,
+                pt.[Nro Plan de Tratamiento] AS NroPlanTratamiento
+            FROM [Evaluación Entidad Rips V2] er
+            INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+            LEFT JOIN [Tipo de Evaluación] te ON te.[Id Tipo de Evaluación] = ee.[Id Tipo de Evaluación]
+            LEFT JOIN Factura f ON f.[Id Factura] = er.[Id Factura] AND NULLIF(er.[Id Factura], 0) IS NOT NULL
+            LEFT JOIN EmpresaV ev ON f.[Id EmpresaV] = ev.[Id EmpresaV]
+            LEFT JOIN FacturaII fii ON fii.[Id Factura] = er.[Id Factura]
+                AND fii.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+                AND NULLIF(er.[Id Plan de Tratamiento], 0) IS NOT NULL
+            LEFT JOIN [Plan de Tratamiento] pt ON pt.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+            WHERE ee.[Documento Entidad] = @docPac
+              AND ee.[Documento Usuario] = @docUsr
+              AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) BETWEEN CAST(@fechaIni AS DATE) AND CAST(@fechaFin AS DATE)
+        `;
+
+        const reqBase = pool.request()
+            .input('docPac', sql.NVarChar(50), documentoPaciente)
+            .input('docUsr', sql.NVarChar(50), documentoUsuario)
+            .input('fechaIni', sql.VarChar(10), fechaInicio)
+            .input('fechaFin', sql.VarChar(10), fechaFin);
+
+        const r1 = await reqBase.query(sqlV1);
+        let r2 = { recordset: [] };
+        try {
+            r2 = await pool.request()
+                .input('docPac', sql.NVarChar(50), documentoPaciente)
+                .input('docUsr', sql.NVarChar(50), documentoUsuario)
+                .input('fechaIni', sql.VarChar(10), fechaInicio)
+                .input('fechaFin', sql.VarChar(10), fechaFin)
+                .query(sqlV2);
+        } catch (e2) {
+            console.warn('relacionesRipsDesrelacionador: consulta V2 omitida o tabla no disponible:', e2.message);
+        }
+
+        const out = [];
+        (r1.recordset || []).forEach((row) => out.push(mapRowDesrelacionadorRips(row, 'Rips')));
+        (r2.recordset || []).forEach((row) => out.push(mapRowDesrelacionadorRips(row, 'RipsV2')));
+
+        out.sort((a, b) => new Date(b.fechaEvaluacion) - new Date(a.fechaEvaluacion));
+        res.json({ ok: true, items: out });
+    } catch (error) {
+        console.error('❌ relacionesRipsDesrelacionador GET:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message || 'Error interno' });
+        }
+    }
+});
+
+router.delete('/relacionesRipsDesrelacionador', async (req, res) => {
+    try {
+        const idRipsRelacion = parseInt(req.body?.idRipsRelacion, 10);
+        const origenTabla = req.body?.origenTabla === 'RipsV2' ? 'RipsV2' : 'Rips';
+        const documentoPaciente = (req.body?.documentoPaciente || '').trim();
+
+        if (!idRipsRelacion || Number.isNaN(idRipsRelacion) || !documentoPaciente) {
+            return res.status(400).json({ ok: false, error: 'idRipsRelacion, origenTabla y documentoPaciente son requeridos' });
+        }
+
+        const tabla = origenTabla === 'RipsV2' ? '[Evaluación Entidad Rips V2]' : '[Evaluación Entidad Rips]';
+
+        const pool = await poolPromise;
+        const check = await pool.request()
+            .input('idRips', sql.Int, idRipsRelacion)
+            .input('docPac', sql.NVarChar(50), documentoPaciente)
+            .query(`
+                SELECT ee.[Documento Entidad] AS DocumentoPaciente
+                FROM ${tabla} er
+                INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+                WHERE er.[Id Evaluación Entidad Rips] = @idRips
+            `);
+
+        if (!check.recordset || check.recordset.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Registro RIPS no encontrado' });
+        }
+
+        const docDb = (check.recordset[0].DocumentoPaciente || '').trim();
+        if (docDb !== documentoPaciente) {
+            return res.status(403).json({ ok: false, error: 'El documento no coincide con el registro' });
+        }
+
+        await pool.request()
+            .input('idRips', sql.Int, idRipsRelacion)
+            .query(`DELETE FROM ${tabla} WHERE [Id Evaluación Entidad Rips] = @idRips`);
+
+        res.json({ ok: true, message: 'RIPS desrelacionado correctamente' });
+    } catch (error) {
+        console.error('❌ relacionesRipsDesrelacionador DELETE:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message || 'Error al eliminar' });
+        }
+    }
+});
+
 // =================================================================================================
 module.exports = router;

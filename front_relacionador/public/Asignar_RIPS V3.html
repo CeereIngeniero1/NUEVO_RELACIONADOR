@@ -50,9 +50,17 @@
      TOP NAVBAR
      ═══════════════════════════════════════════ -->
     <nav class="cr-topbar" id="crTopbar">
-        <div class="cr-topbar-brand">
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
             <img src="images/Ceere_logo.png" alt="Logo" class="cr-topbar-logo">
             <span class="cr-topbar-title">Relacionador RIPS</span>
+            <span class="text-muted d-none d-sm-inline">|</span>
+            <nav class="d-flex align-items-center gap-2 flex-wrap" aria-label="Módulos">
+                <a href="RIPS.html" class="link-secondary text-decoration-none small fw-semibold">Inicio</a>
+                <span class="text-muted small">·</span>
+                <span class="small fw-semibold" style="color: var(--color-primary, #007E82);">Asignar RIPS</span>
+                <span class="text-muted small">·</span>
+                <a href="Desrelacionar.html" class="link-secondary text-decoration-none small fw-semibold">Desrelacionar</a>
+            </nav>
         </div>
         <div class="cr-topbar-right">
             <div class="cr-topbar-user">
@@ -2233,12 +2241,45 @@
             }
         });
 
-        /* ── Topbar: nombre de usuario ─────────────── */
-        const barUser = document.getElementById('TopbarUserName');
-        if (barUser) {
-            const user = sessionStorage.getItem('usuario') || localStorage.getItem('usuario') || 'Usuario';
-            barUser.textContent = user;
-        }
+        /* ── Topbar: nombre de usuario (JWT /protected, igual que Desrelacionar) ── */
+        (async function syncTopbarUserName() {
+            const barUser = document.getElementById('TopbarUserName');
+            if (!barUser) return;
+
+            const servidor =
+                localStorage.getItem('NombreEquipoServidor') ||
+                window.location.hostname ||
+                'localhost';
+            const token = localStorage.getItem('token');
+            const fallback =
+                sessionStorage.getItem('usuario') ||
+                localStorage.getItem('usuario') ||
+                sessionStorage.getItem('documentousuariologeado') ||
+                'Usuario';
+
+            if (token) {
+                try {
+                    const res = await fetch(`http://${servidor}:3000/protected`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: token,
+                        },
+                    });
+                    if (res.ok) {
+                        const body = await res.json();
+                        const name = body.user?.username;
+                        if (name) {
+                            barUser.textContent = name;
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            barUser.textContent = fallback;
+        })();
 
         /* ── Cerrar sesión desde topbar ────────────── */
         const btnLogout = document.getElementById('crBtnLogout');
