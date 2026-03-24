@@ -34,7 +34,7 @@ import { inicializarSelectsRDA } from "./api/selectsRda.js";
 
 // ── Inicialización (el script se carga al final del body, DOM ya existe) ──
 initBiometria();
-const { syncHistoriaClinicaDesdeRips } = initControlRda();
+initControlRda();
 initListasPaciente();
 initListasConsultaExterna();
 inicializarSelectsRDA();
@@ -69,6 +69,4 @@ window.RDA = {
     getOtrasTecnologias,
     // FHIR Bundle builder
     buildPacienteBundle,
-    // Sincronizar opciones/valor de HistoriasSinRIPS → RDA_HistoriaClinica (tras cargar HC en RIPS)
-    syncHistoriaClinicaDesdeRips,
 };

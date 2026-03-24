@@ -313,9 +313,6 @@ async function LlenarSelectDeHistoriasClinicas() {
       " ]";
     SelectHistoriasSinRIPS.appendChild(option);
   }
-  if (typeof window.RDA?.syncHistoriaClinicaDesdeRips === "function") {
-    window.RDA.syncHistoriaClinicaDesdeRips();
-  }
 }
 const SelectPacientes = document.getElementById("listaHC");
 SelectPacientes.addEventListener("change", async function (e) {

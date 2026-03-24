@@ -655,10 +655,6 @@ body.app-layout {
     margin-bottom: 0.35rem;
 }
 
-#cardRDA .rda-toolbar .form-select {
-    max-width: 100%;
-}
-
 .rda-tipo-segmented,
 .rips-tipo-segmented {
     flex-wrap: nowrap;

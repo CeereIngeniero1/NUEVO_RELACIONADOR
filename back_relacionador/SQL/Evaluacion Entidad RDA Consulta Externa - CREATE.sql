@@ -51,7 +51,6 @@ BEGIN
         [Id Grupo Servicios]              INT           NULL,
         [Id Via Ingreso Usuario]          INT           NULL,
         [Id Causa Motivo Atencion]        INT           NULL,
-        [Id Evaluacion Entidad Origen]    INT           NULL,
         [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1)
     );
 END

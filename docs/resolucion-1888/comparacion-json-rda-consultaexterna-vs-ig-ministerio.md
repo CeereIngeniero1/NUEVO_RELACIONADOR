@@ -19,11 +19,9 @@ En la lista TXT, al final se indican como capturados en el flujo **Asignar RIPS*
 
 **Guardado:** `POST /apiV3/EvaluacionEntidadRDACE/` recibe `IdModalidadAtencion`, `IdGrupoServicios`, `IdViaIngresoUsuario`, `IdCausaMotivoAtencion` (además del resto del payload RDACE).
 
-**Historia / evaluación de origen:** el formulario expone `RDA_HistoriaClinica` (sincronizado con `HistoriasSinRIPS`). El guardado RDACE envía `IdEvaluacionEntidadOrigen` para persistir en `[Id Evaluacion Entidad Origen]` (trazabilidad respecto a la evaluación/historia elegida en RIPS).
+**Migración SQL en BD ya existente:** ejecutar [`back_relacionador/SQL/alter-evaluacion-entidad-rdace-rips-context.sql`](../../back_relacionador/SQL/alter-evaluacion-entidad-rdace-rips-context.sql).
 
-**Migración SQL en BD ya existente:** ejecutar [`back_relacionador/SQL/alter-evaluacion-entidad-rdace-rips-context.sql`](../../back_relacionador/SQL/alter-evaluacion-entidad-rdace-rips-context.sql). Para la columna de historia/origen, ejecutar además [`back_relacionador/SQL/alter-evaluacion-entidad-rda-id-evaluacion-origen.sql`](../../back_relacionador/SQL/alter-evaluacion-entidad-rda-id-evaluacion-origen.sql) (incluye RDA Paciente y RDACE).
-
-**Instalaciones nuevas:** columnas incluidas en [`back_relacionador/SQL/1888.sql`](../../back_relacionador/SQL/1888.sql) y en [`back_relacionador/SQL/Evaluacion Entidad RDA Consulta Externa - CREATE.sql`](../../back_relacionador/SQL/Evaluacion%20Entidad%20RDA%20Consulta%20Externa%20-%20CREATE.sql).
+**Instalaciones nuevas:** columnas de contexto RIPS en [`back_relacionador/SQL/1888.sql`](../../back_relacionador/SQL/1888.sql) y en [`back_relacionador/SQL/Evaluacion Entidad RDA Consulta Externa - CREATE.sql`](../../back_relacionador/SQL/Evaluacion%20Entidad%20RDA%20Consulta%20Externa%20-%20CREATE.sql).
 
 ---
 
@@ -32,7 +30,7 @@ En la lista TXT, al final se indican como capturados en el flujo **Asignar RIPS*
 | Tema | Estado actual |
 |------|----------------|
 | **Bundle FHIR RDA Consulta Externa** | No implementado en este cambio (no hay `POST` equivalente a `RdaPaciente/FhirBundle` para RDACE en el código revisado). |
-| **Persistencia lista 1888 / formulario** | Sí: cabecera RDACE + tablas hijas (antecedentes, diagnósticos relacionados, prescripciones, etc.) según [`Asignar_RipsRoutes V3.js`](../../back_relacionador/server/routes/Asignar_RipsRoutes%20V3.js). La cabecera puede incluir `[Id Evaluacion Entidad Origen]` (`IdEvaluacionEntidadOrigen` en JSON) enlazado a `RDA_HistoriaClinica`. |
+| **Persistencia lista 1888 / formulario** | Sí: cabecera RDACE + tablas hijas (antecedentes, diagnósticos relacionados, prescripciones, etc.) según [`Asignar_RipsRoutes V3.js`](../../back_relacionador/server/routes/Asignar_RipsRoutes%20V3.js). |
 | **Alineación IG** | Cuando se defina el perfil Composition/recursos para consulta externa, habrá que mapear explícitamente modalidad, grupo, vía y causa (y el resto de la lista) desde la fila RDACE + hijas. |
 
 ---
@@ -49,4 +47,4 @@ En la lista TXT, al final se indican como capturados en el flujo **Asignar RIPS*
 
 ---
 
-*Última actualización: marzo 2026 — contexto RIPS en RDACE; persistencia `IdEvaluacionEntidadOrigen` / historia clínica en tarjeta RDA.*
+*Última actualización: marzo 2026 — contexto RIPS en RDACE.*

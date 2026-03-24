@@ -73,11 +73,8 @@
         const contenidoRDA = document.getElementById("ContenidoRDA");
         const seccionPaciente = document.getElementById("SeccionRDAPaciente");
         const seccionConsultaExt = document.getElementById("SeccionRDAConsultaExterna");
-        const histRips = document.getElementById("HistoriasSinRIPS");
-        const histRda = document.getElementById("RDA_HistoriaClinica");
 
         var lastTipoRDA = "paciente";
-        var syncingHc = false;
 
         function updateBtnGenerarLabel() {
             if (!btnGenerar || !checkGenerarRDA) return;
@@ -137,33 +134,6 @@
             updateBtnGenerarLabel();
         }
 
-        function copySelectOptions(target, source) {
-            if (!target || !source || !source.options || !source.options.length) return false;
-            target.innerHTML = "";
-            Array.prototype.forEach.call(source.options, function (opt) {
-                var o = document.createElement("option");
-                o.value = opt.value;
-                o.textContent = opt.textContent;
-                target.appendChild(o);
-            });
-            return true;
-        }
-
-        function selectHasValue(sel, val) {
-            if (!sel || !val) return false;
-            for (var i = 0; i < sel.options.length; i += 1) {
-                if (sel.options[i].value === val) return true;
-            }
-            return false;
-        }
-
-        function syncHistoriaClinicaDesdeRips() {
-            if (!histRips || !histRda) return;
-            copySelectOptions(histRda, histRips);
-            var v = histRips.value;
-            if (v && selectHasValue(histRda, v)) histRda.value = v;
-        }
-
         btnGenerar?.addEventListener("click", function () {
             if (!checkGenerarRDA) return;
             checkGenerarRDA.checked = !checkGenerarRDA.checked;
@@ -176,36 +146,8 @@
             radio.addEventListener("change", onTipoRDAChange);
         });
 
-        histRips?.addEventListener("change", function () {
-            if (syncingHc) return;
-            syncingHc = true;
-            syncHistoriaClinicaDesdeRips();
-            syncingHc = false;
-        });
-
-        histRda?.addEventListener("change", function () {
-            if (syncingHc) return;
-            syncingHc = true;
-            var v = histRda.value;
-            if (histRips && v && selectHasValue(histRips, v)) histRips.value = v;
-            syncingHc = false;
-        });
-
-        if (histRips && histRda) {
-            var obs = new MutationObserver(function () {
-                if (syncingHc) return;
-                syncingHc = true;
-                syncHistoriaClinicaDesdeRips();
-                syncingHc = false;
-            });
-            obs.observe(histRips, { childList: true, subtree: true });
-        }
-
         toggleRDA();
         updateBtnGenerarLabel();
-        syncHistoriaClinicaDesdeRips();
-
-        return { syncHistoriaClinicaDesdeRips: syncHistoriaClinicaDesdeRips };
     }
 
     // ============================================
@@ -726,6 +668,5 @@
         getPrescripcionMedicamentos: function () { return listaPrescripcionMed; },
         getPrescripcionProcedimientos: function () { return listaPrescripcionProc; },
         getOtrasTecnologias: function () { return listaOtrasTec; },
-        syncHistoriaClinicaDesdeRips: rdaControlApi.syncHistoriaClinicaDesdeRips,
     };
 })();

@@ -4,17 +4,14 @@ Campos implementados en la sección `#SeccionRDAPaciente` del HTML. Todos los ID
 
 ---
 
-## Tarjeta RDA (fuera de las secciones Paciente / Consulta Externa)
+## Tarjeta RDA (activación y tipo)
 
-Estos controles viven en `#cardRDA` **por encima** de `#SeccionRDAPaciente` y `#SeccionRDAConsultaExterna`, de modo que al alternar el tipo de RDA no se pierde la historia elegida.
+Controles en `#cardRDA` **por encima** de `#SeccionRDAPaciente` y `#SeccionRDAConsultaExterna`. El **RDA no se enlaza** a una historia o evolución en pantalla; la selección de historia para **RIPS** sigue en `HistoriasSinRIPS`.
 
 | Control | ID | Notas |
 |---------|-----|--------|
-| Historia / evolución asociada al RDA | `RDA_HistoriaClinica` | Mismas opciones y valor que `HistoriasSinRIPS` (RIPS); sincronización bidireccional. Tras `LlenarSelectDeHistoriasClinicas` en `Asignar_RIPS V3.js` se llama `window.RDA.syncHistoriaClinicaDesdeRips()`. |
 | Activar flujo RDA (barra de progreso) | `GenerarRDABase` | Checkbox oculto; la UI usa el botón `RDA_BtnGenerar` (“Generar RDA” / “Desactivar RDA”). |
-| Tipo de RDA | `input[name="tipoRDA"]` | Radios en `#ContenedorTipoRDA`. |
-
-**Persistencia en BD:** al guardar RDA Paciente (`POST /apiV3/EvaluacionEntidadRDA/`), el payload incluye `IdEvaluacionEntidadOrigen` (entero o `null`), almacenado en la columna `[Id Evaluacion Entidad Origen]` de `[Evaluacion Entidad RDA]`.
+| Tipo de RDA | `input[name="tipoRDA"]` | Segmentado en `#ContenedorTipoRDA` (`rda/ui/controlRda.js`). |
 
 ---
 

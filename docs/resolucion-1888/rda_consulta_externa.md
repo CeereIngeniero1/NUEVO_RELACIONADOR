@@ -4,11 +4,9 @@ Campos implementados en la sección `#SeccionRDAConsultaExterna` del HTML. Todos
 
 ---
 
-## Historia clínica y tipo RDA (compartido con RDA Paciente)
+## Activación y tipo RDA (compartido con RDA Paciente)
 
-La selección de **historia / evolución** no está dentro de `#SeccionRDAConsultaExterna`: se usa el mismo `<select id="RDA_HistoriaClinica">` y los mismos controles de activación/tipo que en la tarjeta RDA (ver [`rda_paciente.md`](./rda_paciente.md) — sección “Tarjeta RDA”).
-
-**Persistencia RDACE:** `POST /apiV3/EvaluacionEntidadRDACE/` envía `IdEvaluacionEntidadOrigen` → columna `[Id Evaluacion Entidad Origen]` en `[Evaluacion Entidad RDA Consulta Externa]`.
+Los controles **Generar RDA** y **tipo de RDA** están en la tarjeta `#cardRDA` (ver [`rda_paciente.md`](./rda_paciente.md) — sección “Tarjeta RDA”). El RDA no se asocia a historia/evolución en la UI.
 
 ---
 

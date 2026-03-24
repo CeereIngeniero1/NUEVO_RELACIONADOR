@@ -2818,7 +2818,6 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
         TipoAlergia,
         IdModalidadAtencion, IdGrupoServicios,
         NitPrestadorIPS, NombrePrestadorIPS,
-        IdEvaluacionEntidadOrigen,
     } = req.body;
 
     // Convierte un string de fecha en objeto Date; null si no es válido
@@ -2870,13 +2869,6 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('IdGrupoServicios',              sql.Int,       IdGrupoServicios != null && IdGrupoServicios !== '' ? parseInt(IdGrupoServicios, 10) : null)
             .input('NitPrestadorIPS',               sql.NVarChar,  NitPrestadorIPS                  || null)
             .input('NombrePrestadorIPS',            sql.NVarChar,  NombrePrestadorIPS               || null)
-            .input(
-                'IdEvaluacionEntidadOrigen',
-                sql.Int,
-                IdEvaluacionEntidadOrigen != null && IdEvaluacionEntidadOrigen !== ''
-                    ? parseInt(IdEvaluacionEntidadOrigen, 10)
-                    : null
-            )
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA]
                 (
@@ -2894,8 +2886,7 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
                     [Tipo Alergia],
                     [Id Modalidad Atencion], [Id Grupo Servicios],
-                    [NIT Prestador IPS], [Nombre Prestador IPS],
-                    [Id Evaluacion Entidad Origen]
+                    [NIT Prestador IPS], [Nombre Prestador IPS]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA]
                 VALUES
@@ -2914,8 +2905,7 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
                     @TipoAlergia,
                     @IdModalidadAtencion, @IdGrupoServicios,
-                    @NitPrestadorIPS, @NombrePrestadorIPS,
-                    @IdEvaluacionEntidadOrigen
+                    @NitPrestadorIPS, @NombrePrestadorIPS
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA'];
@@ -4023,7 +4013,6 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
         AlcanceIncapacidad, DiasIncapacidad, DiasLicenciaMaternidad,
         NombreDocumentoPDF,
         IdModalidadAtencion, IdGrupoServicios, IdViaIngresoUsuario, IdCausaMotivoAtencion,
-        IdEvaluacionEntidadOrigen,
     } = req.body;
 
     const rdaceIntOrNull = (v) => {
@@ -4063,7 +4052,6 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
             .input('IdGrupoServicios', sql.Int, rdaceIntOrNull(IdGrupoServicios))
             .input('IdViaIngresoUsuario', sql.Int, rdaceIntOrNull(IdViaIngresoUsuario))
             .input('IdCausaMotivoAtencion', sql.Int, rdaceIntOrNull(IdCausaMotivoAtencion))
-            .input('IdEvaluacionEntidadOrigen', sql.Int, rdaceIntOrNull(IdEvaluacionEntidadOrigen))
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA Consulta Externa]
                 (
@@ -4078,8 +4066,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     [Condicion Destino Egreso], [Codigo Prestador Remite],
                     [Alcance Incapacidad], [Dias Incapacidad], [Dias Licencia Maternidad],
                     [Nombre Documento PDF],
-                    [Id Modalidad Atencion], [Id Grupo Servicios], [Id Via Ingreso Usuario], [Id Causa Motivo Atencion],
-                    [Id Evaluacion Entidad Origen]
+                    [Id Modalidad Atencion], [Id Grupo Servicios], [Id Via Ingreso Usuario], [Id Causa Motivo Atencion]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA Consulta Externa]
                 VALUES
@@ -4095,8 +4082,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     @CondicionDestinoEgreso, @CodigoPrestadorRemite,
                     @AlcanceIncapacidad, @DiasIncapacidad, @DiasLicenciaMaternidad,
                     @NombreDocumentoPDF,
-                    @IdModalidadAtencion, @IdGrupoServicios, @IdViaIngresoUsuario, @IdCausaMotivoAtencion,
-                    @IdEvaluacionEntidadOrigen
+                    @IdModalidadAtencion, @IdGrupoServicios, @IdViaIngresoUsuario, @IdCausaMotivoAtencion
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA Consulta Externa'];

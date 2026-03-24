@@ -1084,13 +1084,7 @@
                 </div>
                 <div class="cr-card-body">
                     <div class="row g-3 mb-2 align-items-end rda-toolbar">
-                        <div class="col-12 col-lg-5 col-xl-4">
-                            <label class="rda-toolbar-label" for="RDA_HistoriaClinica">Asignar historia clínica / evolución</label>
-                            <select id="RDA_HistoriaClinica" class="form-select form-select-sm border-secondary">
-                                <option value="">Sin seleccionar</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-lg-7 col-xl-8">
+                        <div class="col-12">
                             <label class="rda-toolbar-label d-block" id="rdaTipoLabel">Tipo de RDA</label>
                             <div id="ContenedorTipoRDA" class="btn-group rda-tipo-segmented" role="group"
                                 aria-labelledby="rdaTipoLabel">
@@ -2302,29 +2296,6 @@
         await guardarRDAPaciente();
     });
 
-    function parseIdEvaluacionEntidadOrigen() {
-        const v = document.getElementById('RDA_HistoriaClinica')?.value?.trim();
-        if (!v) return null;
-        const n = parseInt(v, 10);
-        return Number.isNaN(n) ? null : n;
-    }
-
-    async function confirmarSiFaltaHistoriaRDA() {
-        const idHc = parseIdEvaluacionEntidadOrigen();
-        const genActivo = document.getElementById('GenerarRDABase')?.checked;
-        const tipoSel = document.querySelector('input[name="tipoRDA"]:checked');
-        if (!genActivo || !tipoSel || idHc !== null) return true;
-        const r = await Swal.fire({
-            icon: 'warning',
-            title: 'Sin historia/evolución',
-            text: 'RDA está activo pero no hay historia clínica asociada. ¿Desea guardar sin enlazar evaluación?',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, guardar',
-            cancelButtonText: 'Cancelar'
-        });
-        return r.isConfirmed === true;
-    }
-
     async function guardarRDAPaciente() {
         const btn = document.getElementById('RDA_BtnGuardarPaciente');
 
@@ -2336,8 +2307,6 @@
             Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA.' });
             return;
         }
-
-        if (!(await confirmarSiFaltaHistoriaRDA())) return;
 
         // Construir payload principal
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -2388,7 +2357,6 @@
             // Ajuste funcional: reutilizar campos existentes del formulario superior.
             NitPrestadorIPS:                document.getElementById('RDA_CodigoPrestador')?.value?.trim()                  || null,
             NombrePrestadorIPS:             document.getElementById('RDA_NombreAdminPlanBeneficios')?.value?.trim()       || null,
-            IdEvaluacionEntidadOrigen:      parseIdEvaluacionEntidadOrigen(),
         };
 
         // ── Loading ────────────────────────────────────────────────────
@@ -2498,29 +2466,6 @@
         await guardarRDACE();
     });
 
-    function parseIdEvaluacionEntidadOrigenRDACE() {
-        const v = document.getElementById('RDA_HistoriaClinica')?.value?.trim();
-        if (!v) return null;
-        const n = parseInt(v, 10);
-        return Number.isNaN(n) ? null : n;
-    }
-
-    async function confirmarSiFaltaHistoriaRDACE() {
-        const idHc = parseIdEvaluacionEntidadOrigenRDACE();
-        const genActivo = document.getElementById('GenerarRDABase')?.checked;
-        const tipoSel = document.querySelector('input[name="tipoRDA"]:checked');
-        if (!genActivo || !tipoSel || idHc !== null) return true;
-        const r = await Swal.fire({
-            icon: 'warning',
-            title: 'Sin historia/evolución',
-            text: 'RDA está activo pero no hay historia clínica asociada. ¿Desea guardar sin enlazar evaluación?',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, guardar',
-            cancelButtonText: 'Cancelar'
-        });
-        return r.isConfirmed === true;
-    }
-
     async function guardarRDACE() {
         const btn = document.getElementById('RDACE_BtnGuardarConsultaExterna');
         const documento = document.getElementById('DocumentoPaciente')?.value?.trim();
@@ -2529,8 +2474,6 @@
             Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA Consulta Externa.' });
             return;
         }
-
-        if (!(await confirmarSiFaltaHistoriaRDACE())) return;
 
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let cie11TerminoCE = null;
@@ -2569,8 +2512,7 @@
             IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
             IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
             IdViaIngresoUsuario: document.getElementById('RDACE_IdViaIngresoUsuario')?.value || null,
-            IdCausaMotivoAtencion: document.getElementById('RDACE_IdCausaMotivoAtencion')?.value || null,
-            IdEvaluacionEntidadOrigen: parseIdEvaluacionEntidadOrigenRDACE()
+            IdCausaMotivoAtencion: document.getElementById('RDACE_IdCausaMotivoAtencion')?.value || null
         };
 
         const textoOriginal = btn.innerHTML;

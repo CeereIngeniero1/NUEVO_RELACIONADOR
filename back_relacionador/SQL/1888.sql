@@ -914,9 +914,7 @@ Create Table [Evaluacion Entidad RDA]
     [Id Modalidad Atencion]           INT          NULL,
     [Id Grupo Servicios]              INT          NULL,
     [NIT Prestador IPS]               NVARCHAR(20) NULL,
-    [Nombre Prestador IPS]            NVARCHAR(200) NULL,
-    -- Historia/evolución RIPS asociada al RDA (IdEvaluaciónEntidad de DatosdeHC)
-    [Id Evaluacion Entidad Origen]    INT          NULL
+    [Nombre Prestador IPS]            NVARCHAR(200) NULL
 )
 
 -- ============================================================================
@@ -942,9 +940,6 @@ Create Table [Evaluacion Entidad RDA]
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Grupo Servicios]            INT          NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [NIT Prestador IPS]             NVARCHAR(20) NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Prestador IPS]          NVARCHAR(200) NULL;
--- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Evaluacion Entidad Origen]   INT          NULL;
--- (RDACE) ALTER TABLE [Evaluacion Entidad RDA Consulta Externa] ADD [Id Evaluacion Entidad Origen] INT NULL;
--- Idempotente ambas tablas: SQL/alter-evaluacion-entidad-rda-id-evaluacion-origen.sql
 
 
 
@@ -1040,8 +1035,6 @@ BEGIN
         [Id Grupo Servicios]              INT           NULL,
         [Id Via Ingreso Usuario]          INT           NULL,
         [Id Causa Motivo Atencion]        INT           NULL,
-        -- Historia/evolución RIPS asociada al RDACE (IdEvaluaciónEntidad de DatosdeHC)
-        [Id Evaluacion Entidad Origen]    INT           NULL,
         [Id Estado]                       INT           NOT NULL DEFAULT 1
     );
 END;
