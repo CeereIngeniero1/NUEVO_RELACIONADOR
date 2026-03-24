@@ -313,6 +313,9 @@ async function LlenarSelectDeHistoriasClinicas() {
       " ]";
     SelectHistoriasSinRIPS.appendChild(option);
   }
+  if (typeof window.RDA?.syncHistoriaClinicaDesdeRips === "function") {
+    window.RDA.syncHistoriaClinicaDesdeRips();
+  }
 }
 const SelectPacientes = document.getElementById("listaHC");
 SelectPacientes.addEventListener("change", async function (e) {
@@ -831,6 +834,385 @@ $(document).ready(function () {
   }
   initProfesionalesSelect2("#RDA_NumDocProfesional");
   initProfesionalesSelect2("#RDACE_NumDocProfesional");
+
+  /** Modalidad / Grupo servicios RDA:
+   *  - Reutiliza los catálogos del módulo Asignar RIPS si ya existen.
+   *  - Si no están cargados, hace fallback a /apiV3.
+   *  - Sincroniza valor automáticamente desde Asignar RIPS -> RDA Paciente.
+   */
+  (async function cargarYSincronizarModalidadYGrupoRdaPaciente() {
+    const sm = document.getElementById("RDA_IdModalidadAtencion");
+    const sg = document.getElementById("RDA_IdGrupoServicios");
+    if (!sm || !sg) return;
+
+    const sourceModalidadIds = [
+      "listaModalidadAtencion",
+      "SelectModalidadGrupoServicioTecnologiaSalud", // AC
+      "SelectModalidadGrupoServicioTecSalAP", // AP
+      "SelectPorDefectoModalidadGrupoServicioTecSalAC",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAP",
+    ];
+    const sourceGrupoIds = [
+      "listaGrupoServicios",
+      "SelectGrupoServiciosAC", // AC
+      "SelectGrupoServiciosAP", // AP
+      "SelectPoDefectoGrupoServiciosAC",
+      "SelectPorDefectoGrupoServiciosAP",
+    ];
+
+    const isVisible = (el) => !!(el && el.offsetParent !== null);
+    const getPreferredFlow = () => {
+      const tipoAC = document.getElementById("TipoAC");
+      const tipoAP = document.getElementById("TipoAP");
+      if (isVisible(tipoAC)) return "AC";
+      if (isVisible(tipoAP)) return "AP";
+      return null;
+    };
+
+    const findFirstAvailableSelect = (ids) => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.tagName === "SELECT") return el;
+      }
+      return null;
+    };
+    const findBestSourceSelect = (ids) => {
+      const candidates = ids
+        .map((id) => document.getElementById(id))
+        .filter((el) => el && el.tagName === "SELECT");
+      if (!candidates.length) return null;
+      const flow = getPreferredFlow();
+      if (flow === "AC") {
+        const acCandidate = candidates.find((el) => /TecnologiaSalud|GrupoServiciosAC/.test(el.id));
+        if (acCandidate && (acCandidate.options?.length || 0) > 1) return acCandidate;
+      }
+      if (flow === "AP") {
+        const apCandidate = candidates.find((el) => /TecSalAP|GrupoServiciosAP/.test(el.id));
+        if (apCandidate && (apCandidate.options?.length || 0) > 1) return apCandidate;
+      }
+      // Prioriza el select que realmente ya tenga catálogo cargado.
+      const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
+      return withOptions || candidates[0];
+    };
+
+    const populateFromSource = (target, source) => {
+      if (!target || !source || !source.options || source.options.length === 0) return false;
+      target.innerHTML = "";
+      Array.from(source.options).forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt.value;
+        o.textContent = opt.textContent;
+        target.appendChild(o);
+      });
+      return true;
+    };
+
+    const syncValue = (target, source) => {
+      if (!target || !source) return;
+      if (
+        source.value &&
+        source.value !== "Sin Seleccionar" &&
+        target.querySelector(`option[value="${source.value}"]`)
+      ) {
+        target.value = source.value;
+      }
+    };
+
+    let sourceModalidad = findBestSourceSelect(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
+    let sourceGrupo = findBestSourceSelect(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
+
+    const copiedModalidad = populateFromSource(sm, sourceModalidad);
+    const copiedGrupo = populateFromSource(sg, sourceGrupo);
+    syncValue(sm, sourceModalidad);
+    syncValue(sg, sourceGrupo);
+
+    if (!copiedModalidad || !copiedGrupo) {
+      const base = `http://${servidor}:3000/apiV3`;
+      try {
+        const [modRaw, grpRaw] = await Promise.all([
+          fetch(`${base}/ModalidadAtencion`).then((r) => r.json()),
+          fetch(`${base}/GrupoServicios`).then((r) => r.json()),
+        ]);
+        const modalidades = Array.isArray(modRaw) ? modRaw : [];
+        const grupos = Array.isArray(grpRaw) ? grpRaw : [];
+        modalidades.sort((a, b) =>
+          String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
+        );
+        grupos.sort((a, b) =>
+          String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
+        );
+
+        if (!copiedModalidad) {
+          sm.innerHTML = '<option value="">Seleccionar</option>';
+          modalidades.forEach((m) => {
+            const o = document.createElement("option");
+            o.value = m.IdModalidadAtencion;
+            o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
+            sm.appendChild(o);
+          });
+        }
+        if (!copiedGrupo) {
+          sg.innerHTML = '<option value="">Seleccionar</option>';
+          grupos.forEach((g) => {
+            const o = document.createElement("option");
+            o.value = g.IdGrupoServicios;
+            o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
+            sg.appendChild(o);
+          });
+        }
+      } catch (e) {
+        console.warn("[RDA] No se pudieron cargar/sincronizar Modalidad/GrupoServicios:", e);
+      }
+    }
+
+    const refreshSync = () => {
+      sourceModalidad = findBestSourceSelect(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
+      sourceGrupo = findBestSourceSelect(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
+      if (sourceModalidad) {
+        populateFromSource(sm, sourceModalidad);
+        syncValue(sm, sourceModalidad);
+      }
+      if (sourceGrupo) {
+        populateFromSource(sg, sourceGrupo);
+        syncValue(sg, sourceGrupo);
+      }
+    };
+
+    refreshSync();
+
+    if (sourceModalidad) {
+      sourceModalidad.addEventListener("change", refreshSync);
+      const obsM = new MutationObserver(refreshSync);
+      obsM.observe(sourceModalidad, { childList: true, subtree: true, attributes: true });
+    }
+    if (sourceGrupo) {
+      sourceGrupo.addEventListener("change", refreshSync);
+      const obsG = new MutationObserver(refreshSync);
+      obsG.observe(sourceGrupo, { childList: true, subtree: true, attributes: true });
+    }
+
+    // Cobertura para cargas asíncronas sin eventos de cambio.
+    let retries = 0;
+    const syncTimer = setInterval(() => {
+      retries += 1;
+      refreshSync();
+      if (retries >= 20) clearInterval(syncTimer); // ~10s
+    }, 500);
+  })();
+
+  /** RDA Consulta Externa: modalidad, grupo, vía ingreso, causa motivo (mismos catálogos / selects que Asignar RIPS). */
+  (async function cargarYSincronizarRipsContextRdace() {
+    const sm = document.getElementById("RDACE_IdModalidadAtencion");
+    const sg = document.getElementById("RDACE_IdGrupoServicios");
+    const sv = document.getElementById("RDACE_IdViaIngresoUsuario");
+    const sc = document.getElementById("RDACE_IdCausaMotivoAtencion");
+    if (!sm || !sg || !sv || !sc) return;
+
+    const base = `http://${servidor}:3000/apiV3`;
+    const isVisible = (el) => !!(el && el.offsetParent !== null);
+    const getPreferredFlow = () => {
+      const tipoAC = document.getElementById("TipoAC");
+      const tipoAP = document.getElementById("TipoAP");
+      if (isVisible(tipoAC)) return "AC";
+      if (isVisible(tipoAP)) return "AP";
+      return null;
+    };
+    const findFirstAvailableSelect = (ids) => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.tagName === "SELECT") return el;
+      }
+      return null;
+    };
+    const sourceModalidadIds = [
+      "listaModalidadAtencion",
+      "SelectModalidadGrupoServicioTecnologiaSalud",
+      "SelectModalidadGrupoServicioTecSalAP",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAC",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAP",
+    ];
+    const sourceGrupoIds = [
+      "listaGrupoServicios",
+      "SelectGrupoServiciosAC",
+      "SelectGrupoServiciosAP",
+      "SelectPoDefectoGrupoServiciosAC",
+      "SelectPorDefectoGrupoServiciosAP",
+    ];
+    const sourceViaIds = ["SelectViaIngresoServicioSaludAP", "SelectPorDefectoViaIngresoServicioSaludAP"];
+    const sourceCausaIds = ["SelectCausaMotivoAtencion", "SelectPorDefectoCausaMotivoAtencionAC"];
+
+    const findBestSourceSelect = (ids, kind) => {
+      const candidates = ids
+        .map((id) => document.getElementById(id))
+        .filter((el) => el && el.tagName === "SELECT");
+      if (!candidates.length) return null;
+      const flow = getPreferredFlow();
+      if (kind === "modalidad") {
+        if (flow === "AC") {
+          const x = candidates.find((el) => /TecnologiaSalud|TecSalAC|Defecto.*AC/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+        if (flow === "AP") {
+          const x = candidates.find((el) => /TecSalAP|Defecto.*AP/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+      }
+      if (kind === "grupo") {
+        if (flow === "AC") {
+          const x = candidates.find((el) => /GrupoServiciosAC|DefectoGrupo.*AC/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+        if (flow === "AP") {
+          const x = candidates.find((el) => /GrupoServiciosAP|DefectoGrupo.*AP/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+      }
+      const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
+      return withOptions || candidates[0];
+    };
+
+    const populateFromSource = (target, source) => {
+      if (!target || !source || !source.options || source.options.length === 0) return false;
+      target.innerHTML = "";
+      Array.from(source.options).forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt.value;
+        o.textContent = opt.textContent;
+        target.appendChild(o);
+      });
+      return true;
+    };
+
+    const syncValue = (target, source) => {
+      if (!target || !source) return;
+      const v = source.value;
+      if (!v || v === "Sin Seleccionar") return;
+      if (target.querySelector(`option[value="${v}"]`)) target.value = v;
+    };
+
+    const fillModalidadApi = async () => {
+      const modRaw = await fetch(`${base}/ModalidadAtencion`).then((r) => r.json());
+      const modalidades = Array.isArray(modRaw) ? modRaw : [];
+      modalidades.sort((a, b) =>
+        String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
+      );
+      sm.innerHTML = '<option value="">Seleccionar</option>';
+      modalidades.forEach((m) => {
+        const o = document.createElement("option");
+        o.value = m.IdModalidadAtencion;
+        o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
+        sm.appendChild(o);
+      });
+    };
+    const fillGrupoApi = async () => {
+      const grpRaw = await fetch(`${base}/GrupoServicios`).then((r) => r.json());
+      const grupos = Array.isArray(grpRaw) ? grpRaw : [];
+      grupos.sort((a, b) =>
+        String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
+      );
+      sg.innerHTML = '<option value="">Seleccionar</option>';
+      grupos.forEach((g) => {
+        const o = document.createElement("option");
+        o.value = g.IdGrupoServicios;
+        o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
+        sg.appendChild(o);
+      });
+    };
+    const fillViaApi = async () => {
+      const raw = await fetch(`${base}/ViaIngresoUsuario`).then((r) => r.json());
+      const rows = Array.isArray(raw) ? raw : [];
+      rows.sort((a, b) =>
+        String(a.NombreViaIngresoUsuario || "").localeCompare(String(b.NombreViaIngresoUsuario || ""))
+      );
+      sv.innerHTML = '<option value="">Seleccionar</option>';
+      rows.forEach((row) => {
+        const o = document.createElement("option");
+        o.value = row.IdViaIngresoUsuario;
+        o.textContent = row.NombreViaIngresoUsuario || row.Codigo || row.IdViaIngresoUsuario;
+        sv.appendChild(o);
+      });
+    };
+    const fillCausaApi = async () => {
+      const raw = await fetch(`${base}/CausaExterna`).then((r) => r.json());
+      const rows = Array.isArray(raw) ? raw : [];
+      rows.sort((a, b) =>
+        String(a.NombreRIPSCausaExternaVersion2 || "").localeCompare(String(b.NombreRIPSCausaExternaVersion2 || ""))
+      );
+      sc.innerHTML = '<option value="">Seleccionar</option>';
+      rows.forEach((row) => {
+        const o = document.createElement("option");
+        o.value = row.IdRIPSCausaExternaVersion2;
+        o.textContent = row.NombreRIPSCausaExternaVersion2 || row.Codigo || row.IdRIPSCausaExternaVersion2;
+        sc.appendChild(o);
+      });
+    };
+
+    let sourceModalidad = findBestSourceSelect(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
+    let sourceGrupo = findBestSourceSelect(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
+    let sourceVia = findBestSourceSelect(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
+    let sourceCausa = findBestSourceSelect(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
+
+    let copiedM = populateFromSource(sm, sourceModalidad);
+    let copiedG = populateFromSource(sg, sourceGrupo);
+    let copiedV = populateFromSource(sv, sourceVia);
+    let copiedC = populateFromSource(sc, sourceCausa);
+    syncValue(sm, sourceModalidad);
+    syncValue(sg, sourceGrupo);
+    syncValue(sv, sourceVia);
+    syncValue(sc, sourceCausa);
+
+    try {
+      if (!copiedM) await fillModalidadApi();
+      if (!copiedG) await fillGrupoApi();
+      if (!copiedV) await fillViaApi();
+      if (!copiedC) await fillCausaApi();
+    } catch (e) {
+      console.warn("[RDACE] No se pudieron cargar catálogos RIPS/contexto:", e);
+    }
+
+    const refreshSync = () => {
+      sourceModalidad = findBestSourceSelect(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
+      sourceGrupo = findBestSourceSelect(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
+      sourceVia = findBestSourceSelect(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
+      sourceCausa = findBestSourceSelect(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
+      if (sourceModalidad) {
+        populateFromSource(sm, sourceModalidad);
+        syncValue(sm, sourceModalidad);
+      }
+      if (sourceGrupo) {
+        populateFromSource(sg, sourceGrupo);
+        syncValue(sg, sourceGrupo);
+      }
+      if (sourceVia) {
+        populateFromSource(sv, sourceVia);
+        syncValue(sv, sourceVia);
+      }
+      if (sourceCausa) {
+        populateFromSource(sc, sourceCausa);
+        syncValue(sc, sourceCausa);
+      }
+    };
+
+    refreshSync();
+
+    const observe = (el) => {
+      if (!el) return;
+      el.addEventListener("change", refreshSync);
+      const obs = new MutationObserver(refreshSync);
+      obs.observe(el, { childList: true, subtree: true, attributes: true });
+    };
+    observe(sourceModalidad);
+    observe(sourceGrupo);
+    observe(sourceVia);
+    observe(sourceCausa);
+
+    let retries = 0;
+    const syncTimer = setInterval(() => {
+      retries += 1;
+      refreshSync();
+      if (retries >= 20) clearInterval(syncTimer);
+    }, 500);
+  })();
 
   /// Egreso y Remisión — GET /apiV3/EgresoRemision (?q= opcional)
   function initEgresoRemisionSelect2(selector, placeholderText) {
@@ -6156,18 +6538,7 @@ async function CargarRIPSPorDefecto() {
 
 BotonCargarRIPSPorDefecto.addEventListener("click", CargarRIPSPorDefecto);
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-radioAC.addEventListener("click", function (e) {
-  if (radioAC.checked) {
-    radioAP.checked = false;
-  }
-});
-
-radioAP.addEventListener("click", function (e) {
-  if (radioAP.checked) {
-    radioAC.checked = false;
-  }
-});
+// AC/AP comparten name="tipoRips" (grupo único); no hace falta desmarcar el otro a mano.
 
 // FUNCIONALIDAD PARA LA BÚSQUEDA DE FACTURAS Y PRESUPUESTOS
 const BuscarPorFacturas = document.getElementById("BuscarPorFacturas");

@@ -4,6 +4,14 @@ Campos implementados en la sección `#SeccionRDAConsultaExterna` del HTML. Todos
 
 ---
 
+## Historia clínica y tipo RDA (compartido con RDA Paciente)
+
+La selección de **historia / evolución** no está dentro de `#SeccionRDAConsultaExterna`: se usa el mismo `<select id="RDA_HistoriaClinica">` y los mismos controles de activación/tipo que en la tarjeta RDA (ver [`rda_paciente.md`](./rda_paciente.md) — sección “Tarjeta RDA”).
+
+**Persistencia RDACE:** `POST /apiV3/EvaluacionEntidadRDACE/` envía `IdEvaluacionEntidadOrigen` → columna `[Id Evaluacion Entidad Origen]` en `[Evaluacion Entidad RDA Consulta Externa]`.
+
+---
+
 ## Campos Compartidos con RDA Paciente
 
 Misma estructura que RDA Paciente, con IDs prefijados `RDACE_` en lugar de `RDA_`.
@@ -15,6 +23,10 @@ Misma estructura que RDA Paciente, con IDs prefijados `RDACE_` en lugar de `RDA_
 | 3 | Nombre Admin. Plan Beneficios | `RDACE_NombreAdminPlanBeneficios` |
 | 4 | Fecha/Hora Inicio Atención | `RDACE_FechaHoraInicioAtencion` |
 | 5 | Fecha/Hora Fin Atención | `RDACE_FechaHoraFinAtencion` |
+| 5b | Modalidad tecnología salud (mismo catálogo que RIPS) | `RDACE_IdModalidadAtencion` |
+| 5c | Grupo servicios (mismo catálogo que RIPS) | `RDACE_IdGrupoServicios` |
+| 5d | Vía ingreso usuario (RIPS) | `RDACE_IdViaIngresoUsuario` |
+| 5e | Causa motivo atención (RIPS) | `RDACE_IdCausaMotivoAtencion` |
 | 6 | Tipo Doc Profesional | `RDACE_TipoDocProfesional` |
 | 7 | Número Doc Profesional | `RDACE_NumDocProfesional` |
 | 8 | Diag. Ingreso CIE-11 Código | `RDACE_DiagnosticoIngresoCIE11Codigo` |

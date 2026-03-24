@@ -2815,7 +2815,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
         FechaHoraInicioAtencion, FechaHoraFinAtencion,
         TipoDocProfesional, NumDocProfesional,
         DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
-        TipoAlergia
+        TipoAlergia,
+        IdModalidadAtencion, IdGrupoServicios,
+        NitPrestadorIPS, NombrePrestadorIPS,
+        IdEvaluacionEntidadOrigen,
     } = req.body;
 
     // Convierte un string de fecha en objeto Date; null si no es válido
@@ -2863,6 +2866,17 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar,  DiagnosticoIngresoCIE11Codigo    || null)
             .input('DiagnosticoIngresoCIE11Termino',sql.NVarChar,  DiagnosticoIngresoCIE11Termino   || null)
             .input('TipoAlergia',                   sql.NVarChar,  TipoAlergia                      || null)
+            .input('IdModalidadAtencion',           sql.Int,       IdModalidadAtencion != null && IdModalidadAtencion !== '' ? parseInt(IdModalidadAtencion, 10) : null)
+            .input('IdGrupoServicios',              sql.Int,       IdGrupoServicios != null && IdGrupoServicios !== '' ? parseInt(IdGrupoServicios, 10) : null)
+            .input('NitPrestadorIPS',               sql.NVarChar,  NitPrestadorIPS                  || null)
+            .input('NombrePrestadorIPS',            sql.NVarChar,  NombrePrestadorIPS               || null)
+            .input(
+                'IdEvaluacionEntidadOrigen',
+                sql.Int,
+                IdEvaluacionEntidadOrigen != null && IdEvaluacionEntidadOrigen !== ''
+                    ? parseInt(IdEvaluacionEntidadOrigen, 10)
+                    : null
+            )
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA]
                 (
@@ -2878,7 +2892,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
                     [Tipo Doc Profesional], [Num Doc Profesional],
                     [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
-                    [Tipo Alergia]
+                    [Tipo Alergia],
+                    [Id Modalidad Atencion], [Id Grupo Servicios],
+                    [NIT Prestador IPS], [Nombre Prestador IPS],
+                    [Id Evaluacion Entidad Origen]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA]
                 VALUES
@@ -2895,7 +2912,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
                     @TipoDocProfesional, @NumDocProfesional,
                     @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
-                    @TipoAlergia
+                    @TipoAlergia,
+                    @IdModalidadAtencion, @IdGrupoServicios,
+                    @NitPrestadorIPS, @NombrePrestadorIPS,
+                    @IdEvaluacionEntidadOrigen
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA'];
@@ -2932,7 +2952,7 @@ router.post('/EvaluacionEntidadRDA/AntecedentesSalud', async (req, res) => {
 });
 
 router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => {
-    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado, CIE11Codigo, CIE11Termino } = req.body;
     try {
         const pool = await poolPromise;
         await pool.request()
@@ -2940,11 +2960,13 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => 
             .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
             .input('Parentesco',             sql.NVarChar, Parentesco       || null)
             .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('CIE11Codigo',            sql.NVarChar, CIE11Codigo      || null)
+            .input('CIE11Termino',           sql.NVarChar, CIE11Termino     || null)
             .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
-                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Parentesco], [Descripcion], [Id Estado])
-                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Parentesco, @Descripcion, @IdEstado)
+                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Parentesco], [Descripcion], [CIE11 Codigo], [CIE11 Termino], [Id Estado])
+                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Parentesco, @Descripcion, @CIE11Codigo, @CIE11Termino, @IdEstado)
             `);
         res.json({ ok: true });
     } catch (error) {
@@ -3057,14 +3079,50 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return map[code] || null;
     };
 
-    const buildRdaPacienteBundle = ({ paciente, organization, antecedents, antecedentsFam, medications, alergia }) => {
+    const RDA_SD = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
+    const CS_MODALITY = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
+    const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
+    const ICD11_SYSTEM = 'http://id.who.int/icd/release/11/mms';
+
+    const toIsoDateTime = (v) => {
+        if (v == null || v === '') return null;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+
+    const emptySectionNilKnown = (texto) => ({
+        emptyReason: {
+            coding: [
+                {
+                    system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason',
+                    code: 'nilknown',
+                    display: 'Nil Known',
+                },
+            ],
+            text: texto || 'Sin información registrada',
+        },
+    });
+
+    const buildRdaPacienteBundle = ({
+        paciente,
+        organizationEapb,
+        organizationIps,
+        practitioner,
+        head,
+        antecedents,
+        antecedentsFam,
+        medications,
+        alergia,
+    }) => {
         const patientId = paciente.id;
+        const compositionDateIso = toIsoDateTime(head && head.FechaRDA) || nowIso;
+        const bundleTs = compositionDateIso;
 
         const conditionEntries = (antecedents || []).map((item) =>
             makeEntry({
                 resourceType: 'Condition',
                 meta: {
-                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/ConditionStatementRDA'],
+                    profile: [`${RDA_SD}/ConditionStatementRDA`],
                 },
                 subject: { reference: `urn:uuid:${patientId}` },
                 code: {
@@ -3080,11 +3138,50 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })
         );
 
-        const familyHistoryEntries = (antecedentsFam || []).map((item) =>
-            makeEntry({
+        const c11Ingreso = head && (head.DiagnosticoIngresoCIE11Codigo || '').toString().trim();
+        const conditionIngresoEntry = c11Ingreso
+            ? makeEntry({
+                resourceType: 'Condition',
+                meta: {
+                    profile: [`${RDA_SD}/ConditionStatementRDA`],
+                },
+                subject: { reference: `urn:uuid:${patientId}` },
+                code: {
+                    coding: [
+                        {
+                            system: ICD11_SYSTEM,
+                            code: c11Ingreso,
+                            display: head.DiagnosticoIngresoCIE11Termino
+                                ? String(head.DiagnosticoIngresoCIE11Termino)
+                                : undefined,
+                        },
+                    ],
+                    text: head.DiagnosticoIngresoCIE11Termino
+                        ? String(head.DiagnosticoIngresoCIE11Termino)
+                        : c11Ingreso,
+                },
+            })
+            : null;
+
+        const familyHistoryEntries = (antecedentsFam || []).map((item) => {
+            const codings = [
+                {
+                    system: 'http://hl7.org/fhir/sid/icd-10',
+                    code: item.codigo,
+                    display: item.descripcion || undefined,
+                },
+            ];
+            if (item.cie11Codigo) {
+                codings.push({
+                    system: ICD11_SYSTEM,
+                    code: item.cie11Codigo,
+                    display: item.cie11Termino || undefined,
+                });
+            }
+            return makeEntry({
                 resourceType: 'FamilyMemberHistory',
                 meta: {
-                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/FamilyMemberHistoryRDA'],
+                    profile: [`${RDA_SD}/FamilyMemberHistoryRDA`],
                 },
                 status: 'completed',
                 patient: { reference: `urn:uuid:${patientId}` },
@@ -3101,25 +3198,19 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 condition: [
                     {
                         code: {
-                            coding: [
-                                {
-                                    system: 'http://hl7.org/fhir/sid/icd-10',
-                                    code: item.codigo,
-                                    display: item.descripcion || undefined,
-                                },
-                            ],
+                            coding: codings,
                             text: item.descripcion || item.codigo,
                         },
                     },
                 ],
-            })
-        );
+            });
+        });
 
         const medicationStatementEntries = (medications || []).map((item) =>
             makeEntry({
                 resourceType: 'MedicationStatement',
                 meta: {
-                    profile: ['https://minsalud.fhir.co/rda/StructureDefinition/MedicationStatementRDA'],
+                    profile: [`${RDA_SD}/MedicationStatementRDA`],
                 },
                 status: 'active',
                 subject: { reference: `urn:uuid:${patientId}` },
@@ -3128,7 +3219,74 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })
         );
 
-        // AllergyIntolerance — only built when there is an allergen in the record
+        const observationEntries = [];
+        const parseNum = (x) => {
+            const n = parseFloat(String(x || '').replace(',', '.'));
+            return Number.isFinite(n) ? n : null;
+        };
+        const tallaN = head ? parseNum(head.Talla) : null;
+        const pesoN = head ? parseNum(head.Peso) : null;
+        if (tallaN != null && tallaN > 0) {
+            observationEntries.push(
+                makeEntry({
+                    resourceType: 'Observation',
+                    status: 'final',
+                    category: [
+                        {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                                    code: 'vital-signs',
+                                    display: 'Vital Signs',
+                                },
+                            ],
+                        },
+                    ],
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code: '8302-2',
+                                display: 'Body height',
+                            },
+                        ],
+                    },
+                    subject: { reference: `urn:uuid:${patientId}` },
+                    valueQuantity: { value: tallaN, unit: 'cm', system: 'http://unitsofmeasure.org', code: 'cm' },
+                })
+            );
+        }
+        if (pesoN != null && pesoN > 0) {
+            observationEntries.push(
+                makeEntry({
+                    resourceType: 'Observation',
+                    status: 'final',
+                    category: [
+                        {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                                    code: 'vital-signs',
+                                    display: 'Vital Signs',
+                                },
+                            ],
+                        },
+                    ],
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code: '29463-7',
+                                display: 'Body weight',
+                            },
+                        ],
+                    },
+                    subject: { reference: `urn:uuid:${patientId}` },
+                    valueQuantity: { value: pesoN, unit: 'kg', system: 'http://unitsofmeasure.org', code: 'kg' },
+                })
+            );
+        }
+
         const hasAlergia = alergia && (alergia.alergeno || '').toString().trim().length > 0;
         const allergyEntry = hasAlergia
             ? (() => {
@@ -3136,7 +3294,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 return makeEntry({
                     resourceType: 'AllergyIntolerance',
                     meta: {
-                        profile: ['https://minsalud.fhir.co/rda/StructureDefinition/AllergyIntoleranceStatementRDA'],
+                        profile: [`${RDA_SD}/AllergyIntoleranceStatementRDA`],
                     },
                     clinicalStatus: {
                         coding: [
@@ -3161,66 +3319,143 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })()
             : null;
 
+        const periodStart =
+            toIsoDateTime(head && head.FechaHoraInicioAtencion) || compositionDateIso;
+        const periodEnd =
+            toIsoDateTime(head && head.FechaHoraFinAtencion) || periodStart;
+        const modCode = (head && head.CodigoModalidadAtencion && String(head.CodigoModalidadAtencion).trim()) || '01';
+        const modDisplay = head && head.NombreModalidadAtencion ? String(head.NombreModalidadAtencion) : undefined;
+        const grpCode = (head && head.CodigoGrupoServicios && String(head.CodigoGrupoServicios).trim()) || '01';
+        const grpDisplay = head && head.NombreGrupoServicios ? String(head.NombreGrupoServicios) : undefined;
+
+        const practitionerRef = practitioner && practitioner.fullUrl ? { reference: practitioner.fullUrl } : null;
+        const custodianRef = organizationIps && organizationIps.fullUrl ? { reference: organizationIps.fullUrl } : undefined;
+        if (!practitionerRef) {
+            throw new Error(
+                'No se pudo construir Composition.author (PractitionerRDA). Verifique Tipo/Num documento del profesional en el RDA o datos mínimos del autor.'
+            );
+        }
+
         const compositionId = newUuid();
+        const sections = [];
+        if (conditionIngresoEntry) {
+            sections.push({
+                title: 'Diagnóstico de ingreso (CIE-11)',
+                entry: [{ reference: conditionIngresoEntry.fullUrl }],
+            });
+        }
+        sections.push(
+            medicationStatementEntries.length
+                ? {
+                    title: 'Antecedentes farmacológicos',
+                    entry: medicationStatementEntries.map((e) => ({ reference: e.fullUrl })),
+                }
+                : {
+                    title: 'Antecedentes farmacológicos',
+                    ...emptySectionNilKnown('No se registran antecedentes farmacológicos'),
+                }
+        );
+        sections.push(
+            allergyEntry
+                ? {
+                    title: 'Antecedentes alérgicos',
+                    entry: [{ reference: allergyEntry.fullUrl }],
+                }
+                : {
+                    title: 'Antecedentes alérgicos',
+                    ...emptySectionNilKnown('No se conocen alergias'),
+                }
+        );
+        sections.push(
+            conditionEntries.length
+                ? {
+                    title: 'Antecedentes patológicos',
+                    entry: conditionEntries.map((e) => ({ reference: e.fullUrl })),
+                }
+                : {
+                    title: 'Antecedentes patológicos',
+                    ...emptySectionNilKnown('No se registran antecedentes patológicos'),
+                }
+        );
+        sections.push(
+            familyHistoryEntries.length
+                ? {
+                    title: 'Antecedentes familiares',
+                    entry: familyHistoryEntries.map((e) => ({ reference: e.fullUrl })),
+                }
+                : {
+                    title: 'Antecedentes familiares',
+                    ...emptySectionNilKnown('No se registran antecedentes familiares'),
+                }
+        );
+
         const compositionResource = {
             resourceType: 'Composition',
             id: compositionId,
             meta: {
-                profile: ['https://minsalud.fhir.co/rda/StructureDefinition/CompositionPatientStatementRDA'],
+                profile: [`${RDA_SD}/CompositionPatientStatementRDA`],
             },
             status: 'final',
             type: {
                 coding: [
                     {
                         system: 'http://loinc.org',
-                        code: '60591-5',
-                        display: 'Patient summary Document',
+                        code: '102089-0',
+                        display: 'FHIR resource patient medical record',
                     },
                 ],
-                text: 'RDA Paciente - Autoreporte de datos de salud',
+                text: 'FHIR resource patient medical record',
             },
-            date: nowIso,
-            title: 'Resumen Digital de Atención en Salud - RDA Paciente',
-            subject: { reference: `urn:uuid:${patientId}` },
-            author: [{ reference: `urn:uuid:${patientId}` }],
-            section: [
+            date: compositionDateIso,
+            title: 'Resumen Digital de Atención en Salud - RDA de antecedentes manifestados por el paciente',
+            confidentiality: 'N',
+            event: [
                 {
-                    title: 'Antecedentes farmacológicos',
-                    entry: medicationStatementEntries.map((e) => ({ reference: e.fullUrl })),
-                },
-                allergyEntry
-                    ? {
-                        title: 'Antecedentes alérgicos',
-                        entry: [{ reference: allergyEntry.fullUrl }],
-                    }
-                    : {
-                        title: 'Antecedentes alérgicos',
-                        emptyReason: {
+                    period: {
+                        start: periodStart,
+                        end: periodEnd,
+                    },
+                    code: [
+                        {
                             coding: [
                                 {
-                                    system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason',
-                                    code: 'nilknown',
-                                    display: 'Nil Known',
+                                    system: CS_MODALITY,
+                                    code: modCode,
+                                    display: modDisplay,
                                 },
                             ],
-                            text: 'No se conocen alergias',
+                            text: modDisplay || modCode,
                         },
-                    },
-                {
-                    title: 'Antecedentes patológicos',
-                    entry: conditionEntries.map((e) => ({ reference: e.fullUrl })),
-                },
-                {
-                    title: 'Antecedentes familiares',
-                    entry: familyHistoryEntries.map((e) => ({ reference: e.fullUrl })),
+                        {
+                            coding: [
+                                {
+                                    system: CS_GRUPO_SVC,
+                                    code: grpCode,
+                                    display: grpDisplay,
+                                },
+                            ],
+                            text: grpDisplay || grpCode,
+                        },
+                    ],
                 },
             ],
+            subject: { reference: `urn:uuid:${patientId}` },
+            ...(custodianRef ? { custodian: custodianRef } : {}),
+            author: [practitionerRef],
+            section: sections,
         };
 
+        const compositionEntry = makeEntry(compositionResource);
+        const patientEntry = makeEntry(paciente.resource);
+
         const bundleEntries = [
-            makeEntry(compositionResource),
-            makeEntry(paciente.resource),
-            ...(organization ? [makeEntry(organization.resource)] : []),
+            compositionEntry,
+            patientEntry,
+            ...(practitioner ? [practitioner] : []),
+            ...(organizationIps ? [organizationIps] : []),
+            ...(organizationEapb ? [organizationEapb] : []),
+            ...observationEntries,
+            ...(conditionIngresoEntry ? [conditionIngresoEntry] : []),
             ...conditionEntries,
             ...familyHistoryEntries,
             ...medicationStatementEntries,
@@ -3230,7 +3465,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return {
             resourceType: 'Bundle',
             type: 'document',
-            timestamp: nowIso,
+            timestamp: bundleTs,
             entry: bundleEntries,
         };
     };
@@ -3265,23 +3500,87 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             .input('IdEvaluacionEntidadRDA', sql.Int, id)
             .query(`
                 SELECT
-                    e.[Id Evaluacion Entidad RDA] AS IdEvaluacionEntidadRDA,
-                    e.[Documento Entidad] AS DocumentoEntidad,
-                    e.[Primer Apellido Entidad] AS PrimerApellidoEntidad,
-                    e.[Segundo Apellido Entidad] AS SegundoApellidoEntidad,
-                    e.[Primer Nombre Entidad] AS PrimerNombreEntidad,
-                    e.[Segundo Nombre Entidad] AS SegundoNombreEntidad,
-                    e.[Id Tipo Documento] AS IdTipoDocumento,
-                    t.[CódigoTipoDocumento] AS CodigoTipoDocumento,
-                    e.[Codigo Prestador] AS CodigoPrestador,
-                    e.[Codigo Admin Plan Beneficios] AS CodigoAdminPlanBeneficios,
-                    e.[Nombre Admin Plan Beneficios] AS NombreAdminPlanBeneficios,
-                    e.[Fecha RDA] AS FechaRDA,
-                    e.[Alergeno] AS Alergeno,
-                    e.[Tipo Alergia] AS TipoAlergia
+                    e.[Id Evaluacion Entidad RDA]      AS IdEvaluacionEntidadRDA,
+                    e.[Documento Entidad]              AS DocumentoEntidad,
+                    e.[Primer Apellido Entidad]        AS PrimerApellidoEntidad,
+                    e.[Segundo Apellido Entidad]       AS SegundoApellidoEntidad,
+                    e.[Primer Nombre Entidad]          AS PrimerNombreEntidad,
+                    e.[Segundo Nombre Entidad]         AS SegundoNombreEntidad,
+                    e.[Id Tipo Documento]              AS IdTipoDocumento,
+                    t.[CódigoTipoDocumento]            AS CodigoTipoDocumento,
+                    t.[TipoDocumento]                  AS TipoDocumento,
+                    e.[Fecha Nacimiento]               AS FechaNacimiento,
+                    e.[Id Sexo Biologico]              AS IdSexoBiologico,
+                    sx.[CódigoSexo]                   AS CodigoSexo,
+                    sx.[Sexo]                          AS Sexo,
+                    e.[Id Identidad Genero]            AS IdIdentidadGenero,
+                    gi.[Codigo]                        AS CodigoIdentidadGenero,
+                    gi.[IdentidadGenero]               AS TextoIdentidadGenero,
+                    e.[Id Pais Nacionalidad]           AS IdPaisNacionalidad,
+                    pn.[Codigo]                        AS CodigoPaisNacionalidad,
+                    pn.[Nombre]                        AS NombrePaisNacionalidad,
+                    e.[Id Pais Recidencia]             AS IdPaisResidencia,
+                    pr.[Codigo]                        AS CodigoPaisResidencia,
+                    pr.[Nombre]                        AS NombrePaisResidencia,
+                    e.[Id Municipio Recidencia]        AS IdMunicipioResidencia,
+                    c.[Codigo]                         AS CodigoMunicipio,
+                    c.[Nombre]                         AS NombreMunicipio,
+                    e.[Id Zona Residencia]             AS IdZonaResidencia,
+                    z.[ZonaResidencia]                 AS ZonaResidencia,
+                    e.[Dirección]                      AS Direccion,
+                    e.[Id Etnia]                       AS IdEtnia,
+                    et.[CódigoEtnia]                  AS CodigoEtnia,
+                    et.[Etnia]                         AS TextoEtnia,
+                    e.[Comunidad Etnica]               AS ComunidadEtnica,
+                    e.[Id Discapacidad]                AS IdDiscapacidad,
+                    d.[Codigo]                         AS CodigoDiscapacidad,
+                    d.[Discapacidad]                   AS TextoDiscapacidad,
+                    e.[Teléfono Celular]               AS TelefonoCelular,
+                    e.[Talla]                          AS Talla,
+                    e.[Peso]                           AS Peso,
+                    e.[Codigo Prestador]               AS CodigoPrestador,
+                    e.[Codigo Admin Plan Beneficios]   AS CodigoAdminPlanBeneficios,
+                    e.[Nombre Admin Plan Beneficios]   AS NombreAdminPlanBeneficios,
+                    e.[Fecha RDA]                      AS FechaRDA,
+                    e.[Alergeno]                       AS Alergeno,
+                    e.[Tipo Alergia]                   AS TipoAlergia,
+                    e.[Fecha Hora Inicio Atencion]     AS FechaHoraInicioAtencion,
+                    e.[Fecha Hora Fin Atencion]        AS FechaHoraFinAtencion,
+                    e.[Tipo Doc Profesional]           AS TipoDocProfesional,
+                    e.[Num Doc Profesional]            AS NumDocProfesional,
+                    e.[Diagnostico Ingreso CIE11 Codigo]  AS DiagnosticoIngresoCIE11Codigo,
+                    e.[Diagnostico Ingreso CIE11 Termino] AS DiagnosticoIngresoCIE11Termino,
+                    e.[Id Modalidad Atencion]          AS IdModalidadAtencion,
+                    e.[Id Grupo Servicios]             AS IdGrupoServicios,
+                    e.[NIT Prestador IPS]              AS NitPrestadorIPS,
+                    e.[Nombre Prestador IPS]           AS NombrePrestadorIPS,
+                    ma.[Codigo]                        AS CodigoModalidadAtencion,
+                    ma.[NombreModalidadAtencion]       AS NombreModalidadAtencion,
+                    gs.[Codigo]                        AS CodigoGrupoServicios,
+                    gs.[NombreGrupoServicios]          AS NombreGrupoServicios
                 FROM [dbo].[Evaluacion Entidad RDA] e
                 LEFT JOIN [dbo].[Cnsta Tipodocumento 1888] t
                     ON t.[IdTipodeDocumento] = e.[Id Tipo Documento]
+                LEFT JOIN [dbo].[Cnsta Sexo 1888] sx
+                    ON sx.[IdSexo] = e.[Id Sexo Biologico]
+                LEFT JOIN [dbo].[Cnsta SexoIdentidad 1888] gi
+                    ON gi.[IdSexoIdentidadGenero] = e.[Id Identidad Genero]
+                LEFT JOIN [dbo].[Cnsta Pais 1888] pn
+                    ON pn.[IdPais1888] = e.[Id Pais Nacionalidad]
+                LEFT JOIN [dbo].[Cnsta Pais 1888] pr
+                    ON pr.[IdPais1888] = e.[Id Pais Recidencia]
+                LEFT JOIN [dbo].[Cnsta Ciudad 1888] c
+                    ON c.[IdCiudad1888] = e.[Id Municipio Recidencia]
+                LEFT JOIN [dbo].[Cnsta ZonaResidencia 1888] z
+                    ON z.[IdZonaResidencia] = e.[Id Zona Residencia]
+                LEFT JOIN [dbo].[Cnsta Etnia 1888] et
+                    ON et.[IdEtnia] = e.[Id Etnia]
+                LEFT JOIN [dbo].[Cnsta Discapacidad 1888] d
+                    ON d.[IdDiscapacidad] = e.[Id Discapacidad]
+                LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
+                    ON ma.[IdModalidadAtencion] = e.[Id Modalidad Atencion]
+                LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
+                    ON gs.[IdGrupoServicios] = e.[Id Grupo Servicios]
                 WHERE e.[Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA
             `);
 
@@ -3303,7 +3602,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             pool.request()
                 .input('IdEvaluacionEntidadRDA', sql.Int, id)
                 .query(`
-                    SELECT [Parentesco], [Descripcion]
+                    SELECT [Parentesco], [Descripcion], [CIE11 Codigo] AS CIE11Codigo, [CIE11 Termino] AS CIE11Termino
                     FROM [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
                     WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
                 `),
@@ -3332,11 +3631,15 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const antecedentesFam = (antecedentsFamRes.recordset || []).map((r) => {
             const parsed = parseCodigoDescripcion(r.Descripcion);
             const parentescoCodigo = r.Parentesco != null ? String(r.Parentesco) : '';
+            const c11c = r.CIE11Codigo != null ? String(r.CIE11Codigo).trim() : '';
+            const c11t = r.CIE11Termino != null ? String(r.CIE11Termino).trim() : '';
             return {
                 parentesco: parentescoCodigo,
                 textoParentesco: parentescosMap.get(parentescoCodigo) || undefined,
                 codigo: parsed.codigo,
                 descripcion: parsed.descripcion,
+                cie11Codigo: c11c || undefined,
+                cie11Termino: c11t || undefined,
             };
         });
 
@@ -3347,57 +3650,345 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         // 3) Resources base (Patient + Organization)
         const pacienteId = newUuid();
-        const patientNombre = [
-            head.PrimerApellidoEntidad,
-            head.SegundoApellidoEntidad,
-            head.PrimerNombreEntidad,
-            head.SegundoNombreEntidad,
-        ]
-            .filter(Boolean)
-            .join(' ')
-            .trim();
+        const orgId = newUuid();
 
-        const patientResource = {
-            resourceType: 'Patient',
-            id: pacienteId,
-            meta: {
-                profile: ['https://minsalud.fhir.co/rda/StructureDefinition/PatientRDA'],
-            },
-            identifier: head.DocumentoEntidad
-                ? [
-                    {
-                        system: 'http://minsalud.gov.co/identificacion',
-                        value: String(head.DocumentoEntidad),
-                        type: head.CodigoTipoDocumento
-                            ? {
-                                coding: [
+        // -----------------------------------------------------------------------
+        // Helper: builds a PatientRDA-conformant resource from the enriched head
+        // row (includes catalog JOIN columns).
+        // Reference profile example: https://vulcano.ihcecol.gov.co/Patient-92a8e277...
+        // -----------------------------------------------------------------------
+        const buildPatientRdaFromHead = (h, pid, orgEntry) => {
+            // Primitive helpers
+            const str  = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
+            const toIsoDate = (v) => {
+                if (!v) return null;
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+            };
+
+            // gender: DB sexo code (F/M) → FHIR administrative gender + BiologicalGender extension
+            const sexCode = str(h.CodigoSexo) || str(h.Sexo);
+            const fhirGender = sexCode
+                ? ({ F: 'female', M: 'male' }[sexCode.toUpperCase()] || 'other')
+                : undefined;
+            const biologicalGenderMap = { F: { code: '02', display: 'Mujer' }, M: { code: '01', display: 'Hombre' } };
+            const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '03', display: 'Indeterminado o Intersexual' }) : null;
+
+            // Document type display label for ColombianPersonIdentifier
+            const docTypeLabels = {
+                CC: 'Cédula ciudadanía', TI: 'Tarjeta de identidad',
+                RC: 'Registro civil',    CE: 'Cédula de extranjería',
+                PA: 'Pasaporte',         PE: 'Permiso especial de permanencia',
+                PT: 'Permiso temporal de permanencia', CD: 'Carné diplomático',
+                SC: 'Salvo conducto',    PPT: 'Permiso por Protección Temporal',
+                AS: 'Adulto sin identificación', MS: 'Menor sin identificación',
+                SI: 'Sin identificación',
+            };
+            const docTypeCode = str(h.TipoDocumento) || str(h.CodigoTipoDocumento);
+
+            // Residence zone: map DB value (U/R or Urbana/Rural) to ColombianResidenceZone code
+            const zonaText = str(h.ZonaResidencia) || '';
+            const zonaLower = zonaText.toLowerCase();
+            const zonaCode = (zonaLower === 'r' || zonaLower.includes('rural'))  ? '02'
+                           : (zonaLower === 'u' || zonaLower.includes('urban'))  ? '01'
+                           : (zonaText ? '01' : null);
+            const zonaDisplay = zonaCode === '02' ? 'Rural' : zonaCode === '01' ? 'Urbana' : undefined;
+
+            // Build Patient-level extensions
+            const patExt = [];
+            if (str(h.CodigoPaisNacionalidad)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientNationality',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661',
+                        code: str(h.CodigoPaisNacionalidad),
+                        display: str(h.NombrePaisNacionalidad) || undefined,
+                    },
+                });
+            }
+            if (str(h.CodigoEtnia)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
+                        code: str(h.CodigoEtnia),
+                        display: str(h.TextoEtnia) || undefined,
+                    },
+                });
+            }
+            if (str(h.ComunidadEtnica)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicCommunity',
+                    valueString: str(h.ComunidadEtnica),
+                });
+            }
+            if (str(h.CodigoDiscapacidad)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientDisability',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification',
+                        code: str(h.CodigoDiscapacidad),
+                        display: str(h.TextoDiscapacidad) || undefined,
+                    },
+                });
+            }
+            if (str(h.CodigoIdentidadGenero) && h.IdIdentidadGenero && h.IdIdentidadGenero !== 0) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientGenderIdentity',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity',
+                        code: str(h.CodigoIdentidadGenero),
+                        display: str(h.TextoIdentidadGenero) || undefined,
+                    },
+                });
+            }
+
+            // Name
+            const primerApellido  = str(h.PrimerApellidoEntidad)  || '';
+            const segundoApellido = str(h.SegundoApellidoEntidad) || '';
+            const primerNombre    = str(h.PrimerNombreEntidad)    || '';
+            const segundoNombre   = str(h.SegundoNombreEntidad)   || '';
+            const familyText      = [primerApellido, segundoApellido].filter(Boolean).join(' ') || undefined;
+            const givenArr        = [primerNombre, segundoNombre].filter(Boolean);
+            const familyExtArr    = [
+                ...(primerApellido  ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionFathersFamilyName', valueString: primerApellido }]  : []),
+                ...(segundoApellido ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionMothersFamilyName', valueString: segundoApellido }] : []),
+            ];
+
+            // Address
+            const hasAddr = str(h.CodigoPaisResidencia) || str(h.NombreMunicipio) || str(h.Direccion);
+            const homeAddr = hasAddr ? (() => {
+                const addr = { id: 'HomeAddress-0', use: 'home', type: 'physical' };
+                if (zonaCode) {
+                    addr.extension = [{
+                        url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionResidenceZone',
+                        valueCoding: {
+                            system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianResidenceZone',
+                            code: zonaCode,
+                            display: zonaDisplay,
+                        },
+                    }];
+                }
+                if (str(h.Direccion)) addr.line = [str(h.Direccion)];
+                if (str(h.NombreMunicipio)) {
+                    addr.city = str(h.NombreMunicipio);
+                    if (str(h.CodigoMunicipio)) {
+                        addr._city = { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaMunicipality', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA', code: str(h.CodigoMunicipio) } }] };
+                    }
+                }
+                if (str(h.CodigoPaisResidencia)) {
+                    addr.country = str(h.NombrePaisResidencia) || str(h.CodigoPaisResidencia);
+                    addr._country = { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionCountryCode', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661', code: str(h.CodigoPaisResidencia) } }] };
+                }
+                return addr;
+            })() : null;
+
+            // Telecom
+            const phoneVal = str(h.TelefonoCelular);
+
+            // Compose resource
+            return {
+                resourceType: 'Patient',
+                id: pid,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PatientRDA'],
+                },
+                ...(patExt.length > 0 ? { extension: patExt } : {}),
+                identifier: str(h.DocumentoEntidad)
+                    ? [{
+                        id: 'NationalPersonIdentifier-0',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
+                                ...(docTypeCode ? [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier', code: docTypeCode, display: docTypeLabels[docTypeCode] || docTypeCode }] : []),
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
+                        value: str(h.DocumentoEntidad),
+                    }]
+                    : undefined,
+                active: true,
+                ...(familyText || givenArr.length > 0
+                    ? { name: [{
+                        use: 'official',
+                        ...(familyText ? { family: familyText } : {}),
+                        ...(familyExtArr.length > 0 ? { _family: { extension: familyExtArr } } : {}),
+                        ...(givenArr.length > 0 ? { given: givenArr } : {}),
+                    }] }
+                    : {}),
+                ...(fhirGender ? { gender: fhirGender } : {}),
+                ...(biologicalGender ? { _gender: { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup', code: biologicalGender.code, display: biologicalGender.display } }] } } : {}),
+                ...(() => {
+                    const birthIso = toIsoDate(h.FechaNacimiento);
+                    if (!birthIso) return {};
+                    const out = { birthDate: birthIso };
+                    const birthDt = new Date(h.FechaNacimiento);
+                    if (!isNaN(birthDt.getTime())) {
+                        const hasTime =
+                            birthDt.getUTCHours() ||
+                            birthDt.getUTCMinutes() ||
+                            birthDt.getUTCSeconds() ||
+                            birthDt.getUTCMilliseconds();
+                        if (hasTime) {
+                            out._birthDate = {
+                                extension: [
                                     {
-                                        system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                                        code: String(head.CodigoTipoDocumento),
+                                        url: 'http://hl7.org/fhir/StructureDefinition/patient-birthTime',
+                                        valueDateTime: birthDt.toISOString(),
                                     },
                                 ],
-                            }
-                            : undefined,
-                    },
-                ]
-                : undefined,
-            name: patientNombre
-                ? [{ text: patientNombre }]
-                : undefined,
+                            };
+                        }
+                    }
+                    return out;
+                })(),
+                deceasedBoolean: false,
+                ...(phoneVal ? { telecom: [{ system: 'phone', value: phoneVal }] } : {}),
+                ...(homeAddr ? { address: [homeAddr] } : {}),
+                ...(orgEntry ? { managingOrganization: { reference: orgEntry.fullUrl, display: str(h.NombreAdminPlanBeneficios) || undefined } } : {}),
+            };
         };
 
+        // Organization resource (EAPB) — use a generated UUID so fullUrl is valid
         const organizationName = head.NombreAdminPlanBeneficios || '';
         const organizationResource = organizationName
             ? {
                 resourceType: 'Organization',
-                id: head.CodigoAdminPlanBeneficios ? String(head.CodigoAdminPlanBeneficios) : newUuid(),
+                id: orgId,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/HealthBenefitPlanAdminOrganizationRDA'],
+                },
+                identifier: head.CodigoAdminPlanBeneficios
+                    ? [{ system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/EAPBS', value: String(head.CodigoAdminPlanBeneficios) }]
+                    : undefined,
+                active: true,
                 name: organizationName,
             }
             : null;
 
+        // Build a temporary Organization entry reference so Patient.managingOrganization can point to it
+        const orgEntryRef = organizationResource ? { fullUrl: `urn:uuid:${orgId}` } : null;
+
+        const patientResource = buildPatientRdaFromHead(head, pacienteId, orgEntryRef);
+
+        const docTypeLabelsProf = {
+            CC: 'Cédula ciudadanía',
+            TI: 'Tarjeta de identidad',
+            RC: 'Registro civil',
+            CE: 'Cédula de extranjería',
+            PA: 'Pasaporte',
+            PE: 'Permiso especial de permanencia',
+            PT: 'Permiso temporal de permanencia',
+            CD: 'Carné diplomático',
+            SC: 'Salvo conducto',
+            PPT: 'Permiso por Protección Temporal',
+            AS: 'Adulto sin identificación',
+            MS: 'Menor sin identificación',
+            SI: 'Sin identificación',
+        };
+        const practId = newUuid();
+        const tipoProf = (head.TipoDocProfesional || 'SI').toString().trim();
+        const numProf = (head.NumDocProfesional || 'NO-INFORMADO').toString().trim();
+        const practitionerResource = {
+            resourceType: 'Practitioner',
+            id: practId,
+            meta: {
+                profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PractitionerRDA'],
+            },
+            identifier: [
+                {
+                    id: 'NationalPersonIdentifier-0',
+                    use: 'official',
+                    type: {
+                        coding: [
+                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
+                            {
+                                system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier',
+                                code: tipoProf,
+                                display: docTypeLabelsProf[tipoProf] || tipoProf,
+                            },
+                        ],
+                    },
+                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
+                    value: numProf,
+                },
+            ],
+            active: true,
+        };
+        const practitionerEntry = makeEntry(practitionerResource);
+
+        const ipsId = newUuid();
+        const nitIps = head.NitPrestadorIPS != null ? String(head.NitPrestadorIPS).trim() : '';
+        const codPrest = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
+        let organizationIpsEntry = null;
+        if (nitIps && codPrest) {
+            const nombreIps =
+                head.NombrePrestadorIPS != null && String(head.NombrePrestadorIPS).trim()
+                    ? String(head.NombrePrestadorIPS).trim()
+                    : `IPS (${codPrest})`;
+            const ipsResource = {
+                resourceType: 'Organization',
+                id: ipsId,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'],
+                },
+                active: true,
+                name: nombreIps,
+                identifier: [
+                    {
+                        id: 'TaxIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                                    code: 'TAX',
+                                    display: 'Tax ID number',
+                                },
+                                {
+                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
+                                    code: 'NIT',
+                                    display: 'Número de Identificación Tributaria',
+                                },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                        value: nitIps,
+                    },
+                    {
+                        id: 'HealthcareProviderIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                                    code: 'PRN',
+                                    display: 'Provider number',
+                                },
+                                {
+                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
+                                    code: 'CodigoPrestador',
+                                    display: 'Código de habilitación de prestador de servicios de salud',
+                                },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: codPrest,
+                    },
+                ],
+            };
+            organizationIpsEntry = makeEntry(ipsResource);
+        }
+
+        const organizationEapbEntry = organizationResource ? makeEntry(organizationResource) : null;
+
         const bundle = buildRdaPacienteBundle({
             paciente: { id: pacienteId, resource: patientResource },
-            organization: organizationResource ? { resource: organizationResource } : null,
+            organizationEapb: organizationEapbEntry,
+            organizationIps: organizationIpsEntry,
+            practitioner: practitionerEntry,
+            head,
             antecedents: antecedentes,
             antecedentsFam: antecedentesFam,
             medications: medicamentos,
@@ -3430,8 +4021,16 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
         DiagnosticoPrincipalCIE10Codigo, DiagnosticoPrincipalCIE10Nombre, TipoDiagnosticoPrincipal,
         CondicionDestinoEgreso, CodigoPrestadorRemite,
         AlcanceIncapacidad, DiasIncapacidad, DiasLicenciaMaternidad,
-        NombreDocumentoPDF
+        NombreDocumentoPDF,
+        IdModalidadAtencion, IdGrupoServicios, IdViaIngresoUsuario, IdCausaMotivoAtencion,
+        IdEvaluacionEntidadOrigen,
     } = req.body;
+
+    const rdaceIntOrNull = (v) => {
+        if (v == null || v === '') return null;
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : null;
+    };
 
     try {
         const pool = await poolPromise;
@@ -3460,6 +4059,11 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
             .input('DiasIncapacidad', sql.Int, DiasIncapacidad != null && DiasIncapacidad !== '' ? parseInt(DiasIncapacidad, 10) : null)
             .input('DiasLicenciaMaternidad', sql.Int, DiasLicenciaMaternidad != null && DiasLicenciaMaternidad !== '' ? parseInt(DiasLicenciaMaternidad, 10) : null)
             .input('NombreDocumentoPDF', sql.NVarChar, NombreDocumentoPDF || null)
+            .input('IdModalidadAtencion', sql.Int, rdaceIntOrNull(IdModalidadAtencion))
+            .input('IdGrupoServicios', sql.Int, rdaceIntOrNull(IdGrupoServicios))
+            .input('IdViaIngresoUsuario', sql.Int, rdaceIntOrNull(IdViaIngresoUsuario))
+            .input('IdCausaMotivoAtencion', sql.Int, rdaceIntOrNull(IdCausaMotivoAtencion))
+            .input('IdEvaluacionEntidadOrigen', sql.Int, rdaceIntOrNull(IdEvaluacionEntidadOrigen))
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA Consulta Externa]
                 (
@@ -3473,7 +4077,9 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     [Diagnostico Principal CIE10 Codigo], [Diagnostico Principal CIE10 Nombre], [Tipo Diagnostico Principal],
                     [Condicion Destino Egreso], [Codigo Prestador Remite],
                     [Alcance Incapacidad], [Dias Incapacidad], [Dias Licencia Maternidad],
-                    [Nombre Documento PDF]
+                    [Nombre Documento PDF],
+                    [Id Modalidad Atencion], [Id Grupo Servicios], [Id Via Ingreso Usuario], [Id Causa Motivo Atencion],
+                    [Id Evaluacion Entidad Origen]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA Consulta Externa]
                 VALUES
@@ -3488,7 +4094,9 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     @DiagnosticoPrincipalCIE10Codigo, @DiagnosticoPrincipalCIE10Nombre, @TipoDiagnosticoPrincipal,
                     @CondicionDestinoEgreso, @CodigoPrestadorRemite,
                     @AlcanceIncapacidad, @DiasIncapacidad, @DiasLicenciaMaternidad,
-                    @NombreDocumentoPDF
+                    @NombreDocumentoPDF,
+                    @IdModalidadAtencion, @IdGrupoServicios, @IdViaIngresoUsuario, @IdCausaMotivoAtencion,
+                    @IdEvaluacionEntidadOrigen
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA Consulta Externa'];

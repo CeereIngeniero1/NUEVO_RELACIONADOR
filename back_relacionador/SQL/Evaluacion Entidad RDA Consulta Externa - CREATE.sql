@@ -47,6 +47,11 @@ BEGIN
         [Dias Incapacidad]                INT           NULL,
         [Dias Licencia Maternidad]        INT           NULL,
         [Nombre Documento PDF]            NVARCHAR(300) NULL,
+        [Id Modalidad Atencion]           INT           NULL,
+        [Id Grupo Servicios]              INT           NULL,
+        [Id Via Ingreso Usuario]          INT           NULL,
+        [Id Causa Motivo Atencion]        INT           NULL,
+        [Id Evaluacion Entidad Origen]    INT           NULL,
         [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1)
     );
 END

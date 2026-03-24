@@ -475,10 +475,15 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="">Tipo de rips a diligenciar</label>
-                            <br>
-                            <label for="ac">AC <input type="radio" name="tipoRipsss" id="AC"></label>
-                            <label for="ap">AP <input type="radio" name="tipoRips" id="AP"></label>
+                            <label class="fw-bold d-block mb-1" id="ripsTipoLabel">Tipo de rips a diligenciar</label>
+                            <div class="btn-group rips-tipo-segmented" role="group" aria-labelledby="ripsTipoLabel">
+                                <input type="radio" class="btn-check" name="tipoRips" id="AC" value="AC"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AC">AC</label>
+                                <input type="radio" class="btn-check" name="tipoRips" id="AP" value="AP"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AP">AP</label>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -1055,46 +1060,50 @@
          ║  CARD 5 — Resumen Digital de Atención    ║
          ╚══════════════════════════════════════════╝ -->
             <div class="cr-card" id="cardRDA">
-                <div class="cr-card-header" onclick="crToggleCard('cardRDA')">
-                    <div class="cr-card-header-left">
+                <div class="cr-card-header cr-card-header--rda">
+                    <div class="cr-card-header-left" onclick="crToggleCard('cardRDA')" style="flex: 1; min-width: 0;">
                         <i class="fa-solid fa-laptop-medical cr-card-icon"></i>
                         <span class="cr-card-title">Resumen Digital de Atención (RDA)</span>
                     </div>
-                    <button class="cr-card-toggle" tabindex="-1">▼</button>
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                        <input type="checkbox" id="GenerarRDABase" class="d-none" aria-hidden="true" tabindex="-1">
+                        <button type="button" class="btn btn-success btn-sm fw-bolder" id="RDA_BtnGenerar">
+                            Generar RDA
+                        </button>
+                        <button type="button" class="cr-card-toggle" tabindex="-1"
+                            onclick="crToggleCard('cardRDA');">▼</button>
+                    </div>
                 </div>
                 <div class="cr-card-body">
-                    <div class="row">
-                        <div class="col-md-12 text-center mb-3">
-                            <div class="form-check d-inline-block">
-                                <input class="form-check-input" type="checkbox" id="GenerarRDABase">
-                                <label class="form-check-label fw-bold" for="GenerarRDABase">
-                                    ¿Generar RDA?
+                    <div class="row g-3 mb-2 align-items-end rda-toolbar">
+                        <div class="col-12 col-lg-5 col-xl-4">
+                            <label class="rda-toolbar-label" for="RDA_HistoriaClinica">Asignar historia clínica / evolución</label>
+                            <select id="RDA_HistoriaClinica" class="form-select form-select-sm border-secondary">
+                                <option value="">Sin seleccionar</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-7 col-xl-8">
+                            <label class="rda-toolbar-label d-block" id="rdaTipoLabel">Tipo de RDA</label>
+                            <div id="ContenedorTipoRDA" class="btn-group rda-tipo-segmented" role="group"
+                                aria-labelledby="rdaTipoLabel">
+                                <input type="radio" class="btn-check" name="tipoRDA" id="RDATipoPaciente"
+                                    value="paciente" disabled autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rda-tipo-segmented__btn" for="RDATipoPaciente">
+                                    <i class="fa-solid fa-user me-1" aria-hidden="true"></i>RDA Paciente
+                                </label>
+                                <input type="radio" class="btn-check" name="tipoRDA" id="RDATipoConsultaExterna"
+                                    value="consultaExterna" disabled autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rda-tipo-segmented__btn"
+                                    for="RDATipoConsultaExterna">
+                                    <i class="fa-solid fa-file-lines me-1" aria-hidden="true"></i>RDA Consulta Externa
                                 </label>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-md-12 text-center mb-3" id="ContenedorTipoRDA">
-                            <label class="mb-2 fw-bold">Tipo de RDA:</label>
-                            <div class="d-flex justify-content-center gap-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipoRDA" id="RDATipoPaciente"
-                                        value="paciente" disabled>
-                                    <label class="form-check-label" for="RDATipoPaciente">
-                                        RDA Paciente
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipoRDA"
-                                        id="RDATipoConsultaExterna" value="consultaExterna" disabled>
-                                    <label class="form-check-label" for="RDATipoConsultaExterna">
-                                        RDA Consulta Externa
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contenido Dinámico RDA -->
-                        <div class="col-md-12">
+                    <!-- Contenido Dinámico RDA -->
+                    <div class="row">
+                        <div class="col-12">
                             <div id="ContenidoRDA" class="d-none border-top pt-3 mt-2 border-secondary">
 
                                 <!-- ========== SECCIÓN: RDA PACIENTE ========== -->
@@ -1145,19 +1154,36 @@
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
-                                                <!-- <select class="form-select border border-secondary"
-                                                    id="RDA_TipoDocProfesional" style="max-width: 90px;">
+                                                <select class="form-select border border-secondary"
+                                                    id="RDA_TipoDocProfesional" style="max-width: 100px;">
                                                     <option value="">Tipo</option>
                                                     <option value="CC">CC</option>
+                                                    <option value="TI">TI</option>
                                                     <option value="CE">CE</option>
                                                     <option value="PA">PA</option>
                                                     <option value="PE">PE</option>
-                                                </select> -->
+                                                    <option value="SI">SI</option>
+                                                </select>
                                                 <select class="form-select border border-secondary" id="RDA_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Modalidad atención (RDA / FHIR):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDA_IdModalidadAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Grupo servicios (RDA / FHIR):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDA_IdGrupoServicios">
+                                                <option value="">Seleccionar</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -1407,6 +1433,33 @@
                                                     <option value="">Buscar por nombre o documento...</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Modalidad tecnología salud (RDA / RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdModalidadAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Grupo servicios (RDA / RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdGrupoServicios">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Vía ingreso usuario (RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdViaIngresoUsuario">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Causa motivo atención (RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdCausaMotivoAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -2208,6 +2261,29 @@
         await guardarRDAPaciente();
     });
 
+    function parseIdEvaluacionEntidadOrigen() {
+        const v = document.getElementById('RDA_HistoriaClinica')?.value?.trim();
+        if (!v) return null;
+        const n = parseInt(v, 10);
+        return Number.isNaN(n) ? null : n;
+    }
+
+    async function confirmarSiFaltaHistoriaRDA() {
+        const idHc = parseIdEvaluacionEntidadOrigen();
+        const genActivo = document.getElementById('GenerarRDABase')?.checked;
+        const tipoSel = document.querySelector('input[name="tipoRDA"]:checked');
+        if (!genActivo || !tipoSel || idHc !== null) return true;
+        const r = await Swal.fire({
+            icon: 'warning',
+            title: 'Sin historia/evolución',
+            text: 'RDA está activo pero no hay historia clínica asociada. ¿Desea guardar sin enlazar evaluación?',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar'
+        });
+        return r.isConfirmed === true;
+    }
+
     async function guardarRDAPaciente() {
         const btn = document.getElementById('RDA_BtnGuardarPaciente');
 
@@ -2219,6 +2295,8 @@
             Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA.' });
             return;
         }
+
+        if (!(await confirmarSiFaltaHistoriaRDA())) return;
 
         // Construir payload principal
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -2264,6 +2342,12 @@
             DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
             DiagnosticoIngresoCIE11Termino: cie11Termino                                                                  || null,
             TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
+            IdModalidadAtencion:            document.getElementById('RDA_IdModalidadAtencion')?.value                      || null,
+            IdGrupoServicios:               document.getElementById('RDA_IdGrupoServicios')?.value                         || null,
+            // Ajuste funcional: reutilizar campos existentes del formulario superior.
+            NitPrestadorIPS:                document.getElementById('RDA_CodigoPrestador')?.value?.trim()                  || null,
+            NombrePrestadorIPS:             document.getElementById('RDA_NombreAdminPlanBeneficios')?.value?.trim()       || null,
+            IdEvaluacionEntidadOrigen:      parseIdEvaluacionEntidadOrigen(),
         };
 
         // ── Loading ────────────────────────────────────────────────────
@@ -2308,7 +2392,15 @@
                 const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesFamiliares`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ IdEvaluacionEntidadRDA: idRDA, DocumentoEntidad: documento, Parentesco: item.parentesco || null, Descripcion: desc, IdEstado: 1 })
+                    body: JSON.stringify({
+                        IdEvaluacionEntidadRDA: idRDA,
+                        DocumentoEntidad: documento,
+                        Parentesco: item.parentesco || null,
+                        Descripcion: desc,
+                        CIE11Codigo: item.cie11Codigo || null,
+                        CIE11Termino: item.cie11Termino || null,
+                        IdEstado: 1
+                    })
                 });
                 if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Familiares'); }
             }
@@ -2365,6 +2457,29 @@
         await guardarRDACE();
     });
 
+    function parseIdEvaluacionEntidadOrigenRDACE() {
+        const v = document.getElementById('RDA_HistoriaClinica')?.value?.trim();
+        if (!v) return null;
+        const n = parseInt(v, 10);
+        return Number.isNaN(n) ? null : n;
+    }
+
+    async function confirmarSiFaltaHistoriaRDACE() {
+        const idHc = parseIdEvaluacionEntidadOrigenRDACE();
+        const genActivo = document.getElementById('GenerarRDABase')?.checked;
+        const tipoSel = document.querySelector('input[name="tipoRDA"]:checked');
+        if (!genActivo || !tipoSel || idHc !== null) return true;
+        const r = await Swal.fire({
+            icon: 'warning',
+            title: 'Sin historia/evolución',
+            text: 'RDA está activo pero no hay historia clínica asociada. ¿Desea guardar sin enlazar evaluación?',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar'
+        });
+        return r.isConfirmed === true;
+    }
+
     async function guardarRDACE() {
         const btn = document.getElementById('RDACE_BtnGuardarConsultaExterna');
         const documento = document.getElementById('DocumentoPaciente')?.value?.trim();
@@ -2373,6 +2488,8 @@
             Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA Consulta Externa.' });
             return;
         }
+
+        if (!(await confirmarSiFaltaHistoriaRDACE())) return;
 
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let cie11TerminoCE = null;
@@ -2407,7 +2524,12 @@
             AlcanceIncapacidad: rdaceSelect2Value('RDACE_AlcanceIncapacidad'),
             DiasIncapacidad: document.getElementById('RDACE_DiasIncapacidad')?.value || null,
             DiasLicenciaMaternidad: document.getElementById('RDACE_DiasLicenciaMaternidad')?.value || null,
-            NombreDocumentoPDF: document.getElementById('RDACE_NombreDocumentoPDF')?.value || null
+            NombreDocumentoPDF: document.getElementById('RDACE_NombreDocumentoPDF')?.value || null,
+            IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
+            IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
+            IdViaIngresoUsuario: document.getElementById('RDACE_IdViaIngresoUsuario')?.value || null,
+            IdCausaMotivoAtencion: document.getElementById('RDACE_IdCausaMotivoAtencion')?.value || null,
+            IdEvaluacionEntidadOrigen: parseIdEvaluacionEntidadOrigenRDACE()
         };
 
         const textoOriginal = btn.innerHTML;

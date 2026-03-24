@@ -909,7 +909,14 @@ Create Table [Evaluacion Entidad RDA]
     [Num Doc Profesional]             NVARCHAR(50) NULL,
     [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
     [Diagnostico Ingreso CIE11 Termino] NVARCHAR(200) NULL,
-    [Tipo Alergia]                    VARCHAR(5)   NULL
+    [Tipo Alergia]                    VARCHAR(5)   NULL,
+    -- Contexto atención / custodian IPS (FHIR CompositionPatientStatementRDA + CareDeliveryOrganizationRDA)
+    [Id Modalidad Atencion]           INT          NULL,
+    [Id Grupo Servicios]              INT          NULL,
+    [NIT Prestador IPS]               NVARCHAR(20) NULL,
+    [Nombre Prestador IPS]            NVARCHAR(200) NULL,
+    -- Historia/evolución RIPS asociada al RDA (IdEvaluaciónEntidad de DatosdeHC)
+    [Id Evaluacion Entidad Origen]    INT          NULL
 )
 
 -- ============================================================================
@@ -931,6 +938,13 @@ Create Table [Evaluacion Entidad RDA]
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Ingreso CIE11 Codigo]  NVARCHAR(50)  NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Ingreso CIE11 Termino] NVARCHAR(200) NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Tipo Alergia]                    VARCHAR(5)   NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Modalidad Atencion]           INT          NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Grupo Servicios]            INT          NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [NIT Prestador IPS]             NVARCHAR(20) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Prestador IPS]          NVARCHAR(200) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Evaluacion Entidad Origen]   INT          NULL;
+-- (RDACE) ALTER TABLE [Evaluacion Entidad RDA Consulta Externa] ADD [Id Evaluacion Entidad Origen] INT NULL;
+-- Idempotente ambas tablas: SQL/alter-evaluacion-entidad-rda-id-evaluacion-origen.sql
 
 
 
@@ -959,6 +973,8 @@ CREATE TABLE [Evaluacion Entidad RDA Antecedentes Familiares] (
     [Documento Entidad] NVARCHAR(50) NOT NULL, 
     [Parentesco] VARCHAR(100) NULL,
     [Descripcion] VARCHAR(200) NOT NULL,
+    [CIE11 Codigo] NVARCHAR(50) NULL,
+    [CIE11 Termino] NVARCHAR(300) NULL,
     [Id Estado] INT NOT NULL,
 
    
@@ -987,38 +1003,51 @@ CREATE TABLE [Evaluacion Entidad RDA Antecedentes Farmacologicos] (
 
 -- =============================================================================
 -- RDA CONSULTA EXTERNA — Tabla principal + hijas (misma lógica que RDA Paciente)
--- Si la tabla ya existe en su BD, omitir CREATE o usar IF NOT EXISTS según versión SQL Server.
+-- Idempotente: solo crea si el objeto no existe (reejecutar 1888.sql no falla aquí).
+-- Si la tabla principal ya existía sin columnas nuevas, usar alter-evaluacion-entidad-rdace-rips-context.sql
 -- =============================================================================
 
-CREATE TABLE [Evaluacion Entidad RDA Consulta Externa](
-    [Id Evaluacion Entidad RDA Consulta Externa] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    [Documento Entidad]               NVARCHAR(50)  NOT NULL,
-    [Fecha RDA]                       DATETIME      NOT NULL,
-    [Codigo Prestador]                NVARCHAR(50)  NULL,
-    [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL,
-    [Nombre Admin Plan Beneficios]    NVARCHAR(200) NULL,
-    [Fecha Hora Inicio Atencion]      DATETIME      NULL,
-    [Fecha Hora Fin Atencion]         DATETIME      NULL,
-    [Tipo Doc Profesional]            VARCHAR(10)   NULL,
-    [Num Doc Profesional]             NVARCHAR(50)  NULL,
-    [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
-    [Diagnostico Ingreso CIE11 Termino] NVARCHAR(500) NULL,
-    [Tipo Alergia]                    VARCHAR(10)   NULL,
-    [Entorno Atencion]                NVARCHAR(50)  NULL,
-    [Tipo Factor Riesgo]              NVARCHAR(50)  NULL,
-    [Nombre Factor Riesgo]            NVARCHAR(300) NULL,
-    [Diagnostico Principal CIE10 Codigo] NVARCHAR(20) NULL,
-    [Diagnostico Principal CIE10 Nombre] NVARCHAR(500) NULL,
-    [Tipo Diagnostico Principal]      NVARCHAR(20)  NULL,
-    [Condicion Destino Egreso]        NVARCHAR(50)  NULL,
-    [Codigo Prestador Remite]         NVARCHAR(50)  NULL,
-    [Alcance Incapacidad]             NVARCHAR(20)  NULL,
-    [Dias Incapacidad]                INT           NULL,
-    [Dias Licencia Maternidad]        INT           NULL,
-    [Nombre Documento PDF]            NVARCHAR(300) NULL,
-    [Id Estado]                       INT           NOT NULL DEFAULT 1
-);
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa](
+        [Id Evaluacion Entidad RDA Consulta Externa] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [Documento Entidad]               NVARCHAR(50)  NOT NULL,
+        [Fecha RDA]                       DATETIME      NOT NULL,
+        [Codigo Prestador]                NVARCHAR(50)  NULL,
+        [Codigo Admin Plan Beneficios]    NVARCHAR(50)  NULL,
+        [Nombre Admin Plan Beneficios]    NVARCHAR(200) NULL,
+        [Fecha Hora Inicio Atencion]      DATETIME      NULL,
+        [Fecha Hora Fin Atencion]         DATETIME      NULL,
+        [Tipo Doc Profesional]            VARCHAR(10)   NULL,
+        [Num Doc Profesional]             NVARCHAR(50)  NULL,
+        [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
+        [Diagnostico Ingreso CIE11 Termino] NVARCHAR(500) NULL,
+        [Tipo Alergia]                    VARCHAR(10)   NULL,
+        [Entorno Atencion]                NVARCHAR(50)  NULL,
+        [Tipo Factor Riesgo]              NVARCHAR(50)  NULL,
+        [Nombre Factor Riesgo]            NVARCHAR(300) NULL,
+        [Diagnostico Principal CIE10 Codigo] NVARCHAR(20) NULL,
+        [Diagnostico Principal CIE10 Nombre] NVARCHAR(500) NULL,
+        [Tipo Diagnostico Principal]      NVARCHAR(20)  NULL,
+        [Condicion Destino Egreso]        NVARCHAR(50)  NULL,
+        [Codigo Prestador Remite]         NVARCHAR(50)  NULL,
+        [Alcance Incapacidad]             NVARCHAR(20)  NULL,
+        [Dias Incapacidad]                INT           NULL,
+        [Dias Licencia Maternidad]        INT           NULL,
+        [Nombre Documento PDF]            NVARCHAR(300) NULL,
+        -- Contexto alineado con RIPS (lista RDA consulta externa)
+        [Id Modalidad Atencion]           INT           NULL,
+        [Id Grupo Servicios]              INT           NULL,
+        [Id Via Ingreso Usuario]          INT           NULL,
+        [Id Causa Motivo Atencion]        INT           NULL,
+        -- Historia/evolución RIPS asociada al RDACE (IdEvaluaciónEntidad de DatosdeHC)
+        [Id Evaluacion Entidad Origen]    INT           NULL,
+        [Id Estado]                       INT           NOT NULL DEFAULT 1
+    );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Antecedentes Salud]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Salud] (
     [ID Antecedente Salud CE] INT PRIMARY KEY IDENTITY(1,1),
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1029,7 +1058,10 @@ CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Salud] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Antecedentes Familiares]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Familiares] (
     [ID Antecedente Familiar CE] INT PRIMARY KEY IDENTITY(1,1),
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1041,7 +1073,10 @@ CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Familiares] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Antecedentes Farmacologicos]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Farmacologicos] (
     [ID Antecedente Farmacologico CE] INT PRIMARY KEY IDENTITY(1,1),
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1052,7 +1087,10 @@ CREATE TABLE [Evaluacion Entidad RDA CE Antecedentes Farmacologicos] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Diagnosticos Relacionados]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Diagnosticos Relacionados] (
     [ID Diagnostico Relacionado CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1087,7 +1125,10 @@ CREATE TABLE [Evaluacion Entidad RDA CE Prescripcion Medicamentos] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Prescripcion Procedimientos] (
     [ID Prescripcion Procedimiento CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1101,7 +1142,10 @@ CREATE TABLE [Evaluacion Entidad RDA CE Prescripcion Procedimientos] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA CE Otras Tecnologias]', N'U') IS NULL
+BEGIN
 CREATE TABLE [Evaluacion Entidad RDA CE Otras Tecnologias] (
     [ID Otra Tecnologia CE] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [Id Evaluacion Entidad RDA Consulta Externa] INT NOT NULL,
@@ -1115,6 +1159,7 @@ CREATE TABLE [Evaluacion Entidad RDA CE Otras Tecnologias] (
         FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
         REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
 );
+END;
 
 
 CREATE TABLE [Factor De Riesgo 1888]

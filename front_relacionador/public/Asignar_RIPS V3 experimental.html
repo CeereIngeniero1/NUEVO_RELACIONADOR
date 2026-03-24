@@ -475,10 +475,15 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="">Tipo de rips a diligenciar</label>
-                            <br>
-                            <label for="ac">AC <input type="radio" name="tipoRipsss" id="AC"></label>
-                            <label for="ap">AP <input type="radio" name="tipoRips" id="AP"></label>
+                            <label class="fw-bold d-block mb-1" id="ripsTipoLabel">Tipo de rips a diligenciar</label>
+                            <div class="btn-group rips-tipo-segmented" role="group" aria-labelledby="ripsTipoLabel">
+                                <input type="radio" class="btn-check" name="tipoRips" id="AC" value="AC"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AC">AC</label>
+                                <input type="radio" class="btn-check" name="tipoRips" id="AP" value="AP"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AP">AP</label>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
