@@ -172,6 +172,8 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 |---|---|---|
 | GET | `/api/sse` | Conexión SSE para actualizaciones en tiempo real |
 
+> Nota: `/api/sse` también está implementado en el servidor del frontend (`front_relacionador/app.js`) además del backend (`back_relacionador/server/server.js`). Asegura que la URL base configurada apunte al servidor correcto.
+
 ---
 
 ## RDA Paciente — FHIR Bundle (V3)
@@ -202,10 +204,12 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 ```json
 {
   "idRipsRelacion": 456,
-  "origenTabla": "Rips",
+  "origenTabla": "RipsV2",
   "documentoPaciente": "10203040"
 }
 ```
+
+> `origenTabla` acepta `"Rips"` o `"RipsV2"`; si se envía cualquier otro valor, el backend lo trata como `"Rips"`.
 
 ---
 

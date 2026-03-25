@@ -892,8 +892,22 @@ $(document).ready(function () {
       return withOptions || candidates[0];
     };
 
+    const hasRealOptions = (selectEl) => {
+      const opts = Array.from(selectEl?.options || []);
+      return opts.some((opt) => {
+        const v = String(opt.value ?? "").trim();
+        const t = String(opt.textContent ?? "").trim();
+        if (!v) return false; // placeholder suele tener value vacío
+        if (!t) return false;
+        const tl = t.toLowerCase();
+        return !/sin\s*seleccionar|seleccionar/i.test(tl);
+      });
+    };
+
     const populateFromSource = (target, source) => {
-      if (!target || !source || !source.options || source.options.length === 0) return false;
+      if (!target || !source || !source.options) return false;
+      // Si el select origen aún solo tiene placeholder, no lo copiamos para no "bloquear" el fallback.
+      if (!hasRealOptions(source)) return false;
       target.innerHTML = "";
       Array.from(source.options).forEach((opt) => {
         const o = document.createElement("option");
@@ -926,9 +940,32 @@ $(document).ready(function () {
     if (!copiedModalidad || !copiedGrupo) {
       const base = `http://${servidor}:3000/apiV3`;
       try {
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const fetchJsonWithRetry = async (url, attempts = 5) => {
+          let lastErr;
+          for (let i = 1; i <= attempts; i += 1) {
+            try {
+              const res = await fetch(url);
+              const text = await res.text();
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+              }
+              try {
+                return JSON.parse(text);
+              } catch (parseErr) {
+                throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+              }
+            } catch (e) {
+              lastErr = e;
+              if (i < attempts) await sleep(400 * i);
+            }
+          }
+          throw lastErr;
+        };
+
         const [modRaw, grpRaw] = await Promise.all([
-          fetch(`${base}/ModalidadAtencion`).then((r) => r.json()),
-          fetch(`${base}/GrupoServicios`).then((r) => r.json()),
+          fetchJsonWithRetry(`${base}/ModalidadAtencion`),
+          fetchJsonWithRetry(`${base}/GrupoServicios`),
         ]);
         const modalidades = Array.isArray(modRaw) ? modRaw : [];
         const grupos = Array.isArray(grpRaw) ? grpRaw : [];
@@ -1068,8 +1105,22 @@ $(document).ready(function () {
       return withOptions || candidates[0];
     };
 
+    const hasRealOptions = (selectEl) => {
+      const opts = Array.from(selectEl?.options || []);
+      return opts.some((opt) => {
+        const v = String(opt.value ?? "").trim();
+        const t = String(opt.textContent ?? "").trim();
+        if (!v) return false; // placeholder suele tener value vacío
+        if (!t) return false;
+        const tl = t.toLowerCase();
+        return !/sin\s*seleccionar|seleccionar/i.test(tl);
+      });
+    };
+
     const populateFromSource = (target, source) => {
-      if (!target || !source || !source.options || source.options.length === 0) return false;
+      if (!target || !source || !source.options) return false;
+      // Si el select origen aún solo tiene placeholder, no lo copiamos para no "bloquear" el fallback.
+      if (!hasRealOptions(source)) return false;
       target.innerHTML = "";
       Array.from(source.options).forEach((opt) => {
         const o = document.createElement("option");
@@ -1088,7 +1139,28 @@ $(document).ready(function () {
     };
 
     const fillModalidadApi = async () => {
-      const modRaw = await fetch(`${base}/ModalidadAtencion`).then((r) => r.json());
+      const fetchJsonWithRetry = async (url, attempts = 5) => {
+        let lastErr;
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        for (let i = 1; i <= attempts; i += 1) {
+          try {
+            const res = await fetch(url);
+            const text = await res.text();
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+            try {
+              return JSON.parse(text);
+            } catch (parseErr) {
+              throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+            }
+          } catch (e) {
+            lastErr = e;
+            if (i < attempts) await sleep(400 * i);
+          }
+        }
+        throw lastErr;
+      };
+
+      const modRaw = await fetchJsonWithRetry(`${base}/ModalidadAtencion`);
       const modalidades = Array.isArray(modRaw) ? modRaw : [];
       modalidades.sort((a, b) =>
         String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
@@ -1102,7 +1174,28 @@ $(document).ready(function () {
       });
     };
     const fillGrupoApi = async () => {
-      const grpRaw = await fetch(`${base}/GrupoServicios`).then((r) => r.json());
+      const fetchJsonWithRetry = async (url, attempts = 5) => {
+        let lastErr;
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        for (let i = 1; i <= attempts; i += 1) {
+          try {
+            const res = await fetch(url);
+            const text = await res.text();
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+            try {
+              return JSON.parse(text);
+            } catch (parseErr) {
+              throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+            }
+          } catch (e) {
+            lastErr = e;
+            if (i < attempts) await sleep(400 * i);
+          }
+        }
+        throw lastErr;
+      };
+
+      const grpRaw = await fetchJsonWithRetry(`${base}/GrupoServicios`);
       const grupos = Array.isArray(grpRaw) ? grpRaw : [];
       grupos.sort((a, b) =>
         String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))

@@ -1,3 +1,4 @@
+##17-03-2026
 ## Arquitectura actual — Resumen ejecutivo
 
 Este documento resume cómo está construido hoy el proyecto `NUEVO_RELACIONADOR` (frontend + backend) y deja explícito dónde encaja el módulo RDA V3, de cara a futuras refactorizaciones (por ejemplo, migrar RDA a módulos ES).
@@ -10,7 +11,7 @@ Este documento resume cómo está construido hoy el proyecto `NUEVO_RELACIONADOR
   - Servidor Express propio (puerto `3100`) definido en `app.js`.
   - Sirve archivos estáticos desde `front_relacionador/public` (HTML, CSS, JS).
   - Gestiona login, navegación principal y la pantalla de asignación de RIPS (V3).
-  - Expone un endpoint SSE (`/api/sse`) para actualizaciones en tiempo real.
+  - Nota SSE: la ruta `GET /api/sse` existe también en `back_relacionador/server/server.js` (además de `front_relacionador/app.js`). Mantener la URL base consistente evita apuntar al servidor equivocado.
 
 - **Backend (`back_relacionador`)**
   - Otro servidor Express (puerto `3000`) con rutas REST para:
@@ -61,6 +62,22 @@ Este documento resume cómo está construido hoy el proyecto `NUEVO_RELACIONADOR
 
 ---
 
+## 2.1 Ruta V3 activa y flujo end-to-end
+
+### Ruta V3 activa
+- Frontend V3: `front_relacionador/public/Asignar_RIPS V3.html` + `front_relacionador/public/Asignar_RIPS V3.js` (con `front_relacionador/public/rda-v3.js`).
+- Prefijos de API usados desde V3: `/apiV3` (catálogos 1888 y acciones como `RegistrarRips`), `/apiV2` (compatibilidad/datos) y `/RIPS` (descarga JSON/ZIP).
+
+### Flujo end-to-end (incluye Desrelacionador opcional)
+```mermaid
+graph TD
+  Usuario["Usuario"] --> Frontend["Frontend Express (3100)"]
+  Frontend --> Backend["Backend Express API (3000)"]
+  Backend --> SQL["SQL Server"]
+  Frontend --> Desrelacionador["Desrelacionador UI (frontend)"]
+  Desrelacionador --> Backend
+```
+
 ## 3. Backend — Capas principales
 
 - **Punto de entrada**
@@ -76,6 +93,21 @@ Este documento resume cómo está construido hoy el proyecto `NUEVO_RELACIONADOR
 - **Persistencia y scripts SQL**
   - Carpeta `SQL/` con scripts de creación de tablas, vistas, triggers y utilidades (incluyendo tablas 1888).
   - Carpeta `QUERYS_ACTUALIZAR_CODIGOS_LOCALIZACION/` con cargas masivas de municipios, barrios, etc.
+
+## 3.1 Desrelacionador RIPS (V3)
+
+El **Desrelacionador RIPS** permite revertir/desvincular un vínculo entre una **historia clínica (HC)** y un **RIPS**, para que el registro vuelva a quedar en el flujo de pendientes de asignación.
+
+- UI (frontend):
+  - Página: `front_relacionador/public/Desrelacionar.html`
+  - Módulo JS: `front_relacionador/public/desrelacionador/index.js`
+  - Cliente de API: `front_relacionador/public/desrelacionador/api/relacionesRipsApi.js`
+- Endpoints backend (prefijo `/apiV3`, implementados en `back_relacionador/server/routes/Asignar_RipsRoutes V3.js`):
+  - `GET /apiV3/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin`
+  - `DELETE /apiV3/relacionesRipsDesrelacionador` con body:
+    - `idRipsRelacion` (number)
+    - `origenTabla` (`"Rips"` o `"RipsV2"`)
+    - `documentoPaciente` (string)
 
 ---
 
