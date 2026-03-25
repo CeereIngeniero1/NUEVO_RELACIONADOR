@@ -8,6 +8,8 @@ Campos implementados en la sección `#SeccionRDAPaciente` del HTML. Todos los ID
 
 Controles en `#cardRDA` **por encima** de `#SeccionRDAPaciente` y `#SeccionRDAConsultaExterna`. El **RDA no se enlaza** a una historia o evolución en pantalla; la selección de historia para **RIPS** sigue en `HistoriasSinRIPS`.
 
+> Nota: si ya existía un vínculo previo entre historia clínica y el flujo de RIPS (incluyendo escenarios RDA), la reversión se realiza desde el módulo **`Desrelacionar`** en el frontend (ver [`docs/desrelacionador/descripcion.md`](../desrelacionador/descripcion.md)).
+
 | Control | ID | Notas |
 |---------|-----|--------|
 | Activar flujo RDA (barra de progreso) | `GenerarRDABase` | Checkbox oculto; la UI usa el botón `RDA_BtnGenerar` (“Generar RDA” / “Desactivar RDA”). |

@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.1 — 2026-03-25
+- **UI:** Nuevo módulo `desrelacionador` (pantalla `Desrelacionar.html`) para revertir/desvincular relaciones RIPS.
+- **Backend:** Nuevo endpoint `POST /apiV3/RdaPaciente/FhirBundle` (Bundle FHIR tipo `document` desde BD).
+- **Datos/SQL:** Se elimina la relación HC↔RDA dejándolo como estaba de base (script eliminado/restaurado).
+- **Documentación:** Actualización de guías y endpoints en `docs/`.
+
 ## v3.2.0 — 2026-03-09
 - **UI/UX:** Rediseño completo de la pantalla de Login (layout split-screen teal/blanco con logo actualizado).
 - **Tema Oscuro:** Implementación de modo oscuro avanzado con sistema de tokens de color tipo Tailwind (slate theme).

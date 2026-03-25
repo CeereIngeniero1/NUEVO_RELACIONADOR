@@ -100,6 +100,7 @@ NUEVO_RELACIONADOR/
 │   ├── pendientes.md                  Tareas pendientes consolidadas
 │   ├── resolucion-2275/               Docs de RIPS clásico
 │   ├── resolucion-1888/               Docs del RDA + PDFs originales
+│   ├── desrelacionador/              Guía del módulo UI para desvincular RIPS
 │   └── arquitectura/                  Docs técnicos del frontend
 │
 └── package.json                       Monorepo (pnpm workspaces)
@@ -131,10 +132,11 @@ NUEVO_RELACIONADOR/
 | [Arquitectura Backend](arquitectura/backend.md) | Conexión BD, despliegue PM2, configuración SQL Server |
 | [API Endpoints](arquitectura/api_endpoints.md) | Documentación completa de rutas REST |
 | [Estándares de Proyecto](arquitectura/estandares.md) | Reglas obligatorias de CSS, colores, tipografía y naming |
+| [Desrelacionador (RIPS)](desrelacionador/descripcion.md) | UI para reversión de vínculos HC↔RIPS |
 | [Guía Scripts SQL](arquitectura/scripts_sql.md) | Orden de ejecución, tablas principales, triggers activos |
 | [Pendientes](pendientes.md) | Tareas y bugs consolidados |
 | [Historial de Versiones](CHANGELOG.md) | Desde v1.0.5 hasta la versión actual |
 
 ---
 
-*Última actualización: 27 de febrero de 2026*
+*Última actualización: 25 de marzo de 2026*

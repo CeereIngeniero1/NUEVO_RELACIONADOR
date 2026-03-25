@@ -174,6 +174,41 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 
 ---
 
+## RDA Paciente — FHIR Bundle (V3)
+
+**Prefijo:** `/apiV3`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/RdaPaciente/FhirBundle` | Construye un `Bundle` FHIR tipo `document` (Composition + Patient + recursos clínicos) a partir de `IdEvaluacionEntidadRDA` en BD. |
+
+**Body recomendado:**
+```json
+{ "IdEvaluacionEntidadRDA": 123 }
+```
+
+---
+
+## Desrelacionador de RIPS (V3)
+
+**Prefijo:** `/apiV3`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin` | Lista relaciones RIPS detectadas para el documento paciente y rango de fechas. |
+| DELETE | `/relacionesRipsDesrelacionador` | Desvincula (elimina vínculo) de una relación RIPS. |
+
+**Body DELETE:**
+```json
+{
+  "idRipsRelacion": 456,
+  "origenTabla": "Rips",
+  "documentoPaciente": "10203040"
+}
+```
+
+---
+
 ## Nota sobre versiones
 
 El backend tiene **3 versiones activas simultáneas** de las rutas de asignación de RIPS:
