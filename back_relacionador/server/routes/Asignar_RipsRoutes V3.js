@@ -2815,7 +2815,9 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
         FechaHoraInicioAtencion, FechaHoraFinAtencion,
         TipoDocProfesional, NumDocProfesional,
         DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
-        TipoAlergia
+        TipoAlergia,
+        IdModalidadAtencion, IdGrupoServicios,
+        NitPrestadorIPS, NombrePrestadorIPS,
     } = req.body;
 
     // Convierte un string de fecha en objeto Date; null si no es válido
@@ -2863,6 +2865,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar,  DiagnosticoIngresoCIE11Codigo    || null)
             .input('DiagnosticoIngresoCIE11Termino',sql.NVarChar,  DiagnosticoIngresoCIE11Termino   || null)
             .input('TipoAlergia',                   sql.NVarChar,  TipoAlergia                      || null)
+            .input('IdModalidadAtencion',           sql.Int,       IdModalidadAtencion != null && IdModalidadAtencion !== '' ? parseInt(IdModalidadAtencion, 10) : null)
+            .input('IdGrupoServicios',              sql.Int,       IdGrupoServicios != null && IdGrupoServicios !== '' ? parseInt(IdGrupoServicios, 10) : null)
+            .input('NitPrestadorIPS',               sql.NVarChar,  NitPrestadorIPS                  || null)
+            .input('NombrePrestadorIPS',            sql.NVarChar,  NombrePrestadorIPS               || null)
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA]
                 (
@@ -2878,7 +2884,9 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
                     [Tipo Doc Profesional], [Num Doc Profesional],
                     [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
-                    [Tipo Alergia]
+                    [Tipo Alergia],
+                    [Id Modalidad Atencion], [Id Grupo Servicios],
+                    [NIT Prestador IPS], [Nombre Prestador IPS]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA]
                 VALUES
@@ -2895,7 +2903,9 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
                     @TipoDocProfesional, @NumDocProfesional,
                     @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
-                    @TipoAlergia
+                    @TipoAlergia,
+                    @IdModalidadAtencion, @IdGrupoServicios,
+                    @NitPrestadorIPS, @NombrePrestadorIPS
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA'];
@@ -2932,7 +2942,7 @@ router.post('/EvaluacionEntidadRDA/AntecedentesSalud', async (req, res) => {
 });
 
 router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => {
-    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado, CIE11Codigo, CIE11Termino } = req.body;
     try {
         const pool = await poolPromise;
         await pool.request()
@@ -2940,11 +2950,13 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => 
             .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
             .input('Parentesco',             sql.NVarChar, Parentesco       || null)
             .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('CIE11Codigo',            sql.NVarChar, CIE11Codigo      || null)
+            .input('CIE11Termino',           sql.NVarChar, CIE11Termino     || null)
             .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
-                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Parentesco], [Descripcion], [Id Estado])
-                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Parentesco, @Descripcion, @IdEstado)
+                ([Id Evaluacion Entidad RDA], [Documento Entidad], [Parentesco], [Descripcion], [CIE11 Codigo], [CIE11 Termino], [Id Estado])
+                VALUES (@IdEvaluacionEntidadRDA, @DocumentoEntidad, @Parentesco, @Descripcion, @CIE11Codigo, @CIE11Termino, @IdEstado)
             `);
         res.json({ ok: true });
     } catch (error) {
@@ -2978,6 +2990,1901 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
     }
 });
 
+// ======================================================================================
+// RDA PACIENTE — Construcción FHIR Bundle desde BD
+// ======================================================================================
+// Body (recomendado): { "IdEvaluacionEntidadRDA": 123 }
+// Devuelve: Bundle FHIR type="document" (paciente) con Composition + Patient + entradas
+// (Condition, FamilyMemberHistory, MedicationStatement).
+router.post('/RdaPaciente/FhirBundle', async (req, res) => {
+    const { IdEvaluacionEntidadRDA } = req.body || {};
+
+    const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDA requerido (number)' });
+    }
+
+    const { randomUUID } = require('crypto');
+    const newUuid = () => {
+        try {
+            if (typeof randomUUID === 'function') return randomUUID();
+        } catch (_) {
+            // ignore
+        }
+        return `uuid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    // IHCE (manual operativo) valida que las entradas del Bundle solo incluyan `resource`
+    // (no acepta `fullUrl`). Las referencias internas se manejan con el patrón `#<id>`.
+    const makeEntry = (resource) => {
+        const entryId = resource.id || newUuid();
+        resource.id = entryId;
+        return { resource };
+    };
+
+    const refOf = (entryOrResource) => {
+        const r = entryOrResource && entryOrResource.resource ? entryOrResource.resource : entryOrResource;
+        const id = r && r.id ? String(r.id) : '';
+        if (!id) throw new Error('[RDA] No se puede referenciar un recurso sin id');
+        return `#${id}`;
+    };
+
+    const nowIso = new Date().toISOString();
+
+    const parseCodigoDescripcion = (text) => {
+        const s = (text ?? '').toString().trim();
+        if (!s) return { codigo: '', descripcion: '' };
+        // En el frontend se guardan así: `${codigo} - ${descripcion}`
+        const parts = s.split(' - ');
+        if (parts.length >= 2) {
+            return {
+                codigo: (parts[0] ?? '').trim(),
+                descripcion: parts.slice(1).join(' - ').trim(),
+            };
+        }
+        return { codigo: s, descripcion: '' };
+    };
+
+    const parseNombreObservacion = (text) => {
+        const s = (text ?? '').toString().trim();
+        if (!s) return { nombre: '', observacion: '' };
+        // En el frontend se guarda así: `nombre (observacion)`
+        if (s.endsWith(')')) {
+            const idx = s.lastIndexOf(' (');
+            if (idx > -1) {
+                return {
+                    nombre: s.slice(0, idx).trim(),
+                    observacion: s.slice(idx + 3, -1).trim(),
+                };
+            }
+        }
+        return { nombre: s, observacion: '' };
+    };
+
+    // Maps Tipo Alergia codes (01-06) to FHIR AllergyIntolerance category values
+    const allergyTypeToCategory = (tipoAlergiaCodigo) => {
+        const map = {
+            '01': 'medication',
+            '02': 'food',
+            '03': 'environment',
+            '04': 'environment',
+            '05': 'biologic',
+            '06': 'environment',
+        };
+        const code = (tipoAlergiaCodigo ?? '').toString().trim();
+        return map[code] || null;
+    };
+
+    const RDA_SD = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
+    const CS_MODALITY = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
+    const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
+    const ICD11_SYSTEM = 'http://id.who.int/icd/release/11/mms';
+
+    const toIsoDateTime = (v) => {
+        if (v == null || v === '') return null;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+
+    const emptySectionNilKnown = (texto) => ({
+        emptyReason: {
+            coding: [
+                {
+                    system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason',
+                    code: 'nilknown',
+                    display: 'Nil Known',
+                },
+            ],
+            text: texto || 'Sin información registrada',
+        },
+    });
+
+    const buildRdaPacienteBundle = ({
+        paciente,
+        organizationEapb,
+        organizationIps,
+        practitioner,
+        head,
+        antecedents,
+        antecedentsFam,
+        medications,
+        alergia,
+    }) => {
+        const patientEntry = makeEntry(paciente.resource);
+        const patientId = patientEntry.resource.id;
+        const compositionDateIso = toIsoDateTime(head && head.FechaRDA) || nowIso;
+        const bundleTs = compositionDateIso;
+
+        const conditionEntries = (antecedents || []).map((item, idx) =>
+            makeEntry({
+                resourceType: 'Condition',
+                id: `Condition-${idx}`,
+                meta: {
+                    profile: [`${RDA_SD}/ConditionStatementRDA`],
+                },
+                subject: { reference: refOf(patientEntry) },
+                code: {
+                    coding: [
+                        {
+                            system: 'http://hl7.org/fhir/sid/icd-10',
+                            code: item.codigo,
+                            display: item.descripcion || undefined,
+                        },
+                    ],
+                    text: item.descripcion || item.codigo,
+                },
+            })
+        );
+
+        const c11Ingreso = head && (head.DiagnosticoIngresoCIE11Codigo || '').toString().trim();
+        const conditionIngresoEntry = c11Ingreso
+            ? makeEntry({
+                resourceType: 'Condition',
+                id: 'ConditionIngreso-0',
+                meta: {
+                    profile: [`${RDA_SD}/ConditionStatementRDA`],
+                },
+                subject: { reference: refOf(patientEntry) },
+                code: {
+                    coding: [
+                        {
+                            system: ICD11_SYSTEM,
+                            code: c11Ingreso,
+                            display: head.DiagnosticoIngresoCIE11Termino
+                                ? String(head.DiagnosticoIngresoCIE11Termino)
+                                : undefined,
+                        },
+                    ],
+                    text: head.DiagnosticoIngresoCIE11Termino
+                        ? String(head.DiagnosticoIngresoCIE11Termino)
+                        : c11Ingreso,
+                },
+            })
+            : null;
+
+        const familyHistoryEntries = (antecedentsFam || []).map((item, idx) => {
+            const codings = [
+                {
+                    system: 'http://hl7.org/fhir/sid/icd-10',
+                    code: item.codigo,
+                    display: item.descripcion || undefined,
+                },
+            ];
+            if (item.cie11Codigo) {
+                codings.push({
+                    system: ICD11_SYSTEM,
+                    code: item.cie11Codigo,
+                    display: item.cie11Termino || undefined,
+                });
+            }
+            return makeEntry({
+                resourceType: 'FamilyMemberHistory',
+                id: `FamilyMemberHistory-${idx}`,
+                meta: {
+                    profile: [`${RDA_SD}/FamilyMemberHistoryRDA`],
+                },
+                status: 'completed',
+                patient: { reference: refOf(patientEntry) },
+                relationship: {
+                    coding: [
+                        {
+                            system: 'http://terminology.hl7.org/CodeSystem/v3-RoleCode',
+                            code: item.parentesco,
+                            display: item.textoParentesco || undefined,
+                        },
+                    ],
+                    text: item.textoParentesco || undefined,
+                },
+                condition: [
+                    {
+                        code: {
+                            coding: codings,
+                            text: item.descripcion || item.codigo,
+                        },
+                    },
+                ],
+            });
+        });
+
+        const medicationStatementEntries = (medications || []).map((item, idx) =>
+            makeEntry({
+                resourceType: 'MedicationStatement',
+                id: `MedicationStatement-${idx}`,
+                meta: {
+                    profile: [`${RDA_SD}/MedicationStatementRDA`],
+                },
+                status: 'active',
+                subject: { reference: refOf(patientEntry) },
+                medicationCodeableConcept: { text: item.nombre },
+                note: item.observacion ? [{ text: item.observacion }] : undefined,
+            })
+        );
+
+        const observationEntries = [];
+        const parseNum = (x) => {
+            const n = parseFloat(String(x || '').replace(',', '.'));
+            return Number.isFinite(n) ? n : null;
+        };
+        const tallaN = head ? parseNum(head.Talla) : null;
+        const pesoN = head ? parseNum(head.Peso) : null;
+        if (tallaN != null && tallaN > 0) {
+            observationEntries.push(
+                makeEntry({
+                    resourceType: 'Observation',
+                    id: `Observation-Talla-0`,
+                    status: 'final',
+                    category: [
+                        {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                                    code: 'vital-signs',
+                                    display: 'Vital Signs',
+                                },
+                            ],
+                        },
+                    ],
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code: '8302-2',
+                                display: 'Body height',
+                            },
+                        ],
+                    },
+                    subject: { reference: refOf(patientEntry) },
+                    valueQuantity: { value: tallaN, unit: 'cm', system: 'http://unitsofmeasure.org', code: 'cm' },
+                })
+            );
+        }
+        if (pesoN != null && pesoN > 0) {
+            observationEntries.push(
+                makeEntry({
+                    resourceType: 'Observation',
+                    id: `Observation-Peso-0`,
+                    status: 'final',
+                    category: [
+                        {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+                                    code: 'vital-signs',
+                                    display: 'Vital Signs',
+                                },
+                            ],
+                        },
+                    ],
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code: '29463-7',
+                                display: 'Body weight',
+                            },
+                        ],
+                    },
+                    subject: { reference: refOf(patientEntry) },
+                    valueQuantity: { value: pesoN, unit: 'kg', system: 'http://unitsofmeasure.org', code: 'kg' },
+                })
+            );
+        }
+
+        const hasAlergia = alergia && (alergia.alergeno || '').toString().trim().length > 0;
+        const allergyEntry = hasAlergia
+            ? (() => {
+                const category = allergyTypeToCategory(alergia.tipoAlergia);
+                return makeEntry({
+                    resourceType: 'AllergyIntolerance',
+                    id: 'AllergyIntolerance-0',
+                    meta: {
+                        profile: [`${RDA_SD}/AllergyIntoleranceStatementRDA`],
+                    },
+                    clinicalStatus: {
+                        coding: [
+                            {
+                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
+                                code: 'active',
+                            },
+                        ],
+                    },
+                    verificationStatus: {
+                        coding: [
+                            {
+                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification',
+                                code: 'confirmed',
+                            },
+                        ],
+                    },
+                    ...(category ? { category: [category] } : {}),
+                    code: { text: alergia.alergeno.toString().trim() },
+                    patient: { reference: refOf(patientEntry) },
+                });
+            })()
+            : null;
+
+        const periodStart =
+            toIsoDateTime(head && head.FechaHoraInicioAtencion) || compositionDateIso;
+        const periodEnd =
+            toIsoDateTime(head && head.FechaHoraFinAtencion) || periodStart;
+        const modCode = (head && head.CodigoModalidadAtencion && String(head.CodigoModalidadAtencion).trim()) || '01';
+        const modDisplay = head && head.NombreModalidadAtencion ? String(head.NombreModalidadAtencion) : undefined;
+        const grpCode = (head && head.CodigoGrupoServicios && String(head.CodigoGrupoServicios).trim()) || '01';
+        const grpDisplay = head && head.NombreGrupoServicios ? String(head.NombreGrupoServicios) : undefined;
+
+        const practitionerRef = practitioner ? { reference: refOf(practitioner) } : null;
+        const custodianRef = organizationIps ? { reference: refOf(organizationIps) } : undefined;
+        if (!practitionerRef) {
+            throw new Error(
+                'No se pudo construir Composition.author (PractitionerRDA). Verifique Tipo/Num documento del profesional en el RDA o datos mínimos del autor.'
+            );
+        }
+
+        const compositionId = 'Composition-0';
+
+        // Encounter es requerido por IHCE para deduplicación y validaciones del RDA
+        const encounterEntry = makeEntry({
+            resourceType: 'Encounter',
+            id: 'Encounter-0',
+            status: 'finished',
+            subject: { reference: refOf(patientEntry) },
+            period: { start: periodStart, end: periodEnd },
+            ...(organizationIps ? { serviceProvider: { reference: refOf(organizationIps) } } : {}),
+            participant: practitioner ? [{ individual: { reference: refOf(practitioner) } }] : undefined,
+        });
+
+        const sections = [];
+        if (conditionIngresoEntry) {
+            sections.push({
+                title: 'Diagnóstico de ingreso (CIE-11)',
+                entry: [{ reference: refOf(conditionIngresoEntry) }],
+            });
+        }
+        sections.push(
+            medicationStatementEntries.length
+                ? {
+                    title: 'Antecedentes farmacológicos',
+                    entry: medicationStatementEntries.map((e) => ({ reference: refOf(e) })),
+                }
+                : {
+                    title: 'Antecedentes farmacológicos',
+                    ...emptySectionNilKnown('No se registran antecedentes farmacológicos'),
+                }
+        );
+        sections.push(
+            allergyEntry
+                ? {
+                    title: 'Antecedentes alérgicos',
+                    entry: [{ reference: refOf(allergyEntry) }],
+                }
+                : {
+                    title: 'Antecedentes alérgicos',
+                    ...emptySectionNilKnown('No se conocen alergias'),
+                }
+        );
+        sections.push(
+            conditionEntries.length
+                ? {
+                    title: 'Antecedentes patológicos',
+                    entry: conditionEntries.map((e) => ({ reference: refOf(e) })),
+                }
+                : {
+                    title: 'Antecedentes patológicos',
+                    ...emptySectionNilKnown('No se registran antecedentes patológicos'),
+                }
+        );
+        sections.push(
+            familyHistoryEntries.length
+                ? {
+                    title: 'Antecedentes familiares',
+                    entry: familyHistoryEntries.map((e) => ({ reference: refOf(e) })),
+                }
+                : {
+                    title: 'Antecedentes familiares',
+                    ...emptySectionNilKnown('No se registran antecedentes familiares'),
+                }
+        );
+
+        const compositionResource = {
+            resourceType: 'Composition',
+            id: compositionId,
+            meta: {
+                profile: [`${RDA_SD}/CompositionPatientStatementRDA`],
+            },
+            status: 'final',
+            type: {
+                coding: [
+                    {
+                        system: 'http://loinc.org',
+                        code: '102089-0',
+                        display: 'FHIR resource patient medical record',
+                    },
+                ],
+                text: 'FHIR resource patient medical record',
+            },
+            date: compositionDateIso,
+            title: 'Resumen Digital de Atención en Salud - RDA de antecedentes manifestados por el paciente',
+            confidentiality: 'N',
+            event: [
+                {
+                    period: {
+                        start: periodStart,
+                        end: periodEnd,
+                    },
+                    code: [
+                        {
+                            coding: [
+                                {
+                                    system: CS_MODALITY,
+                                    code: modCode,
+                                    display: modDisplay,
+                                },
+                            ],
+                            text: modDisplay || modCode,
+                        },
+                        {
+                            coding: [
+                                {
+                                    system: CS_GRUPO_SVC,
+                                    code: grpCode,
+                                    display: grpDisplay,
+                                },
+                            ],
+                            text: grpDisplay || grpCode,
+                        },
+                    ],
+                },
+            ],
+            subject: { reference: refOf(patientEntry) },
+            encounter: { reference: refOf(encounterEntry) },
+            ...(custodianRef ? { custodian: custodianRef } : {}),
+            author: [practitionerRef],
+            section: sections,
+        };
+
+        const compositionEntry = makeEntry(compositionResource);
+
+        const bundleEntries = [
+            compositionEntry,
+            patientEntry,
+            encounterEntry,
+            ...(practitioner ? [practitioner] : []),
+            ...(organizationIps ? [organizationIps] : []),
+            ...(organizationEapb ? [organizationEapb] : []),
+            ...observationEntries,
+            ...(conditionIngresoEntry ? [conditionIngresoEntry] : []),
+            ...conditionEntries,
+            ...familyHistoryEntries,
+            ...medicationStatementEntries,
+            ...(allergyEntry ? [allergyEntry] : []),
+        ];
+
+        return {
+            resourceType: 'Bundle',
+            type: 'document',
+            timestamp: bundleTs,
+            entry: bundleEntries,
+        };
+    };
+
+    try {
+        const pool = await poolPromise;
+
+        // Verificación temprana: si las tablas RDA no existen en BD,
+        // el SQL falla con "El nombre de objeto ... no es válido".
+        const existsCheck = await pool
+            .request()
+            .query(`
+                SELECT
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA]') AS oidMain,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Salud]') AS oidAntSalud,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Familiares]') AS oidAntFam,
+                    OBJECT_ID('dbo.[Evaluacion Entidad RDA Antecedentes Farmacologicos]') AS oidAntFarm
+            `);
+
+        const chk = existsCheck.recordset && existsCheck.recordset[0] ? existsCheck.recordset[0] : null;
+        if (!chk || chk.oidMain == null) {
+            return res.status(500).json({
+                ok: false,
+                error:
+                    'Faltan tablas de RDA Paciente en la BD. Verifica haber ejecutado los scripts SQL de RDA (tabla Evaluacion Entidad RDA).',
+            });
+        }
+
+        // 1) Cabecera (Patient + Organization base)
+        const main = await pool
+            .request()
+            .input('IdEvaluacionEntidadRDA', sql.Int, id)
+            .query(`
+                SELECT
+                    e.[Id Evaluacion Entidad RDA]      AS IdEvaluacionEntidadRDA,
+                    e.[Documento Entidad]              AS DocumentoEntidad,
+                    e.[Primer Apellido Entidad]        AS PrimerApellidoEntidad,
+                    e.[Segundo Apellido Entidad]       AS SegundoApellidoEntidad,
+                    e.[Primer Nombre Entidad]          AS PrimerNombreEntidad,
+                    e.[Segundo Nombre Entidad]         AS SegundoNombreEntidad,
+                    e.[Id Tipo Documento]              AS IdTipoDocumento,
+                    t.[CódigoTipoDocumento]            AS CodigoTipoDocumento,
+                    t.[TipoDocumento]                  AS TipoDocumento,
+                    e.[Fecha Nacimiento]               AS FechaNacimiento,
+                    e.[Id Sexo Biologico]              AS IdSexoBiologico,
+                    sx.[CódigoSexo]                   AS CodigoSexo,
+                    sx.[Sexo]                          AS Sexo,
+                    e.[Id Identidad Genero]            AS IdIdentidadGenero,
+                    gi.[Codigo]                        AS CodigoIdentidadGenero,
+                    gi.[IdentidadGenero]               AS TextoIdentidadGenero,
+                    e.[Id Pais Nacionalidad]           AS IdPaisNacionalidad,
+                    pn.[Codigo]                        AS CodigoPaisNacionalidad,
+                    pn.[Nombre]                        AS NombrePaisNacionalidad,
+                    e.[Id Pais Recidencia]             AS IdPaisResidencia,
+                    pr.[Codigo]                        AS CodigoPaisResidencia,
+                    pr.[Nombre]                        AS NombrePaisResidencia,
+                    e.[Id Municipio Recidencia]        AS IdMunicipioResidencia,
+                    c.[Codigo]                         AS CodigoMunicipio,
+                    c.[Nombre]                         AS NombreMunicipio,
+                    e.[Id Zona Residencia]             AS IdZonaResidencia,
+                    z.[ZonaResidencia]                 AS ZonaResidencia,
+                    e.[Dirección]                      AS Direccion,
+                    e.[Id Etnia]                       AS IdEtnia,
+                    et.[CódigoEtnia]                  AS CodigoEtnia,
+                    et.[Etnia]                         AS TextoEtnia,
+                    e.[Comunidad Etnica]               AS ComunidadEtnica,
+                    e.[Id Discapacidad]                AS IdDiscapacidad,
+                    d.[Codigo]                         AS CodigoDiscapacidad,
+                    d.[Discapacidad]                   AS TextoDiscapacidad,
+                    e.[Teléfono Celular]               AS TelefonoCelular,
+                    e.[Talla]                          AS Talla,
+                    e.[Peso]                           AS Peso,
+                    e.[Codigo Prestador]               AS CodigoPrestador,
+                    e.[Codigo Admin Plan Beneficios]   AS CodigoAdminPlanBeneficios,
+                    e.[Nombre Admin Plan Beneficios]   AS NombreAdminPlanBeneficios,
+                    e.[Fecha RDA]                      AS FechaRDA,
+                    e.[Alergeno]                       AS Alergeno,
+                    e.[Tipo Alergia]                   AS TipoAlergia,
+                    e.[Fecha Hora Inicio Atencion]     AS FechaHoraInicioAtencion,
+                    e.[Fecha Hora Fin Atencion]        AS FechaHoraFinAtencion,
+                    e.[Tipo Doc Profesional]           AS TipoDocProfesional,
+                    e.[Num Doc Profesional]            AS NumDocProfesional,
+                    e.[Diagnostico Ingreso CIE11 Codigo]  AS DiagnosticoIngresoCIE11Codigo,
+                    e.[Diagnostico Ingreso CIE11 Termino] AS DiagnosticoIngresoCIE11Termino,
+                    e.[Id Modalidad Atencion]          AS IdModalidadAtencion,
+                    e.[Id Grupo Servicios]             AS IdGrupoServicios,
+                    e.[NIT Prestador IPS]              AS NitPrestadorIPS,
+                    e.[Nombre Prestador IPS]           AS NombrePrestadorIPS,
+                    ma.[Codigo]                        AS CodigoModalidadAtencion,
+                    ma.[NombreModalidadAtencion]       AS NombreModalidadAtencion,
+                    gs.[Codigo]                        AS CodigoGrupoServicios,
+                    gs.[NombreGrupoServicios]          AS NombreGrupoServicios
+                FROM [dbo].[Evaluacion Entidad RDA] e
+                LEFT JOIN [dbo].[Cnsta Tipodocumento 1888] t
+                    ON t.[IdTipodeDocumento] = e.[Id Tipo Documento]
+                LEFT JOIN [dbo].[Cnsta Sexo 1888] sx
+                    ON sx.[IdSexo] = e.[Id Sexo Biologico]
+                LEFT JOIN [dbo].[Cnsta SexoIdentidad 1888] gi
+                    ON gi.[IdSexoIdentidadGenero] = e.[Id Identidad Genero]
+                LEFT JOIN [dbo].[Cnsta Pais 1888] pn
+                    ON pn.[IdPais1888] = e.[Id Pais Nacionalidad]
+                LEFT JOIN [dbo].[Cnsta Pais 1888] pr
+                    ON pr.[IdPais1888] = e.[Id Pais Recidencia]
+                LEFT JOIN [dbo].[Cnsta Ciudad 1888] c
+                    ON c.[IdCiudad1888] = e.[Id Municipio Recidencia]
+                LEFT JOIN [dbo].[Cnsta ZonaResidencia 1888] z
+                    ON z.[IdZonaResidencia] = e.[Id Zona Residencia]
+                LEFT JOIN [dbo].[Cnsta Etnia 1888] et
+                    ON et.[IdEtnia] = e.[Id Etnia]
+                LEFT JOIN [dbo].[Cnsta Discapacidad 1888] d
+                    ON d.[IdDiscapacidad] = e.[Id Discapacidad]
+                LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
+                    ON ma.[IdModalidadAtencion] = e.[Id Modalidad Atencion]
+                LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
+                    ON gs.[IdGrupoServicios] = e.[Id Grupo Servicios]
+                WHERE e.[Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA
+            `);
+
+        if (!main.recordset || !main.recordset.length) {
+            return res.status(404).json({ ok: false, error: 'No existe Evaluacion Entidad RDA para el Id indicado' });
+        }
+
+        const head = main.recordset[0];
+
+        // 2) Listas
+        const [antecedentsRes, antecedentsFamRes, medsRes, parentescosRes] = await Promise.all([
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Descripcion]
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Salud]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Parentesco], [Descripcion], [CIE11 Codigo] AS CIE11Codigo, [CIE11 Termino] AS CIE11Termino
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Familiares]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request()
+                .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                .query(`
+                    SELECT [Descripcion]
+                    FROM [dbo].[Evaluacion Entidad RDA Antecedentes Farmacologicos]
+                    WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA AND [Id Estado] = 1
+                `),
+            pool.request().query(`
+                SELECT Codigo, Descripcion
+                FROM [dbo].[Cnsta Parentesco familiar RDA 1888]
+            `)
+        ]);
+
+        const parentescosMap = new Map(
+            (parentescosRes.recordset || []).map((r) => [String(r.Codigo), String(r.Descripcion)])
+        );
+
+        const antecedentes = (antecedentsRes.recordset || []).map((r) => {
+            const parsed = parseCodigoDescripcion(r.Descripcion);
+            return { codigo: parsed.codigo, descripcion: parsed.descripcion };
+        });
+
+        const antecedentesFam = (antecedentsFamRes.recordset || []).map((r) => {
+            const parsed = parseCodigoDescripcion(r.Descripcion);
+            const parentescoCodigo = r.Parentesco != null ? String(r.Parentesco) : '';
+            const c11c = r.CIE11Codigo != null ? String(r.CIE11Codigo).trim() : '';
+            const c11t = r.CIE11Termino != null ? String(r.CIE11Termino).trim() : '';
+            return {
+                parentesco: parentescoCodigo,
+                textoParentesco: parentescosMap.get(parentescoCodigo) || undefined,
+                codigo: parsed.codigo,
+                descripcion: parsed.descripcion,
+                cie11Codigo: c11c || undefined,
+                cie11Termino: c11t || undefined,
+            };
+        });
+
+        const medicamentos = (medsRes.recordset || []).map((r) => {
+            const parsed = parseNombreObservacion(r.Descripcion);
+            return { nombre: parsed.nombre, observacion: parsed.observacion };
+        });
+
+        // 3) Resources base (Patient + Organization)
+        // IHCE recomienda referencias por tipo y número de identificación para Patient/Practitioner
+        const docTypePaciente = (head.CodigoTipoDocumento || head.TipoDocumento || 'SI').toString().trim();
+        const docNumPaciente = (head.DocumentoEntidad || 'NO-INFORMADO').toString().trim();
+        const pacienteId = `${docTypePaciente}-${docNumPaciente}`;
+
+        // Para EAPB se usa el código (EAPBS) cuando exista
+        const orgId = head.CodigoAdminPlanBeneficios != null && String(head.CodigoAdminPlanBeneficios).trim()
+            ? String(head.CodigoAdminPlanBeneficios).trim()
+            : newUuid();
+
+        // -----------------------------------------------------------------------
+        // Helper: builds a PatientRDA-conformant resource from the enriched head
+        // row (includes catalog JOIN columns).
+        // Reference profile example: https://vulcano.ihcecol.gov.co/Patient-92a8e277...
+        // -----------------------------------------------------------------------
+        const buildPatientRdaFromHead = (h, pid, orgEntry) => {
+            // Primitive helpers
+            const str  = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
+            const toIsoDate = (v) => {
+                if (!v) return null;
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+            };
+
+            // gender: DB sexo code (F/M) → FHIR administrative gender + BiologicalGender extension
+            const sexCode = str(h.CodigoSexo) || str(h.Sexo);
+            const fhirGender = sexCode
+                ? ({ F: 'female', M: 'male' }[sexCode.toUpperCase()] || 'other')
+                : undefined;
+            const biologicalGenderMap = { F: { code: '02', display: 'Mujer' }, M: { code: '01', display: 'Hombre' } };
+            const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '03', display: 'Indeterminado o Intersexual' }) : null;
+
+            // Document type display label for ColombianPersonIdentifier
+            const docTypeLabels = {
+                CC: 'Cédula ciudadanía', TI: 'Tarjeta de identidad',
+                RC: 'Registro civil',    CE: 'Cédula de extranjería',
+                PA: 'Pasaporte',         PE: 'Permiso especial de permanencia',
+                PT: 'Permiso temporal de permanencia', CD: 'Carné diplomático',
+                SC: 'Salvo conducto',    PPT: 'Permiso por Protección Temporal',
+                AS: 'Adulto sin identificación', MS: 'Menor sin identificación',
+                SI: 'Sin identificación',
+            };
+            const docTypeCode = str(h.TipoDocumento) || str(h.CodigoTipoDocumento);
+
+            // Residence zone: map DB value (U/R or Urbana/Rural) to ColombianResidenceZone code
+            const zonaText = str(h.ZonaResidencia) || '';
+            const zonaLower = zonaText.toLowerCase();
+            const zonaCode = (zonaLower === 'r' || zonaLower.includes('rural'))  ? '02'
+                           : (zonaLower === 'u' || zonaLower.includes('urban'))  ? '01'
+                           : (zonaText ? '01' : null);
+            const zonaDisplay = zonaCode === '02' ? 'Rural' : zonaCode === '01' ? 'Urbana' : undefined;
+
+            // Build Patient-level extensions
+            const patExt = [];
+            if (str(h.CodigoPaisNacionalidad)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientNationality',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661',
+                        code: str(h.CodigoPaisNacionalidad),
+                        display: str(h.NombrePaisNacionalidad) || undefined,
+                    },
+                });
+            }
+            if (str(h.CodigoEtnia)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
+                        code: str(h.CodigoEtnia),
+                        display: str(h.TextoEtnia) || undefined,
+                    },
+                });
+            }
+            if (str(h.ComunidadEtnica)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicCommunity',
+                    valueString: str(h.ComunidadEtnica),
+                });
+            }
+            if (str(h.CodigoDiscapacidad)) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientDisability',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification',
+                        code: str(h.CodigoDiscapacidad),
+                        display: str(h.TextoDiscapacidad) || undefined,
+                    },
+                });
+            }
+            if (str(h.CodigoIdentidadGenero) && h.IdIdentidadGenero && h.IdIdentidadGenero !== 0) {
+                patExt.push({
+                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientGenderIdentity',
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity',
+                        code: str(h.CodigoIdentidadGenero),
+                        display: str(h.TextoIdentidadGenero) || undefined,
+                    },
+                });
+            }
+
+            // Name
+            const primerApellido  = str(h.PrimerApellidoEntidad)  || '';
+            const segundoApellido = str(h.SegundoApellidoEntidad) || '';
+            const primerNombre    = str(h.PrimerNombreEntidad)    || '';
+            const segundoNombre   = str(h.SegundoNombreEntidad)   || '';
+            const familyText      = [primerApellido, segundoApellido].filter(Boolean).join(' ') || undefined;
+            const givenArr        = [primerNombre, segundoNombre].filter(Boolean);
+            const familyExtArr    = [
+                ...(primerApellido  ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionFathersFamilyName', valueString: primerApellido }]  : []),
+                ...(segundoApellido ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionMothersFamilyName', valueString: segundoApellido }] : []),
+            ];
+
+            // Address
+            const hasAddr = str(h.CodigoPaisResidencia) || str(h.NombreMunicipio) || str(h.Direccion);
+            const homeAddr = hasAddr ? (() => {
+                const addr = { id: 'HomeAddress-0', use: 'home', type: 'physical' };
+                if (zonaCode) {
+                    addr.extension = [{
+                        url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionResidenceZone',
+                        valueCoding: {
+                            system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianResidenceZone',
+                            code: zonaCode,
+                            display: zonaDisplay,
+                        },
+                    }];
+                }
+                if (str(h.Direccion)) addr.line = [str(h.Direccion)];
+                if (str(h.NombreMunicipio)) {
+                    addr.city = str(h.NombreMunicipio);
+                    if (str(h.CodigoMunicipio)) {
+                        addr._city = { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaMunicipality', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA', code: str(h.CodigoMunicipio) } }] };
+                    }
+                }
+                if (str(h.CodigoPaisResidencia)) {
+                    addr.country = str(h.NombrePaisResidencia) || str(h.CodigoPaisResidencia);
+                    addr._country = { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionCountryCode', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661', code: str(h.CodigoPaisResidencia) } }] };
+                }
+                return addr;
+            })() : null;
+
+            // Telecom
+            const phoneVal = str(h.TelefonoCelular);
+
+            // Compose resource
+            return {
+                resourceType: 'Patient',
+                id: pid,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PatientRDA'],
+                },
+                ...(patExt.length > 0 ? { extension: patExt } : {}),
+                identifier: str(h.DocumentoEntidad)
+                    ? [{
+                        id: 'NationalPersonIdentifier-0',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
+                                ...(docTypeCode ? [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier', code: docTypeCode, display: docTypeLabels[docTypeCode] || docTypeCode }] : []),
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
+                        value: str(h.DocumentoEntidad),
+                    }]
+                    : undefined,
+                active: true,
+                ...(familyText || givenArr.length > 0
+                    ? { name: [{
+                        use: 'official',
+                        ...(familyText ? { family: familyText } : {}),
+                        ...(familyExtArr.length > 0 ? { _family: { extension: familyExtArr } } : {}),
+                        ...(givenArr.length > 0 ? { given: givenArr } : {}),
+                    }] }
+                    : {}),
+                ...(fhirGender ? { gender: fhirGender } : {}),
+                ...(biologicalGender ? { _gender: { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup', code: biologicalGender.code, display: biologicalGender.display } }] } } : {}),
+                ...(() => {
+                    const birthIso = toIsoDate(h.FechaNacimiento);
+                    if (!birthIso) return {};
+                    const out = { birthDate: birthIso };
+                    const birthDt = new Date(h.FechaNacimiento);
+                    if (!isNaN(birthDt.getTime())) {
+                        const hasTime =
+                            birthDt.getUTCHours() ||
+                            birthDt.getUTCMinutes() ||
+                            birthDt.getUTCSeconds() ||
+                            birthDt.getUTCMilliseconds();
+                        if (hasTime) {
+                            out._birthDate = {
+                                extension: [
+                                    {
+                                        url: 'http://hl7.org/fhir/StructureDefinition/patient-birthTime',
+                                        valueDateTime: birthDt.toISOString(),
+                                    },
+                                ],
+                            };
+                        }
+                    }
+                    return out;
+                })(),
+                deceasedBoolean: false,
+                ...(phoneVal ? { telecom: [{ system: 'phone', value: phoneVal }] } : {}),
+                ...(homeAddr ? { address: [homeAddr] } : {}),
+                ...(orgEntry ? { managingOrganization: { reference: orgEntry.fullUrl, display: str(h.NombreAdminPlanBeneficios) || undefined } } : {}),
+            };
+        };
+
+        // Organization resource (EAPB) — use a generated UUID so fullUrl is valid
+        const organizationName = head.NombreAdminPlanBeneficios || '';
+        const organizationResource = organizationName
+            ? {
+                resourceType: 'Organization',
+                id: orgId,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/HealthBenefitPlanAdminOrganizationRDA'],
+                },
+                identifier: head.CodigoAdminPlanBeneficios
+                    ? [{ system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/EAPBS', value: String(head.CodigoAdminPlanBeneficios) }]
+                    : undefined,
+                active: true,
+                name: organizationName,
+            }
+            : null;
+
+        // Build a temporary Organization entry reference so Patient.managingOrganization can point to it
+        const orgEntryRef = organizationResource ? { fullUrl: `#${orgId}` } : null;
+
+        const patientResource = buildPatientRdaFromHead(head, pacienteId, orgEntryRef);
+
+        const docTypeLabelsProf = {
+            CC: 'Cédula ciudadanía',
+            TI: 'Tarjeta de identidad',
+            RC: 'Registro civil',
+            CE: 'Cédula de extranjería',
+            PA: 'Pasaporte',
+            PE: 'Permiso especial de permanencia',
+            PT: 'Permiso temporal de permanencia',
+            CD: 'Carné diplomático',
+            SC: 'Salvo conducto',
+            PPT: 'Permiso por Protección Temporal',
+            AS: 'Adulto sin identificación',
+            MS: 'Menor sin identificación',
+            SI: 'Sin identificación',
+        };
+        const tipoProf = (head.TipoDocProfesional || 'SI').toString().trim();
+        const numProf = (head.NumDocProfesional || 'NO-INFORMADO').toString().trim();
+        const practId = `${tipoProf}-${numProf}`;
+        const practitionerResource = {
+            resourceType: 'Practitioner',
+            id: practId,
+            meta: {
+                profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PractitionerRDA'],
+            },
+            identifier: [
+                {
+                    id: 'NationalPersonIdentifier-0',
+                    use: 'official',
+                    type: {
+                        coding: [
+                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
+                            {
+                                system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier',
+                                code: tipoProf,
+                                display: docTypeLabelsProf[tipoProf] || tipoProf,
+                            },
+                        ],
+                    },
+                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
+                    value: numProf,
+                },
+            ],
+            active: true,
+        };
+        const practitionerEntry = makeEntry(practitionerResource);
+
+        const nitIps = head.NitPrestadorIPS != null ? String(head.NitPrestadorIPS).trim() : '';
+        const codPrest = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
+        const ipsId = codPrest || newUuid();
+        let organizationIpsEntry = null;
+        if (nitIps && codPrest) {
+            const nombreIps =
+                head.NombrePrestadorIPS != null && String(head.NombrePrestadorIPS).trim()
+                    ? String(head.NombrePrestadorIPS).trim()
+                    : `IPS (${codPrest})`;
+            const ipsResource = {
+                resourceType: 'Organization',
+                id: ipsId,
+                meta: {
+                    profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'],
+                },
+                active: true,
+                name: nombreIps,
+                identifier: [
+                    {
+                        id: 'TaxIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                                    code: 'TAX',
+                                    display: 'Tax ID number',
+                                },
+                                {
+                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
+                                    code: 'NIT',
+                                    display: 'Número de Identificación Tributaria',
+                                },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                        value: nitIps,
+                    },
+                    {
+                        id: 'HealthcareProviderIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                {
+                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                                    code: 'PRN',
+                                    display: 'Provider number',
+                                },
+                                {
+                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
+                                    code: 'CodigoPrestador',
+                                    display: 'Código de habilitación de prestador de servicios de salud',
+                                },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: codPrest,
+                    },
+                ],
+            };
+            organizationIpsEntry = makeEntry(ipsResource);
+        }
+
+        if (organizationResource && head.CodigoAdminPlanBeneficios) {
+            organizationResource.id = String(head.CodigoAdminPlanBeneficios).trim();
+        }
+        const organizationEapbEntry = organizationResource ? makeEntry(organizationResource) : null;
+
+        const bundle = buildRdaPacienteBundle({
+            paciente: { id: pacienteId, resource: patientResource },
+            organizationEapb: organizationEapbEntry,
+            organizationIps: organizationIpsEntry,
+            practitioner: practitionerEntry,
+            head,
+            antecedents: antecedentes,
+            antecedentsFam: antecedentesFam,
+            medications: medicamentos,
+            alergia: { alergeno: head.Alergeno, tipoAlergia: head.TipoAlergia },
+        });
+
+        return res.json(bundle);
+    } catch (error) {
+        console.error('❌ [RDA] Error al construir Bundle FHIR RDA Paciente:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
+// ======================================================================================
+// RDA PACIENTE — Envío a IHCE (sandbox/prod) desde backend
+// ======================================================================================
+// Body: { "IdEvaluacionEntidadRDA": 123, "ambiente": "sandbox" | "prod" }
+// Requiere variables de entorno por ambiente:
+//   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID, IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
+//   IHCE_PROD_BASE_URL,    IHCE_PROD_TENANT_ID,    IHCE_PROD_CLIENT_ID,    IHCE_PROD_CLIENT_SECRET,    IHCE_PROD_SCOPE,    IHCE_PROD_SUBSCRIPTION_KEY
+router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
+    const https = require('https');
+
+    const { IdEvaluacionEntidadRDA, ambiente } = req.body || {};
+    const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDA requerido (number)' });
+    }
+
+    const envPrefix = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
+        ? 'IHCE_PROD_'
+        : 'IHCE_SANDBOX_';
+
+    const baseUrl = process.env[`${envPrefix}BASE_URL`];
+    const tenantId = process.env[`${envPrefix}TENANT_ID`];
+    const clientId = process.env[`${envPrefix}CLIENT_ID`];
+    const clientSecret = process.env[`${envPrefix}CLIENT_SECRET`];
+    const scope = process.env[`${envPrefix}SCOPE`];
+    const subscriptionKey = process.env[`${envPrefix}SUBSCRIPTION_KEY`];
+    const forceCustodianNIT = process.env[`${envPrefix}CUSTODIAN_NIT`];
+    const forceCustodianREPS = process.env[`${envPrefix}CUSTODIAN_REPS`];
+    const forceCustodianName = process.env[`${envPrefix}CUSTODIAN_NAME`];
+
+    const missing = [
+        !baseUrl && 'BASE_URL',
+        !tenantId && 'TENANT_ID',
+        !clientId && 'CLIENT_ID',
+        !clientSecret && 'CLIENT_SECRET',
+        !scope && 'SCOPE',
+        !subscriptionKey && 'SUBSCRIPTION_KEY',
+    ].filter(Boolean);
+    if (missing.length) {
+        return res.status(500).json({ ok: false, error: `Faltan variables de entorno IHCE: ${envPrefix}{${missing.join(', ')}}` });
+    }
+
+    const httpJson = (url, { method = 'GET', headers = {}, body = null } = {}) =>
+        new Promise((resolve, reject) => {
+            const u = new URL(url);
+            const opts = {
+                method,
+                hostname: u.hostname,
+                path: u.pathname + (u.search || ''),
+                headers,
+            };
+            const req2 = https.request(opts, (resp) => {
+                let data = '';
+                resp.on('data', (chunk) => (data += chunk));
+                resp.on('end', () => resolve({ status: resp.statusCode || 0, headers: resp.headers, body: data }));
+            });
+            req2.on('error', reject);
+            if (body) req2.write(body);
+            req2.end();
+        });
+
+    try {
+        // 1) Obtener Bundle desde el endpoint interno (mismo backend)
+        const localBase = `http://localhost:${process.env.PORT || 3000}`;
+        const bundleResp = await new Promise((resolve, reject) => {
+            const http = require('http');
+            const payload = JSON.stringify({ IdEvaluacionEntidadRDA: id });
+            const req3 = http.request(
+                `${localBase}/apiV3/RdaPaciente/FhirBundle`,
+                { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
+                (resp) => {
+                    let data = '';
+                    resp.on('data', (c) => (data += c));
+                    resp.on('end', () => resolve({ status: resp.statusCode || 0, body: data }));
+                }
+            );
+            req3.on('error', reject);
+            req3.write(payload);
+            req3.end();
+        });
+        if (bundleResp.status < 200 || bundleResp.status >= 300) {
+            return res.status(500).json({ ok: false, error: `No se pudo construir el Bundle local (status ${bundleResp.status})`, details: bundleResp.body });
+        }
+        const bundle = JSON.parse(bundleResp.body);
+
+        // Opcional: forzar custodian para que coincida con el token del prestador (IHCE valida coherencia).
+        // Se usa cuando los datos en BD/UI aún no están alineados (NIT/REPS).
+        if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
+            const reps = String(forceCustodianREPS).trim();
+            const nit = forceCustodianNIT != null ? String(forceCustodianNIT).trim() : '';
+            const name = forceCustodianName != null && String(forceCustodianName).trim()
+                ? String(forceCustodianName).trim()
+                : `IPS (${reps})`;
+
+            const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
+            const compEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+            if (compEntry && compEntry.resource) {
+                compEntry.resource.custodian = { reference: `#${reps}` };
+            }
+
+            let orgEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Organization' && e.resource.id === reps);
+            if (!orgEntry) {
+                orgEntry = { resource: { resourceType: 'Organization', id: reps } };
+                entries.push(orgEntry);
+                bundle.entry = entries;
+            }
+            orgEntry.resource.active = true;
+            orgEntry.resource.meta = orgEntry.resource.meta || { profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'] };
+            orgEntry.resource.name = name;
+            if (nit) {
+                orgEntry.resource.identifier = [
+                    {
+                        id: 'TaxIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
+                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                        value: nit,
+                    },
+                    {
+                        id: 'HealthcareProviderIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
+                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: reps,
+                    },
+                ];
+            } else {
+                orgEntry.resource.identifier = orgEntry.resource.identifier || [
+                    {
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: reps,
+                    },
+                ];
+            }
+        }
+
+        // 2) Obtener token Entra (client_credentials)
+        const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+        const tokenBody = new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+        }).toString();
+
+        const tokenResp = await httpJson(tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(tokenBody) },
+            body: tokenBody,
+        });
+        if (tokenResp.status !== 200) {
+            return res.status(502).json({ ok: false, error: `Token IHCE falló (status ${tokenResp.status})`, details: tokenResp.body });
+        }
+        const tokenJson = JSON.parse(tokenResp.body);
+        const accessToken = tokenJson.access_token;
+        if (!accessToken) {
+            return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenJson });
+        }
+
+        // 3) Enviar a IHCE
+        const sendUrl = `${baseUrl.replace(/\/$/, '')}/Composition/$enviar-rda-paciente`;
+        const sendBody = JSON.stringify(bundle);
+        const sendResp = await httpJson(sendUrl, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Ocp-Apim-Subscription-Key': subscriptionKey,
+                'Content-Type': 'application/fhir+json',
+                Accept: 'application/fhir+json',
+                'Content-Length': Buffer.byteLength(sendBody),
+            },
+            body: sendBody,
+        });
+
+        // Devolver lo que IHCE responde (útil para depurar OperationOutcome)
+        return res.status(sendResp.status || 502).send(sendResp.body || '');
+    } catch (error) {
+        console.error('❌ [RDA] Error en EnviarIHCE:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
+// --- RDA Consulta Externa (tabla principal + hijas, análogo a Evaluacion Entidad RDA) ---
+const toDateTimeRDACE = (str) => {
+    if (!str) return null;
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+};
+
+router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
+    const {
+        DocumentoEntidad, FechaRDA,
+        CodigoPrestador, CodigoAdminPlanBeneficios, NombreAdminPlanBeneficios,
+        FechaHoraInicioAtencion, FechaHoraFinAtencion,
+        TipoDocProfesional, NumDocProfesional,
+        DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
+        TipoAlergia,
+        EntornoAtencion, TipoFactorRiesgo, NombreFactorRiesgo,
+        DiagnosticoPrincipalCIE10Codigo, DiagnosticoPrincipalCIE10Nombre, TipoDiagnosticoPrincipal,
+        CondicionDestinoEgreso, CodigoPrestadorRemite,
+        AlcanceIncapacidad, DiasIncapacidad, DiasLicenciaMaternidad,
+        NombreDocumentoPDF,
+        IdModalidadAtencion, IdGrupoServicios, IdViaIngresoUsuario, IdCausaMotivoAtencion,
+    } = req.body;
+
+    const rdaceIntOrNull = (v) => {
+        if (v == null || v === '') return null;
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : null;
+    };
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('FechaRDA', sql.DateTime2, toDateTimeRDACE(FechaRDA) || new Date())
+            .input('CodigoPrestador', sql.NVarChar, CodigoPrestador || null)
+            .input('CodigoAdminPlanBeneficios', sql.NVarChar, CodigoAdminPlanBeneficios || null)
+            .input('NombreAdminPlanBeneficios', sql.NVarChar, NombreAdminPlanBeneficios || null)
+            .input('FechaHoraInicioAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraInicioAtencion))
+            .input('FechaHoraFinAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraFinAtencion))
+            .input('TipoDocProfesional', sql.NVarChar, TipoDocProfesional || null)
+            .input('NumDocProfesional', sql.NVarChar, NumDocProfesional || null)
+            .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar, DiagnosticoIngresoCIE11Codigo || null)
+            .input('DiagnosticoIngresoCIE11Termino', sql.NVarChar, DiagnosticoIngresoCIE11Termino || null)
+            .input('TipoAlergia', sql.NVarChar, TipoAlergia || null)
+            .input('EntornoAtencion', sql.NVarChar, EntornoAtencion || null)
+            .input('TipoFactorRiesgo', sql.NVarChar, TipoFactorRiesgo || null)
+            .input('NombreFactorRiesgo', sql.NVarChar, NombreFactorRiesgo || null)
+            .input('DiagnosticoPrincipalCIE10Codigo', sql.NVarChar, DiagnosticoPrincipalCIE10Codigo || null)
+            .input('DiagnosticoPrincipalCIE10Nombre', sql.NVarChar, DiagnosticoPrincipalCIE10Nombre || null)
+            .input('TipoDiagnosticoPrincipal', sql.NVarChar, TipoDiagnosticoPrincipal || null)
+            .input('CondicionDestinoEgreso', sql.NVarChar, CondicionDestinoEgreso || null)
+            .input('CodigoPrestadorRemite', sql.NVarChar, CodigoPrestadorRemite || null)
+            .input('AlcanceIncapacidad', sql.NVarChar, AlcanceIncapacidad || null)
+            .input('DiasIncapacidad', sql.Int, DiasIncapacidad != null && DiasIncapacidad !== '' ? parseInt(DiasIncapacidad, 10) : null)
+            .input('DiasLicenciaMaternidad', sql.Int, DiasLicenciaMaternidad != null && DiasLicenciaMaternidad !== '' ? parseInt(DiasLicenciaMaternidad, 10) : null)
+            .input('NombreDocumentoPDF', sql.NVarChar, NombreDocumentoPDF || null)
+            .input('IdModalidadAtencion', sql.Int, rdaceIntOrNull(IdModalidadAtencion))
+            .input('IdGrupoServicios', sql.Int, rdaceIntOrNull(IdGrupoServicios))
+            .input('IdViaIngresoUsuario', sql.Int, rdaceIntOrNull(IdViaIngresoUsuario))
+            .input('IdCausaMotivoAtencion', sql.Int, rdaceIntOrNull(IdCausaMotivoAtencion))
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA Consulta Externa]
+                (
+                    [Documento Entidad], [Fecha RDA],
+                    [Codigo Prestador], [Codigo Admin Plan Beneficios], [Nombre Admin Plan Beneficios],
+                    [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
+                    [Tipo Doc Profesional], [Num Doc Profesional],
+                    [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
+                    [Tipo Alergia],
+                    [Entorno Atencion], [Tipo Factor Riesgo], [Nombre Factor Riesgo],
+                    [Diagnostico Principal CIE10 Codigo], [Diagnostico Principal CIE10 Nombre], [Tipo Diagnostico Principal],
+                    [Condicion Destino Egreso], [Codigo Prestador Remite],
+                    [Alcance Incapacidad], [Dias Incapacidad], [Dias Licencia Maternidad],
+                    [Nombre Documento PDF],
+                    [Id Modalidad Atencion], [Id Grupo Servicios], [Id Via Ingreso Usuario], [Id Causa Motivo Atencion]
+                )
+                OUTPUT INSERTED.[Id Evaluacion Entidad RDA Consulta Externa]
+                VALUES
+                (
+                    @DocumentoEntidad, @FechaRDA,
+                    @CodigoPrestador, @CodigoAdminPlanBeneficios, @NombreAdminPlanBeneficios,
+                    @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
+                    @TipoDocProfesional, @NumDocProfesional,
+                    @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
+                    @TipoAlergia,
+                    @EntornoAtencion, @TipoFactorRiesgo, @NombreFactorRiesgo,
+                    @DiagnosticoPrincipalCIE10Codigo, @DiagnosticoPrincipalCIE10Nombre, @TipoDiagnosticoPrincipal,
+                    @CondicionDestinoEgreso, @CodigoPrestadorRemite,
+                    @AlcanceIncapacidad, @DiasIncapacidad, @DiasLicenciaMaternidad,
+                    @NombreDocumentoPDF,
+                    @IdModalidadAtencion, @IdGrupoServicios, @IdViaIngresoUsuario, @IdCausaMotivoAtencion
+                )
+            `);
+        const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA Consulta Externa'];
+        res.json({ ok: true, IdEvaluacionEntidadRDACE: idInsertado });
+    } catch (error) {
+        console.error('❌ Error al insertar Evaluacion Entidad RDA Consulta Externa:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesSalud', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Salud]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Salud:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesFamiliares', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Parentesco', sql.NVarChar, Parentesco || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Familiares]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Parentesco], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Parentesco, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Familiar:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/AntecedentesFarmacologicos', async (req, res) => {
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Descripcion, IdEstado } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
+            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Farmacologicos]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Documento Entidad], [Descripcion], [Id Estado])
+                VALUES (@IdRDACE, @DocumentoEntidad, @Descripcion, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Antecedente Farmacológico:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/DiagnosticosRelacionados', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        CodigoCIE10, NombreCIE10, CodigoCIE11, TerminoCIE11,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('CodigoCIE10', sql.NVarChar, CodigoCIE10 || null)
+            .input('NombreCIE10', sql.NVarChar, NombreCIE10 || null)
+            .input('CodigoCIE11', sql.NVarChar, CodigoCIE11 || null)
+            .input('TerminoCIE11', sql.NVarChar, TerminoCIE11 || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Diagnosticos Relacionados]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Codigo CIE10], [Nombre CIE10], [Codigo CIE11], [Termino CIE11], [Id Estado])
+                VALUES (@IdRDACE, @CodigoCIE10, @NombreCIE10, @CodigoCIE11, @TerminoCIE11, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Diagnóstico relacionado:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/PrescripcionMedicamentos', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, dci, fechaPrescripcion,
+        dosis, unidadDosis, via,
+        duracionCant, duracionUnid, frecuenciaCant, frecuenciaUnid, finalidad,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('CodigoMed', sql.NVarChar, codigo || null)
+            .input('NombreMed', sql.NVarChar, nombre || null)
+            .input('Dci', sql.NVarChar, dci || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('Dosis', sql.NVarChar, dosis != null ? String(dosis) : null)
+            .input('UnidadDosis', sql.NVarChar, unidadDosis || null)
+            .input('Via', sql.NVarChar, via || null)
+            .input('DurCant', sql.NVarChar, duracionCant != null ? String(duracionCant) : null)
+            .input('DurUnid', sql.NVarChar, duracionUnid || null)
+            .input('FreqCant', sql.NVarChar, frecuenciaCant != null ? String(frecuenciaCant) : null)
+            .input('FreqUnid', sql.NVarChar, frecuenciaUnid || null)
+            .input('Finalidad', sql.NVarChar, finalidad != null ? String(finalidad) : null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos]
+                (
+                    [Id Evaluacion Entidad RDA Consulta Externa],
+                    [Tipo Tec Salud], [Codigo Medicamento], [Nombre Medicamento], [Descripcion Comun DCI],
+                    [Fecha Prescripcion], [Dosis Ordenada], [Unidad Medida Dosis], [Via Administracion],
+                    [Duracion Cantidad], [Duracion Unidad Tiempo], [Frecuencia Cantidad], [Frecuencia Unidad Tiempo],
+                    [Finalidad Tec Salud], [Id Estado]
+                )
+                VALUES
+                (
+                    @IdRDACE,
+                    @TipoTec, @CodigoMed, @NombreMed, @Dci,
+                    @FechaPresc, @Dosis, @UnidadDosis, @Via,
+                    @DurCant, @DurUnid, @FreqCant, @FreqUnid,
+                    @Finalidad, @IdEstado
+                )
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Prescripción medicamento:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/PrescripcionProcedimientos', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, finalidad, fechaPrescripcion,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('CodigoProc', sql.NVarChar, codigo || null)
+            .input('NombreProc', sql.NVarChar, nombre || null)
+            .input('Finalidad', sql.NVarChar, finalidad || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Tipo Tec Salud], [Codigo Procedimiento], [Nombre Procedimiento], [Finalidad Tec Salud], [Fecha Prescripcion], [Id Estado])
+                VALUES (@IdRDACE, @TipoTec, @CodigoProc, @NombreProc, @Finalidad, @FechaPresc, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Prescripción procedimiento:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+router.post('/EvaluacionEntidadRDACE/OtrasTecnologias', async (req, res) => {
+    const {
+        IdEvaluacionEntidadRDACE,
+        tipo, codigo, nombre, fechaPrescripcion, finalidad,
+        IdEstado
+    } = req.body;
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('TipoTec', sql.NVarChar, tipo || null)
+            .input('Codigo', sql.NVarChar, codigo || null)
+            .input('Nombre', sql.NVarChar, nombre || null)
+            .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
+            .input('Finalidad', sql.NVarChar, finalidad || null)
+            .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
+            .query(`
+                INSERT INTO [dbo].[Evaluacion Entidad RDA CE Otras Tecnologias]
+                ([Id Evaluacion Entidad RDA Consulta Externa], [Tipo Tec Salud], [Codigo], [Nombre], [Fecha Prescripcion], [Finalidad Tec Salud], [Id Estado])
+                VALUES (@IdRDACE, @TipoTec, @Codigo, @Nombre, @FechaPresc, @Finalidad, @IdEstado)
+            `);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('❌ Error RDACE Otra tecnología:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+});
+
+
+// Egreso y Remisión 1888 — un solo GET: sin q = todo; con ?q= = filtro (evita conflicto de rutas /:param)
+router.get('/EgresoRemision', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT  Codigo, Descripcion, IdEstado
+                FROM [Cnsta Egreso y Remision 1888]
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT  Codigo, Descripcion, IdEstado
+                FROM [Cnsta Egreso y Remision 1888]
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Egreso y Remisión:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.get('/FactorDeRiesgo', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+
+    try {
+        const pool = await poolPromise;
+
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Factor De Riesgo 1888]
+            `);
+            return res.json(result.recordset);
+        }
+
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Factor De Riesgo 1888]
+                WHERE Descripcion LIKE @Busqueda 
+                   OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error('❌ Error al obtener Factor De Riesgo:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+router.get('/TipoTecnologiaEnSalud', async (req, res) => {
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Tipo de tecnología en salud 1888]
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM [Cnsta Tipo de tecnología en salud 1888]
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener Tipo de tecnología en salud:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+/** Catálogos RDA Consulta Externa — vista [Cnsta ... 1888], ?q= opcional (whitelist) */
+const RDACE_CATALOGOS_1888 = {
+    EntornoAtencion: '[Cnsta Entorno de atencion 1888]',
+    TipoAlergia: '[Cnsta Tipo de alergia 1888]',
+    ParentescoFamiliar: '[Cnsta Parentesco familiar RDA 1888]',
+    TipoDiagnosticoPrincipal: '[Cnsta Tipo diagnostico principal 1888]',
+    UnidadMedidaDosis: '[Cnsta Unidad medida dosis 1888]',
+    ViaAdministracionMedicamento: '[Cnsta Via administracion medicamento 1888]',
+    UnidadTiempoDuracion: '[Cnsta Unidad tiempo duracion 1888]',
+    UnidadTiempoFrecuencia: '[Cnsta Unidad tiempo frecuencia 1888]',
+    FinalidadTecnologiaSalud: '[Cnsta Finalidad tecnologia salud 1888]',
+    OtraTecnologiaCategoria: '[Cnsta Otra tecnologia categoria 1888]',
+    AlcanceIncapacidad: '[Cnsta Alcance incapacidad 1888]',
+};
+
+router.get('/Catalogo1888/:clave', async (req, res) => {
+    const viewName = RDACE_CATALOGOS_1888[req.params.clave];
+    if (!viewName) {
+        return res.status(404).json({ error: 'Catálogo no encontrado', clave: req.params.clave });
+    }
+    const q = req.query.q != null ? String(req.query.q).trim() : '';
+    try {
+        const pool = await poolPromise;
+        if (!q) {
+            const result = await pool.request().query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM ${viewName}
+            `);
+            return res.json(result.recordset);
+        }
+        const result = await pool.request()
+            .input('Busqueda', sql.VarChar, '%' + q + '%')
+            .query(`
+                SELECT Codigo, Descripcion, IdEstado
+                FROM ${viewName}
+                WHERE Descripcion LIKE @Busqueda OR CAST(Codigo AS NVARCHAR(50)) LIKE @Busqueda
+            `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error catálogo 1888', req.params.clave, error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+// ============================== Desrelacionador RIPS (listado + borrado) ==============================
+function mapRowDesrelacionadorRips(row, origenTabla) {
+    const idFactura = row.IdFactura != null ? Number(row.IdFactura) : 0;
+    const idPlan = row.IdPlanTratamiento != null ? Number(row.IdPlanTratamiento) : 0;
+    const totalCab = row.TotalFacturaCabecera != null ? Number(row.TotalFacturaCabecera) : null;
+    const valII = row.ValorFacturaII != null ? Number(row.ValorFacturaII) : null;
+
+    let facturaTipo = 'sin';
+    let facturaEtiqueta = 'Sin factura';
+    let valorReportado = null;
+
+    if (idPlan > 0) {
+        facturaTipo = 'eps';
+        const nro = row.NroPlanTratamiento != null ? String(row.NroPlanTratamiento).trim() : String(idPlan);
+        facturaEtiqueta = `PLAN-TR-${nro} (EPS)`;
+        valorReportado = valII != null && !Number.isNaN(valII) ? valII : totalCab;
+    } else if (idFactura > 0) {
+        facturaTipo = 'particular';
+        const pref = row.PrefijoFactura != null ? String(row.PrefijoFactura).trim() : '';
+        const nof = row.NoFactura != null ? String(row.NoFactura).trim() : '';
+        facturaEtiqueta = nof ? `FEV-${pref}${nof}` : `FEV-ID${idFactura}`;
+        valorReportado = totalCab != null && !Number.isNaN(totalCab) ? totalCab : valII;
+    }
+
+    const cups1 = row.Cups1 != null ? String(row.Cups1).trim() : '';
+    const cups2 = row.Cups2 != null ? String(row.Cups2).trim() : '';
+    const cie1 = row.Cie1 != null ? String(row.Cie1).trim() : '';
+    const cie2 = row.Cie2 != null ? String(row.Cie2).trim() : '';
+    const parts = [];
+    if (cups1) parts.push(cups1);
+    if (cups2 && cups2 !== 'null') parts.push(cups2);
+    const cupsStr = parts.length ? parts.join(' + ') : '';
+    const cieParts = [cie1, cie2 && cie2 !== 'null' ? cie2 : ''].filter(Boolean);
+    const cieStr = cieParts.join(' / ');
+    const cupsCie = [cupsStr, cieStr].filter(Boolean).join(' — ') || '—';
+
+    const esEv = row.EsEvolucion === 1 || row.EsEvolucion === true;
+    const prefijoEval = esEv ? 'EV' : 'HC';
+
+    return {
+        origenTabla,
+        idRipsRelacion: row.IdRipsRelacion,
+        idEvaluacion: row.IdEvaluacion,
+        fechaEvaluacion: row.FechaEvaluacion,
+        prefijoEvalDisplay: prefijoEval,
+        idTipoEvaluacion: row.IdTipoEvaluacion,
+        descripcionTipoEvaluacion: row.DescripcionTipoEvaluacion,
+        cupsCie,
+        facturaTipo,
+        facturaEtiqueta,
+        valorReportado,
+        idFactura: idFactura > 0 ? idFactura : null,
+        idPlanTratamiento: idPlan > 0 ? idPlan : null,
+    };
+}
+
+router.get('/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin', async (req, res) => {
+    try {
+        const documentoPaciente = (req.params.documentoPaciente || '').trim();
+        const documentoUsuario = (req.params.documentoUsuario || '').trim();
+        const fechaInicio = req.params.fechaInicio;
+        const fechaFin = req.params.fechaFin;
+
+        if (!documentoPaciente || !documentoUsuario || !fechaInicio || !fechaFin) {
+            return res.status(400).json({ ok: false, error: 'Parámetros incompletos' });
+        }
+
+        const pool = await poolPromise;
+
+        const sqlV1 = `
+            SELECT
+                er.[Id Evaluación Entidad Rips] AS IdRipsRelacion,
+                er.[Id Evaluación Entidad] AS IdEvaluacion,
+                ee.[Fecha Evaluación Entidad] AS FechaEvaluacion,
+                ee.[Id Tipo de Evaluación] AS IdTipoEvaluacion,
+                te.[Descripción Tipo de Evaluación] AS DescripcionTipoEvaluacion,
+                CASE WHEN te.[Descripción Tipo de Evaluación] LIKE N'%voluc%' THEN 1 ELSE 0 END AS EsEvolucion,
+                er.[Codigo Rips] AS Cups1,
+                er.[Codigo Rips2] AS Cups2,
+                er.[Diagnostico Rips] AS Cie1,
+                er.[Diagnostico Rips2] AS Cie2,
+                er.[Id Factura] AS IdFactura,
+                er.[Id Plan de Tratamiento] AS IdPlanTratamiento,
+                f.[No Factura] AS NoFactura,
+                ev.[Prefijo Resolución Facturación EmpresaV] AS PrefijoFactura,
+                f.[Total Factura] AS TotalFacturaCabecera,
+                fii.[Valor FacturaII] AS ValorFacturaII,
+                pt.[Nro Plan de Tratamiento] AS NroPlanTratamiento
+            FROM [Evaluación Entidad Rips] er
+            INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+            LEFT JOIN [Tipo de Evaluación] te ON te.[Id Tipo de Evaluación] = ee.[Id Tipo de Evaluación]
+            LEFT JOIN Factura f ON f.[Id Factura] = er.[Id Factura] AND NULLIF(er.[Id Factura], 0) IS NOT NULL
+            LEFT JOIN EmpresaV ev ON f.[Id EmpresaV] = ev.[Id EmpresaV]
+            LEFT JOIN FacturaII fii ON fii.[Id Factura] = er.[Id Factura]
+                AND fii.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+                AND NULLIF(er.[Id Plan de Tratamiento], 0) IS NOT NULL
+            LEFT JOIN [Plan de Tratamiento] pt ON pt.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+            WHERE ee.[Documento Entidad] = @docPac
+              AND ee.[Documento Usuario] = @docUsr
+              AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) BETWEEN CAST(@fechaIni AS DATE) AND CAST(@fechaFin AS DATE)
+        `;
+
+        const sqlV2 = `
+            SELECT
+                er.[Id Evaluación Entidad Rips] AS IdRipsRelacion,
+                er.[Id Evaluación Entidad] AS IdEvaluacion,
+                ee.[Fecha Evaluación Entidad] AS FechaEvaluacion,
+                ee.[Id Tipo de Evaluación] AS IdTipoEvaluacion,
+                te.[Descripción Tipo de Evaluación] AS DescripcionTipoEvaluacion,
+                CASE WHEN te.[Descripción Tipo de Evaluación] LIKE N'%voluc%' THEN 1 ELSE 0 END AS EsEvolucion,
+                er.[Cups] AS Cups1,
+                er.[Cups 2] AS Cups2,
+                er.[Cie] AS Cie1,
+                er.[Cie 2] AS Cie2,
+                er.[Id Factura] AS IdFactura,
+                er.[Id Plan de Tratamiento] AS IdPlanTratamiento,
+                f.[No Factura] AS NoFactura,
+                ev.[Prefijo Resolución Facturación EmpresaV] AS PrefijoFactura,
+                f.[Total Factura] AS TotalFacturaCabecera,
+                fii.[Valor FacturaII] AS ValorFacturaII,
+                pt.[Nro Plan de Tratamiento] AS NroPlanTratamiento
+            FROM [Evaluación Entidad Rips V2] er
+            INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+            LEFT JOIN [Tipo de Evaluación] te ON te.[Id Tipo de Evaluación] = ee.[Id Tipo de Evaluación]
+            LEFT JOIN Factura f ON f.[Id Factura] = er.[Id Factura] AND NULLIF(er.[Id Factura], 0) IS NOT NULL
+            LEFT JOIN EmpresaV ev ON f.[Id EmpresaV] = ev.[Id EmpresaV]
+            LEFT JOIN FacturaII fii ON fii.[Id Factura] = er.[Id Factura]
+                AND fii.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+                AND NULLIF(er.[Id Plan de Tratamiento], 0) IS NOT NULL
+            LEFT JOIN [Plan de Tratamiento] pt ON pt.[Id Plan de Tratamiento] = er.[Id Plan de Tratamiento]
+            WHERE ee.[Documento Entidad] = @docPac
+              AND ee.[Documento Usuario] = @docUsr
+              AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) BETWEEN CAST(@fechaIni AS DATE) AND CAST(@fechaFin AS DATE)
+        `;
+
+        const reqBase = pool.request()
+            .input('docPac', sql.NVarChar(50), documentoPaciente)
+            .input('docUsr', sql.NVarChar(50), documentoUsuario)
+            .input('fechaIni', sql.VarChar(10), fechaInicio)
+            .input('fechaFin', sql.VarChar(10), fechaFin);
+
+        const r1 = await reqBase.query(sqlV1);
+        let r2 = { recordset: [] };
+        try {
+            r2 = await pool.request()
+                .input('docPac', sql.NVarChar(50), documentoPaciente)
+                .input('docUsr', sql.NVarChar(50), documentoUsuario)
+                .input('fechaIni', sql.VarChar(10), fechaInicio)
+                .input('fechaFin', sql.VarChar(10), fechaFin)
+                .query(sqlV2);
+        } catch (e2) {
+            console.warn('relacionesRipsDesrelacionador: consulta V2 omitida o tabla no disponible:', e2.message);
+        }
+
+        const out = [];
+        (r1.recordset || []).forEach((row) => out.push(mapRowDesrelacionadorRips(row, 'Rips')));
+        (r2.recordset || []).forEach((row) => out.push(mapRowDesrelacionadorRips(row, 'RipsV2')));
+
+        out.sort((a, b) => new Date(b.fechaEvaluacion) - new Date(a.fechaEvaluacion));
+        res.json({ ok: true, items: out });
+    } catch (error) {
+        console.error('❌ relacionesRipsDesrelacionador GET:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message || 'Error interno' });
+        }
+    }
+});
+
+router.delete('/relacionesRipsDesrelacionador', async (req, res) => {
+    try {
+        const idRipsRelacion = parseInt(req.body?.idRipsRelacion, 10);
+        const origenTabla = req.body?.origenTabla === 'RipsV2' ? 'RipsV2' : 'Rips';
+        const documentoPaciente = (req.body?.documentoPaciente || '').trim();
+
+        if (!idRipsRelacion || Number.isNaN(idRipsRelacion) || !documentoPaciente) {
+            return res.status(400).json({ ok: false, error: 'idRipsRelacion, origenTabla y documentoPaciente son requeridos' });
+        }
+
+        const tabla = origenTabla === 'RipsV2' ? '[Evaluación Entidad Rips V2]' : '[Evaluación Entidad Rips]';
+
+        const pool = await poolPromise;
+        const check = await pool.request()
+            .input('idRips', sql.Int, idRipsRelacion)
+            .input('docPac', sql.NVarChar(50), documentoPaciente)
+            .query(`
+                SELECT ee.[Documento Entidad] AS DocumentoPaciente
+                FROM ${tabla} er
+                INNER JOIN [Evaluación Entidad] ee ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+                WHERE er.[Id Evaluación Entidad Rips] = @idRips
+            `);
+
+        if (!check.recordset || check.recordset.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Registro RIPS no encontrado' });
+        }
+
+        const docDb = (check.recordset[0].DocumentoPaciente || '').trim();
+        if (docDb !== documentoPaciente) {
+            return res.status(403).json({ ok: false, error: 'El documento no coincide con el registro' });
+        }
+
+        await pool.request()
+            .input('idRips', sql.Int, idRipsRelacion)
+            .query(`DELETE FROM ${tabla} WHERE [Id Evaluación Entidad Rips] = @idRips`);
+
+        res.json({ ok: true, message: 'RIPS desrelacionado correctamente' });
+    } catch (error) {
+        console.error('❌ relacionesRipsDesrelacionador DELETE:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: error.message || 'Error al eliminar' });
+        }
+    }
+});
 
 // =================================================================================================
 module.exports = router;
