@@ -1,14 +1,4 @@
--- CREAR TABLA FINALIDAD CONSULTA VERSION2
-CREATE TABLE [dbo].[RIPS Finalidad Consulta Version2](
-    [Id Finalidad Consulta] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    [Codigo] [nvarchar](50) NULL,
-    [Nombre RIPS Finalidad Consulta Version2] [nvarchar](100) NULL,
-    [Descripción RIPS Finalidad Consulta Version2] [nvarchar](200) NULL,
-    [Orden RIPS Finalidad Consulta Version2] [int] NULL CONSTRAINT [DF_RIPSFinalidadConsultaVersion2_OrdenRIPSFinalidadConsultaVersion2] DEFAULT (1),
-	[AC] [nvarchar](10) NULL,
-	[AP] [nvarchar](10) NULL,
-    [Id Estado] [int] NULL CONSTRAINT [DF_RIPSFinalidadConsultaVersion2_IdEstado] DEFAULT (7)
-);
+
 
 INSERT INTO [dbo].[RIPS Finalidad Consulta Version2] ([Codigo], [Nombre RIPS Finalidad Consulta Version2], [Descripción RIPS Finalidad Consulta Version2], [Orden RIPS Finalidad Consulta Version2], [AC], [AP], [Id Estado])
 VALUES
@@ -70,14 +60,7 @@ VALUES
 
 -- CREAR TABLA RIPS CAUSA EXTERNA VERSION2
 
-CREATE TABLE [dbo].[RIPS Causa Externa Version2](
-    [Id RIPS Causa Externa Version2] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    [Codigo] [nvarchar](50) NULL,
-    [Nombre RIPS Causa Externa Version2] [nvarchar](200) NULL,
-    [Descripción RIPS Causa Externa Version2] [nvarchar](200) NULL,
-    [Orden RIPS Causa Externa Version2] [int] NULL CONSTRAINT [DF_RIPSCausaExternaVersion2_OrdenRIPSCausaExternaVersion2] DEFAULT (1),
-    [Id Estado] [int] NULL CONSTRAINT [DF_RIPSCausaExternaVersion2_IdEstado] DEFAULT (7)
-);
+
 
 INSERT INTO [dbo].[RIPS Causa Externa Version2] ([Codigo], [Nombre RIPS Causa Externa Version2], [Descripción RIPS Causa Externa Version2], [Orden RIPS Causa Externa Version2], [Id Estado])
 VALUES

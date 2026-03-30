@@ -106,7 +106,7 @@ GO
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 
-ALTER TRIGGER [dbo].[Relacion_Factura_Rips]
+CREATE TRIGGER [dbo].[Relacion_Factura_Rips]
 ON [dbo].[Evaluación Entidad Rips]
 AFTER  insert
 --NOT FOR REPLICATION

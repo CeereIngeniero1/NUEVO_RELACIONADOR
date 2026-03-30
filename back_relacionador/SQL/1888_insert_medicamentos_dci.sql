@@ -3,7 +3,7 @@ Create table [Medicamento DCI 1888]
 [ID Medicamento DCI 1888] INT IDENTITY (1,1) PRIMARY KEY,
 Codigo varchar (20),
 Descripcion Varchar(200),
-[Id Estado] int
+[Id Estado] int default 7
 )
 
 

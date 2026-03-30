@@ -55,22 +55,22 @@ Create table [Sexo Identidad Genero](
 
 )
 
-alter table Entidad1888 
-add constraint Fg_IdentidadGenero 
-foreign key ([Id Identidad Genero])
-references [Sexo Identidad Genero]
+-- alter table Entidad1888 
+-- add constraint Fg_IdentidadGenero 
+-- foreign key ([Id Identidad Genero])
+-- references [Sexo Identidad Genero]
 
 
-alter table Entidad1888
-add constraint fg_Etnia 
-foreign key ([Id Etnia])
-references Etnia
+-- alter table Entidad1888
+-- add constraint fg_Etnia 
+-- foreign key ([Id Etnia])
+-- references Etnia
 
 
-alter table Entidad1888
- add constraint fg_Discapacidad
- foreign key ([Id Discapacidad])
- references Discapacidad
+-- alter table Entidad1888
+--  add constraint fg_Discapacidad
+--  foreign key ([Id Discapacidad])
+--  references Discapacidad
 
 
 
@@ -324,7 +324,7 @@ ALTER COLUMN [Ocupación] NVARCHAR(200) NULL;
 
 
 
-CREATE VIEW [dbo].[Cnsta Relacionador Usuarios Info]
+ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
 AS
 SELECT dbo.Entidad.[Id Tipo de Documento] AS IdTipodeDocumento, dbo.[Tipo de Documento].[Descripción Tipo de Documento] AS DescripciTipoDocumento, dbo.[Tipo de Documento].[Tipo de Documento] AS TipoDocumentoBase, 
                   dbo.Entidad.[Documento Entidad] AS DocumentoPaciente, dbo.Entidad.[Primer Apellido Entidad] AS PrimerApellidoBase, dbo.Entidad.[Segundo Apellido Entidad] AS SegundoApellidoBase, 
