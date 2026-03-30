@@ -1,8 +1,38 @@
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+
+(function loadDotEnvNoDeps() {
+    const candidates = [
+        path.join(__dirname, '..', '.env'),
+        path.join(process.cwd(), 'back_relacionador', '.env'),
+        path.join(process.cwd(), '.env'),
+    ];
+    for (const envPath of candidates) {
+        try {
+            if (!fs.existsSync(envPath)) continue;
+            const text = fs.readFileSync(envPath, 'utf8');
+            for (const line of text.split(/\r?\n/)) {
+                const s = line.replace(/^\uFEFF/, '').trim();
+                if (!s || s.startsWith('#')) continue;
+                const eq = s.indexOf('=');
+                if (eq <= 0) continue;
+                const key = s.slice(0, eq).trim();
+                let val = s.slice(eq + 1).trim();
+                if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                    val = val.slice(1, -1);
+                }
+                if (process.env[key] === undefined) process.env[key] = val;
+            }
+            break;
+        } catch (err) {
+            console.warn('[.env] Lectura fallida:', envPath, err && err.message ? err.message : err);
+        }
+    }
+})();
 const { Worker } = require('worker_threads');  // Importa Worker para trabajar en un hilo diferente
 const compression = require('compression'); //Comprime las respuestas HTTP que se envían al cliente
 

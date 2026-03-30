@@ -2994,6 +2994,8 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
 // RDA PACIENTE — Construcción FHIR Bundle desde BD
 // ======================================================================================
 // Body (recomendado): { "IdEvaluacionEntidadRDA": 123 }
+// Opcional (solo pruebas / alinear custodian IHCE sin UPDATE en BD):
+//   overrideCodigoPrestador, overrideNitPrestadorIPS, overrideNombrePrestadorIPS
 // Devuelve: Bundle FHIR type="document" (paciente) con Composition + Patient + entradas
 // (Condition, FamilyMemberHistory, MedicationStatement).
 router.post('/RdaPaciente/FhirBundle', async (req, res) => {
@@ -3014,13 +3016,19 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return `uuid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     };
 
+    // IHCE (manual operativo) valida que las entradas del Bundle solo incluyan `resource`
+    // (no acepta `fullUrl`). Las referencias internas se manejan con el patrón `#<id>`.
     const makeEntry = (resource) => {
         const entryId = resource.id || newUuid();
         resource.id = entryId;
-        return {
-            fullUrl: `urn:uuid:${entryId}`,
-            resource,
-        };
+        return { resource };
+    };
+
+    const refOf = (entryOrResource) => {
+        const r = entryOrResource && entryOrResource.resource ? entryOrResource.resource : entryOrResource;
+        const id = r && r.id ? String(r.id) : '';
+        if (!id) throw new Error('[RDA] No se puede referenciar un recurso sin id');
+        return `#${id}`;
     };
 
     const nowIso = new Date().toISOString();
@@ -3104,17 +3112,19 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         medications,
         alergia,
     }) => {
-        const patientId = paciente.id;
+        const patientEntry = makeEntry(paciente.resource);
+        const patientId = patientEntry.resource.id;
         const compositionDateIso = toIsoDateTime(head && head.FechaRDA) || nowIso;
         const bundleTs = compositionDateIso;
 
-        const conditionEntries = (antecedents || []).map((item) =>
+        const conditionEntries = (antecedents || []).map((item, idx) =>
             makeEntry({
                 resourceType: 'Condition',
+                id: `Condition-${idx}`,
                 meta: {
                     profile: [`${RDA_SD}/ConditionStatementRDA`],
                 },
-                subject: { reference: `urn:uuid:${patientId}` },
+                subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: [
                         {
@@ -3132,10 +3142,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const conditionIngresoEntry = c11Ingreso
             ? makeEntry({
                 resourceType: 'Condition',
+                id: 'ConditionIngreso-0',
                 meta: {
                     profile: [`${RDA_SD}/ConditionStatementRDA`],
                 },
-                subject: { reference: `urn:uuid:${patientId}` },
+                subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: [
                         {
@@ -3153,7 +3164,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })
             : null;
 
-        const familyHistoryEntries = (antecedentsFam || []).map((item) => {
+        const familyHistoryEntries = (antecedentsFam || []).map((item, idx) => {
             const codings = [
                 {
                     system: 'http://hl7.org/fhir/sid/icd-10',
@@ -3170,11 +3181,12 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             }
             return makeEntry({
                 resourceType: 'FamilyMemberHistory',
+                id: `FamilyMemberHistory-${idx}`,
                 meta: {
                     profile: [`${RDA_SD}/FamilyMemberHistoryRDA`],
                 },
                 status: 'completed',
-                patient: { reference: `urn:uuid:${patientId}` },
+                patient: { reference: refOf(patientEntry) },
                 relationship: {
                     coding: [
                         {
@@ -3196,14 +3208,15 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             });
         });
 
-        const medicationStatementEntries = (medications || []).map((item) =>
+        const medicationStatementEntries = (medications || []).map((item, idx) =>
             makeEntry({
                 resourceType: 'MedicationStatement',
+                id: `MedicationStatement-${idx}`,
                 meta: {
                     profile: [`${RDA_SD}/MedicationStatementRDA`],
                 },
                 status: 'active',
-                subject: { reference: `urn:uuid:${patientId}` },
+                subject: { reference: refOf(patientEntry) },
                 medicationCodeableConcept: { text: item.nombre },
                 note: item.observacion ? [{ text: item.observacion }] : undefined,
             })
@@ -3220,6 +3233,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             observationEntries.push(
                 makeEntry({
                     resourceType: 'Observation',
+                    id: `Observation-Talla-0`,
                     status: 'final',
                     category: [
                         {
@@ -3241,7 +3255,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                             },
                         ],
                     },
-                    subject: { reference: `urn:uuid:${patientId}` },
+                    subject: { reference: refOf(patientEntry) },
                     valueQuantity: { value: tallaN, unit: 'cm', system: 'http://unitsofmeasure.org', code: 'cm' },
                 })
             );
@@ -3250,6 +3264,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             observationEntries.push(
                 makeEntry({
                     resourceType: 'Observation',
+                    id: `Observation-Peso-0`,
                     status: 'final',
                     category: [
                         {
@@ -3271,7 +3286,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                             },
                         ],
                     },
-                    subject: { reference: `urn:uuid:${patientId}` },
+                    subject: { reference: refOf(patientEntry) },
                     valueQuantity: { value: pesoN, unit: 'kg', system: 'http://unitsofmeasure.org', code: 'kg' },
                 })
             );
@@ -3283,6 +3298,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 const category = allergyTypeToCategory(alergia.tipoAlergia);
                 return makeEntry({
                     resourceType: 'AllergyIntolerance',
+                    id: 'AllergyIntolerance-0',
                     meta: {
                         profile: [`${RDA_SD}/AllergyIntoleranceStatementRDA`],
                     },
@@ -3304,7 +3320,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     },
                     ...(category ? { category: [category] } : {}),
                     code: { text: alergia.alergeno.toString().trim() },
-                    patient: { reference: `urn:uuid:${patientId}` },
+                    patient: { reference: refOf(patientEntry) },
                 });
             })()
             : null;
@@ -3318,27 +3334,35 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const grpCode = (head && head.CodigoGrupoServicios && String(head.CodigoGrupoServicios).trim()) || '01';
         const grpDisplay = head && head.NombreGrupoServicios ? String(head.NombreGrupoServicios) : undefined;
 
-        const practitionerRef = practitioner && practitioner.fullUrl ? { reference: practitioner.fullUrl } : null;
-        const custodianRef = organizationIps && organizationIps.fullUrl ? { reference: organizationIps.fullUrl } : undefined;
+        const practitionerRef = practitioner ? { reference: refOf(practitioner) } : null;
+        const custodianRef = organizationIps ? { reference: refOf(organizationIps) } : null;
         if (!practitionerRef) {
             throw new Error(
                 'No se pudo construir Composition.author (PractitionerRDA). Verifique Tipo/Num documento del profesional en el RDA o datos mínimos del autor.'
             );
         }
+        if (!custodianRef) {
+            throw new Error(
+                'No se pudo construir Composition.custodian (IPS). Verifique NitPrestadorIPS y CodigoPrestador en la cabecera RDA.'
+            );
+        }
 
-        const compositionId = newUuid();
+        const compositionId = 'Composition-0';
+
+        // RDA Paciente (CompositionPatientStatementRDA): encounter tiene cardinalidad 0 en el IG IHCE;
+        // incluir Encounter provoca BUNDLE-005 (“Prior creation in FHIR service”). Modalidad/grupo van en Composition.event.
         const sections = [];
         if (conditionIngresoEntry) {
             sections.push({
                 title: 'Diagnóstico de ingreso (CIE-11)',
-                entry: [{ reference: conditionIngresoEntry.fullUrl }],
+                entry: [{ reference: refOf(conditionIngresoEntry) }],
             });
         }
         sections.push(
             medicationStatementEntries.length
                 ? {
                     title: 'Antecedentes farmacológicos',
-                    entry: medicationStatementEntries.map((e) => ({ reference: e.fullUrl })),
+                    entry: medicationStatementEntries.map((e) => ({ reference: refOf(e) })),
                 }
                 : {
                     title: 'Antecedentes farmacológicos',
@@ -3349,7 +3373,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             allergyEntry
                 ? {
                     title: 'Antecedentes alérgicos',
-                    entry: [{ reference: allergyEntry.fullUrl }],
+                    entry: [{ reference: refOf(allergyEntry) }],
                 }
                 : {
                     title: 'Antecedentes alérgicos',
@@ -3360,7 +3384,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             conditionEntries.length
                 ? {
                     title: 'Antecedentes patológicos',
-                    entry: conditionEntries.map((e) => ({ reference: e.fullUrl })),
+                    entry: conditionEntries.map((e) => ({ reference: refOf(e) })),
                 }
                 : {
                     title: 'Antecedentes patológicos',
@@ -3371,7 +3395,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             familyHistoryEntries.length
                 ? {
                     title: 'Antecedentes familiares',
-                    entry: familyHistoryEntries.map((e) => ({ reference: e.fullUrl })),
+                    entry: familyHistoryEntries.map((e) => ({ reference: refOf(e) })),
                 }
                 : {
                     title: 'Antecedentes familiares',
@@ -3429,14 +3453,13 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     ],
                 },
             ],
-            subject: { reference: `urn:uuid:${patientId}` },
-            ...(custodianRef ? { custodian: custodianRef } : {}),
+            subject: { reference: refOf(patientEntry) },
+            custodian: custodianRef,
             author: [practitionerRef],
             section: sections,
         };
 
         const compositionEntry = makeEntry(compositionResource);
-        const patientEntry = makeEntry(paciente.resource);
 
         const bundleEntries = [
             compositionEntry,
@@ -3580,6 +3603,40 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         const head = main.recordset[0];
 
+        const ob = req.body || {};
+        if (ob.overrideCodigoPrestador != null && String(ob.overrideCodigoPrestador).trim()) {
+            head.CodigoPrestador = String(ob.overrideCodigoPrestador).trim();
+        }
+        if (ob.overrideNitPrestadorIPS != null && String(ob.overrideNitPrestadorIPS).trim()) {
+            head.NitPrestadorIPS = String(ob.overrideNitPrestadorIPS).trim();
+        }
+        if (ob.overrideNombrePrestadorIPS != null && String(ob.overrideNombrePrestadorIPS).trim()) {
+            head.NombrePrestadorIPS = String(ob.overrideNombrePrestadorIPS).trim();
+        }
+
+        const codPrestHdr = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
+        if (!codPrestHdr || codPrestHdr.toLowerCase() === 'null') {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'La cabecera RDA no tiene Código Prestador (REPS). Vuelva a guardar el RDA eligiendo el prestador IPS en el formulario.',
+            });
+        }
+        if (head.IdModalidadAtencion == null) {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'Falta modalidad de atención en la cabecera RDA. Complétela en el formulario antes de generar el Bundle FHIR.',
+            });
+        }
+        if (head.IdGrupoServicios == null) {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'Falta grupo de servicios en la cabecera RDA. Compléntelo en el formulario antes de generar el Bundle FHIR.',
+            });
+        }
+
         // 2) Listas
         const [antecedentsRes, antecedentsFamRes, medsRes, parentescosRes] = await Promise.all([
             pool.request()
@@ -3639,8 +3696,15 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         });
 
         // 3) Resources base (Patient + Organization)
-        const pacienteId = newUuid();
-        const orgId = newUuid();
+        // IHCE recomienda referencias por tipo y número de identificación para Patient/Practitioner
+        const docTypePaciente = (head.CodigoTipoDocumento || head.TipoDocumento || 'SI').toString().trim();
+        const docNumPaciente = (head.DocumentoEntidad || 'NO-INFORMADO').toString().trim();
+        const pacienteId = `${docTypePaciente}-${docNumPaciente}`;
+
+        // Para EAPB se usa el código (EAPBS) cuando exista
+        const orgId = head.CodigoAdminPlanBeneficios != null && String(head.CodigoAdminPlanBeneficios).trim()
+            ? String(head.CodigoAdminPlanBeneficios).trim()
+            : newUuid();
 
         // -----------------------------------------------------------------------
         // Helper: builds a PatientRDA-conformant resource from the enriched head
@@ -3738,7 +3802,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             const segundoApellido = str(h.SegundoApellidoEntidad) || '';
             const primerNombre    = str(h.PrimerNombreEntidad)    || '';
             const segundoNombre   = str(h.SegundoNombreEntidad)   || '';
-            const familyText      = [primerApellido, segundoApellido].filter(Boolean).join(' ') || undefined;
+            // IHCE (MPI-002): Patient.name.family debe ser solo el primer apellido; el segundo va en ExtensionMothersFamilyName.
+            const familyText      = primerApellido || undefined;
             const givenArr        = [primerNombre, segundoNombre].filter(Boolean);
             const familyExtArr    = [
                 ...(primerApellido  ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionFathersFamilyName', valueString: primerApellido }]  : []),
@@ -3858,7 +3923,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             : null;
 
         // Build a temporary Organization entry reference so Patient.managingOrganization can point to it
-        const orgEntryRef = organizationResource ? { fullUrl: `urn:uuid:${orgId}` } : null;
+        const orgEntryRef = organizationResource ? { fullUrl: `#${orgId}` } : null;
 
         const patientResource = buildPatientRdaFromHead(head, pacienteId, orgEntryRef);
 
@@ -3877,9 +3942,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             MS: 'Menor sin identificación',
             SI: 'Sin identificación',
         };
-        const practId = newUuid();
         const tipoProf = (head.TipoDocProfesional || 'SI').toString().trim();
         const numProf = (head.NumDocProfesional || 'NO-INFORMADO').toString().trim();
+        const practId = `${tipoProf}-${numProf}`;
         const practitionerResource = {
             resourceType: 'Practitioner',
             id: practId,
@@ -3908,15 +3973,46 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         };
         const practitionerEntry = makeEntry(practitionerResource);
 
-        const ipsId = newUuid();
         const nitIps = head.NitPrestadorIPS != null ? String(head.NitPrestadorIPS).trim() : '';
         const codPrest = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
+        const ipsId = codPrest || newUuid();
         let organizationIpsEntry = null;
-        if (nitIps && codPrest) {
+        if (codPrest) {
             const nombreIps =
                 head.NombrePrestadorIPS != null && String(head.NombrePrestadorIPS).trim()
                     ? String(head.NombrePrestadorIPS).trim()
                     : `IPS (${codPrest})`;
+            const identifiers = [
+                ...(nitIps
+                    ? [
+                        {
+                            id: 'TaxIdentifier',
+                            use: 'official',
+                            type: {
+                                coding: [
+                                    { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
+                                    { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
+                                ],
+                            },
+                            system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                            value: nitIps,
+                        },
+                    ]
+                    : []),
+                {
+                    id: 'HealthcareProviderIdentifier',
+                    use: 'official',
+                    type: {
+                        coding: [
+                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
+                            { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
+                        ],
+                    },
+                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                    value: codPrest,
+                },
+            ];
+
             const ipsResource = {
                 resourceType: 'Organization',
                 id: ipsId,
@@ -3925,52 +4021,14 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
                 active: true,
                 name: nombreIps,
-                identifier: [
-                    {
-                        id: 'TaxIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                {
-                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                                    code: 'TAX',
-                                    display: 'Tax ID number',
-                                },
-                                {
-                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
-                                    code: 'NIT',
-                                    display: 'Número de Identificación Tributaria',
-                                },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
-                        value: nitIps,
-                    },
-                    {
-                        id: 'HealthcareProviderIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                {
-                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                                    code: 'PRN',
-                                    display: 'Provider number',
-                                },
-                                {
-                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
-                                    code: 'CodigoPrestador',
-                                    display: 'Código de habilitación de prestador de servicios de salud',
-                                },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
-                        value: codPrest,
-                    },
-                ],
+                identifier: identifiers,
             };
             organizationIpsEntry = makeEntry(ipsResource);
         }
 
+        if (organizationResource && head.CodigoAdminPlanBeneficios) {
+            organizationResource.id = String(head.CodigoAdminPlanBeneficios).trim();
+        }
         const organizationEapbEntry = organizationResource ? makeEntry(organizationResource) : null;
 
         const bundle = buildRdaPacienteBundle({
@@ -3988,6 +4046,265 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return res.json(bundle);
     } catch (error) {
         console.error('❌ [RDA] Error al construir Bundle FHIR RDA Paciente:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
+// ======================================================================================
+// RDA PACIENTE — Envío a IHCE (sandbox/prod) desde backend
+// ======================================================================================
+// Body: { "IdEvaluacionEntidadRDA": 123, "ambiente": "sandbox" | "prod",
+//   opcional: overrideCodigoPrestador, overrideNitPrestadorIPS, overrideNombrePrestadorIPS (se reenvían a FhirBundle) }
+// Requiere variables de entorno por ambiente:
+//   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID, IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
+//   IHCE_PROD_BASE_URL,    IHCE_PROD_TENANT_ID,    IHCE_PROD_CLIENT_ID,    IHCE_PROD_CLIENT_SECRET,    IHCE_PROD_SCOPE,    IHCE_PROD_SUBSCRIPTION_KEY
+router.post(['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce'], async (req, res) => {
+    const https = require('https');
+
+    const {
+        IdEvaluacionEntidadRDA,
+        ambiente,
+        overrideCodigoPrestador,
+        overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS,
+    } = req.body || {};
+    const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDA requerido (number)' });
+    }
+
+    const envPrefix = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
+        ? 'IHCE_PROD_'
+        : 'IHCE_SANDBOX_';
+
+    /** Primer valor de entorno no vacío (trim). Orden importa. */
+    const firstEnv = (...keys) => {
+        for (let i = 0; i < keys.length; i += 1) {
+            const v = process.env[keys[i]];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
+
+    let baseUrl;
+    let tenantId;
+    let clientId;
+    let clientSecret;
+    let scope;
+    let subscriptionKey;
+    if (envPrefix === 'IHCE_SANDBOX_') {
+        baseUrl = firstEnv('IHCE_SANDBOX_BASE_URL', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
+        tenantId = firstEnv('IHCE_SANDBOX_TENANT_ID', 'IHCE_TENANT_ID');
+        clientId = firstEnv('IHCE_SANDBOX_CLIENT_ID', 'IHCE_CLIENT_ID');
+        clientSecret = firstEnv('IHCE_SANDBOX_CLIENT_SECRET', 'IHCE_CLIENT_SECRET');
+        scope = firstEnv('IHCE_SANDBOX_SCOPE', 'IHCE_SCOPE');
+        subscriptionKey = firstEnv(
+            'IHCE_SANDBOX_SUBSCRIPTION_KEY',
+            'IHCE_APIM_SUBSCRIPTION_KEY',
+            'IHCE_SUBSCRIPTION_KEY',
+            'OCP_APIM_SUBSCRIPTION_KEY',
+        );
+    } else {
+        baseUrl = firstEnv('IHCE_PROD_BASE_URL', 'IHCE_API_BASE_URL_PROD');
+        tenantId = firstEnv('IHCE_PROD_TENANT_ID');
+        clientId = firstEnv('IHCE_PROD_CLIENT_ID');
+        clientSecret = firstEnv('IHCE_PROD_CLIENT_SECRET');
+        scope = firstEnv('IHCE_PROD_SCOPE');
+        subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
+    }
+
+    const forceCustodianNIT = firstEnv(`${envPrefix}CUSTODIAN_NIT`);
+    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`);
+    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`);
+
+    const missing = [
+        !baseUrl && 'BASE_URL',
+        !tenantId && 'TENANT_ID',
+        !clientId && 'CLIENT_ID',
+        !clientSecret && 'CLIENT_SECRET',
+        !scope && 'SCOPE',
+        !subscriptionKey && 'SUBSCRIPTION_KEY',
+    ].filter(Boolean);
+    if (missing.length) {
+        const hint =
+            envPrefix === 'IHCE_SANDBOX_'
+                ? ' Sandbox: IHCE_SANDBOX_* o IHCE_API_BASE_URL, IHCE_TENANT_ID, IHCE_CLIENT_ID, IHCE_CLIENT_SECRET, IHCE_SCOPE, IHCE_APIM_SUBSCRIPTION_KEY.'
+                : ' Producción: IHCE_PROD_BASE_URL, IHCE_PROD_TENANT_ID, IHCE_PROD_CLIENT_ID, IHCE_PROD_CLIENT_SECRET, IHCE_PROD_SCOPE, IHCE_PROD_SUBSCRIPTION_KEY.';
+        return res.status(500).json({
+            ok: false,
+            error: `Faltan variables de entorno IHCE (${missing.join(', ')}).${hint}`,
+        });
+    }
+
+    const httpJson = (url, { method = 'GET', headers = {}, body = null } = {}) =>
+        new Promise((resolve, reject) => {
+            const u = new URL(url);
+            const opts = {
+                method,
+                hostname: u.hostname,
+                path: u.pathname + (u.search || ''),
+                headers,
+            };
+            const req2 = https.request(opts, (resp) => {
+                let data = '';
+                resp.on('data', (chunk) => (data += chunk));
+                resp.on('end', () => resolve({ status: resp.statusCode || 0, headers: resp.headers, body: data }));
+            });
+            req2.on('error', reject);
+            if (body) req2.write(body);
+            req2.end();
+        });
+
+    try {
+        // 1) Obtener Bundle desde el endpoint interno (mismo backend)
+        const localBase = `http://localhost:${process.env.PORT || 3000}`;
+        const bundleResp = await new Promise((resolve, reject) => {
+            const http = require('http');
+            const bundleBody = { IdEvaluacionEntidadRDA: id };
+            if (overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim()) {
+                bundleBody.overrideCodigoPrestador = String(overrideCodigoPrestador).trim();
+            }
+            if (overrideNitPrestadorIPS != null && String(overrideNitPrestadorIPS).trim()) {
+                bundleBody.overrideNitPrestadorIPS = String(overrideNitPrestadorIPS).trim();
+            }
+            if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) {
+                bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
+            }
+            const payload = JSON.stringify(bundleBody);
+            const req3 = http.request(
+                `${localBase}/apiV3/RdaPaciente/FhirBundle`,
+                { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
+                (resp) => {
+                    let data = '';
+                    resp.on('data', (c) => (data += c));
+                    resp.on('end', () => resolve({ status: resp.statusCode || 0, body: data }));
+                }
+            );
+            req3.on('error', reject);
+            req3.write(payload);
+            req3.end();
+        });
+        if (bundleResp.status < 200 || bundleResp.status >= 300) {
+            return res.status(500).json({ ok: false, error: `No se pudo construir el Bundle local (status ${bundleResp.status})`, details: bundleResp.body });
+        }
+        const bundle = JSON.parse(bundleResp.body);
+
+        // IG IHCE RDA Paciente: sin Encounter en el documento; si llega (código viejo en memoria u otro build), quitarlo o BUNDLE-005.
+        if (bundle && Array.isArray(bundle.entry)) {
+            bundle.entry = bundle.entry.filter(
+                (e) => !(e && e.resource && e.resource.resourceType === 'Encounter')
+            );
+            const compEntry = bundle.entry.find(
+                (e) => e && e.resource && e.resource.resourceType === 'Composition'
+            );
+            if (compEntry && compEntry.resource && compEntry.resource.encounter != null) {
+                delete compEntry.resource.encounter;
+            }
+        }
+
+        // Opcional: forzar custodian para que coincida con el token del prestador (IHCE valida coherencia).
+        // Se usa cuando los datos en BD/UI aún no están alineados (NIT/REPS).
+        if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
+            const reps = String(forceCustodianREPS).trim();
+            const nit = forceCustodianNIT != null ? String(forceCustodianNIT).trim() : '';
+            const name = forceCustodianName != null && String(forceCustodianName).trim()
+                ? String(forceCustodianName).trim()
+                : `IPS (${reps})`;
+
+            const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
+            const compEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+            if (compEntry && compEntry.resource) {
+                compEntry.resource.custodian = { reference: `#${reps}` };
+            }
+
+            let orgEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Organization' && e.resource.id === reps);
+            if (!orgEntry) {
+                orgEntry = { resource: { resourceType: 'Organization', id: reps } };
+                entries.push(orgEntry);
+                bundle.entry = entries;
+            }
+            orgEntry.resource.active = true;
+            orgEntry.resource.meta = orgEntry.resource.meta || { profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'] };
+            orgEntry.resource.name = name;
+            if (nit) {
+                orgEntry.resource.identifier = [
+                    {
+                        id: 'TaxIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
+                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                        value: nit,
+                    },
+                    {
+                        id: 'HealthcareProviderIdentifier',
+                        use: 'official',
+                        type: {
+                            coding: [
+                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
+                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
+                            ],
+                        },
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: reps,
+                    },
+                ];
+            } else {
+                orgEntry.resource.identifier = orgEntry.resource.identifier || [
+                    {
+                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                        value: reps,
+                    },
+                ];
+            }
+        }
+
+        // 2) Obtener token Entra (client_credentials)
+        const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+        const tokenBody = new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope,
+        }).toString();
+
+        const tokenResp = await httpJson(tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(tokenBody) },
+            body: tokenBody,
+        });
+        if (tokenResp.status !== 200) {
+            return res.status(502).json({ ok: false, error: `Token IHCE falló (status ${tokenResp.status})`, details: tokenResp.body });
+        }
+        const tokenJson = JSON.parse(tokenResp.body);
+        const accessToken = tokenJson.access_token;
+        if (!accessToken) {
+            return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenJson });
+        }
+
+        // 3) Enviar a IHCE
+        const sendUrl = `${baseUrl.replace(/\/$/, '')}/Composition/$enviar-rda-paciente`;
+        const sendBody = JSON.stringify(bundle);
+        const sendResp = await httpJson(sendUrl, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Ocp-Apim-Subscription-Key': subscriptionKey,
+                'Content-Type': 'application/fhir+json',
+                Accept: 'application/fhir+json',
+                'Content-Length': Buffer.byteLength(sendBody),
+            },
+            body: sendBody,
+        });
+
+        // Devolver lo que IHCE responde (útil para depurar OperationOutcome)
+        return res.status(sendResp.status || 502).send(sendResp.body || '');
+    } catch (error) {
+        console.error('❌ [RDA] Error en EnviarIHCE:', error);
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
 });
