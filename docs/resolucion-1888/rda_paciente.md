@@ -4,6 +4,19 @@ Campos implementados en la sección `#SeccionRDAPaciente` del HTML. Todos los ID
 
 ---
 
+## Tarjeta RDA (activación y tipo)
+
+Controles en `#cardRDA` **por encima** de `#SeccionRDAPaciente` y `#SeccionRDAConsultaExterna`. El **RDA no se enlaza** a una historia o evolución en pantalla; la selección de historia para **RIPS** sigue en `HistoriasSinRIPS`.
+
+> Nota: si ya existía un vínculo previo entre historia clínica y el flujo de RIPS (incluyendo escenarios RDA), la reversión se realiza desde el módulo **`Desrelacionar`** en el frontend (ver [`docs/desrelacionador/descripcion.md`](../desrelacionador/descripcion.md)).
+
+| Control | ID | Notas |
+|---------|-----|--------|
+| Activar flujo RDA (barra de progreso) | `GenerarRDABase` | Checkbox oculto; la UI usa el botón `RDA_BtnGenerar` (“Generar RDA” / “Desactivar RDA”). |
+| Tipo de RDA | `input[name="tipoRDA"]` | Segmentado en `#ContenedorTipoRDA` (`rda/ui/controlRda.js`). |
+
+---
+
 ## Campos Compartidos (también en RDA Consulta Externa)
 
 | # | Campo | ID HTML | Tipo |
@@ -13,8 +26,17 @@ Campos implementados en la sección `#SeccionRDAPaciente` del HTML. Todos los ID
 | 3 | Nombre Admin. Plan Beneficios SGSSS | `RDA_NombreAdminPlanBeneficios` | Input texto |
 | 4 | Fecha y Hora Inicio Atención | `RDA_FechaHoraInicioAtencion` | datetime-local |
 | 5 | Fecha y Hora Fin Atención | `RDA_FechaHoraFinAtencion` | datetime-local |
-| 6 | Tipo Documento Profesional | `RDA_TipoDocProfesional` | Select (CC, CE, PA, PE) |
-| 7 | Número Documento Profesional | `RDA_NumDocProfesional` | Input texto |
+| 6 | Tipo Documento Profesional | `RDA_TipoDocProfesional` | Select (CC, TI, CE, PA, PE, SI, …) |
+| 7 | Número Documento Profesional | `RDA_NumDocProfesional` | Select2 (búsqueda profesional / documento) |
+
+## Contexto FHIR (Composition.event / custodian)
+
+| # | Campo | ID HTML | Tipo |
+|---|---|---|---|
+| - | Modalidad atención | `RDA_IdModalidadAtencion` | Select (GET `/apiV3/ModalidadAtencion`) |
+| - | Grupo servicios | `RDA_IdGrupoServicios` | Select (GET `/apiV3/GrupoServicios`) |
+| - | NIT IPS (DIAN) | `RDA_NitPrestadorIPS` | Input texto |
+| - | Nombre IPS | `RDA_NombrePrestadorIPS` | Input texto |
 
 ## Diagnóstico Principal Ingreso CIE-11
 

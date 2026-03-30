@@ -461,15 +461,15 @@
                 </div>
             </div>
 
-            <!-- ╔══════════════════════════════════════════╗
-             ║  CARD 3 — Historia clínica y tipo RIPS   ║
-             ╚══════════════════════════════════════════╝ -->
+            <!-- ╔══════════════════════════════════════════════════════════╗
+             ║  CARD 3 — Historia clínica, tipo RIPS y asignación (unificado) ║
+             ╚══════════════════════════════════════════════════════════╝ -->
             <div class="cr-card" id="cardHistoriaClinica">
                 <div class="cr-card-header" onclick="crToggleCard('cardHistoriaClinica')">
                     <div class="cr-card-header-left">
                         <i class="fa-solid fa-file-medical cr-card-icon"></i>
-                        <span class="cr-card-title">Selección de historia clínica y tipo de
-                            RIPS</span>
+                        <span class="cr-card-title">Historia clínica, tipo de RIPS y
+                            asignación</span>
                     </div>
                     <button class="cr-card-toggle" tabindex="-1">▼</button>
                 </div>
@@ -483,10 +483,15 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="">Tipo de rips a diligenciar</label>
-                            <br>
-                            <label for="ac">AC <input type="radio" name="tipoRipsss" id="AC"></label>
-                            <label for="ap">AP <input type="radio" name="tipoRips" id="AP"></label>
+                            <label class="fw-bold d-block mb-1" id="ripsTipoLabel">Tipo de rips a diligenciar</label>
+                            <div class="btn-group rips-tipo-segmented" role="group" aria-labelledby="ripsTipoLabel">
+                                <input type="radio" class="btn-check" name="tipoRips" id="AC" value="AC"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AC">AC</label>
+                                <input type="radio" class="btn-check" name="tipoRips" id="AP" value="AP"
+                                    autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rips-tipo-segmented__btn" for="AP">AP</label>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -789,21 +794,8 @@
                             </div>
                         </div> <!-- /col-md-4 -->
                     </div> <!-- /row -->
-                </div> <!-- /cr-card-body -->
-            </div> <!-- cardHistoriaClinica -->
 
-            <!-- ╔══════════════════════════════════════════╗
-             ║  CARD 4 — Asignación de RIPS             ║
-             ╚══════════════════════════════════════════╝ -->
-            <div class="cr-card" id="cardAsignacionRIPS">
-                <div class="cr-card-header" onclick="crToggleCard('cardAsignacionRIPS')">
-                    <div class="cr-card-header-left">
-                        <i class="fa-solid fa-notes-medical cr-card-icon"></i>
-                        <span class="cr-card-title">Asignación de RIPS</span>
-                    </div>
-                    <button class="cr-card-toggle" tabindex="-1">▼</button>
-                </div>
-                <div class="cr-card-body">
+                    <hr class="border-secondary opacity-50 my-3" aria-hidden="true">
 
                     <!-- RIPS AC -->
                     <div class="" id="TipoAC">
@@ -1070,52 +1062,50 @@
                             historia</button>
                     </div>
                 </div><!-- /cr-card-body -->
-            </div><!-- /cr-card cardAsignacionRIPS -->
+            </div><!-- /cr-card cardHistoriaClinica (incluye asignación RIPS) -->
 
             <!-- ╔══════════════════════════════════════════╗
          ║  CARD 5 — Resumen Digital de Atención    ║
          ╚══════════════════════════════════════════╝ -->
             <div class="cr-card" id="cardRDA">
-                <div class="cr-card-header" onclick="crToggleCard('cardRDA')">
-                    <div class="cr-card-header-left">
+                <div class="cr-card-header cr-card-header--rda">
+                    <div class="cr-card-header-left" onclick="crToggleCard('cardRDA')" style="flex: 1; min-width: 0;">
                         <i class="fa-solid fa-laptop-medical cr-card-icon"></i>
                         <span class="cr-card-title">Resumen Digital de Atención (RDA)</span>
                     </div>
-                    <button class="cr-card-toggle" tabindex="-1">▼</button>
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                        <input type="checkbox" id="GenerarRDABase" class="d-none" aria-hidden="true" tabindex="-1">
+                        <button type="button" class="btn btn-success btn-sm fw-bolder" id="RDA_BtnGenerar">
+                            Generar RDA
+                        </button>
+                        <button type="button" class="cr-card-toggle" tabindex="-1"
+                            onclick="crToggleCard('cardRDA');">▼</button>
+                    </div>
                 </div>
                 <div class="cr-card-body">
-                    <div class="row">
-                        <div class="col-md-12 text-center mb-3">
-                            <div class="form-check d-inline-block">
-                                <input class="form-check-input" type="checkbox" id="GenerarRDABase">
-                                <label class="form-check-label fw-bold" for="GenerarRDABase">
-                                    ¿Generar RDA?
+                    <div class="row g-3 mb-2 align-items-end rda-toolbar">
+                        <div class="col-12">
+                            <label class="rda-toolbar-label d-block" id="rdaTipoLabel">Tipo de RDA</label>
+                            <div id="ContenedorTipoRDA" class="btn-group rda-tipo-segmented" role="group"
+                                aria-labelledby="rdaTipoLabel">
+                                <input type="radio" class="btn-check" name="tipoRDA" id="RDATipoPaciente"
+                                    value="paciente" disabled autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rda-tipo-segmented__btn" for="RDATipoPaciente">
+                                    <i class="fa-solid fa-user me-1" aria-hidden="true"></i>RDA Paciente
+                                </label>
+                                <input type="radio" class="btn-check" name="tipoRDA" id="RDATipoConsultaExterna"
+                                    value="consultaExterna" disabled autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm rda-tipo-segmented__btn"
+                                    for="RDATipoConsultaExterna">
+                                    <i class="fa-solid fa-file-lines me-1" aria-hidden="true"></i>RDA Consulta Externa
                                 </label>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-md-12 text-center mb-3" id="ContenedorTipoRDA">
-                            <label class="mb-2 fw-bold">Tipo de RDA:</label>
-                            <div class="d-flex justify-content-center gap-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipoRDA" id="RDATipoPaciente"
-                                        value="paciente" disabled>
-                                    <label class="form-check-label" for="RDATipoPaciente">
-                                        RDA Paciente
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipoRDA"
-                                        id="RDATipoConsultaExterna" value="consultaExterna" disabled>
-                                    <label class="form-check-label" for="RDATipoConsultaExterna">
-                                        RDA Consulta Externa
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contenido Dinámico RDA -->
-                        <div class="col-md-12">
+                    <!-- Contenido Dinámico RDA -->
+                    <div class="row">
+                        <div class="col-12">
                             <div id="ContenidoRDA" class="d-none border-top pt-3 mt-2 border-secondary">
 
                                 <!-- ========== SECCIÓN: RDA PACIENTE ========== -->
@@ -1167,18 +1157,35 @@
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
                                                 <select class="form-select border border-secondary"
-                                                    id="RDA_TipoDocProfesional" style="max-width: 90px;">
+                                                    id="RDA_TipoDocProfesional" style="max-width: 100px;">
                                                     <option value="">Tipo</option>
                                                     <option value="CC">CC</option>
+                                                    <option value="TI">TI</option>
                                                     <option value="CE">CE</option>
                                                     <option value="PA">PA</option>
                                                     <option value="PE">PE</option>
+                                                    <option value="SI">SI</option>
                                                 </select>
                                                 <select class="form-select border border-secondary" id="RDA_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Modalidad atención (RDA / FHIR):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDA_IdModalidadAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Grupo servicios (RDA / FHIR):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDA_IdGrupoServicios">
+                                                <option value="">Seleccionar</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -1415,19 +1422,46 @@
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
-                                                <select class="form-select border border-secondary"
+                                                <!-- <select class="form-select border border-secondary"
                                                     id="RDACE_TipoDocProfesional" style="max-width: 90px;">
                                                     <option value="">Tipo</option>
                                                     <option value="CC">CC</option>
                                                     <option value="CE">CE</option>
                                                     <option value="PA">PA</option>
                                                     <option value="PE">PE</option>
-                                                </select>
+                                                </select> -->
                                                 <select class="form-select border border-secondary" id="RDACE_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Modalidad tecnología salud (RDA / RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdModalidadAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Grupo servicios (RDA / RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdGrupoServicios">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Vía ingreso usuario (RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdViaIngresoUsuario">
+                                                <option value="">Seleccionar</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Causa motivo atención (RIPS):</label>
+                                            <select class="form-select-sm border border-secondary w-100" id="RDACE_IdCausaMotivoAtencion">
+                                                <option value="">Seleccionar</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -1467,16 +1501,7 @@
                                                 (complemento):</label>
                                             <select class="form-select-sm border border-secondary w-100"
                                                 id="RDACE_TipoAlergia">
-                                                <option value="">Sin alergia</option>
-                                                <option value="01">01 - Medicamento</option>
-                                                <option value="02">02 - Alimento</option>
-                                                <option value="03">03 - Sustancia del ambiente
-                                                </option>
-                                                <option value="04">04 - Sustancia en contacto con la
-                                                    piel</option>
-                                                <option value="05">05 - Picadura de insectos
-                                                </option>
-                                                <option value="06">06 - Otra</option>
+                                                <option value="">Sin alergia / buscar tipo...</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1525,12 +1550,7 @@
                                                         <label>Parentesco:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_ParentescoFamiliar">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Padres</option>
-                                                            <option value="02">02 - Hermanos
-                                                            </option>
-                                                            <option value="03">03 - Tíos</option>
-                                                            <option value="04">04 - Abuelos</option>
+                                                            <option value="">Buscar parentesco...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3">
@@ -1616,35 +1636,14 @@
                                                             atención:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_EntornoAtencion">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Intramural
-                                                            </option>
-                                                            <option value="02">02 - Extramural
-                                                            </option>
-                                                            <option value="03">03 - Telemedicina
-                                                                interactiva</option>
-                                                            <option value="04">04 - Telemedicina no
-                                                                interactiva</option>
-                                                            <option value="05">05 - Teleasistencia
-                                                            </option>
-                                                            <option value="06">06 - Teleorientación
-                                                            </option>
+                                                            <option value="">Buscar entorno de atención...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label>Tipo de factor de riesgo:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoFactorRiesgo">
-                                                            <option value="">Sin factor</option>
-                                                            <option value="01">01 - Biológico
-                                                            </option>
-                                                            <option value="02">02 - Social</option>
-                                                            <option value="03">03 - Ambiental
-                                                            </option>
-                                                            <option value="04">04 - Comportamental
-                                                            </option>
-                                                            <option value="05">05 - Económico
-                                                            </option>
+                                                            <option value="">Buscar tipo de factor de riesgo...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -1652,7 +1651,7 @@
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_NombreFactorRiesgo"
-                                                            placeholder="Describir factor de riesgo">
+                                                            placeholder="Se completa al elegir el tipo o escriba manualmente">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1686,13 +1685,7 @@
                                                         <label>Tipo diagnóstico principal:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoDiagPrincipalCIE10">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Impresión
-                                                                diagnóstica</option>
-                                                            <option value="02">02 - Confirmado nuevo
-                                                            </option>
-                                                            <option value="03">03 - Confirmado
-                                                                repetido</option>
+                                                            <option value="">Buscar tipo de diagnóstico...</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -1760,19 +1753,7 @@
                                                             egreso:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_CondicionDestinoEgreso">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Alta médica /
-                                                                domiciliario</option>
-                                                            <option value="02">02 - Remisión a otra
-                                                                institución</option>
-                                                            <option value="03">03 - Remisión a
-                                                                urgencias</option>
-                                                            <option value="04">04 - Remisión a
-                                                                hospitalización</option>
-                                                            <option value="05">05 - Alta voluntaria
-                                                            </option>
-                                                            <option value="06">06 - Evasión</option>
-                                                            <option value="07">07 - Muerte</option>
+                                                            <option value="">Buscar condición y destino al egreso...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-6">
@@ -1801,7 +1782,7 @@
                                                         <label>Tipo tecnología salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludMed">
-                                                            <option value="M">Medicamento</option>
+                                                            <option value="">Buscar tipo de tecnología en salud...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3">
@@ -1856,20 +1837,7 @@
                                                         <label>Vía administración:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_ViaAdministracionMed">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">Oral</option>
-                                                            <option value="02">Intravenosa (IV)
-                                                            </option>
-                                                            <option value="03">Intramuscular (IM)
-                                                            </option>
-                                                            <option value="04">Subcutánea (SC)
-                                                            </option>
-                                                            <option value="05">Tópica</option>
-                                                            <option value="06">Inhalatoria</option>
-                                                            <option value="07">Rectal</option>
-                                                            <option value="08">Sublingual</option>
-                                                            <option value="09">Oftálmica</option>
-                                                            <option value="10">Otra</option>
+                                                            <option value="">Buscar vía de administración...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
@@ -1882,10 +1850,7 @@
                                                         <label>Duración unid. tiempo:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_DuracionUnidadTiempoMed">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="d">Días</option>
-                                                            <option value="s">Semanas</option>
-                                                            <option value="m">Meses</option>
+                                                            <option value="">Unidad de duración...</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -1900,26 +1865,14 @@
                                                         <label>Frecuencia unid. tiempo:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FrecuenciaUnidadTiempoMed">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="h">Horas</option>
-                                                            <option value="d">Días</option>
+                                                            <option value="">Unidad de frecuencia...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label>Finalidad tec. salud (med):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludMed">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico
-                                                            </option>
-                                                            <option value="02">02 - Terapéutico
-                                                            </option>
-                                                            <option value="03">03 - Protección
-                                                                específica</option>
-                                                            <option value="04">04 - Detección
-                                                                temprana</option>
-                                                            <option value="05">05 - Paliativo
-                                                            </option>
+                                                            <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3"></div>
@@ -1948,7 +1901,7 @@
                                                         <label>Tipo tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludProc">
-                                                            <option value="P">Procedimiento</option>
+                                                            <option value="">Buscar tipo (ej. Procedimiento)...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3">
@@ -1969,17 +1922,7 @@
                                                         <label>Finalidad tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludProc">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico
-                                                            </option>
-                                                            <option value="02">02 - Terapéutico
-                                                            </option>
-                                                            <option value="03">03 - Protección
-                                                                específica</option>
-                                                            <option value="04">04 - Detección
-                                                                temprana</option>
-                                                            <option value="05">05 - Paliativo
-                                                            </option>
+                                                            <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
@@ -2015,14 +1958,7 @@
                                                         <label>Tipo tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludOtra">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="03">03 - Dispositivo
-                                                                médico</option>
-                                                            <option value="04">04 - Producto
-                                                                biológico</option>
-                                                            <option value="05">05 - Nutricional
-                                                            </option>
-                                                            <option value="06">06 - Otro</option>
+                                                            <option value="">Buscar categoría...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-3">
@@ -2047,17 +1983,7 @@
                                                         <label>Finalidad tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludOtra">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="01">01 - Diagnóstico
-                                                            </option>
-                                                            <option value="02">02 - Terapéutico
-                                                            </option>
-                                                            <option value="03">03 - Protección
-                                                                específica</option>
-                                                            <option value="04">04 - Detección
-                                                                temprana</option>
-                                                            <option value="05">05 - Paliativo
-                                                            </option>
+                                                            <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -2088,11 +2014,7 @@
                                                         <label>Alcance de la incapacidad:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_AlcanceIncapacidad">
-                                                            <option value="">No aplica</option>
-                                                            <option value="01">01 - Laboral</option>
-                                                            <option value="02">02 - Escolar</option>
-                                                            <option value="03">03 - Laboral y
-                                                                escolar</option>
+                                                            <option value="">No aplica / buscar alcance...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
@@ -2128,6 +2050,18 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Guardar RDA Consulta Externa (tabla [Evaluacion Entidad RDA Consulta Externa] + hijas) -->
+                                    <div class="row g-2 mt-2 mb-2">
+                                        <div class="col-md-12 d-flex justify-content-end">
+                                            <button type="button"
+                                                class="btn btn-success btn-sm fw-bold px-4"
+                                                id="RDACE_BtnGuardarConsultaExterna">
+                                                <i class="fa-solid fa-floppy-disk me-2"></i>
+                                                Guardar RDA Consulta Externa
+                                            </button>
                                         </div>
                                     </div>
 
@@ -2267,8 +2201,8 @@
 <!-- Cargar primero -->
 <script src="Asignar_RIPS V3.js"></script>
 
-<!-- RDA V3 - Archivo independiente (Resolución 1888) -->
-<script src="rda-v3.js"></script>
+<!-- RDA V3 - Módulo ES (Resolución 1888) -->
+<script type="module" src="rda/index.js"></script>
 
 <!-- ═══════════════════════════════════════════
      NIVEL 3 — Lógica de UI: cards + topbar
@@ -2418,6 +2352,11 @@
             DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
             DiagnosticoIngresoCIE11Termino: cie11Termino                                                                  || null,
             TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
+            IdModalidadAtencion:            document.getElementById('RDA_IdModalidadAtencion')?.value                      || null,
+            IdGrupoServicios:               document.getElementById('RDA_IdGrupoServicios')?.value                         || null,
+            // Ajuste funcional: reutilizar campos existentes del formulario superior.
+            NitPrestadorIPS:                document.getElementById('RDA_CodigoPrestador')?.value?.trim()                  || null,
+            NombrePrestadorIPS:             document.getElementById('RDA_NombreAdminPlanBeneficios')?.value?.trim()       || null,
         };
 
         // ── Loading ────────────────────────────────────────────────────
@@ -2462,7 +2401,15 @@
                 const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesFamiliares`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ IdEvaluacionEntidadRDA: idRDA, DocumentoEntidad: documento, Parentesco: item.parentesco || null, Descripcion: desc, IdEstado: 1 })
+                    body: JSON.stringify({
+                        IdEvaluacionEntidadRDA: idRDA,
+                        DocumentoEntidad: documento,
+                        Parentesco: item.parentesco || null,
+                        Descripcion: desc,
+                        CIE11Codigo: item.cie11Codigo || null,
+                        CIE11Termino: item.cie11Termino || null,
+                        IdEstado: 1
+                    })
                 });
                 if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Familiares'); }
             }
@@ -2489,6 +2436,208 @@
 
         } catch (error) {
             console.error('[RDA Paciente] Error al guardar:', error);
+            Swal.fire({ icon: 'error', title: 'Error al guardar', text: error.message || 'Ocurrió un error inesperado.' });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
+    }
+})();
+</script>
+
+<!-- RDA CONSULTA EXTERNA — Guardar (POST /EvaluacionEntidadRDACE/*) -->
+<script>
+(function () {
+    'use strict';
+
+    function rdaceSelect2Value(selectId) {
+        const el = document.getElementById(selectId);
+        if (!el) return null;
+        try {
+            if (typeof $ !== 'undefined' && $(el).data('select2')) {
+                const d = $(el).select2('data')[0];
+                return d && d.id != null ? String(d.id) : (el.value || null);
+            }
+        } catch (e) { /* ignore */ }
+        return el.value || null;
+    }
+
+    document.getElementById('RDACE_BtnGuardarConsultaExterna')?.addEventListener('click', async function () {
+        await guardarRDACE();
+    });
+
+    async function guardarRDACE() {
+        const btn = document.getElementById('RDACE_BtnGuardarConsultaExterna');
+        const documento = document.getElementById('DocumentoPaciente')?.value?.trim();
+
+        if (!documento) {
+            Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA Consulta Externa.' });
+            return;
+        }
+
+        const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        let cie11TerminoCE = null;
+        try {
+            const cie11Data = $('#RDACE_DiagnosticoIngresoCIE11Termino').select2('data');
+            cie11TerminoCE = cie11Data?.length ? cie11Data[0].text : (document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null);
+        } catch (e) {
+            cie11TerminoCE = document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null;
+        }
+
+        const payload = {
+            DocumentoEntidad: documento,
+            FechaRDA: ahora,
+            CodigoPrestador: document.getElementById('RDACE_CodigoPrestador')?.value || null,
+            CodigoAdminPlanBeneficios: document.getElementById('RDACE_CodigoAdminPlanBeneficios')?.value || null,
+            NombreAdminPlanBeneficios: document.getElementById('RDACE_NombreAdminPlanBeneficios')?.value || null,
+            FechaHoraInicioAtencion: document.getElementById('RDACE_FechaHoraInicioAtencion')?.value || null,
+            FechaHoraFinAtencion: document.getElementById('RDACE_FechaHoraFinAtencion')?.value || null,
+            TipoDocProfesional: document.getElementById('RDACE_TipoDocProfesional')?.value || null,
+            NumDocProfesional: rdaceSelect2Value('RDACE_NumDocProfesional') || document.getElementById('RDACE_NumDocProfesional')?.value || null,
+            DiagnosticoIngresoCIE11Codigo: document.getElementById('RDACE_DiagnosticoIngresoCIE11Codigo')?.value || null,
+            DiagnosticoIngresoCIE11Termino: cie11TerminoCE,
+            TipoAlergia: rdaceSelect2Value('RDACE_TipoAlergia'),
+            EntornoAtencion: rdaceSelect2Value('RDACE_EntornoAtencion'),
+            TipoFactorRiesgo: rdaceSelect2Value('RDACE_TipoFactorRiesgo'),
+            NombreFactorRiesgo: document.getElementById('RDACE_NombreFactorRiesgo')?.value || null,
+            DiagnosticoPrincipalCIE10Codigo: rdaceSelect2Value('RDACE_DiagPrincipalCIE10Codigo') || document.getElementById('RDACE_DiagPrincipalCIE10Codigo')?.value || null,
+            DiagnosticoPrincipalCIE10Nombre: document.getElementById('RDACE_DiagPrincipalCIE10Nombre')?.value || null,
+            TipoDiagnosticoPrincipal: rdaceSelect2Value('RDACE_TipoDiagPrincipalCIE10'),
+            CondicionDestinoEgreso: rdaceSelect2Value('RDACE_CondicionDestinoEgreso'),
+            CodigoPrestadorRemite: document.getElementById('RDACE_CodigoPrestadorRemite')?.value || null,
+            AlcanceIncapacidad: rdaceSelect2Value('RDACE_AlcanceIncapacidad'),
+            DiasIncapacidad: document.getElementById('RDACE_DiasIncapacidad')?.value || null,
+            DiasLicenciaMaternidad: document.getElementById('RDACE_DiasLicenciaMaternidad')?.value || null,
+            NombreDocumentoPDF: document.getElementById('RDACE_NombreDocumentoPDF')?.value || null,
+            IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
+            IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
+            IdViaIngresoUsuario: document.getElementById('RDACE_IdViaIngresoUsuario')?.value || null,
+            IdCausaMotivoAtencion: document.getElementById('RDACE_IdCausaMotivoAtencion')?.value || null
+        };
+
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
+        const base = `http://${servidor}:3000/apiV3`;
+
+        async function postJson(url, body) {
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            let data = {};
+            try { data = await r.json(); } catch (e) { data = {}; }
+            if (!r.ok || data.ok === false) {
+                throw new Error(data.error || r.statusText || 'Error en petición');
+            }
+            return data;
+        }
+
+        try {
+            const dataPrincipal = await postJson(`${base}/EvaluacionEntidadRDACE/`, payload);
+            const idCE = dataPrincipal.IdEvaluacionEntidadRDACE;
+
+            const antSalud = (window.RDA?.getAntecedentesCE?.() || []);
+            for (const item of antSalud) {
+                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                await postJson(`${base}/EvaluacionEntidadRDACE/AntecedentesSalud`, {
+                    IdEvaluacionEntidadRDACE: idCE, DocumentoEntidad: documento, Descripcion: desc, IdEstado: 1
+                });
+            }
+
+            const antFam = (window.RDA?.getAntecedentesFamiliaresCE?.() || []);
+            for (const item of antFam) {
+                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                await postJson(`${base}/EvaluacionEntidadRDACE/AntecedentesFamiliares`, {
+                    IdEvaluacionEntidadRDACE: idCE,
+                    DocumentoEntidad: documento,
+                    Parentesco: item.parentesco != null ? String(item.parentesco) : null,
+                    Descripcion: desc,
+                    IdEstado: 1
+                });
+            }
+
+            const medic = (window.RDA?.getMedicamentosCE?.() || []);
+            for (const item of medic) {
+                const desc = item.nombre + (item.observacion ? ' (' + item.observacion + ')' : '');
+                await postJson(`${base}/EvaluacionEntidadRDACE/AntecedentesFarmacologicos`, {
+                    IdEvaluacionEntidadRDACE: idCE, DocumentoEntidad: documento, Descripcion: desc, IdEstado: 1
+                });
+            }
+
+            const diags = (window.RDA?.getDiagRelacionados?.() || []);
+            for (const item of diags) {
+                await postJson(`${base}/EvaluacionEntidadRDACE/DiagnosticosRelacionados`, {
+                    IdEvaluacionEntidadRDACE: idCE,
+                    CodigoCIE10: item.codigoCIE10 || null,
+                    NombreCIE10: item.nombreCIE10 || null,
+                    CodigoCIE11: item.codigoCIE11 || null,
+                    TerminoCIE11: item.terminoCIE11 || null,
+                    IdEstado: 1
+                });
+            }
+
+            const presMed = (window.RDA?.getPrescripcionMedicamentos?.() || []);
+            for (const item of presMed) {
+                await postJson(`${base}/EvaluacionEntidadRDACE/PrescripcionMedicamentos`, {
+                    IdEvaluacionEntidadRDACE: idCE,
+                    tipo: item.tipo || null,
+                    codigo: item.codigo || null,
+                    nombre: item.nombre || null,
+                    dci: item.dci || null,
+                    fechaPrescripcion: item.fechaPrescripcion || null,
+                    dosis: item.dosis || null,
+                    unidadDosis: item.unidadDosis || null,
+                    via: item.via || null,
+                    duracionCant: item.duracionCant || null,
+                    duracionUnid: item.duracionUnid || null,
+                    frecuenciaCant: item.frecuenciaCant || null,
+                    frecuenciaUnid: item.frecuenciaUnid || null,
+                    finalidad: item.finalidad != null ? String(item.finalidad) : null,
+                    IdEstado: 1
+                });
+            }
+
+            const presProc = (window.RDA?.getPrescripcionProcedimientos?.() || []);
+            for (const item of presProc) {
+                await postJson(`${base}/EvaluacionEntidadRDACE/PrescripcionProcedimientos`, {
+                    IdEvaluacionEntidadRDACE: idCE,
+                    tipo: item.tipo || null,
+                    codigo: item.codigo || null,
+                    nombre: item.nombre || null,
+                    finalidad: item.finalidad || null,
+                    fechaPrescripcion: item.fechaPrescripcion || null,
+                    IdEstado: 1
+                });
+            }
+
+            const otras = (window.RDA?.getOtrasTecnologias?.() || []);
+            for (const item of otras) {
+                await postJson(`${base}/EvaluacionEntidadRDACE/OtrasTecnologias`, {
+                    IdEvaluacionEntidadRDACE: idCE,
+                    tipo: item.tipo || null,
+                    codigo: item.codigo || null,
+                    nombre: item.nombre || null,
+                    fechaPrescripcion: item.fechaPrescripcion || null,
+                    finalidad: item.finalidad || null,
+                    IdEstado: 1
+                });
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'RDA Consulta Externa guardado',
+                html: `<b>ID RDACE:</b> ${idCE}<br>
+                    Ant. salud: ${antSalud.length} | Familiares: ${antFam.length} | Farmacológicos: ${medic.length}<br>
+                    Diag. relacionados: ${diags.length} | Prescr. med: ${presMed.length} | Proc: ${presProc.length} | Otras tec: ${otras.length}`,
+                timer: 5000,
+                timerProgressBar: true
+            });
+        } catch (error) {
+            console.error('[RDACE] Error al guardar:', error);
             Swal.fire({ icon: 'error', title: 'Error al guardar', text: error.message || 'Ocurrió un error inesperado.' });
         } finally {
             btn.disabled = false;

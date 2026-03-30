@@ -3352,7 +3352,6 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             ...(organizationIps ? { serviceProvider: { reference: refOf(organizationIps) } } : {}),
             participant: practitioner ? [{ individual: { reference: refOf(practitioner) } }] : undefined,
         });
-
         const sections = [];
         if (conditionIngresoEntry) {
             sections.push({

@@ -12,6 +12,28 @@
 (function () {
     "use strict";
 
+    function clearFieldById(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (typeof $ !== "undefined" && $(el).data("select2")) {
+            $(el).val(null).trigger("change");
+        } else {
+            el.value = "";
+        }
+    }
+
+    function getSelectTextOrValue(id, preferText) {
+        var el = document.getElementById(id);
+        if (!el) return "";
+        if (typeof $ !== "undefined" && $(el).data("select2")) {
+            var d = $(el).select2("data")[0];
+            if (d && preferText) return d.text || "";
+            if (d && !preferText) return d.id != null ? String(d.id) : "";
+        }
+        if (preferText) return el.options[el.selectedIndex]?.text || "";
+        return el.value || "";
+    }
+
     // ============================================
     // 1. BIOMETRÍA (Cálculo automático de IMC)
     // ============================================
@@ -46,37 +68,26 @@
 
     function inicializarControlRDA() {
         const checkGenerarRDA = document.getElementById("GenerarRDABase");
+        const btnGenerar = document.getElementById("RDA_BtnGenerar");
         const radiosTipoRDA = document.querySelectorAll('input[name="tipoRDA"]');
         const contenidoRDA = document.getElementById("ContenidoRDA");
         const seccionPaciente = document.getElementById("SeccionRDAPaciente");
         const seccionConsultaExt = document.getElementById("SeccionRDAConsultaExterna");
 
-        // --- Toggle principal: Checkbox "¿Generar RDA?" ---
-        function toggleRDA() {
-            const activo = checkGenerarRDA?.checked || false;
+        var lastTipoRDA = "paciente";
 
-            // Habilitar/deshabilitar radios
-            radiosTipoRDA.forEach(function (radio) {
-                radio.disabled = !activo;
-                if (!activo) radio.checked = false;
-            });
-
-            // Si se desactiva, ocultar todo
-            if (!activo) {
-                contenidoRDA?.classList.add("d-none");
-                seccionPaciente?.classList.add("d-none");
-                seccionConsultaExt?.classList.add("d-none");
-            }
+        function updateBtnGenerarLabel() {
+            if (!btnGenerar || !checkGenerarRDA) return;
+            var on = checkGenerarRDA.checked;
+            btnGenerar.textContent = on ? "Desactivar RDA" : "Generar RDA";
+            btnGenerar.classList.toggle("btn-success", !on);
+            btnGenerar.classList.toggle("btn-secondary", on);
         }
 
-        // --- Cambio de tipo de RDA (radio buttons) ---
         function onTipoRDAChange(e) {
-            const tipo = e.target.value; // "paciente" o "consultaExterna"
-
-            // Mostrar contenedor principal
+            var tipo = e.target.value;
+            lastTipoRDA = tipo;
             contenidoRDA?.classList.remove("d-none");
-
-            // Intercambiar secciones
             if (tipo === "paciente") {
                 seccionPaciente?.classList.remove("d-none");
                 seccionConsultaExt?.classList.add("d-none");
@@ -84,22 +95,59 @@
                 seccionConsultaExt?.classList.remove("d-none");
                 seccionPaciente?.classList.add("d-none");
             }
-
             console.log(
                 "%c[RDA] Sección activa: " + tipo,
                 "color: #2196F3; font-weight: bold;"
             );
         }
 
-        // --- Wiring de eventos ---
+        function toggleRDA() {
+            var activo = checkGenerarRDA?.checked || false;
+            if (!activo) {
+                radiosTipoRDA.forEach(function (r) {
+                    if (r.checked) lastTipoRDA = r.value;
+                });
+            }
+            radiosTipoRDA.forEach(function (radio) {
+                radio.disabled = !activo;
+                if (!activo) radio.checked = false;
+            });
+            if (!activo) {
+                contenidoRDA?.classList.add("d-none");
+                seccionPaciente?.classList.add("d-none");
+                seccionConsultaExt?.classList.add("d-none");
+            } else {
+                var arr = Array.prototype.slice.call(radiosTipoRDA);
+                var pick = null;
+                for (var i = 0; i < arr.length; i += 1) {
+                    if (arr[i].value === lastTipoRDA) {
+                        pick = arr[i];
+                        break;
+                    }
+                }
+                if (!pick && arr.length) pick = arr[0];
+                if (pick) {
+                    pick.checked = true;
+                    onTipoRDAChange({ target: pick });
+                }
+            }
+            updateBtnGenerarLabel();
+        }
+
+        btnGenerar?.addEventListener("click", function () {
+            if (!checkGenerarRDA) return;
+            checkGenerarRDA.checked = !checkGenerarRDA.checked;
+            checkGenerarRDA.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
         checkGenerarRDA?.addEventListener("change", toggleRDA);
 
         radiosTipoRDA.forEach(function (radio) {
             radio.addEventListener("change", onTipoRDAChange);
         });
 
-        // Estado inicial: desactivado
         toggleRDA();
+        updateBtnGenerarLabel();
     }
 
     // ============================================
@@ -135,6 +183,7 @@
         var btnFam = document.getElementById("RDA_BtnAgregarAntecedenteFam");
         var selectParentesco = document.getElementById("RDA_ParentescoFamiliar");
         var inputFamCIE10 = document.getElementById("RDA_AntecedenteFamiliarCIE10");
+        var inputFamCIE11 = document.getElementById("RDA_AntecedenteFamiliarCIE11");
         var inputFamDesc = document.getElementById(
             "RDA_AntecedenteFamiliarDescripcion"
         );
@@ -149,17 +198,29 @@
 
             var textoParentesco =
                 selectParentesco?.options[selectParentesco.selectedIndex]?.text || "";
+            var cie11Codigo = "";
+            var cie11Termino = "";
+            if (inputFamCIE11 && typeof $ !== "undefined" && $(inputFamCIE11).data("select2")) {
+                var d11 = $(inputFamCIE11).select2("data")[0];
+                if (d11) {
+                    cie11Codigo = d11.id != null ? String(d11.id) : "";
+                    cie11Termino = d11.text || "";
+                }
+            }
             var item = {
                 parentesco: parentesco,
                 textoParentesco: textoParentesco,
                 codigo: codigo,
                 descripcion: inputFamDesc?.value || "",
+                cie11Codigo: cie11Codigo || undefined,
+                cie11Termino: cie11Termino || undefined,
             };
             listaAntecedentesFam.push(item);
             renderizarLista(contenedorFam, listaAntecedentesFam, "familiar");
 
             if (selectParentesco) selectParentesco.value = "";
             if (inputFamCIE10) $(inputFamCIE10).val("").trigger("change");
+            if (inputFamCIE11) $(inputFamCIE11).val(null).trigger("change");
             if (inputFamDesc) inputFamDesc.value = "";
         });
 
@@ -208,6 +269,9 @@
                     " | " +
                     item.codigo +
                     (item.descripcion ? " - " + item.descripcion : "");
+                if (item.cie11Codigo) {
+                    texto += " | CIE-11: " + item.cie11Codigo + (item.cie11Termino ? " " + item.cie11Termino : "");
+                }
             } else if (tipo === "medicamento") {
                 texto =
                     item.nombre + (item.observacion ? " (" + item.observacion + ")" : "");
@@ -260,6 +324,7 @@
 
         // --- Antecedentes Familiares RDACE ---
         var btnFamCE = document.getElementById("RDACE_BtnAgregarAntecedenteFam");
+        var selectParentCE = document.getElementById("RDACE_ParentescoFamiliar");
         var inputFamCIE10CE = document.getElementById("RDACE_AntecedenteFamiliarCIE10");
         var inputFamDescCE = document.getElementById("RDACE_AntecedenteFamiliarDescripcion");
         var contenedorFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
@@ -267,11 +332,21 @@
         btnFamCE?.addEventListener("click", function () {
             var codigo = inputFamCIE10CE?.value?.trim();
             if (!codigo) return;
-            var item = { codigo: codigo, descripcion: inputFamDescCE?.value || "" };
+            var parentescoVal = selectParentCE?.value || "";
+            var parentescoTexto = selectParentCE?.options?.[selectParentCE.selectedIndex]?.text || "";
+            var item = {
+                parentesco: parentescoVal,
+                textoParentesco: parentescoTexto,
+                codigo: codigo,
+                descripcion: inputFamDescCE?.value || ""
+            };
             listaAntecedentesFamCE.push(item);
             renderizarLista(contenedorFamCE, listaAntecedentesFamCE, "antecedente");
             if (inputFamCIE10CE) $(inputFamCIE10CE).val("").trigger("change");
             if (inputFamDescCE) inputFamDescCE.value = "";
+            if (selectParentCE && typeof $ !== "undefined" && $(selectParentCE).data("select2")) {
+                $(selectParentCE).val(null).trigger("change");
+            } else if (selectParentCE) selectParentCE.value = "";
         });
 
         // --- Medicamentos (Antecedentes Farmacológicos) RDACE ---
@@ -310,11 +385,18 @@
             var codCIE10 = inputDiagCIE10Cod?.value?.trim();
             if (!codCIE10) return;
 
+            var termCIE11 = "";
+            if (inputDiagCIE11Term && typeof $ !== "undefined" && $(inputDiagCIE11Term).data("select2")) {
+                var td = $(inputDiagCIE11Term).select2("data")[0];
+                termCIE11 = td ? (td.text || "") : "";
+            } else {
+                termCIE11 = inputDiagCIE11Term?.value?.trim() || "";
+            }
             listaDiagRelacionados.push({
                 codigoCIE10: codCIE10,
                 nombreCIE10: inputDiagCIE10Nom?.value || "",
                 codigoCIE11: inputDiagCIE11Cod?.value?.trim() || "",
-                terminoCIE11: inputDiagCIE11Term?.value?.trim() || ""
+                terminoCIE11: termCIE11
             });
             renderizarListaCE(contDiagRel, listaDiagRelacionados, "diagRel");
 
@@ -345,14 +427,12 @@
                 fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
                 dosis: document.getElementById("RDACE_DosisOrdenadaMed")?.value || "",
                 unidadDosis: document.getElementById("RDACE_UnidadMedidaDosis")?.value || "",
-                via: document.getElementById("RDACE_ViaAdministracionMed")?.options[
-                    document.getElementById("RDACE_ViaAdministracionMed")?.selectedIndex
-                ]?.text || "",
+                via: getSelectTextOrValue("RDACE_ViaAdministracionMed", true),
                 duracionCant: document.getElementById("RDACE_DuracionCantidadMed")?.value || "",
                 duracionUnid: document.getElementById("RDACE_DuracionUnidadTiempoMed")?.value || "",
                 frecuenciaCant: document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || "",
                 frecuenciaUnid: document.getElementById("RDACE_FrecuenciaUnidadTiempoMed")?.value || "",
-                finalidad: document.getElementById("RDACE_FinalidadTecSaludMed")?.value || ""
+                finalidad: getSelectTextOrValue("RDACE_FinalidadTecSaludMed", false)
             });
             renderizarListaCE(contMedCE, listaPrescripcionMed, "medCE");
 
@@ -364,10 +444,7 @@
                     if (el) el.value = "";
                 });
             ["RDACE_UnidadMedidaDosis", "RDACE_ViaAdministracionMed", "RDACE_DuracionUnidadTiempoMed",
-                "RDACE_FrecuenciaUnidadTiempoMed", "RDACE_FinalidadTecSaludMed"].forEach(function (id) {
-                    var el = document.getElementById(id);
-                    if (el) el.value = "";
-                });
+                "RDACE_FrecuenciaUnidadTiempoMed", "RDACE_FinalidadTecSaludMed", "RDACE_TipoTecSaludMed"].forEach(clearFieldById);
             var durCant = document.getElementById("RDACE_DuracionCantidadMed");
             var freqCant = document.getElementById("RDACE_FrecuenciaCantidadMed");
             if (durCant) durCant.value = "";
@@ -383,24 +460,22 @@
             if (!codigo) return;
 
             listaPrescripcionProc.push({
-                tipo: "Procedimiento",
+                tipo: getSelectTextOrValue("RDACE_TipoTecSaludProc", true) || "Procedimiento",
                 codigo: codigo,
                 nombre: document.getElementById("RDACE_NombreProcedimiento")?.value || "",
-                finalidad: document.getElementById("RDACE_FinalidadTecSaludProc")?.options[
-                    document.getElementById("RDACE_FinalidadTecSaludProc")?.selectedIndex
-                ]?.text || "",
+                finalidad: getSelectTextOrValue("RDACE_FinalidadTecSaludProc", true),
                 fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionProc")?.value || ""
             });
             renderizarListaCE(contProcCE, listaPrescripcionProc, "procCE");
 
             var codProc = document.getElementById("RDACE_CodigoProcedimiento");
             var nomProc = document.getElementById("RDACE_NombreProcedimiento");
-            var finProc = document.getElementById("RDACE_FinalidadTecSaludProc");
             var fechProc = document.getElementById("RDACE_FechaPrescripcionProc");
             if (codProc && typeof $ !== "undefined") $(codProc).val(null).trigger("change");
             else if (codProc) codProc.value = "";
             if (nomProc) nomProc.value = "";
-            if (finProc) finProc.value = "";
+            clearFieldById("RDACE_TipoTecSaludProc");
+            clearFieldById("RDACE_FinalidadTecSaludProc");
             if (fechProc) fechProc.value = "";
         });
 
@@ -413,28 +488,22 @@
             if (!codigo) return;
 
             listaOtrasTec.push({
-                tipo: document.getElementById("RDACE_TipoTecSaludOtra")?.options[
-                    document.getElementById("RDACE_TipoTecSaludOtra")?.selectedIndex
-                ]?.text || "",
+                tipo: getSelectTextOrValue("RDACE_TipoTecSaludOtra", true),
                 codigo: codigo,
                 nombre: document.getElementById("RDACE_NombreOtraTecnologia")?.value || "",
                 fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionOtra")?.value || "",
-                finalidad: document.getElementById("RDACE_FinalidadTecSaludOtra")?.options[
-                    document.getElementById("RDACE_FinalidadTecSaludOtra")?.selectedIndex
-                ]?.text || ""
+                finalidad: getSelectTextOrValue("RDACE_FinalidadTecSaludOtra", true)
             });
             renderizarListaCE(contOtraCE, listaOtrasTec, "otraCE");
 
             var codOtra = document.getElementById("RDACE_CodigoOtraTecnologia");
             var nomOtra = document.getElementById("RDACE_NombreOtraTecnologia");
-            var tipOtra = document.getElementById("RDACE_TipoTecSaludOtra");
             var fechOtra = document.getElementById("RDACE_FechaPrescripcionOtra");
-            var finOtra = document.getElementById("RDACE_FinalidadTecSaludOtra");
             if (codOtra) codOtra.value = "";
             if (nomOtra) nomOtra.value = "";
-            if (tipOtra) tipOtra.value = "";
+            clearFieldById("RDACE_TipoTecSaludOtra");
             if (fechOtra) fechOtra.value = "";
-            if (finOtra) finOtra.value = "";
+            clearFieldById("RDACE_FinalidadTecSaludOtra");
         });
     }
 
@@ -571,7 +640,7 @@
 
     // Ejecutar inmediatamente (el script se carga al final del body, DOM ya existe)
     inicializarBiometria();
-    inicializarControlRDA();
+    var rdaControlApi = inicializarControlRDA();
     inicializarListasDinamicas();
     inicializarListasCE();
     inicializarRDA();

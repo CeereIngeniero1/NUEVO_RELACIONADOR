@@ -172,6 +172,45 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 |---|---|---|
 | GET | `/api/sse` | Conexión SSE para actualizaciones en tiempo real |
 
+> Nota: `/api/sse` también está implementado en el servidor del frontend (`front_relacionador/app.js`) además del backend (`back_relacionador/server/server.js`). Asegura que la URL base configurada apunte al servidor correcto.
+
+---
+
+## RDA Paciente — FHIR Bundle (V3)
+
+**Prefijo:** `/apiV3`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/RdaPaciente/FhirBundle` | Construye un `Bundle` FHIR tipo `document` (Composition + Patient + recursos clínicos) a partir de `IdEvaluacionEntidadRDA` en BD. |
+
+**Body recomendado:**
+```json
+{ "IdEvaluacionEntidadRDA": 123 }
+```
+
+---
+
+## Desrelacionador de RIPS (V3)
+
+**Prefijo:** `/apiV3`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin` | Lista relaciones RIPS detectadas para el documento paciente y rango de fechas. |
+| DELETE | `/relacionesRipsDesrelacionador` | Desvincula (elimina vínculo) de una relación RIPS. |
+
+**Body DELETE:**
+```json
+{
+  "idRipsRelacion": 456,
+  "origenTabla": "RipsV2",
+  "documentoPaciente": "10203040"
+}
+```
+
+> `origenTabla` acepta `"Rips"` o `"RipsV2"`; si se envía cualquier otro valor, el backend lo trata como `"Rips"`.
+
 ---
 
 ## Nota sobre versiones

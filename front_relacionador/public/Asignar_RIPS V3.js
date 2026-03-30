@@ -832,6 +832,650 @@ $(document).ready(function () {
   initProfesionalesSelect2("#RDA_NumDocProfesional");
   initProfesionalesSelect2("#RDACE_NumDocProfesional");
 
+  /** Modalidad / Grupo servicios RDA:
+   *  - Reutiliza los catálogos del módulo Asignar RIPS si ya existen.
+   *  - Si no están cargados, hace fallback a /apiV3.
+   *  - Sincroniza valor automáticamente desde Asignar RIPS -> RDA Paciente.
+   */
+  (async function cargarYSincronizarModalidadYGrupoRdaPaciente() {
+    const sm = document.getElementById("RDA_IdModalidadAtencion");
+    const sg = document.getElementById("RDA_IdGrupoServicios");
+    if (!sm || !sg) return;
+
+    const sourceModalidadIds = [
+      "listaModalidadAtencion",
+      "SelectModalidadGrupoServicioTecnologiaSalud", // AC
+      "SelectModalidadGrupoServicioTecSalAP", // AP
+      "SelectPorDefectoModalidadGrupoServicioTecSalAC",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAP",
+    ];
+    const sourceGrupoIds = [
+      "listaGrupoServicios",
+      "SelectGrupoServiciosAC", // AC
+      "SelectGrupoServiciosAP", // AP
+      "SelectPoDefectoGrupoServiciosAC",
+      "SelectPorDefectoGrupoServiciosAP",
+    ];
+
+    const isVisible = (el) => !!(el && el.offsetParent !== null);
+    const getPreferredFlow = () => {
+      const tipoAC = document.getElementById("TipoAC");
+      const tipoAP = document.getElementById("TipoAP");
+      if (isVisible(tipoAC)) return "AC";
+      if (isVisible(tipoAP)) return "AP";
+      return null;
+    };
+
+    const findFirstAvailableSelect = (ids) => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.tagName === "SELECT") return el;
+      }
+      return null;
+    };
+    const findBestSourceSelect = (ids) => {
+      const candidates = ids
+        .map((id) => document.getElementById(id))
+        .filter((el) => el && el.tagName === "SELECT");
+      if (!candidates.length) return null;
+      const flow = getPreferredFlow();
+      if (flow === "AC") {
+        const acCandidate = candidates.find((el) => /TecnologiaSalud|GrupoServiciosAC/.test(el.id));
+        if (acCandidate && (acCandidate.options?.length || 0) > 1) return acCandidate;
+      }
+      if (flow === "AP") {
+        const apCandidate = candidates.find((el) => /TecSalAP|GrupoServiciosAP/.test(el.id));
+        if (apCandidate && (apCandidate.options?.length || 0) > 1) return apCandidate;
+      }
+      // Prioriza el select que realmente ya tenga catálogo cargado.
+      const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
+      return withOptions || candidates[0];
+    };
+
+    const hasRealOptions = (selectEl) => {
+      const opts = Array.from(selectEl?.options || []);
+      return opts.some((opt) => {
+        const v = String(opt.value ?? "").trim();
+        const t = String(opt.textContent ?? "").trim();
+        if (!v) return false; // placeholder suele tener value vacío
+        if (!t) return false;
+        const tl = t.toLowerCase();
+        return !/sin\s*seleccionar|seleccionar/i.test(tl);
+      });
+    };
+
+    const populateFromSource = (target, source) => {
+      if (!target || !source || !source.options) return false;
+      // Si el select origen aún solo tiene placeholder, no lo copiamos para no "bloquear" el fallback.
+      if (!hasRealOptions(source)) return false;
+      target.innerHTML = "";
+      Array.from(source.options).forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt.value;
+        o.textContent = opt.textContent;
+        target.appendChild(o);
+      });
+      return true;
+    };
+
+    const syncValue = (target, source) => {
+      if (!target || !source) return;
+      if (
+        source.value &&
+        source.value !== "Sin Seleccionar" &&
+        target.querySelector(`option[value="${source.value}"]`)
+      ) {
+        target.value = source.value;
+      }
+    };
+
+    let sourceModalidad = findBestSourceSelect(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
+    let sourceGrupo = findBestSourceSelect(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
+
+    const copiedModalidad = populateFromSource(sm, sourceModalidad);
+    const copiedGrupo = populateFromSource(sg, sourceGrupo);
+    syncValue(sm, sourceModalidad);
+    syncValue(sg, sourceGrupo);
+
+    if (!copiedModalidad || !copiedGrupo) {
+      const base = `http://${servidor}:3000/apiV3`;
+      try {
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const fetchJsonWithRetry = async (url, attempts = 5) => {
+          let lastErr;
+          for (let i = 1; i <= attempts; i += 1) {
+            try {
+              const res = await fetch(url);
+              const text = await res.text();
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+              }
+              try {
+                return JSON.parse(text);
+              } catch (parseErr) {
+                throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+              }
+            } catch (e) {
+              lastErr = e;
+              if (i < attempts) await sleep(400 * i);
+            }
+          }
+          throw lastErr;
+        };
+
+        const [modRaw, grpRaw] = await Promise.all([
+          fetchJsonWithRetry(`${base}/ModalidadAtencion`),
+          fetchJsonWithRetry(`${base}/GrupoServicios`),
+        ]);
+        const modalidades = Array.isArray(modRaw) ? modRaw : [];
+        const grupos = Array.isArray(grpRaw) ? grpRaw : [];
+        modalidades.sort((a, b) =>
+          String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
+        );
+        grupos.sort((a, b) =>
+          String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
+        );
+
+        if (!copiedModalidad) {
+          sm.innerHTML = '<option value="">Seleccionar</option>';
+          modalidades.forEach((m) => {
+            const o = document.createElement("option");
+            o.value = m.IdModalidadAtencion;
+            o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
+            sm.appendChild(o);
+          });
+        }
+        if (!copiedGrupo) {
+          sg.innerHTML = '<option value="">Seleccionar</option>';
+          grupos.forEach((g) => {
+            const o = document.createElement("option");
+            o.value = g.IdGrupoServicios;
+            o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
+            sg.appendChild(o);
+          });
+        }
+      } catch (e) {
+        console.warn("[RDA] No se pudieron cargar/sincronizar Modalidad/GrupoServicios:", e);
+      }
+    }
+
+    const refreshSync = () => {
+      sourceModalidad = findBestSourceSelect(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
+      sourceGrupo = findBestSourceSelect(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
+      if (sourceModalidad) {
+        populateFromSource(sm, sourceModalidad);
+        syncValue(sm, sourceModalidad);
+      }
+      if (sourceGrupo) {
+        populateFromSource(sg, sourceGrupo);
+        syncValue(sg, sourceGrupo);
+      }
+    };
+
+    refreshSync();
+
+    if (sourceModalidad) {
+      sourceModalidad.addEventListener("change", refreshSync);
+      const obsM = new MutationObserver(refreshSync);
+      obsM.observe(sourceModalidad, { childList: true, subtree: true, attributes: true });
+    }
+    if (sourceGrupo) {
+      sourceGrupo.addEventListener("change", refreshSync);
+      const obsG = new MutationObserver(refreshSync);
+      obsG.observe(sourceGrupo, { childList: true, subtree: true, attributes: true });
+    }
+
+    // Cobertura para cargas asíncronas sin eventos de cambio.
+    let retries = 0;
+    const syncTimer = setInterval(() => {
+      retries += 1;
+      refreshSync();
+      if (retries >= 20) clearInterval(syncTimer); // ~10s
+    }, 500);
+  })();
+
+  /** RDA Consulta Externa: modalidad, grupo, vía ingreso, causa motivo (mismos catálogos / selects que Asignar RIPS). */
+  (async function cargarYSincronizarRipsContextRdace() {
+    const sm = document.getElementById("RDACE_IdModalidadAtencion");
+    const sg = document.getElementById("RDACE_IdGrupoServicios");
+    const sv = document.getElementById("RDACE_IdViaIngresoUsuario");
+    const sc = document.getElementById("RDACE_IdCausaMotivoAtencion");
+    if (!sm || !sg || !sv || !sc) return;
+
+    const base = `http://${servidor}:3000/apiV3`;
+    const isVisible = (el) => !!(el && el.offsetParent !== null);
+    const getPreferredFlow = () => {
+      const tipoAC = document.getElementById("TipoAC");
+      const tipoAP = document.getElementById("TipoAP");
+      if (isVisible(tipoAC)) return "AC";
+      if (isVisible(tipoAP)) return "AP";
+      return null;
+    };
+    const findFirstAvailableSelect = (ids) => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.tagName === "SELECT") return el;
+      }
+      return null;
+    };
+    const sourceModalidadIds = [
+      "listaModalidadAtencion",
+      "SelectModalidadGrupoServicioTecnologiaSalud",
+      "SelectModalidadGrupoServicioTecSalAP",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAC",
+      "SelectPorDefectoModalidadGrupoServicioTecSalAP",
+    ];
+    const sourceGrupoIds = [
+      "listaGrupoServicios",
+      "SelectGrupoServiciosAC",
+      "SelectGrupoServiciosAP",
+      "SelectPoDefectoGrupoServiciosAC",
+      "SelectPorDefectoGrupoServiciosAP",
+    ];
+    const sourceViaIds = ["SelectViaIngresoServicioSaludAP", "SelectPorDefectoViaIngresoServicioSaludAP"];
+    const sourceCausaIds = ["SelectCausaMotivoAtencion", "SelectPorDefectoCausaMotivoAtencionAC"];
+
+    const findBestSourceSelect = (ids, kind) => {
+      const candidates = ids
+        .map((id) => document.getElementById(id))
+        .filter((el) => el && el.tagName === "SELECT");
+      if (!candidates.length) return null;
+      const flow = getPreferredFlow();
+      if (kind === "modalidad") {
+        if (flow === "AC") {
+          const x = candidates.find((el) => /TecnologiaSalud|TecSalAC|Defecto.*AC/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+        if (flow === "AP") {
+          const x = candidates.find((el) => /TecSalAP|Defecto.*AP/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+      }
+      if (kind === "grupo") {
+        if (flow === "AC") {
+          const x = candidates.find((el) => /GrupoServiciosAC|DefectoGrupo.*AC/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+        if (flow === "AP") {
+          const x = candidates.find((el) => /GrupoServiciosAP|DefectoGrupo.*AP/i.test(el.id));
+          if (x && (x.options?.length || 0) > 1) return x;
+        }
+      }
+      const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
+      return withOptions || candidates[0];
+    };
+
+    const hasRealOptions = (selectEl) => {
+      const opts = Array.from(selectEl?.options || []);
+      return opts.some((opt) => {
+        const v = String(opt.value ?? "").trim();
+        const t = String(opt.textContent ?? "").trim();
+        if (!v) return false; // placeholder suele tener value vacío
+        if (!t) return false;
+        const tl = t.toLowerCase();
+        return !/sin\s*seleccionar|seleccionar/i.test(tl);
+      });
+    };
+
+    const populateFromSource = (target, source) => {
+      if (!target || !source || !source.options) return false;
+      // Si el select origen aún solo tiene placeholder, no lo copiamos para no "bloquear" el fallback.
+      if (!hasRealOptions(source)) return false;
+      target.innerHTML = "";
+      Array.from(source.options).forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt.value;
+        o.textContent = opt.textContent;
+        target.appendChild(o);
+      });
+      return true;
+    };
+
+    const syncValue = (target, source) => {
+      if (!target || !source) return;
+      const v = source.value;
+      if (!v || v === "Sin Seleccionar") return;
+      if (target.querySelector(`option[value="${v}"]`)) target.value = v;
+    };
+
+    const fillModalidadApi = async () => {
+      const fetchJsonWithRetry = async (url, attempts = 5) => {
+        let lastErr;
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        for (let i = 1; i <= attempts; i += 1) {
+          try {
+            const res = await fetch(url);
+            const text = await res.text();
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+            try {
+              return JSON.parse(text);
+            } catch (parseErr) {
+              throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+            }
+          } catch (e) {
+            lastErr = e;
+            if (i < attempts) await sleep(400 * i);
+          }
+        }
+        throw lastErr;
+      };
+
+      const modRaw = await fetchJsonWithRetry(`${base}/ModalidadAtencion`);
+      const modalidades = Array.isArray(modRaw) ? modRaw : [];
+      modalidades.sort((a, b) =>
+        String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
+      );
+      sm.innerHTML = '<option value="">Seleccionar</option>';
+      modalidades.forEach((m) => {
+        const o = document.createElement("option");
+        o.value = m.IdModalidadAtencion;
+        o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
+        sm.appendChild(o);
+      });
+    };
+    const fillGrupoApi = async () => {
+      const fetchJsonWithRetry = async (url, attempts = 5) => {
+        let lastErr;
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        for (let i = 1; i <= attempts; i += 1) {
+          try {
+            const res = await fetch(url);
+            const text = await res.text();
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+            try {
+              return JSON.parse(text);
+            } catch (parseErr) {
+              throw new Error(`JSON parse failed: ${text.slice(0, 200)}`);
+            }
+          } catch (e) {
+            lastErr = e;
+            if (i < attempts) await sleep(400 * i);
+          }
+        }
+        throw lastErr;
+      };
+
+      const grpRaw = await fetchJsonWithRetry(`${base}/GrupoServicios`);
+      const grupos = Array.isArray(grpRaw) ? grpRaw : [];
+      grupos.sort((a, b) =>
+        String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
+      );
+      sg.innerHTML = '<option value="">Seleccionar</option>';
+      grupos.forEach((g) => {
+        const o = document.createElement("option");
+        o.value = g.IdGrupoServicios;
+        o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
+        sg.appendChild(o);
+      });
+    };
+    const fillViaApi = async () => {
+      const raw = await fetch(`${base}/ViaIngresoUsuario`).then((r) => r.json());
+      const rows = Array.isArray(raw) ? raw : [];
+      rows.sort((a, b) =>
+        String(a.NombreViaIngresoUsuario || "").localeCompare(String(b.NombreViaIngresoUsuario || ""))
+      );
+      sv.innerHTML = '<option value="">Seleccionar</option>';
+      rows.forEach((row) => {
+        const o = document.createElement("option");
+        o.value = row.IdViaIngresoUsuario;
+        o.textContent = row.NombreViaIngresoUsuario || row.Codigo || row.IdViaIngresoUsuario;
+        sv.appendChild(o);
+      });
+    };
+    const fillCausaApi = async () => {
+      const raw = await fetch(`${base}/CausaExterna`).then((r) => r.json());
+      const rows = Array.isArray(raw) ? raw : [];
+      rows.sort((a, b) =>
+        String(a.NombreRIPSCausaExternaVersion2 || "").localeCompare(String(b.NombreRIPSCausaExternaVersion2 || ""))
+      );
+      sc.innerHTML = '<option value="">Seleccionar</option>';
+      rows.forEach((row) => {
+        const o = document.createElement("option");
+        o.value = row.IdRIPSCausaExternaVersion2;
+        o.textContent = row.NombreRIPSCausaExternaVersion2 || row.Codigo || row.IdRIPSCausaExternaVersion2;
+        sc.appendChild(o);
+      });
+    };
+
+    let sourceModalidad = findBestSourceSelect(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
+    let sourceGrupo = findBestSourceSelect(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
+    let sourceVia = findBestSourceSelect(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
+    let sourceCausa = findBestSourceSelect(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
+
+    let copiedM = populateFromSource(sm, sourceModalidad);
+    let copiedG = populateFromSource(sg, sourceGrupo);
+    let copiedV = populateFromSource(sv, sourceVia);
+    let copiedC = populateFromSource(sc, sourceCausa);
+    syncValue(sm, sourceModalidad);
+    syncValue(sg, sourceGrupo);
+    syncValue(sv, sourceVia);
+    syncValue(sc, sourceCausa);
+
+    try {
+      if (!copiedM) await fillModalidadApi();
+      if (!copiedG) await fillGrupoApi();
+      if (!copiedV) await fillViaApi();
+      if (!copiedC) await fillCausaApi();
+    } catch (e) {
+      console.warn("[RDACE] No se pudieron cargar catálogos RIPS/contexto:", e);
+    }
+
+    const refreshSync = () => {
+      sourceModalidad = findBestSourceSelect(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
+      sourceGrupo = findBestSourceSelect(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
+      sourceVia = findBestSourceSelect(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
+      sourceCausa = findBestSourceSelect(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
+      if (sourceModalidad) {
+        populateFromSource(sm, sourceModalidad);
+        syncValue(sm, sourceModalidad);
+      }
+      if (sourceGrupo) {
+        populateFromSource(sg, sourceGrupo);
+        syncValue(sg, sourceGrupo);
+      }
+      if (sourceVia) {
+        populateFromSource(sv, sourceVia);
+        syncValue(sv, sourceVia);
+      }
+      if (sourceCausa) {
+        populateFromSource(sc, sourceCausa);
+        syncValue(sc, sourceCausa);
+      }
+    };
+
+    refreshSync();
+
+    const observe = (el) => {
+      if (!el) return;
+      el.addEventListener("change", refreshSync);
+      const obs = new MutationObserver(refreshSync);
+      obs.observe(el, { childList: true, subtree: true, attributes: true });
+    };
+    observe(sourceModalidad);
+    observe(sourceGrupo);
+    observe(sourceVia);
+    observe(sourceCausa);
+
+    let retries = 0;
+    const syncTimer = setInterval(() => {
+      retries += 1;
+      refreshSync();
+      if (retries >= 20) clearInterval(syncTimer);
+    }, 500);
+  })();
+
+  /// Egreso y Remisión — GET /apiV3/EgresoRemision (?q= opcional)
+  function initEgresoRemisionSelect2(selector, placeholderText) {
+    $(selector).select2({
+      placeholder: placeholderText || "Buscar condición y destino al egreso...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/EgresoRemision`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
+          };
+        }
+      }
+    });
+  }
+  initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");
+
+  /// Catálogos RDA CE — GET /apiV3/Catalogo1888/:clave (?q= opcional)
+  function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
+    $(selector).select2({
+      placeholder: placeholderText || "Buscar...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/Catalogo1888/${claveCatalogo}`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
+          };
+        }
+      }
+    });
+  }
+  initRdaceCatalogSelect2("#RDACE_EntornoAtencion", "EntornoAtencion", "Buscar entorno de atención...");
+  initRdaceCatalogSelect2("#RDACE_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
+  initRdaceCatalogSelect2("#RDACE_ParentescoFamiliar", "ParentescoFamiliar", "Parentesco...");
+  initRdaceCatalogSelect2("#RDACE_TipoDiagPrincipalCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal...");
+  initRdaceCatalogSelect2("#RDACE_UnidadMedidaDosis", "UnidadMedidaDosis", "Unidad de medida de dosis...");
+  initRdaceCatalogSelect2("#RDACE_ViaAdministracionMed", "ViaAdministracionMedicamento", "Vía de administración...");
+  initRdaceCatalogSelect2("#RDACE_DuracionUnidadTiempoMed", "UnidadTiempoDuracion", "Unidad de duración...");
+  initRdaceCatalogSelect2("#RDACE_FrecuenciaUnidadTiempoMed", "UnidadTiempoFrecuencia", "Unidad de frecuencia...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludMed", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludProc", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludOtra", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+  initRdaceCatalogSelect2("#RDACE_TipoTecSaludOtra", "OtraTecnologiaCategoria", "Categoría otra tecnología...");
+  initRdaceCatalogSelect2("#RDACE_AlcanceIncapacidad", "AlcanceIncapacidad", "Alcance de la incapacidad...");
+
+  /// Factor de Riesgo — GET /apiV3/FactorDeRiesgo (?q= opcional)
+  function initFactorDeRiesgoSelect2() {
+    const $tipo = $("#RDACE_TipoFactorRiesgo");
+    const $nombre = $("#RDACE_NombreFactorRiesgo");
+    $tipo.select2({
+      placeholder: "Buscar tipo de factor de riesgo...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/FactorDeRiesgo`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod, descripcion: desc };
+            })
+          };
+        }
+      }
+    });
+    $tipo.on("select2:select", function (e) {
+      const d = e.params.data;
+      if ($nombre.length && d.descripcion != null) {
+        $nombre.val(d.descripcion);
+      }
+    });
+    $tipo.on("select2:clear", function () {
+      if ($nombre.length) $nombre.val("");
+    });
+  }
+  initFactorDeRiesgoSelect2();
+
+  /// Tipo de tecnología en salud — GET /apiV3/TipoTecnologiaEnSalud (?q= opcional)
+  function initTipoTecnologiaEnSaludSelect2(selector, placeholderText) {
+    $(selector).select2({
+      placeholder: placeholderText || "Buscar tipo de tecnología en salud...",
+      allowClear: true,
+      width: "100%",
+      minimumInputLength: 0,
+      ajax: {
+        delay: 250,
+        transport: function (params, success, failure) {
+          const term = (params.data.term || "").trim();
+          const base = `http://${servidor}:3000/apiV3/TipoTecnologiaEnSalud`;
+          const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+          fetch(url)
+            .then(r => {
+              if (!r.ok) throw new Error(r.statusText);
+              return r.json();
+            })
+            .then(data => success({ results: data || [] }))
+            .catch(failure);
+        },
+        processResults: function (data) {
+          const arr = data.results || data || [];
+          return {
+            results: arr.map(item => {
+              const cod = item.Codigo != null ? String(item.Codigo) : "";
+              const desc = item.Descripcion || "";
+              const text = cod ? `${cod} - ${desc}` : desc;
+              return { id: cod, text: text || cod };
+            })
+          };
+        }
+      }
+    });
+  }
+  initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludMed", "Buscar tipo de tecnología en salud...");
+  initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludProc", "Buscar tipo (ej. Procedimiento)...");
+
   ///Lista para conslta de tipo documentos
   $("#TipoDocumentoBase").select2({
     placeholder: "Selecciona Tipo Documento",
@@ -5152,6 +5796,7 @@ async function GuardarRIPSPorDefecto() {
         TipoRIPS: SelectTipoRIPSPorDefecto,
         TipoUsuario: SelectPorDefectoTipoUsuarioRIPS,
         Entidad: SelectPorDefectoEntidadAC,
+        ViaIngresoServicioSalud: "",
         ModalidadGrupoServicioTecSal:
           SelectPorDefectoModalidadGrupoServicioTecSalAC,
         GrupoServicio: SelectPoDefectoGrupoServiciosAC,
@@ -5254,6 +5899,8 @@ async function GuardarRIPSPorDefecto() {
         GrupoServicio: SelectPorDefectoGrupoServiciosAP,
         CodigoServicio: SelectPorDefectoCodServicioAP,
         FinalidadTecnologiaSalud: SelectPorDefectoFinalidadTecnologíaSaludAP,
+        CausaMotivoAtencion: "",
+        TipoDiagnosticoPrincipal: "",
         ConsultaRIPS1: SelectPorDefectoProcedimientoRIPSAP1,
         ConsultaRIPS2: SelectPorDefectoProcedimientoRIPSAP2,
         DiagnosticoRIPS1: SelectPorDefectoDiagnosticoRIPSAP1,
@@ -5361,6 +6008,7 @@ async function ActualizarRIPSPorDefecto() {
         TipoRIPS: SelectTipoRIPSPorDefecto.value,
         TipoUsuario: SelectPorDefectoTipoUsuarioRIPS,
         Entidad: SelectPorDefectoEntidadAC,
+        ViaIngresoServicioSalud: "",
         ModalidadGrupoServicioTecSal:
           SelectPorDefectoModalidadGrupoServicioTecSalAC,
         GrupoServicio: SelectPoDefectoGrupoServiciosAC,
@@ -5452,6 +6100,8 @@ async function ActualizarRIPSPorDefecto() {
         GrupoServicio: SelectPorDefectoGrupoServiciosAP,
         CodigoServicio: SelectPorDefectoCodServicioAP,
         FinalidadTecnologiaSalud: SelectPorDefectoFinalidadTecnologíaSaludAP,
+        CausaMotivoAtencion: "",
+        TipoDiagnosticoPrincipal: "",
         ConsultaRIPS1: SelectPorDefectoProcedimientoRIPSAP1,
         ConsultaRIPS2: SelectPorDefectoProcedimientoRIPSAP2,
         DiagnosticoRIPS1: SelectPorDefectoDiagnosticoRIPSAP1,
@@ -5481,7 +6131,7 @@ async function ActualizarRIPSPorDefecto() {
       } else {
         Swal.fire({
           icon: "error",
-          text: "Error al actualizar el RIPS AC por defecto",
+          text: "Error al actualizar el RIPS AP por defecto",
         });
         console.error(
           "Error en la solicitud:",
@@ -5978,18 +6628,7 @@ async function CargarRIPSPorDefecto() {
 
 BotonCargarRIPSPorDefecto.addEventListener("click", CargarRIPSPorDefecto);
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-radioAC.addEventListener("click", function (e) {
-  if (radioAC.checked) {
-    radioAP.checked = false;
-  }
-});
-
-radioAP.addEventListener("click", function (e) {
-  if (radioAP.checked) {
-    radioAC.checked = false;
-  }
-});
+// AC/AP comparten name="tipoRips" (grupo único); no hace falta desmarcar el otro a mano.
 
 // FUNCIONALIDAD PARA LA BÚSQUEDA DE FACTURAS Y PRESUPUESTOS
 const BuscarPorFacturas = document.getElementById("BuscarPorFacturas");
@@ -6156,60 +6795,6 @@ async function AgregarOpcionPorDefecto(Select) {
 /* ========================================================================================================= */
 /* ==================================== LÓGICA V3 - RDA Y BIOMETRÍA ==================================== */
 /* ========================================================================================================= */
-
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. CÁLCULO DE IMC
-  const inputTalla = document.getElementById("TallaPaciente");
-  const inputPeso = document.getElementById("PesoPaciente");
-  const inputIMC = document.getElementById("IMCPaciente");
-
-  function calcularIMC() {
-    if (!inputTalla || !inputPeso || !inputIMC) return;
-
-    const tallaCm = parseFloat(inputTalla.value);
-    const pesoKg = parseFloat(inputPeso.value);
-
-    if (tallaCm > 0 && pesoKg > 0) {
-      const tallaM = tallaCm / 100;
-      const imc = pesoKg / (tallaM * tallaM);
-      inputIMC.value = imc.toFixed(2);
-    } else {
-      inputIMC.value = "";
-    }
-  }
-
-  if (inputTalla) inputTalla.addEventListener("input", calcularIMC);
-  if (inputPeso) inputPeso.addEventListener("input", calcularIMC);
-
-  // 2. LÓGICA DE ACTIVACIÓN RDA
-  const checkGenerarRDA = document.getElementById("GenerarRDABase");
-  const radiosTipoRDA = document.getElementsByName("tipoRDA");
-  const contenidoRDA = document.getElementById("ContenidoRDA");
-
-  function toggleRDA() {
-    if (!checkGenerarRDA) return;
-    const activo = checkGenerarRDA.checked;
-
-    if (radiosTipoRDA) {
-      radiosTipoRDA.forEach(radio => {
-        radio.disabled = !activo;
-        if (!activo) radio.checked = false;
-      });
-    }
-
-    if (contenidoRDA) {
-      if (activo) {
-        contenidoRDA.classList.remove("d-none");
-      } else {
-        contenidoRDA.classList.add("d-none");
-      }
-    }
-  }
-
-  if (checkGenerarRDA) {
-    checkGenerarRDA.addEventListener("change", toggleRDA);
-    toggleRDA();
-  }
-});
+/* Delegada al módulo ES rda/index.js (biometria.js + controlRda.js)                                       */
 
 
