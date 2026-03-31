@@ -1461,3 +1461,97 @@ INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion) VALUES ('P
 GO
 
  
+
+
+ --------------------------------------
+
+
+ CREATE TABLE [dbo].[Egreso y Remision 1888](
+	[Id Egreso y Remision 1888] [int] IDENTITY(1,1) NOT NULL,
+	[Codigo] [varchar](50) NULL,
+	[Descripcion] [varchar](50) NULL,
+	[Id Estado] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[Id Egreso y Remision 1888] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[Egreso y Remision 1888] ADD  DEFAULT ((7)) FOR [Id Estado]
+GO
+
+INSERT INTO [dbo].[Egreso y Remision 1888] ([Codigo], [Descripcion], [Id Estado])
+VALUES
+('01', 'Alta médica / domiciliario', 7),
+('02', 'Remisión a otra institución', 7),
+('03', 'Remisión a urgencias', 7),
+('04', 'Remisión a hospitalización', 7),
+('05', 'Alta voluntaria', 7),
+('06', 'Evasión', 7),
+('07', 'Muerte', 7);
+
+
+
+CREATE VIEW [dbo].[Cnsta Egreso y Remision 1888]
+AS
+SELECT [Id Egreso y Remision 1888] AS IdEgresoRemision1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+FROM     dbo.[Egreso y Remision 1888]
+GO
+
+
+
+-- CREATE TABLE [dbo].[Antecedentes 1888](
+-- 	[ID Antecedente 1888] [int] IDENTITY(1,1) NOT NULL,
+-- 	[ID Tipo Antecedentes 1888] [int] NULL,
+-- 	[Parentesco] [varchar](100) NULL,
+-- 	[Documento Entidad] [nvarchar](50) NULL,
+-- 	[Descripcion] [varchar](200) NULL,
+-- 	[Id Estado] [int] NULL,
+-- PRIMARY KEY CLUSTERED 
+-- (
+-- 	[ID Antecedente 1888] ASC
+-- )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+-- ) ON [PRIMARY]
+-- GO
+
+-- ALTER TABLE [dbo].[Antecedentes 1888]  WITH CHECK ADD  CONSTRAINT [FK_ANTECEDENTES_ENTIDAD] FOREIGN KEY([Documento Entidad])
+-- REFERENCES [dbo].[Entidad] ([Documento Entidad])
+-- GO
+
+-- ALTER TABLE [dbo].[Antecedentes 1888] CHECK CONSTRAINT [FK_ANTECEDENTES_ENTIDAD]
+-- GO
+
+-- ALTER TABLE [dbo].[Antecedentes 1888]  WITH CHECK ADD  CONSTRAINT [FK_Antecedentes_TipoAntecedente] FOREIGN KEY([ID Tipo Antecedentes 1888])
+-- REFERENCES [dbo].[Tipo Antecedentes 1888] ([ID Tipo Antecedentes 1888])
+-- GO
+
+-- ALTER TABLE [dbo].[Antecedentes 1888] CHECK CONSTRAINT [FK_Antecedentes_TipoAntecedente]
+-- GO
+
+USE AcQuir
+GO
+
+/****** Object:  Table [dbo].[Ocupacion 1888]    Script Date: 31/03/2026 11:02:46 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Ocupacion 1888](
+	[Id Ocupacion 1888] [int] IDENTITY(1,1) NOT NULL,
+	[Codigo] [varchar](20) NULL,
+	[Descripcion] [varchar](200) NULL,
+	[Id Estado] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[Id Ocupacion 1888] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[Ocupacion 1888] ADD  DEFAULT ((7)) FOR [Id Estado]
+GO
+
+

@@ -85,7 +85,18 @@ router.get('/icd11/search/:query?', async (req, res) => {
     try {
         const query = req.params.query;
         if (!query || query.trim() === "" || query === "undefined") {
-            return res.json(defaultCIE11);
+            if (Array.isArray(defaultCIE11) && defaultCIE11.length > 0) {
+                return res.json(defaultCIE11);
+            }
+            // No depender de defaults: obtener sugerencias iniciales desde API CIE-11.
+            const seedTerms = ['a', 'e', 's'];
+            for (const seed of seedTerms) {
+                const seedResults = await icd11.search(seed);
+                if (Array.isArray(seedResults) && seedResults.length > 0) {
+                    return res.json(seedResults.slice(0, 20));
+                }
+            }
+            return res.json([]);
         }
         const results = await icd11.search(query);
         res.json(results || []);
