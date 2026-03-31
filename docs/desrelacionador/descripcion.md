@@ -4,7 +4,11 @@
 
 El **Desrelacionador RIPS** es una herramienta en el frontend para **revertir un vínculo** entre una **historia clínica (HC)** y un **registro RIPS**.
 
-Cuando se elimina el vínculo:
+Acciones disponibles:
+- **Eliminar relación (HC ↔ RIPS)**: elimina el registro RIPS asociado a la evaluación. La historia vuelve a **pendientes** en **`Asignar RIPS`**.
+- **Quitar factura/plan (mantener HC ↔ RIPS)**: elimina únicamente la asociación de **factura/plan** dentro del registro RIPS, sin borrar el vínculo HC↔RIPS.
+
+Cuando se elimina la relación HC↔RIPS:
 - La historia vuelve al flujo de **historias pendientes por asignar** en **`Asignar RIPS`**.
 - El registro RIPS queda sin la asociación previa, para que se reasigne correctamente.
 
@@ -20,23 +24,43 @@ Acceso típico (si el frontend está en puerto 3100):
 
 1. Abrir **Desrelacionar**.
 2. Llenar:
-   - Documento paciente (`Documento paciente`)
+   - Documento paciente (`Documento paciente`) *(opcional si busca solo por fechas)*
    - Rango de fechas (`Fecha inicio` / `Fecha fin`)
 3. Presionar **`Buscar relaciones`**.
-4. Revisar la tabla **`Relaciones RIPS detectadas`**.
-5. Para cada fila, usar el botón **`Desrelacionar`**.
-6. Confirmar el cuadro de diálogo para eliminar el vínculo.
+4. Si NO ingresó documento, el sistema mostrará una **lista de pacientes** (en la misma pantalla) encontrados en el rango. Seleccione uno para cargar las relaciones.
+5. Revisar la tabla **`Relaciones RIPS detectadas`**.
+6. Para cada fila, usar:
+   - **`Eliminar relación`** para borrar el vínculo HC↔RIPS (vuelve a pendientes).
+   - **`Quitar factura/plan`** para remover factura/plan manteniendo el vínculo HC↔RIPS.
 
 ## Endpoints usados (backend /apiV3)
 
 El módulo consume estos endpoints:
 
-1. Listado de relaciones:
+1. Listado de relaciones (por documento + rango):
    - `GET /apiV3/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin`
-2. Eliminación del vínculo:
+2. Pacientes con relaciones en rango (búsqueda solo por fechas):
+   - `GET /apiV3/relacionesRipsDesrelacionador/pacientes/:documentoUsuario/:fechaInicio/:fechaFin`
+3. Eliminación del vínculo HC↔RIPS:
    - `DELETE /apiV3/relacionesRipsDesrelacionador`
    - Body JSON:
      - `idRipsRelacion` (number)
-     - `origenTabla` (`"Rips"` o `"RipsV2"`; según la fila)
      - `documentoPaciente` (string)
+4. Quitar factura/plan (mantener vínculo HC↔RIPS):
+   - `PATCH /apiV3/relacionesRipsDesrelacionador/factura`
+   - Body JSON:
+     - `idRipsRelacion` (number)
+     - `documentoPaciente` (string)
+
+## Nota importante — facturas “automáticas”
+
+Si en la tabla se ve una **Factura relacionada** aunque el usuario no la haya vinculado manualmente, NO es la UI:
+
+- El backend y la UI solo muestran lo que ya existe en SQL Server en `[Evaluación Entidad Rips]` (`Id Factura` / `Id Plan de Tratamiento`).
+- En algunas instalaciones existe lógica en base de datos (triggers) que **auto-asocia** factura/plan al momento de insertar el RIPS.
+
+Referencia en scripts del repo:
+- `back_relacionador/SQL/1. SCRIPT PARA RIPS AUTOMATICOS.sql`
+  - Trigger `[dbo].[Relacion_Factura_Rips]` (sobre `[Evaluación Entidad Rips]`): si el RIPS se inserta con `Id Factura = 0`, busca una factura del paciente por fecha (`FuncionBuscarFacturaPaciente`) y hace `UPDATE` para asignarla.
+  - También existen triggers relacionados para EPS/prepagadas (plan de tratamiento), según configuración de cada BD.
 

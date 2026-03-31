@@ -104,10 +104,16 @@ El **Desrelacionador RIPS** permite revertir/desvincular un vínculo entre una *
   - Cliente de API: `front_relacionador/public/desrelacionador/api/relacionesRipsApi.js`
 - Endpoints backend (prefijo `/apiV3`, implementados en `back_relacionador/server/routes/Asignar_RipsRoutes V3.js`):
   - `GET /apiV3/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin`
-  - `DELETE /apiV3/relacionesRipsDesrelacionador` con body:
+  - `GET /apiV3/relacionesRipsDesrelacionador/pacientes/:documentoUsuario/:fechaInicio/:fechaFin`
+  - `DELETE /apiV3/relacionesRipsDesrelacionador` (elimina vínculo HC↔RIPS) con body:
     - `idRipsRelacion` (number)
-    - `origenTabla` (`"Rips"` o `"RipsV2"`)
     - `documentoPaciente` (string)
+  - `PATCH /apiV3/relacionesRipsDesrelacionador/factura` (quita factura/plan sin borrar vínculo HC↔RIPS) con body:
+    - `idRipsRelacion` (number)
+    - `documentoPaciente` (string)
+
+> Nota: la columna “Factura relacionada” que muestra la UI proviene de los campos `Id Factura` / `Id Plan de Tratamiento` existentes en la tabla SQL Server `[Evaluación Entidad Rips]`.  
+> En algunas instalaciones hay triggers SQL (ver `back_relacionador/SQL/1. SCRIPT PARA RIPS AUTOMATICOS.sql`, por ejemplo `[dbo].[Relacion_Factura_Rips]`) que pueden **auto-asociar** factura/plan al insertar un RIPS, sin intervención del usuario.
 
 ---
 

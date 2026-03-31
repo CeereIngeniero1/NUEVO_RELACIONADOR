@@ -2154,30 +2154,6 @@
             document.addEventListener('change', calculateProgress);
             document.addEventListener('click', () => setTimeout(calculateProgress, 350)); // Delay para esperar animación del acordeón
 
-            // ====== MODO OSCURO (THEME TOGGLE) ======
-            const themeToggleBtn = document.getElementById('crBtnThemeToggle');
-            const savedTheme = localStorage.getItem('ceere_theme') || 'light';
-
-            // Inicializar al cargar
-            if (savedTheme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i><span> Tema Claro</span>';
-            }
-
-            themeToggleBtn.addEventListener('click', () => {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-                if (isDark) {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                    localStorage.setItem('ceere_theme', 'light');
-                    themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i><span> Tema Oscuro</span>';
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('ceere_theme', 'dark');
-                    themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i><span> Tema Claro</span>';
-                }
-            });
-
             // Cálculo inicial y periódico (por si JS externo muestra/oculta cosas)
             setTimeout(calculateProgress, 1000);
             setInterval(calculateProgress, 2000);
@@ -2203,6 +2179,13 @@
 
 <!-- RDA V3 - Módulo ES (Resolución 1888) -->
 <script type="module" src="rda/index.js"></script>
+
+<!-- Shared shell: tema + topbar user -->
+<script type="module">
+  import { initThemeToggle, syncTopbarUserName } from "./shared/shell.js";
+  initThemeToggle();
+  syncTopbarUserName();
+</script>
 
 <!-- ═══════════════════════════════════════════
      NIVEL 3 — Lógica de UI: cards + topbar
@@ -2234,46 +2217,6 @@
                 body.style.maxHeight = '9999px';
             }
         });
-
-        /* ── Topbar: nombre de usuario (JWT /protected, igual que Desrelacionar) ── */
-        (async function syncTopbarUserName() {
-            const barUser = document.getElementById('TopbarUserName');
-            if (!barUser) return;
-
-            const servidor =
-                localStorage.getItem('NombreEquipoServidor') ||
-                window.location.hostname ||
-                'localhost';
-            const token = localStorage.getItem('token');
-            const fallback =
-                sessionStorage.getItem('usuario') ||
-                localStorage.getItem('usuario') ||
-                sessionStorage.getItem('documentousuariologeado') ||
-                'Usuario';
-
-            if (token) {
-                try {
-                    const res = await fetch(`http://${servidor}:3000/protected`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: token,
-                        },
-                    });
-                    if (res.ok) {
-                        const body = await res.json();
-                        const name = body.user?.username;
-                        if (name) {
-                            barUser.textContent = name;
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-            barUser.textContent = fallback;
-        })();
 
         /* ── Cerrar sesión desde topbar ────────────── */
         const btnLogout = document.getElementById('crBtnLogout');
@@ -2308,12 +2251,41 @@
             return;
         }
 
+        const rdaCodPrest = document.getElementById('RDA_CodigoPrestador')?.value?.trim();
+        const rdaIdMod = document.getElementById('RDA_IdModalidadAtencion')?.value?.trim();
+        const rdaIdGrp = document.getElementById('RDA_IdGrupoServicios')?.value?.trim();
+        if (!rdaCodPrest) {
+            Swal.fire({ icon: 'warning', title: 'Prestador requerido', text: 'Seleccione el código prestador (IPS / REPS) antes de guardar. Sin esto no se puede armar el custodian del documento FHIR.' });
+            return;
+        }
+        if (!rdaIdMod) {
+            Swal.fire({ icon: 'warning', title: 'Modalidad requerida', text: 'Seleccione la modalidad de atención (RDA / FHIR).' });
+            return;
+        }
+        if (!rdaIdGrp) {
+            Swal.fire({ icon: 'warning', title: 'Grupo de servicios requerido', text: 'Seleccione el grupo de servicios (RDA / FHIR).' });
+            return;
+        }
+
         // Construir payload principal
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
         // CIE-11 término viene de un Select2; se obtiene el texto seleccionado
         const cie11TerminoData = $('#RDA_DiagnosticoIngresoCIE11Termino').select2('data');
         const cie11Termino = cie11TerminoData?.length ? cie11TerminoData[0].text : (document.getElementById('RDA_DiagnosticoIngresoCIE11Termino')?.value || null);
+
+        const selPrestador = document.getElementById('RDA_CodigoPrestador');
+        let nitPrestadorIps = null;
+        let nombrePrestadorIps = null;
+        if (selPrestador && selPrestador.value) {
+            const optPrest = selPrestador.options[selPrestador.selectedIndex];
+            if (optPrest) {
+                const nitAttr = optPrest.getAttribute('data-nit');
+                const nomAttr = optPrest.getAttribute('data-nombre');
+                nitPrestadorIps = (nitAttr != null && String(nitAttr).trim()) ? String(nitAttr).trim() : String(selPrestador.value).trim() || null;
+                nombrePrestadorIps = (nomAttr != null && String(nomAttr).trim()) ? String(nomAttr).trim() : null;
+            }
+        }
 
         const payload = {
             // ── Datos del paciente ─────────────────────────────────────────
@@ -2354,9 +2326,8 @@
             TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
             IdModalidadAtencion:            document.getElementById('RDA_IdModalidadAtencion')?.value                      || null,
             IdGrupoServicios:               document.getElementById('RDA_IdGrupoServicios')?.value                         || null,
-            // Ajuste funcional: reutilizar campos existentes del formulario superior.
-            NitPrestadorIPS:                document.getElementById('RDA_CodigoPrestador')?.value?.trim()                  || null,
-            NombrePrestadorIPS:             document.getElementById('RDA_NombreAdminPlanBeneficios')?.value?.trim()       || null,
+            NitPrestadorIPS:                nitPrestadorIps,
+            NombrePrestadorIPS:             nombrePrestadorIps,
         };
 
         // ── Loading ────────────────────────────────────────────────────

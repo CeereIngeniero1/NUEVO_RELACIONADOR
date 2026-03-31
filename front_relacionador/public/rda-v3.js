@@ -565,6 +565,14 @@
         if (!selectPrestador && !selectPrestadorCE) return;
 
         const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
+        function escapeHtmlAttr(s) {
+            if (s == null || s === "") return "";
+            return String(s)
+                .replace(/&/g, "&amp;")
+                .replace(/"/g, "&quot;")
+                .replace(/</g, "&lt;");
+        }
+
         try {
             const respuesta = await fetch(`http://${servidor}:3000/apiV3/Empresas/`);
             if (!respuesta.ok) throw new Error("Error al obtener Empresas: " + respuesta.statusText);
@@ -574,11 +582,27 @@
             const optionsHTML = ['<option value="">Seleccionar Prestador</option>'];
             empresas.forEach(emp => {
                 const nombreMostrar = emp.NombreComercialEmpresa || emp.RazonSocialEmpresa || "";
-                optionsHTML.push(`<option value="${emp.NroIDPrestador}">${emp.NroIDPrestador} - ${nombreMostrar}</option>`);
+                const reps = emp.NroIDPrestador != null ? String(emp.NroIDPrestador).trim() : "";
+                if (!reps) return;
+                const nitDoc =
+                    emp.DocumentoEmpresa != null && String(emp.DocumentoEmpresa).trim()
+                        ? String(emp.DocumentoEmpresa).trim()
+                        : reps;
+                optionsHTML.push(
+                    `<option value="${escapeHtmlAttr(reps)}" data-nit="${escapeHtmlAttr(
+                        nitDoc
+                    )}" data-nombre="${escapeHtmlAttr(nombreMostrar)}">${escapeHtmlAttr(
+                        reps
+                    )} - ${escapeHtmlAttr(nombreMostrar)}</option>`
+                );
             });
 
-            if (selectPrestador) selectPrestador.innerHTML = optionsHTML.join("");
-            if (selectPrestadorCE) selectPrestadorCE.innerHTML = optionsHTML.join("");
+            if (selectPrestador) {
+                selectPrestador.innerHTML = optionsHTML.join("");
+            }
+            if (selectPrestadorCE) {
+                selectPrestadorCE.innerHTML = optionsHTML.join("");
+            }
 
         } catch (error) {
             console.error("[RDA V3] Error al cargar prestadores (Empresas):", error);

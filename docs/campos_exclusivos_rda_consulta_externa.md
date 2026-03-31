@@ -1,0 +1,52 @@
+# Campos exclusivos de RDA Consulta Externa (no presentes en RDA Paciente)
+
+Fuente: `docs/lista rda consulta externa.txt` vs `docs/lista rda paciente.txt`.
+
+- codigo del prestador de servicios de salud que realiza la atencion de consulta externa
+- codigo de la ocupacion
+- nombre de la ocupacion
+- Entorno donde se realizo la atencion
+- Via de ingreso del usuario al servicio de salud
+- causa que motiva la atencion
+- Tipo de factor de riesgo
+- Nombre del factor de riesgo
+- codigo diagnostico principal CIE-10
+- Nombre del diagnostico principal CIE-10
+- tipo diagnostico principal CIE-10
+- diagnosticos relacionados-diagnosticos confirmados o presuntivos relacionados con el diagnostico principal CIE-10
+- codigo del diagnostico relacionado
+- Nombre del diagnostico relacionado  CIE-10
+- codigo del diagnostico relacionado CIE-11
+- termino del diagnostico relacionado CIE-11
+- Condicion y destino del usuario al egreso
+- codigo del prestador a donde se remite
+- tipo de tecnologia en salud
+- codigo del medicamento(codigo de la tecnologia en salud)
+- nombre del medicamento
+- descripcion comun del medicamento
+- fecha de prescripcion del medicamento(tecnologia en salud)
+- dosis ordena del medicamento-cantidad total del medicamento que se prescribio para una sola dosis
+- codigo de la unidad de medida de la dosis
+- via de administracion del medicamento
+- duracion prescrita del medicamento- cantidad
+- duracion prescrita del medicamento- codigo de unidad de tiempo
+- frecuencia de administracion del medicamento- cantidad
+- frecuencia de la administracion del medicamento-codigo de  unidad de tiempo
+- finalidad de la tecnologia en salud
+- tipo de tecnologia en salud
+- codigo del procedimiento (codigo de la tecnologia en salud)
+- nombre del procedimiento(nombre de la tecnologia en sald)
+- finalidad de la tecnologia en salud
+- fecha de prescripcion procedimineto (tecnologia en salud)
+- tipo de tecnologia en salud
+- codigo de las otras tecnologias en salud (codigo de la tecnologia en salud)
+- nombre de las otras tecnologias en salud(nombre de la tecnologia en sald)
+- fecha de prescripcion de las otras tecnologias (tecnologia en salud)
+- finalidad de la tecnologia en salud
+- incapacidad- alcance de la incapacidad
+- dias de incapacidad
+- dias de licencia de maternidad
+- Tipo documento del talento humano en salud que hizo la atencion por consulta externa
+- Numero de documento de identificacion del talento humano en salud que realizo la atencion por consulta externa
+- Nombre documento PDF
+

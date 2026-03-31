@@ -198,18 +198,32 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin` | Lista relaciones RIPS detectadas para el documento paciente y rango de fechas. |
-| DELETE | `/relacionesRipsDesrelacionador` | Desvincula (elimina vínculo) de una relación RIPS. |
+| GET | `/relacionesRipsDesrelacionador/pacientes/:documentoUsuario/:fechaInicio/:fechaFin` | Lista pacientes con relaciones RIPS en el rango (para búsqueda solo por fechas en UI). |
+| DELETE | `/relacionesRipsDesrelacionador` | Elimina el vínculo HC↔RIPS (borra el registro RIPS) para que la historia vuelva a pendientes. |
+| PATCH | `/relacionesRipsDesrelacionador/factura` | Quita factura/plan del registro RIPS sin eliminar el vínculo HC↔RIPS. |
 
 **Body DELETE:**
 ```json
 {
   "idRipsRelacion": 456,
-  "origenTabla": "RipsV2",
   "documentoPaciente": "10203040"
 }
 ```
 
-> `origenTabla` acepta `"Rips"` o `"RipsV2"`; si se envía cualquier otro valor, el backend lo trata como `"Rips"`.
+**Body PATCH (/factura):**
+```json
+{
+  "idRipsRelacion": 456,
+  "documentoPaciente": "10203040"
+}
+```
+
+### Nota — asociaciones automáticas de factura/plan (SQL Server)
+
+En algunas instalaciones hay triggers SQL que pueden **auto-asociar** `Id Factura` / `Id Plan de Tratamiento` al insertar el registro RIPS.
+
+Ver `back_relacionador/SQL/1. SCRIPT PARA RIPS AUTOMATICOS.sql`, por ejemplo:
+- Trigger `[dbo].[Relacion_Factura_Rips]` (sobre `[Evaluación Entidad Rips]`): si el RIPS se inserta con `Id Factura = 0`, busca factura por paciente/fecha (`FuncionBuscarFacturaPaciente`) y ejecuta `UPDATE` para asignarla.
 
 ---
 

@@ -18,7 +18,28 @@ export async function fetchRelacionesRips({
   const res = await fetch(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    return { ok: false, error: data.error || res.statusText };
+    return {
+      ok: false,
+      error: data.error || `HTTP ${res.status} ${res.statusText}`,
+    };
+  }
+  return { ok: true, items: data.items || [] };
+}
+
+/**
+ * Pacientes con relaciones RIPS en el rango (para buscar por fechas).
+ * @returns {Promise<{ ok: boolean, items?: { documentoPaciente: string, nombrePaciente?: string }[], error?: string }>}
+ */
+export async function fetchPacientesConRelaciones({ documentoUsuario, fechaInicio, fechaFin }) {
+  const base = getApiV3BaseUrl();
+  const url = `${base}/relacionesRipsDesrelacionador/pacientes/${encodeURIComponent(documentoUsuario)}/${encodeURIComponent(fechaInicio)}/${encodeURIComponent(fechaFin)}`;
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data.error || `HTTP ${res.status} ${res.statusText}`,
+    };
   }
   return { ok: true, items: data.items || [] };
 }
@@ -33,15 +54,42 @@ export async function deleteRelacionRips({ idRipsRelacion, origenTabla, document
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       idRipsRelacion,
-      origenTabla,
       documentoPaciente,
     }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    return { ok: false, error: data.error || res.statusText };
+    return {
+      ok: false,
+      error: data.error || `HTTP ${res.status} ${res.statusText}`,
+    };
   }
   return { ok: true, message: data.message || "RIPS desrelacionado." };
+}
+
+/**
+ * Quita el vínculo de factura/plan sin borrar el registro RIPS.
+ * @returns {Promise<{ ok: boolean, message?: string, error?: string }>}
+ */
+export async function unlinkFacturaRelacionRips({ idRipsRelacion, origenTabla, documentoPaciente }) {
+  const base = getApiV3BaseUrl();
+  const url = `${base}/relacionesRipsDesrelacionador/factura`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      idRipsRelacion,
+      documentoPaciente,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data.error || `HTTP ${res.status} ${res.statusText} (${url})`,
+    };
+  }
+  return { ok: true, message: data.message || "Factura desrelacionada." };
 }
 
 /**
