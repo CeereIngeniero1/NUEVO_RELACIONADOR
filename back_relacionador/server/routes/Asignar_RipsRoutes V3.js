@@ -2994,6 +2994,8 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
 // RDA PACIENTE — Construcción FHIR Bundle desde BD
 // ======================================================================================
 // Body (recomendado): { "IdEvaluacionEntidadRDA": 123 }
+// Opcional (solo pruebas / alinear custodian IHCE sin UPDATE en BD):
+//   overrideCodigoPrestador, overrideNitPrestadorIPS, overrideNombrePrestadorIPS
 // Devuelve: Bundle FHIR type="document" (paciente) con Composition + Patient + entradas
 // (Condition, FamilyMemberHistory, MedicationStatement).
 router.post('/RdaPaciente/FhirBundle', async (req, res) => {
@@ -3333,25 +3335,22 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const grpDisplay = head && head.NombreGrupoServicios ? String(head.NombreGrupoServicios) : undefined;
 
         const practitionerRef = practitioner ? { reference: refOf(practitioner) } : null;
-        const custodianRef = organizationIps ? { reference: refOf(organizationIps) } : undefined;
+        const custodianRef = organizationIps ? { reference: refOf(organizationIps) } : null;
         if (!practitionerRef) {
             throw new Error(
                 'No se pudo construir Composition.author (PractitionerRDA). Verifique Tipo/Num documento del profesional en el RDA o datos mínimos del autor.'
             );
         }
+        if (!custodianRef) {
+            throw new Error(
+                'No se pudo construir Composition.custodian (IPS). Verifique NitPrestadorIPS y CodigoPrestador en la cabecera RDA.'
+            );
+        }
 
         const compositionId = 'Composition-0';
 
-        // Encounter es requerido por IHCE para deduplicación y validaciones del RDA
-        const encounterEntry = makeEntry({
-            resourceType: 'Encounter',
-            id: 'Encounter-0',
-            status: 'finished',
-            subject: { reference: refOf(patientEntry) },
-            period: { start: periodStart, end: periodEnd },
-            ...(organizationIps ? { serviceProvider: { reference: refOf(organizationIps) } } : {}),
-            participant: practitioner ? [{ individual: { reference: refOf(practitioner) } }] : undefined,
-        });
+        // RDA Paciente (CompositionPatientStatementRDA): encounter tiene cardinalidad 0 en el IG IHCE;
+        // incluir Encounter provoca BUNDLE-005 (“Prior creation in FHIR service”). Modalidad/grupo van en Composition.event.
         const sections = [];
         if (conditionIngresoEntry) {
             sections.push({
@@ -3455,8 +3454,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
             ],
             subject: { reference: refOf(patientEntry) },
-            encounter: { reference: refOf(encounterEntry) },
-            ...(custodianRef ? { custodian: custodianRef } : {}),
+            custodian: custodianRef,
             author: [practitionerRef],
             section: sections,
         };
@@ -3605,6 +3603,40 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         }
 
         const head = main.recordset[0];
+
+        const ob = req.body || {};
+        if (ob.overrideCodigoPrestador != null && String(ob.overrideCodigoPrestador).trim()) {
+            head.CodigoPrestador = String(ob.overrideCodigoPrestador).trim();
+        }
+        if (ob.overrideNitPrestadorIPS != null && String(ob.overrideNitPrestadorIPS).trim()) {
+            head.NitPrestadorIPS = String(ob.overrideNitPrestadorIPS).trim();
+        }
+        if (ob.overrideNombrePrestadorIPS != null && String(ob.overrideNombrePrestadorIPS).trim()) {
+            head.NombrePrestadorIPS = String(ob.overrideNombrePrestadorIPS).trim();
+        }
+
+        const codPrestHdr = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
+        if (!codPrestHdr || codPrestHdr.toLowerCase() === 'null') {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'La cabecera RDA no tiene Código Prestador (REPS). Vuelva a guardar el RDA eligiendo el prestador IPS en el formulario.',
+            });
+        }
+        if (head.IdModalidadAtencion == null) {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'Falta modalidad de atención en la cabecera RDA. Complétela en el formulario antes de generar el Bundle FHIR.',
+            });
+        }
+        if (head.IdGrupoServicios == null) {
+            return res.status(400).json({
+                ok: false,
+                error:
+                    'Falta grupo de servicios en la cabecera RDA. Compléntelo en el formulario antes de generar el Bundle FHIR.',
+            });
+        }
 
         // 2) Listas
         const [antecedentsRes, antecedentsFamRes, medsRes, parentescosRes] = await Promise.all([
@@ -3771,7 +3803,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             const segundoApellido = str(h.SegundoApellidoEntidad) || '';
             const primerNombre    = str(h.PrimerNombreEntidad)    || '';
             const segundoNombre   = str(h.SegundoNombreEntidad)   || '';
-            const familyText      = [primerApellido, segundoApellido].filter(Boolean).join(' ') || undefined;
+            // IHCE (MPI-002): Patient.name.family debe ser solo el primer apellido; el segundo va en ExtensionMothersFamilyName.
+            const familyText      = primerApellido || undefined;
             const givenArr        = [primerNombre, segundoNombre].filter(Boolean);
             const familyExtArr    = [
                 ...(primerApellido  ? [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionFathersFamilyName', valueString: primerApellido }]  : []),
@@ -3945,11 +3978,42 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const codPrest = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
         const ipsId = codPrest || newUuid();
         let organizationIpsEntry = null;
-        if (nitIps && codPrest) {
+        if (codPrest) {
             const nombreIps =
                 head.NombrePrestadorIPS != null && String(head.NombrePrestadorIPS).trim()
                     ? String(head.NombrePrestadorIPS).trim()
                     : `IPS (${codPrest})`;
+            const identifiers = [
+                ...(nitIps
+                    ? [
+                        {
+                            id: 'TaxIdentifier',
+                            use: 'official',
+                            type: {
+                                coding: [
+                                    { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
+                                    { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
+                                ],
+                            },
+                            system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
+                            value: nitIps,
+                        },
+                    ]
+                    : []),
+                {
+                    id: 'HealthcareProviderIdentifier',
+                    use: 'official',
+                    type: {
+                        coding: [
+                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
+                            { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
+                        ],
+                    },
+                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                    value: codPrest,
+                },
+            ];
+
             const ipsResource = {
                 resourceType: 'Organization',
                 id: ipsId,
@@ -3958,48 +4022,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
                 active: true,
                 name: nombreIps,
-                identifier: [
-                    {
-                        id: 'TaxIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                {
-                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                                    code: 'TAX',
-                                    display: 'Tax ID number',
-                                },
-                                {
-                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
-                                    code: 'NIT',
-                                    display: 'Número de Identificación Tributaria',
-                                },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
-                        value: nitIps,
-                    },
-                    {
-                        id: 'HealthcareProviderIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                {
-                                    system: 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                                    code: 'PRN',
-                                    display: 'Provider number',
-                                },
-                                {
-                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers',
-                                    code: 'CodigoPrestador',
-                                    display: 'Código de habilitación de prestador de servicios de salud',
-                                },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
-                        value: codPrest,
-                    },
-                ],
+                identifier: identifiers,
             };
             organizationIpsEntry = makeEntry(ipsResource);
         }
@@ -4031,14 +4054,23 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 // ======================================================================================
 // RDA PACIENTE — Envío a IHCE (sandbox/prod) desde backend
 // ======================================================================================
-// Body: { "IdEvaluacionEntidadRDA": 123, "ambiente": "sandbox" | "prod" }
+// Body: { "IdEvaluacionEntidadRDA": 123, "ambiente": "sandbox" | "prod",
+//   opcional: overrideCodigoPrestador, overrideNitPrestadorIPS, overrideNombrePrestadorIPS (se reenvían a FhirBundle) }
 // Requiere variables de entorno por ambiente:
 //   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID, IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
 //   IHCE_PROD_BASE_URL,    IHCE_PROD_TENANT_ID,    IHCE_PROD_CLIENT_ID,    IHCE_PROD_CLIENT_SECRET,    IHCE_PROD_SCOPE,    IHCE_PROD_SUBSCRIPTION_KEY
-router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
+router.post(
+    ['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce', '/RdaPaciente/JsonEnviarIHCE', '/RdaPaciente/JsonEnviarIhce'],
+    async (req, res) => {
     const https = require('https');
 
-    const { IdEvaluacionEntidadRDA, ambiente } = req.body || {};
+    const {
+        IdEvaluacionEntidadRDA,
+        ambiente,
+        overrideCodigoPrestador,
+        overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS,
+    } = req.body || {};
     const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
     if (!Number.isFinite(id)) {
         return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDA requerido (number)' });
@@ -4048,15 +4080,45 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
         ? 'IHCE_PROD_'
         : 'IHCE_SANDBOX_';
 
-    const baseUrl = process.env[`${envPrefix}BASE_URL`];
-    const tenantId = process.env[`${envPrefix}TENANT_ID`];
-    const clientId = process.env[`${envPrefix}CLIENT_ID`];
-    const clientSecret = process.env[`${envPrefix}CLIENT_SECRET`];
-    const scope = process.env[`${envPrefix}SCOPE`];
-    const subscriptionKey = process.env[`${envPrefix}SUBSCRIPTION_KEY`];
-    const forceCustodianNIT = process.env[`${envPrefix}CUSTODIAN_NIT`];
-    const forceCustodianREPS = process.env[`${envPrefix}CUSTODIAN_REPS`];
-    const forceCustodianName = process.env[`${envPrefix}CUSTODIAN_NAME`];
+    /** Primer valor de entorno no vacío (trim). Orden importa. */
+    const firstEnv = (...keys) => {
+        for (let i = 0; i < keys.length; i += 1) {
+            const v = process.env[keys[i]];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
+
+    let baseUrl;
+    let tenantId;
+    let clientId;
+    let clientSecret;
+    let scope;
+    let subscriptionKey;
+    if (envPrefix === 'IHCE_SANDBOX_') {
+        baseUrl = firstEnv('IHCE_SANDBOX_BASE_URL', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
+        tenantId = firstEnv('IHCE_SANDBOX_TENANT_ID', 'IHCE_TENANT_ID');
+        clientId = firstEnv('IHCE_SANDBOX_CLIENT_ID', 'IHCE_CLIENT_ID');
+        clientSecret = firstEnv('IHCE_SANDBOX_CLIENT_SECRET', 'IHCE_CLIENT_SECRET');
+        scope = firstEnv('IHCE_SANDBOX_SCOPE', 'IHCE_SCOPE');
+        subscriptionKey = firstEnv(
+            'IHCE_SANDBOX_SUBSCRIPTION_KEY',
+            'IHCE_APIM_SUBSCRIPTION_KEY',
+            'IHCE_SUBSCRIPTION_KEY',
+            'OCP_APIM_SUBSCRIPTION_KEY',
+        );
+    } else {
+        baseUrl = firstEnv('IHCE_PROD_BASE_URL', 'IHCE_API_BASE_URL_PROD');
+        tenantId = firstEnv('IHCE_PROD_TENANT_ID');
+        clientId = firstEnv('IHCE_PROD_CLIENT_ID');
+        clientSecret = firstEnv('IHCE_PROD_CLIENT_SECRET');
+        scope = firstEnv('IHCE_PROD_SCOPE');
+        subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
+    }
+
+    const forceCustodianNIT = firstEnv(`${envPrefix}CUSTODIAN_NIT`);
+    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`);
+    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`);
 
     const missing = [
         !baseUrl && 'BASE_URL',
@@ -4067,7 +4129,14 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
         !subscriptionKey && 'SUBSCRIPTION_KEY',
     ].filter(Boolean);
     if (missing.length) {
-        return res.status(500).json({ ok: false, error: `Faltan variables de entorno IHCE: ${envPrefix}{${missing.join(', ')}}` });
+        const hint =
+            envPrefix === 'IHCE_SANDBOX_'
+                ? ' Sandbox: IHCE_SANDBOX_* o IHCE_API_BASE_URL, IHCE_TENANT_ID, IHCE_CLIENT_ID, IHCE_CLIENT_SECRET, IHCE_SCOPE, IHCE_APIM_SUBSCRIPTION_KEY.'
+                : ' Producción: IHCE_PROD_BASE_URL, IHCE_PROD_TENANT_ID, IHCE_PROD_CLIENT_ID, IHCE_PROD_CLIENT_SECRET, IHCE_PROD_SCOPE, IHCE_PROD_SUBSCRIPTION_KEY.';
+        return res.status(500).json({
+            ok: false,
+            error: `Faltan variables de entorno IHCE (${missing.join(', ')}).${hint}`,
+        });
     }
 
     const httpJson = (url, { method = 'GET', headers = {}, body = null } = {}) =>
@@ -4094,7 +4163,17 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
         const localBase = `http://localhost:${process.env.PORT || 3000}`;
         const bundleResp = await new Promise((resolve, reject) => {
             const http = require('http');
-            const payload = JSON.stringify({ IdEvaluacionEntidadRDA: id });
+            const bundleBody = { IdEvaluacionEntidadRDA: id };
+            if (overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim()) {
+                bundleBody.overrideCodigoPrestador = String(overrideCodigoPrestador).trim();
+            }
+            if (overrideNitPrestadorIPS != null && String(overrideNitPrestadorIPS).trim()) {
+                bundleBody.overrideNitPrestadorIPS = String(overrideNitPrestadorIPS).trim();
+            }
+            if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) {
+                bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
+            }
+            const payload = JSON.stringify(bundleBody);
             const req3 = http.request(
                 `${localBase}/apiV3/RdaPaciente/FhirBundle`,
                 { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
@@ -4112,6 +4191,19 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
             return res.status(500).json({ ok: false, error: `No se pudo construir el Bundle local (status ${bundleResp.status})`, details: bundleResp.body });
         }
         const bundle = JSON.parse(bundleResp.body);
+
+        // IG IHCE RDA Paciente: sin Encounter en el documento; si llega (código viejo en memoria u otro build), quitarlo o BUNDLE-005.
+        if (bundle && Array.isArray(bundle.entry)) {
+            bundle.entry = bundle.entry.filter(
+                (e) => !(e && e.resource && e.resource.resourceType === 'Encounter')
+            );
+            const compEntry = bundle.entry.find(
+                (e) => e && e.resource && e.resource.resourceType === 'Composition'
+            );
+            if (compEntry && compEntry.resource && compEntry.resource.encounter != null) {
+                delete compEntry.resource.encounter;
+            }
+        }
 
         // Opcional: forzar custodian para que coincida con el token del prestador (IHCE valida coherencia).
         // Se usa cuando los datos en BD/UI aún no están alineados (NIT/REPS).
@@ -4174,6 +4266,186 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
             }
         }
 
+        // Opción A: no enviar Observations de signos vitales en este endpoint.
+        // IHCE está devolviendo BUNDLE-005 por Observation-Talla-0, así que removemos
+        // tanto entradas Observation como cualquier referencia a Observation.
+        if (bundle && Array.isArray(bundle.entry)) {
+            bundle.entry = bundle.entry.filter(
+                (e) => !(e && e.resource && e.resource.resourceType === 'Observation')
+            );
+
+            const isObservationRef = (ref) => {
+                const r = String(ref || '').trim();
+                return /^#?Observation[\/-]/i.test(r);
+            };
+            const stripObservationRefs = (node) => {
+                if (Array.isArray(node)) {
+                    for (let i = node.length - 1; i >= 0; i -= 1) {
+                        const item = node[i];
+                        if (
+                            item &&
+                            typeof item === 'object' &&
+                            typeof item.reference === 'string' &&
+                            isObservationRef(item.reference)
+                        ) {
+                            node.splice(i, 1);
+                        } else {
+                            stripObservationRefs(item);
+                        }
+                    }
+                    return;
+                }
+                if (!node || typeof node !== 'object') return;
+                Object.keys(node).forEach((k) => stripObservationRefs(node[k]));
+            };
+            stripObservationRefs(bundle);
+        }
+
+        // Normalización IHCE (perfil CompositionPatientStatementRDA estricto).
+        if (bundle && Array.isArray(bundle.entry)) {
+            const entries = bundle.entry;
+            const byType = (t) =>
+                entries.filter((e) => e && e.resource && e.resource.resourceType === t);
+            const keepTypes = new Set([
+                'Composition',
+                'Patient',
+                'Practitioner',
+                'Organization',
+                'MedicationStatement',
+                'AllergyIntolerance',
+            ]);
+
+            // Quitar recursos que están fallando en esta versión del perfil.
+            bundle.entry = entries.filter(
+                (e) => e && e.resource && keepTypes.has(e.resource.resourceType)
+            );
+
+            const cleanRef = (r) => String(r || '').trim().replace(/^#/, '');
+            const availableIds = new Set(
+                bundle.entry
+                    .map((e) => (e && e.resource && e.resource.id ? String(e.resource.id) : ''))
+                    .filter(Boolean)
+            );
+            const filterExistingRefs = (refs) =>
+                (Array.isArray(refs) ? refs : []).filter(
+                    (x) => x && typeof x.reference === 'string' && availableIds.has(cleanRef(x.reference))
+                );
+
+            const compEntry = bundle.entry.find(
+                (e) => e && e.resource && e.resource.resourceType === 'Composition'
+            );
+            if (compEntry && compEntry.resource) {
+                const comp = compEntry.resource;
+
+                // El perfil no permite event.code.text
+                if (Array.isArray(comp.event)) {
+                    comp.event.forEach((ev) => {
+                        if (ev && Array.isArray(ev.code)) {
+                            ev.code.forEach((c) => {
+                                if (c && Object.prototype.hasOwnProperty.call(c, 'text')) {
+                                    delete c.text;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                const oldSections = Array.isArray(comp.section) ? comp.section : [];
+                const getSectionRefs = (includesText) => {
+                    const s = oldSections.find((x) =>
+                        x && typeof x.title === 'string' && x.title.toLowerCase().includes(includesText)
+                    );
+                    return filterExistingRefs(s && s.entry);
+                };
+
+                const medicationsRefs = getSectionRefs('farmacol');
+                const allergiesRefs = getSectionRefs('alerg');
+                const problemsRefs = []; // section obligatoria, sin entries por ahora
+                const familyRefs = []; // section obligatoria, sin entries por ahora
+
+                const mkSection = (code, codeDisplay, title, refs, emptyText) => ({
+                    title,
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code,
+                                display: codeDisplay,
+                            },
+                        ],
+                    },
+                    ...(refs.length
+                        ? { entry: refs }
+                        : { text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${emptyText}</div>` } }),
+                });
+
+                // 4 secciones exactas requeridas por el perfil
+                comp.section = [
+                    mkSection(
+                        '10160-0',
+                        'History of Medication use Narrative',
+                        'Historial de medicamentos',
+                        medicationsRefs,
+                        'Sin antecedentes farmacologicos'
+                    ),
+                    mkSection(
+                        '48765-2',
+                        'Allergies and adverse reactions Document',
+                        'Historial de alergias, intolerancias y reacciones adversas',
+                        allergiesRefs,
+                        'No se conocen alergias'
+                    ),
+                    mkSection(
+                        '11450-4',
+                        'Problem list - Reported',
+                        'Historial de diagnósticos de problemas de salud',
+                        problemsRefs,
+                        'No se registran antecedentes patologicos'
+                    ),
+                    mkSection(
+                        '10157-6',
+                        'History of family member diseases Narrative',
+                        'Historial de antecedentes familiares',
+                        familyRefs,
+                        'No se registran antecedentes familiares'
+                    ),
+                ];
+            }
+
+            // Patient.address.line no permitido por este perfil IHCE.
+            byType('Patient').forEach((e) => {
+                const p = e.resource;
+                if (Array.isArray(p.extension)) {
+                    p.extension.forEach((ex) => {
+                        if (
+                            ex &&
+                            ex.valueCoding &&
+                            ex.valueCoding.system === 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661' &&
+                            String(ex.valueCoding.code || '') === '170'
+                        ) {
+                            ex.valueCoding.display = 'Colombia';
+                        }
+                    });
+                }
+                if (Array.isArray(p.address)) {
+                    p.address.forEach((a) => {
+                        if (a && Object.prototype.hasOwnProperty.call(a, 'line')) {
+                            delete a.line;
+                        }
+                        // Desactivar temporalmente extensión DIVIPOLA inválida (ej: 5001)
+                        if (a && a._city && Array.isArray(a._city.extension)) {
+                            delete a._city;
+                        }
+                    });
+                }
+            });
+        }
+
+        // Modo preview: devolver exactamente el JSON que se enviaría a IHCE.
+        if (/\/RdaPaciente\/JsonEnviarIHCE$/i.test(req.path)) {
+            return res.json(bundle);
+        }
+
         // 2) Obtener token Entra (client_credentials)
         const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
         const tokenBody = new URLSearchParams({
@@ -4218,7 +4490,8 @@ router.post('/RdaPaciente/EnviarIHCE', async (req, res) => {
         console.error('❌ [RDA] Error en EnviarIHCE:', error);
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
-});
+    }
+);
 
 // --- RDA Consulta Externa (tabla principal + hijas, análogo a Evaluacion Entidad RDA) ---
 const toDateTimeRDACE = (str) => {

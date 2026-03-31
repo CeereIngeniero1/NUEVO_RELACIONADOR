@@ -1,4 +1,4 @@
-USE CeereSio
+
 
 --=========================SCRIPT PARA CREAR TABLAS DE LA 2275 EN RIPS UNIÓN AC=======================
 
