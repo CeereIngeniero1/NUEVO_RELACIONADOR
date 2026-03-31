@@ -4058,7 +4058,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 // Requiere variables de entorno por ambiente:
 //   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID, IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
 //   IHCE_PROD_BASE_URL,    IHCE_PROD_TENANT_ID,    IHCE_PROD_CLIENT_ID,    IHCE_PROD_CLIENT_SECRET,    IHCE_PROD_SCOPE,    IHCE_PROD_SUBSCRIPTION_KEY
-router.post(['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce'], async (req, res) => {
+router.post(
+    ['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce', '/RdaPaciente/JsonEnviarIHCE', '/RdaPaciente/JsonEnviarIhce'],
+    async (req, res) => {
     const https = require('https');
 
     const {
@@ -4263,6 +4265,186 @@ router.post(['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce'], async (req, 
             }
         }
 
+        // Opción A: no enviar Observations de signos vitales en este endpoint.
+        // IHCE está devolviendo BUNDLE-005 por Observation-Talla-0, así que removemos
+        // tanto entradas Observation como cualquier referencia a Observation.
+        if (bundle && Array.isArray(bundle.entry)) {
+            bundle.entry = bundle.entry.filter(
+                (e) => !(e && e.resource && e.resource.resourceType === 'Observation')
+            );
+
+            const isObservationRef = (ref) => {
+                const r = String(ref || '').trim();
+                return /^#?Observation[\/-]/i.test(r);
+            };
+            const stripObservationRefs = (node) => {
+                if (Array.isArray(node)) {
+                    for (let i = node.length - 1; i >= 0; i -= 1) {
+                        const item = node[i];
+                        if (
+                            item &&
+                            typeof item === 'object' &&
+                            typeof item.reference === 'string' &&
+                            isObservationRef(item.reference)
+                        ) {
+                            node.splice(i, 1);
+                        } else {
+                            stripObservationRefs(item);
+                        }
+                    }
+                    return;
+                }
+                if (!node || typeof node !== 'object') return;
+                Object.keys(node).forEach((k) => stripObservationRefs(node[k]));
+            };
+            stripObservationRefs(bundle);
+        }
+
+        // Normalización IHCE (perfil CompositionPatientStatementRDA estricto).
+        if (bundle && Array.isArray(bundle.entry)) {
+            const entries = bundle.entry;
+            const byType = (t) =>
+                entries.filter((e) => e && e.resource && e.resource.resourceType === t);
+            const keepTypes = new Set([
+                'Composition',
+                'Patient',
+                'Practitioner',
+                'Organization',
+                'MedicationStatement',
+                'AllergyIntolerance',
+            ]);
+
+            // Quitar recursos que están fallando en esta versión del perfil.
+            bundle.entry = entries.filter(
+                (e) => e && e.resource && keepTypes.has(e.resource.resourceType)
+            );
+
+            const cleanRef = (r) => String(r || '').trim().replace(/^#/, '');
+            const availableIds = new Set(
+                bundle.entry
+                    .map((e) => (e && e.resource && e.resource.id ? String(e.resource.id) : ''))
+                    .filter(Boolean)
+            );
+            const filterExistingRefs = (refs) =>
+                (Array.isArray(refs) ? refs : []).filter(
+                    (x) => x && typeof x.reference === 'string' && availableIds.has(cleanRef(x.reference))
+                );
+
+            const compEntry = bundle.entry.find(
+                (e) => e && e.resource && e.resource.resourceType === 'Composition'
+            );
+            if (compEntry && compEntry.resource) {
+                const comp = compEntry.resource;
+
+                // El perfil no permite event.code.text
+                if (Array.isArray(comp.event)) {
+                    comp.event.forEach((ev) => {
+                        if (ev && Array.isArray(ev.code)) {
+                            ev.code.forEach((c) => {
+                                if (c && Object.prototype.hasOwnProperty.call(c, 'text')) {
+                                    delete c.text;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                const oldSections = Array.isArray(comp.section) ? comp.section : [];
+                const getSectionRefs = (includesText) => {
+                    const s = oldSections.find((x) =>
+                        x && typeof x.title === 'string' && x.title.toLowerCase().includes(includesText)
+                    );
+                    return filterExistingRefs(s && s.entry);
+                };
+
+                const medicationsRefs = getSectionRefs('farmacol');
+                const allergiesRefs = getSectionRefs('alerg');
+                const problemsRefs = []; // section obligatoria, sin entries por ahora
+                const familyRefs = []; // section obligatoria, sin entries por ahora
+
+                const mkSection = (code, codeDisplay, title, refs, emptyText) => ({
+                    title,
+                    code: {
+                        coding: [
+                            {
+                                system: 'http://loinc.org',
+                                code,
+                                display: codeDisplay,
+                            },
+                        ],
+                    },
+                    ...(refs.length
+                        ? { entry: refs }
+                        : { text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${emptyText}</div>` } }),
+                });
+
+                // 4 secciones exactas requeridas por el perfil
+                comp.section = [
+                    mkSection(
+                        '10160-0',
+                        'History of Medication use Narrative',
+                        'Historial de medicamentos',
+                        medicationsRefs,
+                        'Sin antecedentes farmacologicos'
+                    ),
+                    mkSection(
+                        '48765-2',
+                        'Allergies and adverse reactions Document',
+                        'Historial de alergias, intolerancias y reacciones adversas',
+                        allergiesRefs,
+                        'No se conocen alergias'
+                    ),
+                    mkSection(
+                        '11450-4',
+                        'Problem list - Reported',
+                        'Historial de diagnósticos de problemas de salud',
+                        problemsRefs,
+                        'No se registran antecedentes patologicos'
+                    ),
+                    mkSection(
+                        '10157-6',
+                        'History of family member diseases Narrative',
+                        'Historial de antecedentes familiares',
+                        familyRefs,
+                        'No se registran antecedentes familiares'
+                    ),
+                ];
+            }
+
+            // Patient.address.line no permitido por este perfil IHCE.
+            byType('Patient').forEach((e) => {
+                const p = e.resource;
+                if (Array.isArray(p.extension)) {
+                    p.extension.forEach((ex) => {
+                        if (
+                            ex &&
+                            ex.valueCoding &&
+                            ex.valueCoding.system === 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661' &&
+                            String(ex.valueCoding.code || '') === '170'
+                        ) {
+                            ex.valueCoding.display = 'Colombia';
+                        }
+                    });
+                }
+                if (Array.isArray(p.address)) {
+                    p.address.forEach((a) => {
+                        if (a && Object.prototype.hasOwnProperty.call(a, 'line')) {
+                            delete a.line;
+                        }
+                        // Desactivar temporalmente extensión DIVIPOLA inválida (ej: 5001)
+                        if (a && a._city && Array.isArray(a._city.extension)) {
+                            delete a._city;
+                        }
+                    });
+                }
+            });
+        }
+
+        // Modo preview: devolver exactamente el JSON que se enviaría a IHCE.
+        if (/\/RdaPaciente\/JsonEnviarIHCE$/i.test(req.path)) {
+            return res.json(bundle);
+        }
+
         // 2) Obtener token Entra (client_credentials)
         const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
         const tokenBody = new URLSearchParams({
@@ -4307,7 +4489,8 @@ router.post(['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce'], async (req, 
         console.error('❌ [RDA] Error en EnviarIHCE:', error);
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
-});
+    }
+);
 
 // --- RDA Consulta Externa (tabla principal + hijas, análogo a Evaluacion Entidad RDA) ---
 const toDateTimeRDACE = (str) => {
