@@ -68,13 +68,15 @@ const icd11 = new ICD11_API(
     '1913f18a-af2d-48d8-9df4-9433f2bf9731_5f1075a7-1c1d-4769-b8ad-b781f383f2cd',
     'BG8b5btjWH12ePWemxjurAfyOLXTllz7HL4C2BpohUk='
 );
-
+//se deja como ejemplo de retorno de la API de ICD-11
+//Aca se configura los Ripos por defecto, ojo en el futuro se debe habilitar la manera para que esto se haga desde el 
+//relacionador y exista rips por defecto para cada profesional
 const defaultCIE11 = [
-    { theCode: '1B10', title: 'Tuberculosis de los pulmones' },
-    { theCode: '5A11', title: 'Diabetes mellitus tipo 2' },
-    { theCode: 'BA41', title: 'Insuficiencia cardíaca' },
-    { theCode: '1D0Z', title: 'Infección viral de sitio no especificado' },
-    { theCode: '6D70', title: 'Trastorno de ansiedad generalizada' }
+    // { theCode: '1B10', title: 'Tuberculosis de los pulmones' },
+    // { theCode: '5A11', title: 'Diabetes mellitus tipo 2' },
+    // { theCode: 'BA41', title: 'Insuficiencia cardíaca' },
+    // { theCode: '1D0Z', title: 'Infección viral de sitio no especificado' },
+    // { theCode: '6D70', title: 'Trastorno de ansiedad generalizada' }
 ];
 
 const router = Router();
@@ -83,7 +85,18 @@ router.get('/icd11/search/:query?', async (req, res) => {
     try {
         const query = req.params.query;
         if (!query || query.trim() === "" || query === "undefined") {
-            return res.json(defaultCIE11);
+            if (Array.isArray(defaultCIE11) && defaultCIE11.length > 0) {
+                return res.json(defaultCIE11);
+            }
+            // No depender de defaults: obtener sugerencias iniciales desde API CIE-11.
+            const seedTerms = ['a', 'e', 's'];
+            for (const seed of seedTerms) {
+                const seedResults = await icd11.search(seed);
+                if (Array.isArray(seedResults) && seedResults.length > 0) {
+                    return res.json(seedResults.slice(0, 20));
+                }
+            }
+            return res.json([]);
         }
         const results = await icd11.search(query);
         res.json(results || []);
@@ -3062,6 +3075,12 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         }
         return { nombre: s, observacion: '' };
     };
+    const parseParentescoAntecedente = (value) => {
+        const s = (value ?? '').toString().trim();
+        if (!s) return '';
+        const m = s.match(/^(\d{2})/);
+        return m ? m[1] : s;
+    };
 
     // Maps Tipo Alergia codes (01-06) to FHIR AllergyIntolerance category values
     const allergyTypeToCategory = (tipoAlergiaCodigo) => {
@@ -3076,11 +3095,24 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const code = (tipoAlergiaCodigo ?? '').toString().trim();
         return map[code] || null;
     };
+    const allergyTypeDisplay = (tipoAlergiaCodigo) => {
+        const map = {
+            '01': 'Medicamento',
+            '02': 'Alimento',
+            '03': 'Sustancia del ambiente',
+            '04': 'Producto biologico',
+            '05': 'Sustancia quimica',
+            '06': 'Otro',
+        };
+        const code = (tipoAlergiaCodigo ?? '').toString().trim();
+        return map[code] || '';
+    };
 
     const RDA_SD = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
     const CS_MODALITY = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
     const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
-    const ICD11_SYSTEM = 'http://id.who.int/icd/release/11/mms';
+    const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
+    const ICD11_SYSTEM = 'http://hl7.org/fhir/sid/icd-11';
 
     const toIsoDateTime = (v) => {
         if (v == null || v === '') return null;
@@ -3100,6 +3132,36 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             text: texto || 'Sin información registrada',
         },
     });
+
+    // Construye codings de Condition para soportar dualidad CIE-10 / CIE-11.
+    const buildConditionCodings = ({
+        cie10Code,
+        cie10Display,
+        cie11Code,
+        cie11Display,
+    }) => {
+        const codings = [];
+        const c10 = cie10Code != null ? String(cie10Code).trim() : '';
+        const d10 = cie10Display != null ? String(cie10Display).trim() : '';
+        const c11 = cie11Code != null ? String(cie11Code).trim() : '';
+        const d11 = cie11Display != null ? String(cie11Display).trim() : '';
+
+        if (c10) {
+            codings.push({
+                system: ICD10_SYSTEM,
+                code: c10,
+                display: d10 || undefined,
+            });
+        }
+        if (c11) {
+            codings.push({
+                system: ICD11_SYSTEM,
+                code: c11,
+                display: d11 || undefined,
+            });
+        }
+        return codings;
+    };
 
     const buildRdaPacienteBundle = ({
         paciente,
@@ -3126,20 +3188,20 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
                 subject: { reference: refOf(patientEntry) },
                 code: {
-                    coding: [
-                        {
-                            system: 'http://hl7.org/fhir/sid/icd-10',
-                            code: item.codigo,
-                            display: item.descripcion || undefined,
-                        },
-                    ],
+                    coding: buildConditionCodings({
+                        cie10Code: item.codigo,
+                        cie10Display: item.descripcion,
+                        cie11Code: item.cie11Codigo,
+                        cie11Display: item.cie11Termino,
+                    }),
                     text: item.descripcion || item.codigo,
                 },
             })
         );
 
         const c11Ingreso = head && (head.DiagnosticoIngresoCIE11Codigo || '').toString().trim();
-        const conditionIngresoEntry = c11Ingreso
+        const c10Ingreso = head && (head.DiagnosticoIngresoCIE10Codigo || '').toString().trim();
+        const conditionIngresoEntry = c11Ingreso || c10Ingreso
             ? makeEntry({
                 resourceType: 'Condition',
                 id: 'ConditionIngreso-0',
@@ -3148,18 +3210,16 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
                 subject: { reference: refOf(patientEntry) },
                 code: {
-                    coding: [
-                        {
-                            system: ICD11_SYSTEM,
-                            code: c11Ingreso,
-                            display: head.DiagnosticoIngresoCIE11Termino
-                                ? String(head.DiagnosticoIngresoCIE11Termino)
-                                : undefined,
-                        },
-                    ],
-                    text: head.DiagnosticoIngresoCIE11Termino
-                        ? String(head.DiagnosticoIngresoCIE11Termino)
-                        : c11Ingreso,
+                    coding: buildConditionCodings({
+                        cie10Code: c10Ingreso,
+                        cie10Display: head && head.DiagnosticoIngresoCIE10Termino,
+                        cie11Code: c11Ingreso,
+                        cie11Display: head && head.DiagnosticoIngresoCIE11Termino,
+                    }),
+                    text:
+                        (head && (head.DiagnosticoIngresoCIE11Termino || head.DiagnosticoIngresoCIE10Termino))
+                            ? String(head.DiagnosticoIngresoCIE11Termino || head.DiagnosticoIngresoCIE10Termino)
+                            : (c11Ingreso || c10Ingreso),
                 },
             })
             : null;
@@ -3167,7 +3227,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const familyHistoryEntries = (antecedentsFam || []).map((item, idx) => {
             const codings = [
                 {
-                    system: 'http://hl7.org/fhir/sid/icd-10',
+                    system: ICD10_SYSTEM,
                     code: item.codigo,
                     display: item.descripcion || undefined,
                 },
@@ -3190,12 +3250,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 relationship: {
                     coding: [
                         {
-                            system: 'http://terminology.hl7.org/CodeSystem/v3-RoleCode',
-                            code: item.parentesco,
+                            system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ParentescoAntecedente',
+                            code: parseParentescoAntecedente(item.parentesco),
                             display: item.textoParentesco || undefined,
                         },
                     ],
-                    text: item.textoParentesco || undefined,
                 },
                 condition: [
                     {
@@ -3295,7 +3354,10 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const hasAlergia = alergia && (alergia.alergeno || '').toString().trim().length > 0;
         const allergyEntry = hasAlergia
             ? (() => {
-                const category = allergyTypeToCategory(alergia.tipoAlergia);
+                const tipoAlergiaParsed = parseCodigoDescripcion(alergia && alergia.tipoAlergia);
+                const tipoAlergiaCode = (tipoAlergiaParsed.codigo || '').trim();
+                const tipoAlergiaDisplay = (tipoAlergiaParsed.descripcion || '').trim() || allergyTypeDisplay(tipoAlergiaCode);
+                const allergenText = alergia.alergeno.toString().trim();
                 return makeEntry({
                     resourceType: 'AllergyIntolerance',
                     id: 'AllergyIntolerance-0',
@@ -3313,13 +3375,22 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     verificationStatus: {
                         coding: [
                             {
-                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification',
-                                code: 'confirmed',
+                                system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+                                code: 'unconfirmed',
+                                display: 'Unconfirmed',
                             },
                         ],
                     },
-                    ...(category ? { category: [category] } : {}),
-                    code: { text: alergia.alergeno.toString().trim() },
+                    code: {
+                        coding: [
+                            {
+                                system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/TipoAlergia',
+                                code: tipoAlergiaCode || '99',
+                                display: tipoAlergiaDisplay || 'No especificado',
+                            },
+                        ],
+                        text: allergenText,
+                    },
                     patient: { reference: refOf(patientEntry) },
                 });
             })()
@@ -4060,7 +4131,20 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 //   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID, IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
 //   IHCE_PROD_BASE_URL,    IHCE_PROD_TENANT_ID,    IHCE_PROD_CLIENT_ID,    IHCE_PROD_CLIENT_SECRET,    IHCE_PROD_SCOPE,    IHCE_PROD_SUBSCRIPTION_KEY
 router.post(
-    ['/RdaPaciente/EnviarIHCE', '/RdaPaciente/EnviarIhce', '/RdaPaciente/JsonEnviarIHCE', '/RdaPaciente/JsonEnviarIhce'],
+    [
+        '/RdaPaciente/EnviarIHCE',
+        '/RdaPaciente/EnviarIhce',
+        '/RdaPaciente/JsonEnviarIHCE',
+        '/RdaPaciente/JsonEnviarIhce',
+        '/RdaPaciente/IHCE/EnviarPacienteAntecedentes',
+        '/RdaPaciente/IHCE/PreviewPacienteAntecedentes',
+        '/RdaPaciente/EnviarIHCEModular',
+        '/RdaPaciente/EnviarIhceModular',
+        '/RdaPaciente/JsonEnviarIHCEModular',
+        '/RdaPaciente/JsonEnviarIhceModular',
+        '/RdaPaciente/IHCE/EnviarPacienteAntecedentesModular',
+        '/RdaPaciente/IHCE/PreviewPacienteAntecedentesModular',
+    ],
     async (req, res) => {
     const https = require('https');
 
@@ -4070,6 +4154,12 @@ router.post(
         overrideCodigoPrestador,
         overrideNitPrestadorIPS,
         overrideNombrePrestadorIPS,
+        // Solo endpoint de prueba: habilitar bloques de forma incremental.
+        incluirConditionIngreso,
+        incluirConditions,
+        incluirFamilyHistory,
+        incluirAllergy,
+        incluirObservations,
     } = req.body || {};
     const id = IdEvaluacionEntidadRDA != null ? parseInt(IdEvaluacionEntidadRDA, 10) : NaN;
     if (!Number.isFinite(id)) {
@@ -4266,10 +4356,17 @@ router.post(
             }
         }
 
-        // Opción A: no enviar Observations de signos vitales en este endpoint.
-        // IHCE está devolviendo BUNDLE-005 por Observation-Talla-0, así que removemos
-        // tanto entradas Observation como cualquier referencia a Observation.
-        if (bundle && Array.isArray(bundle.entry)) {
+        const isModularEndpoint =
+            /\/RdaPaciente\/(Json)?EnviarIHCE(Modular)$/i.test(req.path) ||
+            /\/RdaPaciente\/IHCE\/(Preview|Enviar)PacienteAntecedentes(Modular)$/i.test(req.path);
+        const wantsObservations = isModularEndpoint && incluirObservations === true;
+        const wantsConditionIngreso = isModularEndpoint && incluirConditionIngreso === true;
+        const wantsConditions = isModularEndpoint && incluirConditions === true;
+        const wantsFamilyHistory = isModularEndpoint && incluirFamilyHistory === true;
+        const wantsAllergy = isModularEndpoint && incluirAllergy === true;
+
+        // Base estable: no enviar Observations salvo que el endpoint de prueba lo solicite.
+        if (bundle && Array.isArray(bundle.entry) && !wantsObservations) {
             bundle.entry = bundle.entry.filter(
                 (e) => !(e && e.resource && e.resource.resourceType === 'Observation')
             );
@@ -4312,8 +4409,11 @@ router.post(
                 'Practitioner',
                 'Organization',
                 'MedicationStatement',
-                'AllergyIntolerance',
             ]);
+            if (wantsAllergy) keepTypes.add('AllergyIntolerance');
+            if (wantsConditions || wantsConditionIngreso) keepTypes.add('Condition');
+            if (wantsFamilyHistory) keepTypes.add('FamilyMemberHistory');
+            if (wantsObservations) keepTypes.add('Observation');
 
             // Quitar recursos que están fallando en esta versión del perfil.
             bundle.entry = entries.filter(
@@ -4359,9 +4459,48 @@ router.post(
                 };
 
                 const medicationsRefs = getSectionRefs('farmacol');
-                const allergiesRefs = getSectionRefs('alerg');
-                const problemsRefs = []; // section obligatoria, sin entries por ahora
-                const familyRefs = []; // section obligatoria, sin entries por ahora
+                const allergiesRefs =
+                    wantsAllergy
+                        ? filterExistingRefs(
+                            bundle.entry
+                                .filter((e) => e && e.resource && e.resource.resourceType === 'AllergyIntolerance')
+                                .map((e) => ({ reference: `#${e.resource.id}` }))
+                        )
+                        : getSectionRefs('alerg');
+                const problemsRefs = wantsConditions || wantsConditionIngreso
+                    ? filterExistingRefs(
+                        bundle.entry
+                            .filter(
+                                (e) =>
+                                    e &&
+                                    e.resource &&
+                                    e.resource.resourceType === 'Condition' &&
+                                    e.resource.id !== 'ConditionIngreso-0'
+                            )
+                            .map((e) => ({ reference: `#${e.resource.id}` }))
+                            .concat(
+                                wantsConditionIngreso
+                                    ? bundle.entry
+                                        .filter(
+                                            (e) =>
+                                                e &&
+                                                e.resource &&
+                                                e.resource.resourceType === 'Condition' &&
+                                                e.resource.id === 'ConditionIngreso-0'
+                                        )
+                                        .map((e) => ({ reference: `#${e.resource.id}` }))
+                                    : []
+                            )
+                    )
+                    : [];
+                const familyRefs = wantsFamilyHistory
+                    ? filterExistingRefs(
+                        bundle.entry
+                            .filter((e) => e && e.resource && e.resource.resourceType === 'FamilyMemberHistory')
+                            .map((e) => ({ reference: `#${e.resource.id}` }))
+                    )
+                    : [];
+                const allergySectionRefs = wantsAllergy ? allergiesRefs : [];
 
                 const mkSection = (code, codeDisplay, title, refs, emptyText) => ({
                     title,
@@ -4392,7 +4531,7 @@ router.post(
                         '48765-2',
                         'Allergies and adverse reactions Document',
                         'Historial de alergias, intolerancias y reacciones adversas',
-                        allergiesRefs,
+                        allergySectionRefs,
                         'No se conocen alergias'
                     ),
                     mkSection(
@@ -4442,7 +4581,10 @@ router.post(
         }
 
         // Modo preview: devolver exactamente el JSON que se enviaría a IHCE.
-        if (/\/RdaPaciente\/JsonEnviarIHCE$/i.test(req.path)) {
+        if (
+            /\/RdaPaciente\/JsonEnviarIHCE($|Modular$)/i.test(req.path) ||
+            /\/RdaPaciente\/IHCE\/PreviewPacienteAntecedentes($|Modular$)/i.test(req.path)
+        ) {
             return res.json(bundle);
         }
 
