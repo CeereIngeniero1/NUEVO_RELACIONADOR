@@ -9,7 +9,9 @@ Construye el **Bundle FHIR tipo `document`** para **RDA Consulta Externa** (Reso
 - **Perfil Composition**: [`CompositionAmbulatoryRDA`](https://fhir.minsalud.gov.co/rda/StructureDefinition/CompositionAmbulatoryRDA)
 - **Perfil Encounter**: [`EncounterAmbulatoryRDA`](https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA) — **obligatorio** (diferencia clave con RDA Paciente)
 - **Referencia IG**: https://vulcano.ihcecol.gov.co/RDA-consulta.html
-- **Envío IHCE (futuro)**: `POST /Composition/$enviar-rda-consulta`
+- **Envío IHCE**: `POST /apiV3/RdaConsultaExterna/EnviarIHCE` → llama internamente a este endpoint y luego envía a `POST .../Composition/$enviar-rda-consulta`
+- **Preview normalizado**: `POST /apiV3/RdaConsultaExterna/JsonEnviarIHCE` (mismo flujo sin enviar)
+- **Envío modular**: `POST /apiV3/RdaConsultaExterna/EnviarIHCEModular` (flags `incluir*` para depuración sandbox)
 
 ---
 

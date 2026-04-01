@@ -15,9 +15,10 @@
  *  GET   /TipoTecnologiaEnSalud                        — catálogo 1888
  *  GET   /Catalogo1888/:clave                          — catálogos 1888 genéricos
  *  POST  /RdaConsultaExterna/FhirBundle                — construcción Bundle FHIR
- *
- * Pendientes (agregar en este mismo archivo cuando estén listos):
  *  POST  /RdaConsultaExterna/EnviarIHCE                — envío IHCE ($enviar-rda-consulta)
+ *  POST  /RdaConsultaExterna/JsonEnviarIHCE            — preview bundle normalizado (sin enviar)
+ *  POST  /RdaConsultaExterna/EnviarIHCEModular         — envío IHCE con flags por tipo de recurso
+ *  POST  /RdaConsultaExterna/JsonEnviarIHCEModular     — preview modular (sin enviar)
  *
  * Montaje en el router principal:
  *   router.use(require('./rda/RdaConsultaExternaRoutes'));
@@ -425,7 +426,7 @@ router.get('/Catalogo1888/:clave', async (req, res) => {
 // Body:  { "IdEvaluacionEntidadRDACE": 123,
 //          "overrideNombrePrestadorIPS": "...",   // opcional
 //          "overrideNitPrestadorIPS":   "..." }   // opcional
-// Envío IHCE (pendiente): POST /Composition/$enviar-rda-consulta
+// Envío IHCE: POST {IHCE_BASE}/Composition/$enviar-rda-consulta (ver handler EnviarIHCE más abajo)
 router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const { IdEvaluacionEntidadRDACE } = req.body || {};
     const id = IdEvaluacionEntidadRDACE != null ? parseInt(IdEvaluacionEntidadRDACE, 10) : NaN;
@@ -768,10 +769,11 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             active: true,
         });
 
-        // Condition principal (CIE-10 + CIE-11)
+        // Condition principal (CIE-10 + CIE-11) + relacionadas — IHCE BUNDLE-005: id debe ser <ResourceType>-<n> (ej. Condition-0, Condition-1), no Condition-Rel-0
+        let conditionSeq = 0;
         const condPrincipalEntry = (str(head.DiagPrincipalCIE10Codigo) || str(head.DiagnosticoIngresoCIE11Codigo)) ? makeEntry({
             resourceType: 'Condition',
-            id: 'Condition-0',
+            id: `Condition-${conditionSeq++}`,
             meta: { profile: [`${RDA_SD}/ConditionStatementRDA`] },
             subject: { reference: `#${pacienteId}` },
             code: {
@@ -784,12 +786,12 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         }) : null;
 
         // Conditions relacionadas
-        const condRelacionadasEntries = diagRelacionados.map((r, idx) => {
+        const condRelacionadasEntries = diagRelacionados.map((r) => {
             const c10 = str(r.CodigoCIE10); const c11 = str(r.CodigoCIE11);
             if (!c10 && !c11) return null;
             return makeEntry({
                 resourceType: 'Condition',
-                id: `Condition-Rel-${idx}`,
+                id: `Condition-${conditionSeq++}`,
                 meta: { profile: [`${RDA_SD}/ConditionStatementRDA`] },
                 subject: { reference: `#${pacienteId}` },
                 code: {
@@ -1054,5 +1056,264 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
 });
+
+// ======================================================================================
+// RDA CONSULTA EXTERNA — Envío a IHCE (sandbox/prod) desde backend
+// ======================================================================================
+// Body requerido: { "IdEvaluacionEntidadRDACE": 123 }
+// Body opcional:  { "ambiente": "sandbox" | "prod",
+//                   "overrideNitPrestadorIPS": "...", "overrideNombrePrestadorIPS": "..." }
+// Flags modular (solo rutas *Modular):
+//   incluirConditions, incluirAllergyIntolerance, incluirRiskAssessment,
+//   incluirMedications, incluirServiceRequests, incluirObservations  (boolean, default true)
+//
+// Variables de entorno requeridas (sandbox):
+//   IHCE_SANDBOX_BASE_URL, IHCE_SANDBOX_TENANT_ID, IHCE_SANDBOX_CLIENT_ID,
+//   IHCE_SANDBOX_CLIENT_SECRET, IHCE_SANDBOX_SCOPE, IHCE_SANDBOX_SUBSCRIPTION_KEY
+// Override custodian (opcional):
+//   IHCE_SANDBOX_CUSTODIAN_REPS, IHCE_SANDBOX_CUSTODIAN_NIT, IHCE_SANDBOX_CUSTODIAN_NAME
+router.post(
+    [
+        '/RdaConsultaExterna/EnviarIHCE',
+        '/RdaConsultaExterna/EnviarIhce',
+        '/RdaConsultaExterna/JsonEnviarIHCE',
+        '/RdaConsultaExterna/JsonEnviarIhce',
+        '/RdaConsultaExterna/EnviarIHCEModular',
+        '/RdaConsultaExterna/EnviarIhceModular',
+        '/RdaConsultaExterna/JsonEnviarIHCEModular',
+        '/RdaConsultaExterna/JsonEnviarIhceModular',
+    ],
+    async (req, res) => {
+    const https = require('https');
+
+    const {
+        IdEvaluacionEntidadRDACE,
+        ambiente,
+        overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS,
+        incluirConditions,
+        incluirAllergyIntolerance,
+        incluirRiskAssessment,
+        incluirMedications,
+        incluirServiceRequests,
+        incluirObservations,
+    } = req.body || {};
+
+    const id = IdEvaluacionEntidadRDACE != null ? parseInt(IdEvaluacionEntidadRDACE, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDACE requerido (number)' });
+    }
+
+    const envPrefix = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
+        ? 'IHCE_PROD_'
+        : 'IHCE_SANDBOX_';
+
+    const firstEnv = (...keys) => {
+        for (let i = 0; i < keys.length; i += 1) {
+            const v = process.env[keys[i]];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
+
+    let baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey;
+    if (envPrefix === 'IHCE_SANDBOX_') {
+        baseUrl         = firstEnv('IHCE_SANDBOX_BASE_URL', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
+        tenantId        = firstEnv('IHCE_SANDBOX_TENANT_ID', 'IHCE_TENANT_ID');
+        clientId        = firstEnv('IHCE_SANDBOX_CLIENT_ID', 'IHCE_CLIENT_ID');
+        clientSecret    = firstEnv('IHCE_SANDBOX_CLIENT_SECRET', 'IHCE_CLIENT_SECRET');
+        scope           = firstEnv('IHCE_SANDBOX_SCOPE', 'IHCE_SCOPE');
+        subscriptionKey = firstEnv('IHCE_SANDBOX_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY', 'IHCE_SUBSCRIPTION_KEY', 'OCP_APIM_SUBSCRIPTION_KEY');
+    } else {
+        baseUrl         = firstEnv('IHCE_PROD_BASE_URL', 'IHCE_API_BASE_URL_PROD');
+        tenantId        = firstEnv('IHCE_PROD_TENANT_ID');
+        clientId        = firstEnv('IHCE_PROD_CLIENT_ID');
+        clientSecret    = firstEnv('IHCE_PROD_CLIENT_SECRET');
+        scope           = firstEnv('IHCE_PROD_SCOPE');
+        subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
+    }
+
+    const forceCustodianNIT  = firstEnv(`${envPrefix}CUSTODIAN_NIT`);
+    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`);
+    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`);
+
+    const missing = [
+        !baseUrl         && 'BASE_URL',
+        !tenantId        && 'TENANT_ID',
+        !clientId        && 'CLIENT_ID',
+        !clientSecret    && 'CLIENT_SECRET',
+        !scope           && 'SCOPE',
+        !subscriptionKey && 'SUBSCRIPTION_KEY',
+    ].filter(Boolean);
+    if (missing.length) {
+        const hint = envPrefix === 'IHCE_SANDBOX_'
+            ? ' Sandbox: IHCE_SANDBOX_* o IHCE_API_BASE_URL, IHCE_TENANT_ID, IHCE_CLIENT_ID, IHCE_CLIENT_SECRET, IHCE_SCOPE, IHCE_APIM_SUBSCRIPTION_KEY.'
+            : ' Producción: IHCE_PROD_BASE_URL, IHCE_PROD_TENANT_ID, IHCE_PROD_CLIENT_ID, IHCE_PROD_CLIENT_SECRET, IHCE_PROD_SCOPE, IHCE_PROD_SUBSCRIPTION_KEY.';
+        return res.status(500).json({ ok: false, error: `Faltan variables de entorno IHCE (${missing.join(', ')}).${hint}` });
+    }
+
+    const httpJson = (url, { method = 'GET', headers = {}, body = null } = {}) =>
+        new Promise((resolve, reject) => {
+            const u = new URL(url);
+            const opts = { method, hostname: u.hostname, path: u.pathname + (u.search || ''), headers };
+            const req2 = https.request(opts, (resp) => {
+                let data = '';
+                resp.on('data', (chunk) => (data += chunk));
+                resp.on('end', () => resolve({ status: resp.statusCode || 0, headers: resp.headers, body: data }));
+            });
+            req2.on('error', reject);
+            if (body) req2.write(body);
+            req2.end();
+        });
+
+    try {
+        // 1) Obtener Bundle desde el endpoint interno
+        const localBase = `http://localhost:${process.env.PORT || 3000}`;
+        const bundleResp = await new Promise((resolve, reject) => {
+            const http = require('http');
+            const bundleBody = { IdEvaluacionEntidadRDACE: id };
+            if (overrideNitPrestadorIPS    != null && String(overrideNitPrestadorIPS).trim())    bundleBody.overrideNitPrestadorIPS    = String(overrideNitPrestadorIPS).trim();
+            if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
+            const payload = JSON.stringify(bundleBody);
+            const req3 = http.request(
+                `${localBase}/apiV3/RdaConsultaExterna/FhirBundle`,
+                { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
+                (resp) => { let data = ''; resp.on('data', (c) => (data += c)); resp.on('end', () => resolve({ status: resp.statusCode || 0, body: data })); }
+            );
+            req3.on('error', reject);
+            req3.write(payload);
+            req3.end();
+        });
+        if (bundleResp.status < 200 || bundleResp.status >= 300) {
+            return res.status(500).json({ ok: false, error: `No se pudo construir el Bundle local (status ${bundleResp.status})`, details: bundleResp.body });
+        }
+        const bundle = JSON.parse(bundleResp.body);
+
+        // 2) Normalización — RDACE mantiene Encounter (obligatorio según IG)
+        //    RDA Paciente lo elimina; aquí NO se quita.
+        if (bundle && Array.isArray(bundle.entry)) {
+            // En modo modular los flags controlan qué tipos opcionales se incluyen.
+            const isModular = /Modular$/i.test(req.path);
+            const alwaysKeep = new Set(['Composition', 'Patient', 'Encounter', 'Practitioner', 'Organization']);
+            const optFlags = {
+                Condition:          isModular ? incluirConditions        !== false : true,
+                AllergyIntolerance: isModular ? incluirAllergyIntolerance !== false : true,
+                RiskAssessment:     isModular ? incluirRiskAssessment     !== false : true,
+                MedicationRequest:  isModular ? incluirMedications        !== false : true,
+                ServiceRequest:     isModular ? incluirServiceRequests    !== false : true,
+                Observation:        isModular ? incluirObservations       !== false : true,
+            };
+
+            bundle.entry = bundle.entry.filter((e) => {
+                if (!e || !e.resource) return false;
+                const rt = e.resource.resourceType;
+                return alwaysKeep.has(rt) || optFlags[rt] === true;
+            });
+
+            // Reconstruir secciones de Composition conservando solo refs a entries presentes.
+            const compEntry = bundle.entry.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+            if (compEntry && compEntry.resource) {
+                const comp  = compEntry.resource;
+                const avail = new Set(bundle.entry.map((e) => e && e.resource && e.resource.id).filter(Boolean));
+                const emptyReason = { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason', code: 'nilknown', display: 'Nil Known' }], text: 'Sin información registrada' };
+
+                comp.section = (Array.isArray(comp.section) ? comp.section : []).map((s) => {
+                    if (!Array.isArray(s.entry) || s.entry.length === 0) return s;
+                    const filtered = s.entry.filter((r) => avail.has(String(r.reference || '').replace(/^#/, '')));
+                    if (filtered.length === 0) {
+                        const { entry: _removed, ...rest } = s;
+                        return { ...rest, emptyReason };
+                    }
+                    return { ...s, entry: filtered };
+                });
+            }
+
+            // Patient.address: quitar line y _city (validación IHCE)
+            bundle.entry
+                .filter((e) => e && e.resource && e.resource.resourceType === 'Patient')
+                .forEach((e) => {
+                    if (Array.isArray(e.resource.address)) {
+                        e.resource.address.forEach((a) => {
+                            if (a && Object.prototype.hasOwnProperty.call(a, 'line')) delete a.line;
+                            if (a && a._city) delete a._city;
+                        });
+                    }
+                });
+        }
+
+        // 3) Override custodian si las variables de entorno lo solicitan
+        if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
+            const reps = String(forceCustodianREPS).trim();
+            const nit  = forceCustodianNIT  ? String(forceCustodianNIT).trim()  : '';
+            const name = forceCustodianName && String(forceCustodianName).trim()
+                ? String(forceCustodianName).trim()
+                : `IPS (${reps})`;
+            const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
+            const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+            if (compE && compE.resource) compE.resource.custodian = { reference: `#${reps}` };
+            let orgE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Organization' && e.resource.id === reps);
+            if (!orgE) { orgE = { resource: { resourceType: 'Organization', id: reps } }; entries.push(orgE); bundle.entry = entries; }
+            orgE.resource.active = true;
+            orgE.resource.meta   = orgE.resource.meta || { profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'] };
+            orgE.resource.name   = name;
+            orgE.resource.identifier = nit
+                ? [
+                    { id: 'TaxIdentifier', use: 'official', type: { coding: [
+                        { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
+                        { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
+                    ]}, system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN', value: nit },
+                    { id: 'HealthcareProviderIdentifier', use: 'official', type: { coding: [
+                        { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
+                        { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
+                    ]}, system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps },
+                ]
+                : orgE.resource.identifier || [{ system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps }];
+        }
+
+        // Modo preview: devolver el bundle normalizado sin llamar a IHCE
+        if (/\/Json/i.test(req.path)) {
+            return res.json(bundle);
+        }
+
+        // 4) Obtener token Entra (client_credentials)
+        const tokenUrl  = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+        const tokenBody = new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope }).toString();
+        const tokenResp = await httpJson(tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(tokenBody) },
+            body: tokenBody,
+        });
+        if (tokenResp.status !== 200) {
+            return res.status(502).json({ ok: false, error: `Token IHCE falló (status ${tokenResp.status})`, details: tokenResp.body });
+        }
+        const tokenJson = JSON.parse(tokenResp.body);
+        const accessToken = tokenJson.access_token;
+        if (!accessToken) {
+            return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenJson });
+        }
+
+        // 5) Enviar a IHCE — operación $enviar-rda-consulta (distinta de $enviar-rda-paciente)
+        const sendUrl  = `${baseUrl.replace(/\/$/, '')}/Composition/$enviar-rda-consulta`;
+        const sendBody = JSON.stringify(bundle);
+        const sendResp = await httpJson(sendUrl, {
+            method: 'POST',
+            headers: {
+                Authorization:               `Bearer ${accessToken}`,
+                'Ocp-Apim-Subscription-Key': subscriptionKey,
+                'Content-Type':              'application/fhir+json',
+                Accept:                      'application/fhir+json',
+                'Content-Length':            Buffer.byteLength(sendBody),
+            },
+            body: sendBody,
+        });
+
+        return res.status(sendResp.status || 502).send(sendResp.body || '');
+
+    } catch (error) {
+        console.error('❌ [RDACE] Error en EnviarIHCE:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+    }
+);
 
 module.exports = router;

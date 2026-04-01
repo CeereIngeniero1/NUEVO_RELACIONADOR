@@ -84,7 +84,20 @@ Persistencia en `[Evaluacion Entidad RDA Consulta Externa]` y tablas hijas; cat�
 | GET | `/Catalogo1888/:clave` | Catálogos whitelist (ver código: `EntornoAtencion`, `TipoAlergia`, etc.) |
 | POST | `/RdaConsultaExterna/FhirBundle` | Bundle FHIR local (body: `IdEvaluacionEntidadRDACE`, overrides IPS opcionales) |
 
-**Pendiente en este mismo archivo (cuando se implemente)**: envío IHCE `POST /Composition/$enviar-rda-consulta`.
+Las siguientes rutas comparten **un mismo handler** de envío/preview (variantes de nombre para compatibilidad):
+
+| POST (alias del mismo handler) |
+|--------------------------------|
+| `/RdaConsultaExterna/EnviarIHCE`, `/RdaConsultaExterna/EnviarIhce` |
+| `/RdaConsultaExterna/JsonEnviarIHCE`, `/RdaConsultaExterna/JsonEnviarIhce` |
+| `/RdaConsultaExterna/EnviarIHCEModular`, `/RdaConsultaExterna/EnviarIhceModular` |
+| `/RdaConsultaExterna/JsonEnviarIHCEModular`, `/RdaConsultaExterna/JsonEnviarIhceModular` |
+
+**Operación IHCE**: `POST .../Composition/$enviar-rda-consulta` (Manual de interoperabilidad v1.2, punto 4). Usa las mismas variables de entorno `IHCE_SANDBOX_*` / `IHCE_PROD_*` que RDA Paciente.
+
+**Normalización RDACE vs Paciente**: a diferencia de RDA Paciente (que elimina `Encounter`), la normalización de consulta externa **mantiene el `Encounter`** (obligatorio según IG). Los flags modular (`incluirConditions`, `incluirAllergyIntolerance`, `incluirRiskAssessment`, `incluirMedications`, `incluirServiceRequests`, `incluirObservations`) permiten enviar subconjuntos para depuración sandbox.
+
+**Preview (sin enviar)**: usar `JsonEnviarIHCE` o `JsonEnviarIHCEModular`; devuelve exactamente el JSON normalizado que se enviaría.
 
 Detalle del endpoint FhirBundle: [rda-consultaexterna-fhirbundle-endpoint.md](rda-consultaexterna-fhirbundle-endpoint.md).
 

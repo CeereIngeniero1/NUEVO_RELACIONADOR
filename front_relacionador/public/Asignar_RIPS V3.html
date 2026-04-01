@@ -2055,7 +2055,15 @@
 
                                     <!-- Guardar RDA Consulta Externa (tabla [Evaluacion Entidad RDA Consulta Externa] + hijas) -->
                                     <div class="row g-2 mt-2 mb-2">
-                                        <div class="col-md-12 d-flex justify-content-end">
+                                        <div class="col-md-12 d-flex justify-content-end gap-2">
+                                            <button type="button"
+                                                class="btn btn-outline-primary btn-sm fw-bold px-3"
+                                                id="RDACE_BtnEnviarIHCE"
+                                                disabled
+                                                title="Primero guarde el RDA para habilitar el envío">
+                                                <i class="fa-solid fa-paper-plane me-2"></i>
+                                                Enviar a Ministerio (IHCE)
+                                            </button>
                                             <button type="button"
                                                 class="btn btn-success btn-sm fw-bold px-4"
                                                 id="RDACE_BtnGuardarConsultaExterna">
@@ -2433,8 +2441,50 @@
         return el.value || null;
     }
 
+    let _lastIdRDACE = null;
+
     document.getElementById('RDACE_BtnGuardarConsultaExterna')?.addEventListener('click', async function () {
         await guardarRDACE();
+    });
+
+    document.getElementById('RDACE_BtnEnviarIHCE')?.addEventListener('click', async function () {
+        if (!_lastIdRDACE) {
+            Swal.fire({ icon: 'warning', title: 'Sin registro guardado', text: 'Guarde primero el RDA Consulta Externa para obtener el ID necesario.' });
+            return;
+        }
+        const btn = document.getElementById('RDACE_BtnEnviarIHCE');
+        const textoOrig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
+        try {
+            const resp = await fetch(`http://${servidor}:3000/apiV3/RdaConsultaExterna/EnviarIHCE`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ IdEvaluacionEntidadRDACE: _lastIdRDACE })
+            });
+            const texto = await resp.text();
+            let data = {};
+            try { data = JSON.parse(texto); } catch (e) { data = { raw: texto }; }
+            if (resp.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Enviado a IHCE',
+                    html: `<pre style="text-align:left;font-size:0.75rem;max-height:300px;overflow:auto">${JSON.stringify(data, null, 2)}</pre>`,
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Error IHCE (${resp.status})`,
+                    html: `<pre style="text-align:left;font-size:0.75rem;max-height:300px;overflow:auto">${JSON.stringify(data, null, 2)}</pre>`,
+                });
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOrig;
+        }
     });
 
     async function guardarRDACE() {
@@ -2598,13 +2648,17 @@
                 });
             }
 
+            _lastIdRDACE = idCE;
+            const btnEnviar = document.getElementById('RDACE_BtnEnviarIHCE');
+            if (btnEnviar) { btnEnviar.disabled = false; btnEnviar.title = `Enviar RDACE ID ${idCE} al Ministerio`; }
             Swal.fire({
                 icon: 'success',
                 title: 'RDA Consulta Externa guardado',
                 html: `<b>ID RDACE:</b> ${idCE}<br>
                     Ant. salud: ${antSalud.length} | Familiares: ${antFam.length} | Farmacológicos: ${medic.length}<br>
-                    Diag. relacionados: ${diags.length} | Prescr. med: ${presMed.length} | Proc: ${presProc.length} | Otras tec: ${otras.length}`,
-                timer: 5000,
+                    Diag. relacionados: ${diags.length} | Prescr. med: ${presMed.length} | Proc: ${presProc.length} | Otras tec: ${otras.length}<br>
+                    <small class="text-muted">Use el botón <b>Enviar a Ministerio (IHCE)</b> para enviar al Ministerio.</small>`,
+                timer: 6000,
                 timerProgressBar: true
             });
         } catch (error) {
