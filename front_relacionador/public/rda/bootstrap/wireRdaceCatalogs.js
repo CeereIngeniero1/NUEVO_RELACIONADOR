@@ -1,0 +1,344 @@
+/**
+ * wireRdaceCatalogs.js — Select2 AJAX para catálogos usados en RDA / RDACE.
+ *
+ * Incluye: MedicamentosDCI, Cups1888, Profesionales, EgresoRemision,
+ * Catalogo1888 (genérico), FactorDeRiesgo, TipoTecnologiaEnSalud.
+ */
+
+import { getServidor } from "../api/servidor.js";
+
+const servidor = getServidor();
+
+// ── Medicamentos DCI ──────────────────────────────────────────────────────
+
+function initMedicamentosDCISelect2(selector, fillCodigoId, fillNombreId) {
+    if ($(selector).data("select2")) return;
+    const select = $(selector);
+    select.select2({
+        placeholder: "Buscar medicamento DCI...",
+        allowClear: true,
+        minimumInputLength: 2,
+        ajax: {
+            delay: 300,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const url = term.length
+                    ? `http://${servidor}:3000/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`
+                    : `http://${servidor}:3000/apiV3/MedicamentosDCI/`;
+                fetch(url)
+                    .then(r => r.json())
+                    .then(data => success({ results: data }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data;
+                return {
+                    results: arr.map(m => ({
+                        id: m.Descripcion,
+                        text: (m.Codigo ? m.Codigo + " - " : "") + m.Descripcion,
+                        codigo: m.Codigo || "",
+                        descripcion: m.Descripcion || ""
+                    }))
+                };
+            }
+        }
+    });
+    if (fillCodigoId || fillNombreId) {
+        select.on("select2:select", function (e) {
+            const d = e.params.data;
+            if (fillCodigoId) $(fillCodigoId).val(d.codigo || "");
+            if (fillNombreId) $(fillNombreId).val(d.descripcion || "");
+        });
+        select.on("select2:clear", function () {
+            if (fillCodigoId) $(fillCodigoId).val("");
+            if (fillNombreId) $(fillNombreId).val("");
+        });
+    }
+}
+
+// ── CUPS 1888 (Procedimientos) ────────────────────────────────────────────
+
+function initCups1888Select2(selector, fillNombreId) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: "Buscar procedimiento CUPS...",
+        allowClear: true,
+        minimumInputLength: 2,
+        ajax: {
+            delay: 300,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                if (term.length < 2) {
+                    success({ results: [] });
+                    return;
+                }
+                const url = `http://${servidor}:3000/apiV3/Cups1888/${encodeURIComponent(term)}`;
+                fetch(url)
+                    .then(r => r.json())
+                    .then(data => success({ results: data }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data;
+                return {
+                    results: arr.map(m => ({
+                        id: m.Codigo,
+                        text: (m.Codigo ? m.Codigo + " - " : "") + (m.Nombre || m.Descripcion || ""),
+                        codigo: m.Codigo || "",
+                        nombre: m.Nombre || m.Descripcion || ""
+                    }))
+                };
+            }
+        },
+        templateSelection: function (selection) {
+            if (!selection.id) return selection.text;
+            return selection.text.length > 50 ? selection.text.substring(0, 50) + "..." : selection.text;
+        }
+    });
+    if (fillNombreId) {
+        $(selector).on("select2:select", function (e) {
+            const d = e.params.data;
+            $(fillNombreId).val(d.nombre || "").trigger("change");
+        });
+        $(selector).on("select2:clear", function () {
+            $(fillNombreId).val("").trigger("change");
+        });
+    }
+}
+
+// ── Profesionales ─────────────────────────────────────────────────────────
+
+function initProfesionalesSelect2(selector) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: "Buscar por nombre o documento...",
+        allowClear: true,
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const url = term
+                    ? `http://${servidor}:3000/apiV3/Profesionales/${encodeURIComponent(term)}`
+                    : `http://${servidor}:3000/apiV3/Profesionales/`;
+                fetch(url)
+                    .then(r => r.json())
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(p => ({
+                        id: p.Documento,
+                        text: `${p.Nombres || ""} (${p.Documento || ""})`
+                    }))
+                };
+            }
+        }
+    });
+}
+
+// ── Egreso y Remisión ─────────────────────────────────────────────────────
+
+function initEgresoRemisionSelect2(selector, placeholderText) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: placeholderText || "Buscar condición y destino al egreso...",
+        allowClear: true,
+        width: "100%",
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const base = `http://${servidor}:3000/apiV3/EgresoRemision`;
+                const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(item => {
+                        const cod = item.Codigo != null ? String(item.Codigo) : "";
+                        const desc = item.Descripcion || "";
+                        const text = cod ? `${cod} - ${desc}` : desc;
+                        return { id: cod, text: text || cod };
+                    })
+                };
+            }
+        }
+    });
+}
+
+// ── Catálogos RDA CE (genérico vía Catalogo1888/:clave) ──────────────────
+
+function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: placeholderText || "Buscar...",
+        allowClear: true,
+        width: "100%",
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const base = `http://${servidor}:3000/apiV3/Catalogo1888/${claveCatalogo}`;
+                const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(item => {
+                        const cod = item.Codigo != null ? String(item.Codigo) : "";
+                        const desc = item.Descripcion || "";
+                        const text = cod ? `${cod} - ${desc}` : desc;
+                        return { id: cod, text: text || cod };
+                    })
+                };
+            }
+        }
+    });
+}
+
+// ── Factor de Riesgo ──────────────────────────────────────────────────────
+
+function initFactorDeRiesgoSelect2() {
+    const $tipo = $("#RDACE_TipoFactorRiesgo");
+    const $nombre = $("#RDACE_NombreFactorRiesgo");
+    if ($tipo.data("select2")) return;
+    $tipo.select2({
+        placeholder: "Buscar tipo de factor de riesgo...",
+        allowClear: true,
+        width: "100%",
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const base = `http://${servidor}:3000/apiV3/FactorDeRiesgo`;
+                const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(item => {
+                        const cod = item.Codigo != null ? String(item.Codigo) : "";
+                        const desc = item.Descripcion || "";
+                        const text = cod ? `${cod} - ${desc}` : desc;
+                        return { id: cod, text: text || cod, descripcion: desc };
+                    })
+                };
+            }
+        }
+    });
+    $tipo.on("select2:select", function (e) {
+        const d = e.params.data;
+        if ($nombre.length && d.descripcion != null) {
+            $nombre.val(d.descripcion);
+        }
+    });
+    $tipo.on("select2:clear", function () {
+        if ($nombre.length) $nombre.val("");
+    });
+}
+
+// ── Tipo de Tecnología en Salud ───────────────────────────────────────────
+
+function initTipoTecnologiaEnSaludSelect2(selector, placeholderText) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: placeholderText || "Buscar tipo de tecnología en salud...",
+        allowClear: true,
+        width: "100%",
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const base = `http://${servidor}:3000/apiV3/TipoTecnologiaEnSalud`;
+                const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(item => {
+                        const cod = item.Codigo != null ? String(item.Codigo) : "";
+                        const desc = item.Descripcion || "";
+                        const text = cod ? `${cod} - ${desc}` : desc;
+                        return { id: cod, text: text || cod };
+                    })
+                };
+            }
+        }
+    });
+}
+
+// ── Exportación principal ─────────────────────────────────────────────────
+
+export function wireRdaceCatalogs() {
+    // Medicamentos DCI
+    initMedicamentosDCISelect2("#RDA_MedicamentoDCI");
+    initMedicamentosDCISelect2("#RDACE_MedicamentoDCI");
+    initMedicamentosDCISelect2("#RDACE_DescripcionComunMed", "#RDACE_CodigoMedicamento", "#RDACE_NombreMedicamento");
+
+    // CUPS 1888
+    initCups1888Select2("#RDACE_CodigoProcedimiento", "#RDACE_NombreProcedimiento");
+
+    // Profesionales
+    initProfesionalesSelect2("#RDA_NumDocProfesional");
+    initProfesionalesSelect2("#RDACE_NumDocProfesional");
+
+    // Egreso y Remisión
+    initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");
+
+    // Catálogos RDA CE
+    initRdaceCatalogSelect2("#RDACE_EntornoAtencion", "EntornoAtencion", "Buscar entorno de atención...");
+    initRdaceCatalogSelect2("#RDACE_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
+    initRdaceCatalogSelect2("#RDACE_ParentescoFamiliar", "ParentescoFamiliar", "Parentesco...");
+    initRdaceCatalogSelect2("#RDACE_TipoDiagPrincipalCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal...");
+    initRdaceCatalogSelect2("#RDACE_UnidadMedidaDosis", "UnidadMedidaDosis", "Unidad de medida de dosis...");
+    initRdaceCatalogSelect2("#RDACE_ViaAdministracionMed", "ViaAdministracionMedicamento", "Vía de administración...");
+    initRdaceCatalogSelect2("#RDACE_DuracionUnidadTiempoMed", "UnidadTiempoDuracion", "Unidad de duración...");
+    initRdaceCatalogSelect2("#RDACE_FrecuenciaUnidadTiempoMed", "UnidadTiempoFrecuencia", "Unidad de frecuencia...");
+    initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludMed", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+    initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludProc", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+    initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludOtra", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
+    initRdaceCatalogSelect2("#RDACE_TipoTecSaludOtra", "OtraTecnologiaCategoria", "Categoría otra tecnología...");
+    initRdaceCatalogSelect2("#RDACE_AlcanceIncapacidad", "AlcanceIncapacidad", "Alcance de la incapacidad...");
+
+    // Factor de Riesgo
+    initFactorDeRiesgoSelect2();
+
+    // Tipo de Tecnología en Salud
+    initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludMed", "Buscar tipo de tecnología en salud...");
+    initTipoTecnologiaEnSaludSelect2("#RDACE_TipoTecSaludProc", "Buscar tipo (ej. Procedimiento)...");
+}

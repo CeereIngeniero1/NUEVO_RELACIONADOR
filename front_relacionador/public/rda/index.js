@@ -31,13 +31,16 @@ import { initListasPaciente } from "./ui/listasPaciente.js";
 import { initListasConsultaExterna } from "./ui/listasConsultaExterna.js";
 import { buildRda1888 } from "./json/build1888.js";
 import { inicializarSelectsRDA } from "./api/selectsRda.js";
+import { initAsignarRdaWireup } from "./bootstrap/initAsignarWireup.js";
 
 // ── Inicialización (el script se carga al final del body, DOM ya existe) ──
+// Orden documentado: módulos internos primero, luego wireup de página.
 initBiometria();
 initControlRda();
 initListasPaciente();
 initListasConsultaExterna();
 inicializarSelectsRDA();
+initAsignarRdaWireup();
 
 console.log(
     "%c[RDA V3] Módulo cargado correctamente",

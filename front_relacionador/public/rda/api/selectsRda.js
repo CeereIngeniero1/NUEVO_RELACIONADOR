@@ -6,9 +6,7 @@
  *   GET /apiV3/SSGSSS/     → poblar RDA_CodigoAdminPlanBeneficios / RDACE_CodigoAdminPlanBeneficios
  */
 
-function getServidor() {
-    return localStorage.getItem("NombreEquipoServidor") || "localhost";
-}
+import { getServidor } from "./servidor.js";
 
 async function inicializarListaPrestadores() {
     const selectPrestador = document.getElementById("RDA_CodigoPrestador");
