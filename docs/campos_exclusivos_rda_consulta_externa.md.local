@@ -1,0 +1,28 @@
+# Campos exclusivos RDA Consulta Externa
+
+## Mapeo principal a recursos FHIR RDACE
+
+| Grupo de datos | Tabla SQL | Recurso FHIR objetivo |
+|---|---|---|
+| Cabecera RDACE | `[Evaluacion Entidad RDA Consulta Externa]` | `CompositionAmbulatoryRDA`, `EncounterAmbulatoryRDA`, `PatientRDA`, `PractitionerRDA`, `CareDeliveryOrganizationRDA`, `HealthBenefitPlanAdminOrganizationRDA` |
+| Diagnóstico principal y relacionados | Cabecera + `[Evaluacion Entidad RDA CE Diagnosticos Relacionados]` | `ConditionRDA` (CIE-10 / CIE-11) |
+| Alergias | Cabecera (`Tipo Alergia`) | `AllergyIntoleranceRDA` |
+| Medicamentos formulados | `[Evaluacion Entidad RDA CE Prescripcion Medicamentos]` | `MedicationRequestRDA` |
+| Procedimientos ordenados | `[Evaluacion Entidad RDA CE Prescripcion Procedimientos]` | `ServiceRequestRDA` |
+| Otras tecnologías ordenadas | `[Evaluacion Entidad RDA CE Otras Tecnologias]` | `OtherTechnologyServiceRequestRDA` |
+| Incapacidad/licencia | Cabecera (`Alcance/Dias`) | `AttendanceAllowanceRDA` |
+| Ocupación del paciente | Datos del paciente (`Cnsta Relacionador Usuarios Info`) | `PatientOccupationAtEncounterRDA` |
+| Factor de riesgo | Cabecera (`Tipo/Nombre factor`) | `RiskFactorRDA` |
+| Documento soporte | Cabecera (`Nombre Documento PDF`) | `DocumentReferenceEPIRDA` |
+
+## Secciones Composition usadas
+
+- Entidad(es) responsable(s) por el plan de beneficios en salud (consulta) (`48768-6`)
+- Otros datos demográficos (`74208-0`)
+- Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas) (`105583-9`)
+- Historial de medicamentos (`10160-0`)
+- Historial de alergias, intolerancias y reacciones adversas (`48765-2`)
+- Historial de diagnósticos de problemas de salud (`11450-4`)
+- Factores de riesgo (`75492-9`)
+- Órdenes, prescripciones o solicitudes de servicio (`61146-1`)
+- Documentos de soporte (`55107-7`)
