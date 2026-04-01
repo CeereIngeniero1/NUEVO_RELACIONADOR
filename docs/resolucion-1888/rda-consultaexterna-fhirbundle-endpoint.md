@@ -58,13 +58,13 @@ Bundle FHIR tipo `document` con los siguientes recursos en `entry[]`:
 | 4 | `Practitioner` | `PractitionerRDA` | Profesional de salud (TipoDoc+NumDoc del campo RDACE) |
 | 5 | `Organization` (IPS) | `CareDeliveryOrganizationRDA` | IPS: id=CodigoPrestador |
 | 6 | `Organization` (EAPB) | `HealthBenefitPlanAdminOrganizationRDA` | EAPB: id=CodigoAdminPlanBeneficios |
-| 7+ | `Condition` x N | `ConditionStatementRDA` | Diagnóstico principal (CIE-10 + CIE-11) + relacionados |
+| 7+ | `Condition` x N | [`ConditionRDA`](https://vulcano.ihcecol.gov.co/StructureDefinition-ConditionRDA.html) | Diagnóstico principal (CIE-10 + CIE-11) + relacionados. Id: `Condition-0`, `Condition-1`, … (`ConditionStatementRDA` solo aplica al RDA Paciente) |
 | N | `AllergyIntolerance` | `AllergyIntoleranceRDA` | Si TipoAlergia tiene valor |
 | N | `RiskAssessment` | `RiskFactorRDA` | Si TipoFactorRiesgo o NombreFactorRiesgo tienen valor |
 | N+ | `MedicationRequest` x N | `MedicationRequestRDA` | Una por fila en `[...CE Prescripcion Medicamentos]` |
-| N+ | `ServiceRequest` x N | `ServiceRequestRDA` | Una por fila en `[...CE Prescripcion Procedimientos]` |
-| N+ | `ServiceRequest` x N | `OtherTechnologyServiceRequestRDA` | Una por fila en `[...CE Otras Tecnologias]` |
-| N | `Observation` | `AttendanceAllowanceRDA` | Si AlcanceIncapacidad/DiasIncapacidad tienen valor |
+| N+ | `ServiceRequest` x N | `ServiceRequestRDA` | Una por fila en `[...CE Prescripcion Procedimientos]`. Id: `ServiceRequest-0`, `ServiceRequest-1`, … (secuencia global con otras tecnologías) |
+| N+ | `ServiceRequest` x N | `OtherTechnologyServiceRequestRDA` | Una por fila en `[...CE Otras Tecnologias]`. Continúa la misma secuencia numérica que procedimientos |
+| N | `Observation` | `AttendanceAllowanceRDA` | Si AlcanceIncapacidad/DiasIncapacidad tienen valor. Id: `Observation-0` |
 
 ---
 
@@ -146,8 +146,8 @@ Las secciones vacías incluyen `emptyReason` con código `nilknown`.
     { "resource": { "resourceType": "AllergyIntolerance", "id": "AllergyIntolerance-0", ... } },
     { "resource": { "resourceType": "RiskAssessment", "id": "RiskAssessment-0", ... } },
     { "resource": { "resourceType": "MedicationRequest", "id": "MedicationRequest-0", ... } },
-    { "resource": { "resourceType": "ServiceRequest", "id": "ServiceRequest-Proc-0", ... } },
-    { "resource": { "resourceType": "Observation", "id": "Observation-Incapacidad-0", ... } }
+    { "resource": { "resourceType": "ServiceRequest", "id": "ServiceRequest-0", ... } },
+    { "resource": { "resourceType": "Observation", "id": "Observation-0", ... } }
   ]
 }
 ```
