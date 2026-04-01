@@ -2809,7 +2809,7 @@ const updateGrupoServicios = (grupoServicios) => {
 
 const getGrupoServicios = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/apiV3/grupoServicios`);
+    const response = await fetch(`http://${servidor}:3000/apiV3/GrupoServicios`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Grupo Servicios: ${response.statusText}`
