@@ -1,0 +1,169 @@
+{
+  "meta": {
+    "generadoUtc": "2026-04-04T17:12:15.169Z",
+    "IdEvaluacionEntidadRDACE": 1,
+    "archivos_generados": {
+      "bundle_indentado": "rdace-bundle-id1.json",
+      "este_reporte": "rdace-reporte-id1.json"
+    },
+    "como_regenerar": {
+      "comando": "node tools/exportRdaceReporte.js 1",
+      "api": "POST http://localhost:3000/apiV3/RdaConsultaExterna/JsonEnviarIHCE",
+      "body_json": {
+        "IdEvaluacionEntidadRDACE": 1,
+        "ambiente": "sandbox"
+      }
+    }
+  },
+  "leyenda_faltantes": {
+    "prioridad_critico": "Impide o rompe validación / referencias FHIR.",
+    "prioridad_alta": "Hueco de negocio claro o rechazo probable en validador estricto.",
+    "prioridad_media": "Contenido sustituto o incompleto (p. ej. PDF placeholder).",
+    "prioridad_baja": "Calidad de datos / alineación narrativa; suele pasar validación técnica.",
+    "tipo_dato_fhir": "Qué construcción FHIR R4 se espera en esa ruta.",
+    "tipo_dato_origen": "Qué guardarías en SQL o formulario para llenarlo.",
+    "esta_cubierto": "true = OK; false = falta; \"parcial\" = hay recurso pero incompleto."
+  },
+  "resumen": {
+    "total_faltantes_detectados": 6,
+    "por_prioridad": {
+      "critico": 0,
+      "alta": 1,
+      "media": 1,
+      "baja": 4
+    },
+    "entries_en_bundle": 15
+  },
+  "faltantes": [
+    {
+      "codigo": "SECC-74208-OCUPACION-DEMOGRAFICOS",
+      "prioridad": "alta",
+      "ubicacion_fhir": "Composition.section[LOINC 74208-0 \"Otros datos demográficos\"]",
+      "descripcion_negocio": "La sección va sin recursos clínicos: solo emptyReason o texto genérico. La IG titula la sección como datos demográficos e historia de ocupación.",
+      "tipo_dato_fhir": "Según perfil MinSalud: típicamente referencias (entry) a Observation u otros recursos autorizados por CompositionAmbulatoryRDA para esa sección; hoy: 0..* sin instancias útiles.",
+      "tipo_dato_origen": "En tu stack ya existe catálogo GET /apiV3/Ocupacion/ → tabla [Cnsta Ocupacion 1888] (IdOcupacion, CodigoOcupacion, DescripcionOcupacion). Falta columna en [Evaluacion Entidad RDA Consulta Externa] (o tabla hija) + mapeo en RdaConsultaExternaRoutes.js a Observation/CodeableConcept u estructura que exija la IG.",
+      "esta_cubierto": false,
+      "ejemplo_valor_origen_sql": "IdOcupacion INT + descripción texto; o código CNO si la IG lo exige explícitamente"
+    },
+    {
+      "codigo": "DOC-PDF-PLANTILLA-MINIMA",
+      "prioridad": "media",
+      "ubicacion_fhir": "DocumentReference.content[0].attachment (data, contentType)",
+      "descripcion_negocio": "El adjunto es muy pequeño: el backend genera un PDF mínimo válido cuando no hay archivo cargado en origen.",
+      "tipo_dato_fhir": "Attachment: contentType = código MIME (p. ej. application/pdf); data = base64Binary (contenido real del PDF).",
+      "tipo_dato_origen": "Binario PDF en BD o ruta de almacenamiento + campo [Nombre Documento PDF] / blob asociado a la evaluación RDACE; mapear bytes reales a attachment.data.",
+      "esta_cubierto": false,
+      "nota": "Cumple cardinalidad entry en Composition; el contenido puede no ser aceptable para auditoría clínica."
+    },
+    {
+      "codigo": "RISK-RiskAssessment-0-PREDICTION-VACIO",
+      "prioridad": "baja",
+      "ubicacion_fhir": "RiskAssessment/RiskAssessment-0.prediction",
+      "descripcion_negocio": "Factor de riesgo registrado pero sin elementos en prediction (puede ser válido según IG; revisar RiskFactorRDA).",
+      "tipo_dato_fhir": "BackboneElement prediction[] (estructura según perfil)",
+      "tipo_dato_origen": "Texto/código de factor de riesgo en cabecera RDACE ([Tipo Factor Riesgo], [Nombre Factor Riesgo]) ampliado si la IG exige outcome/probability.",
+      "esta_cubierto": "parcial"
+    },
+    {
+      "codigo": "RISK-RiskAssessment-0-CODE-TEXT-INCONSISTENTE",
+      "prioridad": "baja",
+      "ubicacion_fhir": "RiskAssessment/RiskAssessment-0.code",
+      "descripcion_negocio": "code.coding display (\"Físicos\") y code.text (\"Social\") no coinciden.",
+      "tipo_dato_fhir": "CodeableConcept (text + coding[].display alineados)",
+      "tipo_dato_origen": "Un solo origen de verdad en BD para el factor de riesgo.",
+      "esta_cubierto": false
+    },
+    {
+      "codigo": "ALLERGY-AllergyIntolerance-0-TEXTO-DEBIL",
+      "prioridad": "baja",
+      "ubicacion_fhir": "AllergyIntolerance/AllergyIntolerance-0.code.text",
+      "descripcion_negocio": "El texto legible del código de alergia es solo numérico/corto.",
+      "tipo_dato_fhir": "string (narrativa humana complementaria a coding)",
+      "tipo_dato_origen": "Descripción alergia además del código en [Tipo Alergia] / detalle clínico.",
+      "esta_cubierto": false
+    },
+    {
+      "codigo": "ORG-IPS-NOMBRE-GENERICO",
+      "prioridad": "baja",
+      "ubicacion_fhir": "Organization (CareDeliveryOrganizationRDA).name",
+      "descripcion_negocio": "Nombre de IPS por defecto \"IPS (código prestador)\" sin razón social.",
+      "tipo_dato_fhir": "string (1..1 human-readable name)",
+      "tipo_dato_origen": "Razón social IPS en maestro de prestadores o overrideNombrePrestadorIPS en el body de JsonEnviarIHCE.",
+      "esta_cubierto": false
+    }
+  ],
+  "secciones_composition_resumen": [
+    {
+      "indice": 0,
+      "titulo": "Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)",
+      "loinc": "48768-6 — Payment sources Document",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    },
+    {
+      "indice": 1,
+      "titulo": "Otros datos demográficos",
+      "loinc": "74208-0 — Demographic information + History of occupation Document",
+      "tiene_emptyReason": true,
+      "num_entries": 0,
+      "referencias_ok": true
+    },
+    {
+      "indice": 2,
+      "titulo": "Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)",
+      "loinc": "105583-9 — Worker Sick leave form",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    },
+    {
+      "indice": 3,
+      "titulo": "Historial de diagnósticos de problemas de salud",
+      "loinc": "11450-4 — Problem list - Reported",
+      "tiene_emptyReason": false,
+      "num_entries": 2,
+      "referencias_ok": true
+    },
+    {
+      "indice": 4,
+      "titulo": "Historial de alergias, intolerancias y reacciones adversas",
+      "loinc": "48765-2 — Allergies and adverse reactions Document",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    },
+    {
+      "indice": 5,
+      "titulo": "Factores de riesgo",
+      "loinc": "75492-9 — Risk assessment and screening note",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    },
+    {
+      "indice": 6,
+      "titulo": "Historial de medicamentos",
+      "loinc": "10160-0 — History of Medication use Narrative",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    },
+    {
+      "indice": 7,
+      "titulo": "Órdenes, prescripciones o solicitudes de servicio",
+      "loinc": "61146-1 — Orders for services Document",
+      "tiene_emptyReason": false,
+      "num_entries": 2,
+      "referencias_ok": true
+    },
+    {
+      "indice": 8,
+      "titulo": "Documentos de soporte",
+      "loinc": "55107-7 — Addendum Document",
+      "tiene_emptyReason": false,
+      "num_entries": 1,
+      "referencias_ok": true
+    }
+  ]
+}

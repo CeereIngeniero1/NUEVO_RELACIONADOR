@@ -1,0 +1,324 @@
+{
+  "meta": {
+    "descripcion": "Análisis del JSON que se enviaría a IHCE (misma normalización que EnviarIHCE, sin POST a sandbox).",
+    "endpointOrigen": "POST /apiV3/RdaConsultaExterna/JsonEnviarIHCE",
+    "IdEvaluacionEntidadRDACE": 1,
+    "generadoUtc": "2026-04-04T17:09:21.477Z"
+  },
+  "resumen": {
+    "totalEntriesEnBundle": 15,
+    "tiposEnBundle": [
+      "AllergyIntolerance",
+      "Composition",
+      "Condition",
+      "DocumentReference",
+      "Encounter",
+      "MedicationRequest",
+      "Observation",
+      "Organization",
+      "Patient",
+      "Practitioner",
+      "RiskAssessment",
+      "ServiceRequest"
+    ]
+  },
+  "secciones_composition": [
+    {
+      "indice": 0,
+      "titulo": "Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)",
+      "loinc": {
+        "code": "48768-6",
+        "display": "Payment sources Document"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#CCFC07",
+          "resourceType": "Organization",
+          "id": "CCFC07",
+          "nombre": "CAJA DE COMPENSACIÓN FAMILIAR DE CARTAGENA Y BOLÍVAR COMFAMILIAR -CM"
+        }
+      ]
+    },
+    {
+      "indice": 1,
+      "titulo": "Otros datos demográficos",
+      "loinc": {
+        "code": "74208-0",
+        "display": "Demographic information + History of occupation Document"
+      },
+      "tieneEmptyReason": true,
+      "cantidadEntry": 0,
+      "narrativa_indica_sin_informacion": true,
+      "recursos": []
+    },
+    {
+      "indice": 2,
+      "titulo": "Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)",
+      "loinc": {
+        "code": "105583-9",
+        "display": "Worker Sick leave form"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#Observation-0",
+          "resourceType": "Observation",
+          "id": "Observation-0",
+          "code": {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "160983005",
+                "display": "permiso de concurrencia"
+              }
+            ],
+            "text": "Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)"
+          },
+          "componentCount": 3
+        }
+      ]
+    },
+    {
+      "indice": 3,
+      "titulo": "Historial de diagnósticos de problemas de salud",
+      "loinc": {
+        "code": "11450-4",
+        "display": "Problem list - Reported"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 2,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#Condition-0",
+          "resourceType": "Condition",
+          "id": "Condition-0",
+          "codigos": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10",
+              "code": "A030",
+              "display": "SHIGELOSIS DEBIDA A SHIGELLA DYSENTERIAE"
+            },
+            {
+              "system": "http://hl7.org/fhir/sid/icd-11",
+              "code": "5C54.2",
+              "display": "Trastornos de la glicosilación múltiple u otras vías"
+            }
+          ],
+          "verificationStatus": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+                "code": "confirmed",
+                "display": "Confirmed"
+              }
+            ]
+          }
+        },
+        {
+          "referencia": "#Condition-1",
+          "resourceType": "Condition",
+          "id": "Condition-1",
+          "codigos": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10",
+              "code": "A060",
+              "display": "DISENTERIA AMEBIANA AGUDA"
+            },
+            {
+              "system": "http://hl7.org/fhir/sid/icd-11",
+              "code": "LD40.2",
+              "display": "Trisomía 18 completa"
+            }
+          ],
+          "verificationStatus": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+                "code": "confirmed",
+                "display": "Confirmed"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "indice": 4,
+      "titulo": "Historial de alergias, intolerancias y reacciones adversas",
+      "loinc": {
+        "code": "48765-2",
+        "display": "Allergies and adverse reactions Document"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#AllergyIntolerance-0",
+          "resourceType": "AllergyIntolerance",
+          "id": "AllergyIntolerance-0",
+          "code": {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/TipoAlergia",
+                "code": "04",
+                "display": "Sustancia que entran en contacto con la piel"
+              }
+            ],
+            "text": "04"
+          }
+        }
+      ]
+    },
+    {
+      "indice": 5,
+      "titulo": "Factores de riesgo",
+      "loinc": {
+        "code": "75492-9",
+        "display": "Risk assessment and screening note"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#RiskAssessment-0",
+          "resourceType": "RiskAssessment",
+          "id": "RiskAssessment-0",
+          "predictionCount": 0,
+          "code": {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/FactorRiesgo",
+                "code": "02",
+                "display": "Físicos"
+              }
+            ],
+            "text": "Social"
+          }
+        }
+      ]
+    },
+    {
+      "indice": 6,
+      "titulo": "Historial de medicamentos",
+      "loinc": {
+        "code": "10160-0",
+        "display": "History of Medication use Narrative"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#MedicationRequest-0",
+          "resourceType": "MedicationRequest",
+          "id": "MedicationRequest-0",
+          "medication": {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/MipresINN",
+                "code": "1061",
+                "display": "PSEUDOEFEDRINA"
+              }
+            ],
+            "text": "PSEUDOEFEDRINA"
+          }
+        }
+      ]
+    },
+    {
+      "indice": 7,
+      "titulo": "Órdenes, prescripciones o solicitudes de servicio",
+      "loinc": {
+        "code": "61146-1",
+        "display": "Orders for services Document"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 2,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#ServiceRequest-0",
+          "resourceType": "ServiceRequest",
+          "id": "ServiceRequest-0",
+          "code": {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS",
+                "code": "890101",
+                "display": "ATENCIÓN (VISITA) DOMICILIARIA- POR MEDICINA GENERAL"
+              }
+            ],
+            "text": "ATENCION [VISITA] DOMICILIARIA POR MEDICINA GENERAL"
+          }
+        },
+        {
+          "referencia": "#ServiceRequest-1",
+          "resourceType": "ServiceRequest",
+          "id": "ServiceRequest-1",
+          "code": {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "71388002",
+                "display": "sss"
+              }
+            ],
+            "text": "sss (22)"
+          }
+        }
+      ]
+    },
+    {
+      "indice": 8,
+      "titulo": "Documentos de soporte",
+      "loinc": {
+        "code": "55107-7",
+        "display": "Addendum Document"
+      },
+      "tieneEmptyReason": false,
+      "cantidadEntry": 1,
+      "narrativa_indica_sin_informacion": false,
+      "recursos": [
+        {
+          "referencia": "#DocumentReference-0",
+          "resourceType": "DocumentReference",
+          "id": "DocumentReference-0",
+          "description": "0500112124",
+          "pdfTitulo": "0500112124",
+          "contentType": "application/pdf",
+          "nota": "Incluye data base64 (PDF); revisar si es documento real o plantilla mínima del sistema."
+        }
+      ]
+    }
+  ],
+  "advertencias_y_huecos": [
+    {
+      "seccion": "Otros datos demográficos",
+      "loinc": "74208-0",
+      "mensaje": "Sin datos demográficos/occupación en esta sección: el generador usa emptyReason + texto \"Sin información registrada\". Si la IG o el validador exigen contenido, hay que capturar y mapear esos campos desde el formulario/BD."
+    },
+    {
+      "seccion": "Documentos de soporte",
+      "mensaje": "El PDF adjunto parece plantilla mínima generada en backend cuando no hay archivo en origen. Para producción, adjuntar el PDF real en BD y mapearlo a DocumentReference."
+    }
+  ],
+  "como_obtener_este_json_en_insomnia": {
+    "metodo": "POST",
+    "url": "http://localhost:3000/apiV3/RdaConsultaExterna/JsonEnviarIHCE",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "IdEvaluacionEntidadRDACE": 1,
+      "ambiente": "sandbox"
+    }
+  }
+}
