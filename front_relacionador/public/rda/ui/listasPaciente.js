@@ -17,6 +17,32 @@ import {
 
 import { renderBadgeList } from "./renderBadges.js";
 
+function clearSelect2(selector) {
+    if (typeof $ !== "undefined") {
+        try {
+            $(selector).val(null).trigger("change");
+        } catch (_) {
+            /* noop */
+        }
+    } else {
+        const el = document.querySelector(selector);
+        if (el) el.value = "";
+    }
+}
+
+function readCie11FromSelect(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el || typeof $ === "undefined" || !$(el).data("select2")) {
+        return { cie11Codigo: "", cie11Termino: "" };
+    }
+    const d = $(el).select2("data")[0];
+    if (!d) return { cie11Codigo: "", cie11Termino: "" };
+    return {
+        cie11Codigo: d.id != null ? String(d.id) : "",
+        cie11Termino: d.text || "",
+    };
+}
+
 function rerender(container, items, kind) {
     renderBadgeList(container, items, kind, (index) => {
         removeItem(kind === "antecedente" ? "antecedentes"
@@ -59,16 +85,22 @@ export function initListasPaciente() {
         const textoParentesco =
             selectParentesco?.options[selectParentesco.selectedIndex]?.text || "";
 
-        addAntecedenteFamiliar({
+        const c11 = readCie11FromSelect("RDA_AntecedenteFamiliarCIE11");
+        const item = {
             parentesco,
             textoParentesco,
             codigo,
             descripcion: inputFamDesc?.value || "",
-        });
+        };
+        if (c11.cie11Codigo) item.cie11Codigo = c11.cie11Codigo;
+        if (c11.cie11Termino) item.cie11Termino = c11.cie11Termino;
+
+        addAntecedenteFamiliar(item);
         rerender(contenedorFam, getAntecedentesFamiliares(), "familiar");
 
         if (selectParentesco) selectParentesco.value = "";
-        if (inputFamCIE10) inputFamCIE10.value = "";
+        clearSelect2("#RDA_AntecedenteFamiliarCIE10");
+        clearSelect2("#RDA_AntecedenteFamiliarCIE11");
         if (inputFamDesc) inputFamDesc.value = "";
     });
 

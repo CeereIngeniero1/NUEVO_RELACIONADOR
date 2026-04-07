@@ -111,8 +111,8 @@ export function wireCieSelect2() {
     initCIE11Select2("#RDA_DiagnosticoIngresoCIE11Termino", "#RDA_DiagnosticoIngresoCIE11Codigo");
     initCIE11Select2("#RDACE_DiagnosticoIngresoCIE11Termino", "#RDACE_DiagnosticoIngresoCIE11Codigo");
     initCIE11Select2("#RDACE_DiagRelacionadoCIE11Termino", "#RDACE_DiagRelacionadoCIE11Codigo");
-    initCIE11Select2("#RDA_AntecedenteFamiliarCIE11", null, "#RDA_AntecedenteFamiliarDescripcion");
-    initCIE11Select2("#RDACE_AntecedenteFamiliarCIE11", null, "#RDACE_AntecedenteFamiliarDescripcion");
+    initCIE11Select2("#RDA_AntecedenteFamiliarCIE11", null);
+    initCIE11Select2("#RDACE_AntecedenteFamiliarCIE11", null);
 
     // CIE-10
     initCIE10Select2("#RDA_AntecedenteSaludCIE10", "#RDA_AntecedenteSaludDescripcion");

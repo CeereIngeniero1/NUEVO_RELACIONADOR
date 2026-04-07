@@ -84,6 +84,19 @@ function clearSelect2(selector) {
     }
 }
 
+function readCie11FromSelect(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el || typeof $ === "undefined" || !$(el).data("select2")) {
+        return { cie11Codigo: "", cie11Termino: "" };
+    }
+    const d = $(el).select2("data")[0];
+    if (!d) return { cie11Codigo: "", cie11Termino: "" };
+    return {
+        cie11Codigo: d.id != null ? String(d.id) : "",
+        cie11Termino: d.text || "",
+    };
+}
+
 export function initListasConsultaExterna() {
 
     // ── Antecedentes de Salud CE ────────────────────────────
@@ -110,13 +123,27 @@ export function initListasConsultaExterna() {
     const contFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
 
     btnFamCE?.addEventListener("click", () => {
+        const parentesco = getSelectValue("RDACE_ParentescoFamiliar");
         const codigo = inputFamCIE10CE?.value?.trim();
-        if (!codigo) return;
+        if (!parentesco || !codigo) return;
 
-        addAntecedenteFamiliarCE({ codigo, descripcion: inputFamDescCE?.value || "" });
-        rerender(contFamCE, getAntecedentesFamiliaresCE(), "antecedente");
+        const textoParentesco = getSelectText("RDACE_ParentescoFamiliar") || "";
+        const c11 = readCie11FromSelect("RDACE_AntecedenteFamiliarCIE11");
+        const item = {
+            parentesco,
+            textoParentesco,
+            codigo,
+            descripcion: inputFamDescCE?.value || "",
+        };
+        if (c11.cie11Codigo) item.cie11Codigo = c11.cie11Codigo;
+        if (c11.cie11Termino) item.cie11Termino = c11.cie11Termino;
 
+        addAntecedenteFamiliarCE(item);
+        rerender(contFamCE, getAntecedentesFamiliaresCE(), "familiar");
+
+        clearSelect2("#RDACE_ParentescoFamiliar");
         clearSelect2("#RDACE_AntecedenteFamiliarCIE10");
+        clearSelect2("#RDACE_AntecedenteFamiliarCIE11");
         if (inputFamDescCE) inputFamDescCE.value = "";
     });
 

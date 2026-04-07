@@ -1124,8 +1124,8 @@ $(document).ready(function () {
   initCIE11Select2("#RDACE_DiagRelacionadoCIE11Termino", "#RDACE_DiagRelacionadoCIE11Codigo");
 
   // Para los antecedentes CIE-11
-  initCIE11Select2("#RDA_AntecedenteFamiliarCIE11", null, "#RDA_AntecedenteFamiliarDescripcion");
-  initCIE11Select2("#RDACE_AntecedenteFamiliarCIE11", null, "#RDACE_AntecedenteFamiliarDescripcion");
+  initCIE11Select2("#RDA_AntecedenteFamiliarCIE11", null);
+  initCIE11Select2("#RDACE_AntecedenteFamiliarCIE11", null);
 
   // Para los antecedentes CIE-10
   initCIE10Select2("#RDA_AntecedenteSaludCIE10", "#RDA_AntecedenteSaludDescripcion");

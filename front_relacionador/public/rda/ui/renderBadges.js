@@ -14,8 +14,13 @@ const formatters = {
         return item.codigo + (item.descripcion ? ` - ${item.descripcion}` : "");
     },
     familiar(item) {
-        return `${item.textoParentesco} | ${item.codigo}` +
+        let t = `${item.textoParentesco} | ${item.codigo}` +
             (item.descripcion ? ` - ${item.descripcion}` : "");
+        if (item.cie11Codigo) {
+            t += ` | CIE-11: ${item.cie11Codigo}` +
+                (item.cie11Termino ? ` ${item.cie11Termino}` : "");
+        }
+        return t;
     },
     medicamento(item) {
         return item.nombre + (item.observacion ? ` (${item.observacion})` : "");
