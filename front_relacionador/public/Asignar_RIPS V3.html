@@ -1135,37 +1135,31 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraInicioAtencion">
+                                                id="RDA_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio atención:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraFinAtencion">
+                                                id="RDA_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin atención:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDA_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
-                                                <select class="form-select border border-secondary"
-                                                    id="RDA_TipoDocProfesional" style="max-width: 100px;">
-                                                    <option value="">Tipo</option>
-                                                    <option value="CC">CC</option>
-                                                    <option value="TI">TI</option>
-                                                    <option value="CE">CE</option>
-                                                    <option value="PA">PA</option>
-                                                    <option value="PE">PE</option>
-                                                    <option value="SI">SI</option>
-                                                </select>
                                                 <select class="form-select border border-secondary" id="RDA_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
@@ -1401,24 +1395,28 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraInicioAtencion">
+                                                id="RDACE_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio atención:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraFinAtencion">
+                                                id="RDACE_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin atención:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
@@ -1778,32 +1776,25 @@
                                                     Salud)
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-3">
-                                                        <label>Tipo tecnología salud:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            id="RDACE_TipoTecSaludMed">
-                                                            <option value="">Buscar tipo de tecnología en salud...</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Código medicamento:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_CodigoMedicamento" placeholder="Código ATC / CUM">
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Nombre medicamento:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_NombreMedicamento"
-                                                            placeholder="Nombre comercial/genérico">
-                                                    </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-4">
                                                         <label>Descripción común (DCI):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_DescripcionComunMed">
                                                             <option value="">Seleccionar DCI</option>
                                                         </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label>Código medicamento:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_CodigoMedicamento" placeholder="Código ATC / CUM">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label>Nombre medicamento:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_NombreMedicamento"
+                                                            placeholder="Nombre comercial/genérico">
                                                     </div>
                                                 </div>
                                                 <div class="row g-2 mt-1 align-items-end">
@@ -1875,7 +1866,13 @@
                                                             <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3"></div>
+                                                    <div class="col-md-3">
+                                                        <label>Tipo tecnología salud:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_TipoTecSaludMed">
+                                                            <option value="">Buscar tipo de tecnología en salud...</option>
+                                                        </select>
+                                                    </div>
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
@@ -2243,6 +2240,70 @@
 (function () {
     'use strict';
 
+    function composeDateTimeFromParts(fechaVal, horaVal) {
+        const f = fechaVal != null ? String(fechaVal).trim() : '';
+        const h = horaVal != null ? String(horaVal).trim() : '';
+        if (!f || !h) return null;
+        return f + 'T' + h;
+    }
+
+    function timeToMinutes(t) {
+        const parts = String(t || '').trim().split(':');
+        const hh = parseInt(parts[0], 10);
+        const mm = parseInt(parts[1], 10);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+        return hh * 60 + mm;
+    }
+
+    /** prefix: "RDA_" | "RDACE_" — ids FechaAtencion, HoraInicioAtencion, HoraFinAtencion */
+    function validateAtencionFechaHoras(prefix) {
+        const fecha = document.getElementById(prefix + 'FechaAtencion')?.value ?? '';
+        const hi = document.getElementById(prefix + 'HoraInicioAtencion')?.value ?? '';
+        const hf = document.getElementById(prefix + 'HoraFinAtencion')?.value ?? '';
+        const hasF = String(fecha).trim() !== '';
+        const hasI = String(hi).trim() !== '';
+        const hasE = String(hf).trim() !== '';
+        const n = (hasF ? 1 : 0) + (hasI ? 1 : 0) + (hasE ? 1 : 0);
+        if (n !== 0 && n !== 3) {
+            return {
+                ok: false,
+                msg: 'Indique la fecha de atención y la hora de inicio y fin, o deje los tres campos vacíos.',
+            };
+        }
+        if (n === 0) {
+            return { ok: true, inicio: null, fin: null };
+        }
+        const inicio = composeDateTimeFromParts(fecha, hi);
+        const fin = composeDateTimeFromParts(fecha, hf);
+        const mi = timeToMinutes(hi);
+        const mf = timeToMinutes(hf);
+        if (Number.isNaN(mi) || Number.isNaN(mf)) {
+            return { ok: false, msg: 'Las horas indicadas no son válidas.' };
+        }
+        if (mf <= mi) {
+            return {
+                ok: false,
+                msg: 'La hora de fin debe ser posterior a la hora de inicio (mismo día de atención).',
+            };
+        }
+        return { ok: true, inicio, fin };
+    }
+
+    window.validateAtencionFechaHoras = validateAtencionFechaHoras;
+
+    /** Valor `id` del ítem Select2 (mismo criterio que RDACE para profesionales). */
+    function rdaSelect2IdValue(selectId) {
+        const el = document.getElementById(selectId);
+        if (!el) return null;
+        try {
+            if (typeof $ !== 'undefined' && $(el).data('select2')) {
+                const d = $(el).select2('data')[0];
+                return d && d.id != null ? String(d.id) : (el.value || null);
+            }
+        } catch (e) { /* ignore */ }
+        return el.value || null;
+    }
+
     document.getElementById('RDA_BtnGuardarPaciente')?.addEventListener('click', async function () {
         await guardarRDAPaciente();
     });
@@ -2272,6 +2333,14 @@
         }
         if (!rdaIdGrp) {
             Swal.fire({ icon: 'warning', title: 'Grupo de servicios requerido', text: 'Seleccione el grupo de servicios (RDA / FHIR).' });
+            return;
+        }
+
+        const vAt = typeof window.validateAtencionFechaHoras === 'function'
+            ? window.validateAtencionFechaHoras('RDA_')
+            : { ok: true, inicio: null, fin: null };
+        if (!vAt.ok) {
+            Swal.fire({ icon: 'warning', title: 'Fecha y horas de atención', text: vAt.msg });
             return;
         }
 
@@ -2325,10 +2394,10 @@
             CodigoPrestador:                document.getElementById('RDA_CodigoPrestador')?.value                         || null,
             CodigoAdminPlanBeneficios:      document.getElementById('RDA_CodigoAdminPlanBeneficios')?.value               || null,
             NombreAdminPlanBeneficios:      document.getElementById('RDA_NombreAdminPlanBeneficios')?.value               || null,
-            FechaHoraInicioAtencion:        document.getElementById('RDA_FechaHoraInicioAtencion')?.value                 || null,
-            FechaHoraFinAtencion:           document.getElementById('RDA_FechaHoraFinAtencion')?.value                    || null,
-            TipoDocProfesional:             document.getElementById('RDA_TipoDocProfesional')?.value                      || null,
-            NumDocProfesional:              document.getElementById('RDA_NumDocProfesional')?.value                       || null,
+            FechaHoraInicioAtencion:        vAt.inicio ?? null,
+            FechaHoraFinAtencion:           vAt.fin ?? null,
+            TipoDocProfesional:             null,
+            NumDocProfesional:              rdaSelect2IdValue('RDA_NumDocProfesional'),
             DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
             DiagnosticoIngresoCIE11Termino: cie11Termino                                                                  || null,
             TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
@@ -2496,6 +2565,14 @@
             return;
         }
 
+        const vAtCE = typeof window.validateAtencionFechaHoras === 'function'
+            ? window.validateAtencionFechaHoras('RDACE_')
+            : { ok: true, inicio: null, fin: null };
+        if (!vAtCE.ok) {
+            Swal.fire({ icon: 'warning', title: 'Fecha y horas de atención', text: vAtCE.msg });
+            return;
+        }
+
         const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let cie11TerminoCE = null;
         try {
@@ -2511,8 +2588,8 @@
             CodigoPrestador: document.getElementById('RDACE_CodigoPrestador')?.value || null,
             CodigoAdminPlanBeneficios: document.getElementById('RDACE_CodigoAdminPlanBeneficios')?.value || null,
             NombreAdminPlanBeneficios: document.getElementById('RDACE_NombreAdminPlanBeneficios')?.value || null,
-            FechaHoraInicioAtencion: document.getElementById('RDACE_FechaHoraInicioAtencion')?.value || null,
-            FechaHoraFinAtencion: document.getElementById('RDACE_FechaHoraFinAtencion')?.value || null,
+            FechaHoraInicioAtencion: vAtCE.inicio ?? null,
+            FechaHoraFinAtencion: vAtCE.fin ?? null,
             TipoDocProfesional: document.getElementById('RDACE_TipoDocProfesional')?.value || null,
             NumDocProfesional: rdaceSelect2Value('RDACE_NumDocProfesional') || document.getElementById('RDACE_NumDocProfesional')?.value || null,
             DiagnosticoIngresoCIE11Codigo: document.getElementById('RDACE_DiagnosticoIngresoCIE11Codigo')?.value || null,

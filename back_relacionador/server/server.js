@@ -78,6 +78,11 @@ app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ limit: '1000mb', extended: true }));
 app.set('view engine', 'ejs');
 
+/** Salud del servicio (monitoreo y smoke tests HTTP sin tocar BD). */
+app.get('/health', (req, res) => {
+    res.status(200).json({ ok: true, service: 'back_relacionador' });
+});
+
 let connections = [];
 
 // Endpoint para ejecutar una consulta (debe ser implementado)
@@ -183,6 +188,10 @@ const port = 3000;
 // });
 /* FIN FIN FIN */
 
-app.listen(port, () => {
-    console.log(`Servidor escuchando en http://localhost:${port}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Servidor escuchando en http://localhost:${port}`);
+    });
+}

@@ -46,14 +46,19 @@ pnpm install
 
 ```bash
 cd back_relacionador
-node server/index.js
+npm install
+npm run dev
 ```
 
-El backend se conecta a SQL Server y expone la API REST en `http://localhost:3000`.
+Equivalente sin nodemon: `node server/server.js`.
 
-> **Producción (Windows Service):** Se puede registrar como servicio de Windows usando NSSM:
+El backend se conecta a SQL Server y expone la API REST en `http://localhost:3000`. Comprobación rápida: `GET http://localhost:3000/health` debe responder JSON `{ "ok": true, ... }`. Guía paso a paso en [Smoke test local](smoke-test-local.md).
+
+Variables IHCE / sandbox: copiar `back_relacionador/.env.example` a `back_relacionador/.env` y completar valores (el archivo `.env` no se versiona).
+
+> **Producción (Windows Service):** Se puede registrar como servicio de Windows usando NSSM apuntando a `server/server.js`:
 > ```bash
-> nssm install RelacionadorBackend "C:\Program Files\nodejs\node.exe" "C:\NUEVO_RELACIONADOR\back_relacionador\server\index.js"
+> nssm install RelacionadorBackend "C:\Program Files\nodejs\node.exe" "C:\NUEVO_RELACIONADOR\back_relacionador\server\server.js"
 > ```
 
 ### Frontend (Puerto 3100)
@@ -90,13 +95,15 @@ NUEVO_RELACIONADOR/
 │   ├── server/
 │   │   ├── routes/                    Endpoints API REST
 │   │   ├── config/                    Configuración de conexión BD
-│   │   └── index.js                   Punto de entrada (puerto 3000)
+│   │   ├── server.js                  Punto de entrada API (puerto 3000)
+│   │   └── ...
 │   ├── SQL/                           Scripts SQL de referencia
 │   └── QUERYS_ACTUALIZAR_CODIGOS_LOCALIZACION/  Scripts de actualización
 │
 ├── docs/                            ← Documentación (este directorio)
 │   ├── README.md                      Este archivo
 │   ├── CHANGELOG.md                   Historial de versiones
+│   ├── sanitize-plain-text.md         Saneo de texto y presets (`sanitizePlainText`)
 │   ├── pendientes.md                  Tareas pendientes consolidadas
 │   ├── resolucion-2275/               Docs de RIPS clásico
 │   ├── resolucion-1888/               Docs del RDA + PDFs originales
@@ -125,9 +132,17 @@ NUEVO_RELACIONADOR/
 | [Análisis de Campos](resolucion-1888/campos_analisis.md) | Existentes vs. faltantes |
 | [PDFs Originales](resolucion-1888/pdfs/) | Documentos oficiales de la resolución |
 
+### Operación y calidad
+| Documento | Descripción |
+|---|---|
+| [Smoke test local](smoke-test-local.md) | Arranque, Network, login y llamada `apiV3` |
+| [Guía de depuración](debug-playbook.md) | Reproducir fallos; Network → ruta → SQL |
+| [Checklist regresión manual](regression-checklist-manual.md) | Casos prioritarios antes de publicar cambios |
+
 ### Técnicos
 | Documento | Descripción |
 |---|---|
+| [Saneo de texto (`sanitizePlainText`)](sanitize-plain-text.md) | Presets por campo, front/back/window, checklist para nuevos campos |
 | [Arquitectura Frontend](arquitectura/estructura_frontend.md) | 3 versiones del frontend, cuál es activa, orden de carga |
 | [Arquitectura Backend](arquitectura/backend.md) | Conexión BD, despliegue PM2, configuración SQL Server |
 | [API Endpoints](arquitectura/api_endpoints.md) | Documentación completa de rutas REST |

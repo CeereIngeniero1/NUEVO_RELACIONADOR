@@ -76,26 +76,51 @@ VALUES
     ('14', 'Contrarreferido de otra institución', NULL, 1, 7)
 
 
--- CREAR TABLA VIA MODALIDAD ATENCIÓN
-CREATE TABLE [dbo].[RIPS Modalidad Atención](
-    [Id Modalidad Atencion] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    [Codigo] [nvarchar](50) NULL,
-    [Nombre Modalidad Atencion] [nvarchar](100) NULL,
-    [Descripción Modalidad Atencion] [nvarchar](200) NULL,
-    [Orden Modalidad Atencion] [int] NULL CONSTRAINT [DF_ModalidadAtencion_OrdenModalidadAtencion] DEFAULT (1),
-    [Id Estado] [int] NULL CONSTRAINT [DF_ModalidadAtencion_IdEstado] DEFAULT (7)
-);
+-- =====================================================================================
+-- RIPS Modalidad Atención (Ministerio / RDA-FHIR: ColombianTechModality)
+--
+-- NOTA:
+-- - En instalaciones existentes, la tabla YA existe: lo que se requiere es un UPSERT
+--   (insertar lo faltante + actualizar lo existente) para garantizar códigos 01-09,
+--   incluyendo el faltante 05.
+-- - Se deja CREATE TABLE protegido por IF por si alguien ejecuta el script desde cero.
+-- =====================================================================================
+IF OBJECT_ID(N'[dbo].[RIPS Modalidad Atención]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[RIPS Modalidad Atención](
+        [Id Modalidad Atencion] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [Codigo] [nvarchar](50) NULL,
+        [Nombre Modalidad Atencion] [nvarchar](100) NULL,
+        [Descripción Modalidad Atencion] [nvarchar](200) NULL,
+        [Orden Modalidad Atencion] [int] NULL CONSTRAINT [DF_ModalidadAtencion_OrdenModalidadAtencion] DEFAULT (1),
+        [Id Estado] [int] NULL CONSTRAINT [DF_ModalidadAtencion_IdEstado] DEFAULT (7)
+    );
+END
 
-INSERT INTO [dbo].[RIPS Modalidad Atención] ([Codigo], [Nombre Modalidad Atencion], [Descripción Modalidad Atencion], [Orden Modalidad Atencion], [Id Estado])
-VALUES
-    ('01', 'Intramural', NULL, 1, 7),
-    ('02', 'Extramural unidad móvil', NULL, 1, 7),
-	('03', 'Extramural domiciliaria', NULL, 1, 7),
-	('04', 'Extramural jornada de salud', NULL, 1, 7),
-	('06', 'Telemedicina interactiva', NULL, 1, 7),
-	('07', 'Telemedicina no interactiva', NULL, 1, 7),
-	('08', 'Telemedicina telexperticia', NULL, 1, 7),
-	('09', 'Telemedicina telemonitoreo', NULL, 1, 7);
+;WITH src AS (
+    SELECT * FROM (VALUES
+        (N'01', N'Intramural',                                                     1, 7),
+        (N'02', N'Extramural unidad móvil',                                        2, 7),
+        (N'03', N'Extramural domiciliaria',                                        3, 7),
+        (N'04', N'Extramural jornada de salud',                                    4, 7),
+        (N'05', N'Extramural (atención prehospitalaria o transporte asistencial)', 5, 7),
+        (N'06', N'Telemedicina interactiva',                                       6, 7),
+        (N'07', N'Telemedicina no interactiva',                                    7, 7),
+        (N'08', N'Telemedicina telexperticia',                                     8, 7),
+        (N'09', N'Telemedicina telemonitoreo',                                     9, 7)
+    ) v(Codigo, Nombre, Orden, IdEstado)
+)
+MERGE [dbo].[RIPS Modalidad Atención] AS t
+USING src AS s
+ON (t.Codigo = s.Codigo)
+WHEN MATCHED THEN
+    UPDATE SET
+        t.[Nombre Modalidad Atencion] = s.Nombre,
+        t.[Orden Modalidad Atencion]  = s.Orden,
+        t.[Id Estado]                 = s.IdEstado
+WHEN NOT MATCHED THEN
+    INSERT (Codigo, [Nombre Modalidad Atencion], [Orden Modalidad Atencion], [Id Estado])
+    VALUES (s.Codigo, s.Nombre, s.Orden, s.IdEstado);
 
 
 -- CREAR TABLA GRUPO DE SERVICIOS

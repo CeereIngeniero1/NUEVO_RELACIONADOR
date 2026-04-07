@@ -1129,24 +1129,28 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraInicioAtencion">
+                                                id="RDA_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio atención:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraFinAtencion">
+                                                id="RDA_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin atención:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDA_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">
@@ -1363,24 +1367,28 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraInicioAtencion">
+                                                id="RDACE_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio atención:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraFinAtencion">
+                                                id="RDACE_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin atención:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende:</label>
                                             <div class="input-group input-group-sm">

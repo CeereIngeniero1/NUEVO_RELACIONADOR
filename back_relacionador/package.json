@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "dev-server": "nodemon ./server/server.js",
-    "dev": "nodemon ./server/server.js"
+    "dev": "nodemon ./server/server.js",
+    "test": "node --test --test-force-exit test/http.smoke.test.js"
   },
   "dependencies": {
     "alertifyjs": "^1.13.1",

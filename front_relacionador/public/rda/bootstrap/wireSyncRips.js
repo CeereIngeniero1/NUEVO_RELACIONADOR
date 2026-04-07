@@ -109,95 +109,44 @@ async function cargarYSincronizarModalidadYGrupoRdaPaciente() {
     const sg = document.getElementById("RDA_IdGrupoServicios");
     if (!sm || !sg) return;
 
-    const sourceModalidadIds = [
-        "listaModalidadAtencion",
-        "SelectModalidadGrupoServicioTecnologiaSalud",
-        "SelectModalidadGrupoServicioTecSalAP",
-        "SelectPorDefectoModalidadGrupoServicioTecSalAC",
-        "SelectPorDefectoModalidadGrupoServicioTecSalAP",
-    ];
-    const sourceGrupoIds = [
-        "listaGrupoServicios",
-        "SelectGrupoServiciosAC",
-        "SelectGrupoServiciosAP",
-        "SelectPoDefectoGrupoServiciosAC",
-        "SelectPorDefectoGrupoServiciosAP",
-    ];
+    // Para evitar tomar datos "quemados" de otros selects RIPS en pantalla,
+    // estos campos RDA se cargan directamente desde la API (catálogos en BD).
+    const base = `http://${servidor}:3000/apiV3`;
+    try {
+        const [modRaw, grpRaw] = await Promise.all([
+            fetchJsonWithRetry(`${base}/ModalidadAtencion`),
+            fetchJsonWithRetry(`${base}/GrupoServicios`),
+        ]);
+        const modalidades = Array.isArray(modRaw) ? modRaw : [];
+        const grupos = Array.isArray(grpRaw) ? grpRaw : [];
 
-    const findBestSource = (ids) => {
-        const candidates = ids
-            .map((id) => document.getElementById(id))
-            .filter((el) => el && el.tagName === "SELECT");
-        if (!candidates.length) return null;
-        const flow = getPreferredFlow();
-        if (flow === "AC") {
-            const x = candidates.find((el) => /TecnologiaSalud|GrupoServiciosAC/.test(el.id));
-            if (x && (x.options?.length || 0) > 1) return x;
-        }
-        if (flow === "AP") {
-            const x = candidates.find((el) => /TecSalAP|GrupoServiciosAP/.test(el.id));
-            if (x && (x.options?.length || 0) > 1) return x;
-        }
-        const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
-        return withOptions || candidates[0];
-    };
+        // Ordenar por código para mantener el orden ministerial 01-09.
+        const codeKey = (x) => String(x?.Codigo ?? "").trim();
+        modalidades.sort((a, b) => codeKey(a).localeCompare(codeKey(b), "es", { numeric: true }));
+        grupos.sort((a, b) => String(a?.Codigo ?? "").localeCompare(String(b?.Codigo ?? ""), "es", { numeric: true }));
 
-    let sourceModalidad = findBestSource(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
-    let sourceGrupo = findBestSource(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
+        sm.innerHTML = '<option value="">Seleccionar</option>';
+        modalidades.forEach((m) => {
+            const o = document.createElement("option");
+            o.value = m.IdModalidadAtencion;
+            const cod = String(m.Codigo || "").trim();
+            const nom = String(m.NombreModalidadAtencion || "").trim();
+            o.textContent = cod && nom ? `${cod} - ${nom}` : (nom || cod || m.IdModalidadAtencion);
+            sm.appendChild(o);
+        });
 
-    const copiedModalidad = populateFromSource(sm, sourceModalidad);
-    const copiedGrupo = populateFromSource(sg, sourceGrupo);
-    syncValue(sm, sourceModalidad);
-    syncValue(sg, sourceGrupo);
-
-    if (!copiedModalidad || !copiedGrupo) {
-        const base = `http://${servidor}:3000/apiV3`;
-        try {
-            const [modRaw, grpRaw] = await Promise.all([
-                fetchJsonWithRetry(`${base}/ModalidadAtencion`),
-                fetchJsonWithRetry(`${base}/GrupoServicios`),
-            ]);
-            const modalidades = Array.isArray(modRaw) ? modRaw : [];
-            const grupos = Array.isArray(grpRaw) ? grpRaw : [];
-            modalidades.sort((a, b) =>
-                String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
-            );
-            grupos.sort((a, b) =>
-                String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
-            );
-
-            if (!copiedModalidad) {
-                sm.innerHTML = '<option value="">Seleccionar</option>';
-                modalidades.forEach((m) => {
-                    const o = document.createElement("option");
-                    o.value = m.IdModalidadAtencion;
-                    o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
-                    sm.appendChild(o);
-                });
-            }
-            if (!copiedGrupo) {
-                sg.innerHTML = '<option value="">Seleccionar</option>';
-                grupos.forEach((g) => {
-                    const o = document.createElement("option");
-                    o.value = g.IdGrupoServicios;
-                    o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
-                    sg.appendChild(o);
-                });
-            }
-        } catch (e) {
-            console.warn("[RDA] No se pudieron cargar/sincronizar Modalidad/GrupoServicios:", e);
-        }
+        sg.innerHTML = '<option value="">Seleccionar</option>';
+        grupos.forEach((g) => {
+            const o = document.createElement("option");
+            o.value = g.IdGrupoServicios;
+            const cod = String(g.Codigo || "").trim();
+            const nom = String(g.NombreGrupoServicios || "").trim();
+            o.textContent = cod && nom ? `${cod} - ${nom}` : (nom || cod || g.IdGrupoServicios);
+            sg.appendChild(o);
+        });
+    } catch (e) {
+        console.warn("[RDA] No se pudieron cargar Modalidad/GrupoServicios desde API:", e);
     }
-
-    const refreshSync = () => {
-        sourceModalidad = findBestSource(sourceModalidadIds) || findFirstAvailableSelect(sourceModalidadIds);
-        sourceGrupo = findBestSource(sourceGrupoIds) || findFirstAvailableSelect(sourceGrupoIds);
-        if (sourceModalidad) { populateFromSource(sm, sourceModalidad); syncValue(sm, sourceModalidad); }
-        if (sourceGrupo) { populateFromSource(sg, sourceGrupo); syncValue(sg, sourceGrupo); }
-    };
-
-    refreshSync();
-    observeAndPoll([sourceModalidad, sourceGrupo], refreshSync);
 }
 
 // ── Sync 2: RDACE (modalidad + grupo + vía ingreso + causa) ──────────────
@@ -211,78 +160,32 @@ async function cargarYSincronizarRipsContextRdace() {
 
     const base = `http://${servidor}:3000/apiV3`;
 
-    const sourceModalidadIds = [
-        "listaModalidadAtencion",
-        "SelectModalidadGrupoServicioTecnologiaSalud",
-        "SelectModalidadGrupoServicioTecSalAP",
-        "SelectPorDefectoModalidadGrupoServicioTecSalAC",
-        "SelectPorDefectoModalidadGrupoServicioTecSalAP",
-    ];
-    const sourceGrupoIds = [
-        "listaGrupoServicios",
-        "SelectGrupoServiciosAC",
-        "SelectGrupoServiciosAP",
-        "SelectPoDefectoGrupoServiciosAC",
-        "SelectPorDefectoGrupoServiciosAP",
-    ];
-    const sourceViaIds = ["SelectViaIngresoServicioSaludAP", "SelectPorDefectoViaIngresoServicioSaludAP"];
-    const sourceCausaIds = ["SelectCausaMotivoAtencion", "SelectPorDefectoCausaMotivoAtencionAC"];
-
-    const findBestSource = (ids, kind) => {
-        const candidates = ids
-            .map((id) => document.getElementById(id))
-            .filter((el) => el && el.tagName === "SELECT");
-        if (!candidates.length) return null;
-        const flow = getPreferredFlow();
-        if (kind === "modalidad") {
-            if (flow === "AC") {
-                const x = candidates.find((el) => /TecnologiaSalud|TecSalAC|Defecto.*AC/i.test(el.id));
-                if (x && (x.options?.length || 0) > 1) return x;
-            }
-            if (flow === "AP") {
-                const x = candidates.find((el) => /TecSalAP|Defecto.*AP/i.test(el.id));
-                if (x && (x.options?.length || 0) > 1) return x;
-            }
-        }
-        if (kind === "grupo") {
-            if (flow === "AC") {
-                const x = candidates.find((el) => /GrupoServiciosAC|DefectoGrupo.*AC/i.test(el.id));
-                if (x && (x.options?.length || 0) > 1) return x;
-            }
-            if (flow === "AP") {
-                const x = candidates.find((el) => /GrupoServiciosAP|DefectoGrupo.*AP/i.test(el.id));
-                if (x && (x.options?.length || 0) > 1) return x;
-            }
-        }
-        const withOptions = candidates.find((el) => (el.options?.length || 0) > 1);
-        return withOptions || candidates[0];
-    };
-
     const fillModalidadApi = async () => {
         const modRaw = await fetchJsonWithRetry(`${base}/ModalidadAtencion`);
         const modalidades = Array.isArray(modRaw) ? modRaw : [];
-        modalidades.sort((a, b) =>
-            String(a.NombreModalidadAtencion || "").localeCompare(String(b.NombreModalidadAtencion || ""))
-        );
+        const codeKey = (x) => String(x?.Codigo ?? "").trim();
+        modalidades.sort((a, b) => codeKey(a).localeCompare(codeKey(b), "es", { numeric: true }));
         sm.innerHTML = '<option value="">Seleccionar</option>';
         modalidades.forEach((m) => {
             const o = document.createElement("option");
             o.value = m.IdModalidadAtencion;
-            o.textContent = m.NombreModalidadAtencion || m.Codigo || m.IdModalidadAtencion;
+            const cod = String(m.Codigo || "").trim();
+            const nom = String(m.NombreModalidadAtencion || "").trim();
+            o.textContent = cod && nom ? `${cod} - ${nom}` : (nom || cod || m.IdModalidadAtencion);
             sm.appendChild(o);
         });
     };
     const fillGrupoApi = async () => {
         const grpRaw = await fetchJsonWithRetry(`${base}/GrupoServicios`);
         const grupos = Array.isArray(grpRaw) ? grpRaw : [];
-        grupos.sort((a, b) =>
-            String(a.NombreGrupoServicios || "").localeCompare(String(b.NombreGrupoServicios || ""))
-        );
+        grupos.sort((a, b) => String(a?.Codigo ?? "").localeCompare(String(b?.Codigo ?? ""), "es", { numeric: true }));
         sg.innerHTML = '<option value="">Seleccionar</option>';
         grupos.forEach((g) => {
             const o = document.createElement("option");
             o.value = g.IdGrupoServicios;
-            o.textContent = g.NombreGrupoServicios || g.Codigo || g.IdGrupoServicios;
+            const cod = String(g.Codigo || "").trim();
+            const nom = String(g.NombreGrupoServicios || "").trim();
+            o.textContent = cod && nom ? `${cod} - ${nom}` : (nom || cod || g.IdGrupoServicios);
             sg.appendChild(o);
         });
     };
@@ -315,42 +218,16 @@ async function cargarYSincronizarRipsContextRdace() {
         });
     };
 
-    let sourceModalidad = findBestSource(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
-    let sourceGrupo = findBestSource(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
-    let sourceVia = findBestSource(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
-    let sourceCausa = findBestSource(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
-
-    let copiedM = populateFromSource(sm, sourceModalidad);
-    let copiedG = populateFromSource(sg, sourceGrupo);
-    let copiedV = populateFromSource(sv, sourceVia);
-    let copiedC = populateFromSource(sc, sourceCausa);
-    syncValue(sm, sourceModalidad);
-    syncValue(sg, sourceGrupo);
-    syncValue(sv, sourceVia);
-    syncValue(sc, sourceCausa);
-
     try {
-        if (!copiedM) await fillModalidadApi();
-        if (!copiedG) await fillGrupoApi();
-        if (!copiedV) await fillViaApi();
-        if (!copiedC) await fillCausaApi();
+        // Igual que RDA Paciente: cargar directo desde API para evitar copiar
+        // selects RIPS que pueden venir "quemados".
+        await fillModalidadApi();
+        await fillGrupoApi();
+        await fillViaApi();
+        await fillCausaApi();
     } catch (e) {
         console.warn("[RDACE] No se pudieron cargar catálogos RIPS/contexto:", e);
     }
-
-    const refreshSync = () => {
-        sourceModalidad = findBestSource(sourceModalidadIds, "modalidad") || findFirstAvailableSelect(sourceModalidadIds);
-        sourceGrupo = findBestSource(sourceGrupoIds, "grupo") || findFirstAvailableSelect(sourceGrupoIds);
-        sourceVia = findBestSource(sourceViaIds, "via") || findFirstAvailableSelect(sourceViaIds);
-        sourceCausa = findBestSource(sourceCausaIds, "causa") || findFirstAvailableSelect(sourceCausaIds);
-        if (sourceModalidad) { populateFromSource(sm, sourceModalidad); syncValue(sm, sourceModalidad); }
-        if (sourceGrupo) { populateFromSource(sg, sourceGrupo); syncValue(sg, sourceGrupo); }
-        if (sourceVia) { populateFromSource(sv, sourceVia); syncValue(sv, sourceVia); }
-        if (sourceCausa) { populateFromSource(sc, sourceCausa); syncValue(sc, sourceCausa); }
-    };
-
-    refreshSync();
-    observeAndPoll([sourceModalidad, sourceGrupo, sourceVia, sourceCausa], refreshSync);
 }
 
 // ── Exportación ───────────────────────────────────────────────────────────
