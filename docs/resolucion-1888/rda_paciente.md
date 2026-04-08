@@ -48,6 +48,14 @@ Controles en `#cardRDA` **por encima** de `#SeccionRDAPaciente` y `#SeccionRDACo
 | 9 | Código Diagnóstico Ingreso CIE-11 | `RDA_DiagnosticoIngresoCIE11Codigo` | Input texto |
 | 10 | Término Diagnóstico Ingreso CIE-11 | `RDA_DiagnosticoIngresoCIE11Termino` | Input texto |
 
+## Diagnóstico principal al egreso (CIE-10)
+
+| # | Campo | ID HTML | Tipo |
+|---|---|---|---|
+| — | Código diagnóstico principal egreso CIE-10 | `RDA_DiagPrincipalEgresoCIE10Codigo` | Select2 (CIE-10) |
+| — | Nombre diagnóstico principal egreso CIE-10 | `RDA_DiagPrincipalEgresoCIE10Nombre` | Input (readonly) |
+| — | Tipo diagnóstico principal al egreso (01–03, Res. 866) | `RDA_TipoDiagPrincipalEgresoCIE10` | Select2 catálogo `TipoDiagnosticoPrincipal` |
+
 ## Tipo de Alergia
 
 | # | Campo | ID HTML | Tipo |

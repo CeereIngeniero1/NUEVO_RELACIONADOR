@@ -119,6 +119,7 @@ export function wireCieSelect2() {
     initCIE10Select2("#RDA_AntecedenteFamiliarCIE10", "#RDA_AntecedenteFamiliarDescripcion");
     initCIE10Select2("#RDACE_AntecedenteSaludCIE10", "#RDACE_AntecedenteSaludDescripcion");
     initCIE10Select2("#RDACE_AntecedenteFamiliarCIE10", "#RDACE_AntecedenteFamiliarDescripcion");
+    initCIE10Select2("#RDA_DiagPrincipalEgresoCIE10Codigo", "#RDA_DiagPrincipalEgresoCIE10Nombre");
     initCIE10Select2("#RDACE_DiagPrincipalCIE10Codigo", "#RDACE_DiagPrincipalCIE10Nombre");
     initCIE10Select2("#RDACE_DiagRelacionadoCIE10Codigo", "#RDACE_DiagRelacionadoCIE10Nombre");
 }

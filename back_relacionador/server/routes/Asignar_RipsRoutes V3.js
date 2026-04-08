@@ -2481,7 +2481,15 @@ router.post('/ActualizarPaciente', async (req, res) => {
     request.addParameter('ComunidadEtnica', TYPES.NVarChar, ComunidadEtnica || null);
     request.addParameter('IdDiscapacidad', TYPES.Int, IdDiscapacidad);
     request.addParameter('Telefono', TYPES.NVarChar, Telefono || null);
-    request.addParameter('IdOcupacion', TYPES.Int, IdOcupacion);
+    const idOcupParsed =
+        IdOcupacion === undefined || IdOcupacion === null || IdOcupacion === ''
+            ? null
+            : parseInt(String(IdOcupacion), 10);
+    request.addParameter(
+        'IdOcupacion',
+        TYPES.Int,
+        idOcupParsed !== null && !Number.isNaN(idOcupParsed) ? idOcupParsed : null
+    );
 
     request.on('row', columns => {
         const fila = {};

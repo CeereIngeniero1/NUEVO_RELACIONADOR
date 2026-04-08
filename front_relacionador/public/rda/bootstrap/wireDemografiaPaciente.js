@@ -11,6 +11,15 @@ import { getServidor } from "../api/servidor.js";
 
 const servidor = getServidor();
 
+/** Valor del select con Select2 (lectura fiable frente a document.getElementById().value). */
+function parseSelect2Int(elementId) {
+    const $el = $("#" + elementId);
+    const raw = $el.length ? $el.val() : null;
+    if (raw == null || raw === "") return null;
+    const n = parseInt(String(raw), 10);
+    return Number.isNaN(n) ? null : n;
+}
+
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
 function initDemografiaSelect2(selector, placeholder, endpoint, mapFn) {
@@ -25,13 +34,18 @@ function initDemografiaSelect2(selector, placeholder, endpoint, mapFn) {
                 const term = (params.data.term || "").trim();
                 const q = term.length ? term : endpoint.defaultQuery || "";
                 fetch(`http://${servidor}:3000/apiV3/${endpoint.path}/${encodeURIComponent(q)}`)
-                    .then(r => r.json())
+                    .then(r => {
+                        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                        return r.json();
+                    })
                     .then(data => success({ results: data }))
                     .catch(failure);
             },
             processResults: function (data) {
+                const rows = data.results || data;
+                const list = Array.isArray(rows) ? rows : [];
                 return {
-                    results: (data.results || data).map(mapFn)
+                    results: list.map(mapFn).filter(r => r != null && r.id != null && r.id !== "")
                 };
             }
         }
@@ -112,7 +126,7 @@ function initDemografiaSelectsFinos() {
     initDemografiaSelect2(
         "#OcupacionBase",
         "Selecciona Ocupación",
-        { path: "ocupacion", defaultQuery: "" },
+        { path: "Ocupacion", defaultQuery: "" },
         p => ({ id: p.IdOcupacion, text: p.DescripcionOcupacion })
     );
 }
@@ -179,7 +193,7 @@ function initActualizarPaciente() {
             ComunidadEtnica: document.getElementById("ComunidadEtnicaBase").value.trim(),
             IdDiscapacidad: parseInt(document.getElementById("DiscapacidadBase").value) || null,
             Telefono: document.getElementById("TelefonoPaciente").value.trim(),
-            IdOcupacion: parseInt(document.getElementById("OcupacionBase").value) || null
+            IdOcupacion: parseSelect2Int("OcupacionBase")
         };
     }
 
@@ -229,6 +243,7 @@ function initActualizarPaciente() {
         if (!modoEdicionPaciente) {
             setCamposPacienteDisabled(false);
             modoEdicionPaciente = true;
+            $("#OcupacionBase").trigger("change");
             $(this).html('<span class="icon">💾</span> Guardar cambios');
         } else {
             await guardarPaciente();

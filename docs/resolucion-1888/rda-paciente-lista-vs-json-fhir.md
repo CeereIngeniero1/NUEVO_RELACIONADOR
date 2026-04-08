@@ -1,6 +1,6 @@
 # Lista RDA Paciente vs JSON FHIR (`/RdaPaciente/FhirBundle`)
 
-Este documento cruza cada ítem de [`docs/lista rda paciente.txt`](../lista%20rda%20paciente.txt) con lo que **incluye hoy** el JSON generado por `POST /apiV3/RdaPaciente/FhirBundle` en [`Asignar_RipsRoutes V3.js`](../../back_relacionador/server/routes/Asignar_RipsRoutes%20V3.js).
+Este documento cruza cada ítem de [`docs/lista rda paciente.txt`](../lista%20rda%20paciente.txt) con lo que **incluye hoy** el JSON generado por `POST /apiV3/RdaPaciente/FhirBundle` en [`RdaPacienteRoutes.js`](../../back_relacionador/server/routes/rda/RdaPacienteRoutes.js) (router montado bajo `/apiV3`).
 
 ---
 
@@ -13,6 +13,7 @@ Este documento cruza cada ítem de [`docs/lista rda paciente.txt`](../lista%20rd
 | **Practitioner + Organization IPS** | Implementado como entradas propias en el Bundle. |
 | **Antecedentes** | Farmacológicos / patológicos / familiares / alérgicos con **`emptyReason`** cuando la lista está vacía (excepto que alergias ya tenía lógica explícita). |
 | **CIE-11 ingreso** | `Condition` + sección en `Composition` cuando hay código en BD. |
+| **CIE-10 egreso + tipo** | `Condition` `ConditionEgreso-0` + sección en `Composition`; columnas `[Diagnostico Principal Egreso CIE10 *]`, `[Tipo Diagnostico Principal Egreso]`. Confirmar en validador FHIR que `ExtensionDiagnosisType` en **ConditionStatementRDA** es aceptada. |
 | **CIE-11 familiar** | Segundo `coding` en `FamilyMemberHistory` cuando existen columnas y datos (`CIE11 Codigo` / `CIE11 Termino`). |
 | **Talla / peso** | `Observation` LOINC 8302-2 y 29463-7 (sin `meta.profile` RDA dedicado hasta confirmar perfil en IG). |
 | **`meta.profile`** | Unificado a `https://fhir.minsalud.gov.co/rda/StructureDefinition/...` en recursos RDA del bundle (salvo Observation talla/peso). |
@@ -23,16 +24,18 @@ Este documento cruza cada ítem de [`docs/lista rda paciente.txt`](../lista%20rd
 
 | Resultado | Cantidad (aprox.) | Comentario |
 |-----------|-------------------|------------|
-| **Sí** (cubierto en el JSON) | ~34 | Incluye composición clínica principal del RDA Paciente autoreportado. |
-| **Parcial** | ~3 | Alergia “código sí/no”, DCI solo texto, modalidad/grupo con respaldo `01` si falta FK. |
-| **N/A lista** | 3 | Ítems 35–37 (diagnóstico egreso): no son objetivo del bundle actual de **RDA Paciente**. |
-| **No** (explícito en lista) | 0 para ítems 1–34 y 38–41 dentro del alcance del documento paciente | Egreso CIE-10 queda como N/A. |
+| **Sí** (cubierto en el JSON) | ~37 | Incluye ítems 35–37 (egreso CIE-10 + tipo) cuando hay datos en BD. |
+| **Parcial** | ~4 | Alergia “código sí/no”, DCI solo texto, modalidad/grupo con respaldo `01` si falta FK; tipo dx egreso sujeto a validación **ExtensionDiagnosisType** en **ConditionStatementRDA**. |
+| **N/A lista** | 0 | — |
+| **No** (explícito en lista) | 0 para ítems 1–41 dentro del alcance del documento paciente | — |
 
 ---
 
 ## Requisitos de despliegue
 
 **Migración BD:** ejecutar [`back_relacionador/SQL/alter-evaluacion-entidad-rda-rda-paciente-fhir-1888.sql`](../../back_relacionador/SQL/alter-evaluacion-entidad-rda-rda-paciente-fhir-1888.sql) si la base se creó antes de incorporar columnas de modalidad, grupo, NIT/nombre IPS y CIE-11 en antecedentes familiares. Sin ello, pueden fallar el `INSERT`/`SELECT` que las usan.
+
+Para **diagnóstico principal al egreso (CIE-10)** en RDA Paciente, ejecutar además [`back_relacionador/SQL/alter-evaluacion-entidad-rda-diagnostico-egreso-cie10.sql`](../../back_relacionador/SQL/alter-evaluacion-entidad-rda-diagnostico-egreso-cie10.sql) en bases existentes (las nuevas instalaciones que usan el `CREATE` actualizado de [`1888.sql`](../../back_relacionador/SQL/1888.sql) ya incluyen esas columnas).
 
 **Código:** backend (`Asignar_RipsRoutes V3.js`) + frontend RDA Paciente (`Asignar_RIPS V3.html`, `Asignar_RIPS V3.js`, `rda-v3.js`) deben estar desplegados con la versión que genera este bundle.
 
@@ -87,9 +90,9 @@ Este documento cruza cada ítem de [`docs/lista rda paciente.txt`](../lista%20rd
 | 32 | Condición de salud familiar CIE-11 | **Sí** (si hay dato) | Columnas BD + segundo `coding` ICD-11 MMS. |
 | 33 | Parentesco del antecedente familiar | **Sí** | `relationship.coding` (catálogo local + display). *Validar perfil vs sistema terminológico exigido.* |
 | 34 | Descripción común del medicamento (DCI) | **Parcial** | `MedicationStatement.medicationCodeableConcept.text` solamente; sin `coding` DCI aún. |
-| 35 | Código diagnóstico principal al egreso CIE-10 | **N/A lista** | No modelado en este bundle (**RDA Consulta Externa** / egreso). |
-| 36 | Nombre diagnóstico principal egreso CIE-10 | **N/A lista** | Igual. |
-| 37 | Tipo diagnóstico principal al egreso CIE-10 | **N/A lista** | Igual. |
+| 35 | Código diagnóstico principal al egreso CIE-10 | **Sí** (si hay dato) | `Condition.code.coding` ICD-10; `ConditionEgreso-0`. |
+| 36 | Nombre diagnóstico principal egreso CIE-10 | **Sí** | `display` / `code.text` desde `[Diagnostico Principal Egreso CIE10 Nombre]`. |
+| 37 | Tipo diagnóstico principal al egreso CIE-10 | **Sí / Parcial** | `extension` **ExtensionDiagnosisType** en el `Condition` de egreso (mismo código RIPS que RDACE). Validar perfil en IG. |
 | 38 | Código diagnóstico principal ingreso CIE-11 | **Sí** (si hay dato) | `Condition` + sección **Diagnóstico de ingreso (CIE-11)**. |
 | 39 | Término diagnóstico principal ingreso CIE-11 | **Sí** | `Condition.code.display` / `text`. |
 | 40 | Tipo documento THS | **Sí / Parcial** | `Practitioner.identifier.type` (ColombianPersonIdentifier). Si falta en BD → `SI` (placeholder). |

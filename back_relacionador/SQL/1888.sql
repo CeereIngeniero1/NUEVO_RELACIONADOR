@@ -495,13 +495,21 @@ BEGIN
     END CATCH;
 
     -------------------------------------------------------------------
-    -- 5. UPDATE ENTIDADVI
+    -- 5. UPSERT ENTIDADVI (UPDATE o INSERT si no existe fila para el documento)
     -------------------------------------------------------------------
     BEGIN TRY
-        UPDATE E6
-           SET E6.[Id Ocupación] = @IdOcupacion
-        FROM EntidadVI E6
-        WHERE E6.[Documento Entidad] = @Documento;
+        IF EXISTS (SELECT 1 FROM EntidadVI E6 WHERE E6.[Documento Entidad] = @Documento)
+        BEGIN
+            UPDATE E6
+               SET E6.[Id Ocupación] = @IdOcupacion
+            FROM EntidadVI E6
+            WHERE E6.[Documento Entidad] = @Documento;
+        END
+        ELSE
+        BEGIN
+            INSERT INTO EntidadVI ([Documento Entidad], [Id Ocupación])
+            VALUES (@Documento, @IdOcupacion);
+        END
 
         INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
         VALUES ('EntidadVI', 'OK', 'Actualización correcta', @@ROWCOUNT);
@@ -909,6 +917,9 @@ Create Table [Evaluacion Entidad RDA]
     [Num Doc Profesional]             NVARCHAR(50) NULL,
     [Diagnostico Ingreso CIE11 Codigo] NVARCHAR(50)  NULL,
     [Diagnostico Ingreso CIE11 Termino] NVARCHAR(200) NULL,
+    [Diagnostico Principal Egreso CIE10 Codigo] NVARCHAR(20) NULL,
+    [Diagnostico Principal Egreso CIE10 Nombre] NVARCHAR(500) NULL,
+    [Tipo Diagnostico Principal Egreso] NVARCHAR(20) NULL,
     [Tipo Alergia]                    VARCHAR(5)   NULL,
     -- Contexto atención / custodian IPS (FHIR CompositionPatientStatementRDA + CareDeliveryOrganizationRDA)
     [Id Modalidad Atencion]           INT          NULL,
@@ -940,6 +951,14 @@ Create Table [Evaluacion Entidad RDA]
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Grupo Servicios]            INT          NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [NIT Prestador IPS]             NVARCHAR(20) NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Prestador IPS]          NVARCHAR(200) NULL;
+--
+-- Si la tabla YA EXISTE (creada antes de incorporar diagnóstico al egreso), NO vuelva a ejecutar el CREATE anterior.
+-- Ejecute el script idempotente: SQL/alter-evaluacion-entidad-rda-diagnostico-egreso-cie10.sql
+--   (agrega [Diagnostico Principal Egreso CIE10 Codigo], [Diagnostico Principal Egreso CIE10 Nombre],
+--    [Tipo Diagnostico Principal Egreso] solo si faltan).
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Principal Egreso CIE10 Codigo] NVARCHAR(20) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Diagnostico Principal Egreso CIE10 Nombre] NVARCHAR(500) NULL;
+-- ALTER TABLE [Evaluacion Entidad RDA] ADD [Tipo Diagnostico Principal Egreso] NVARCHAR(20) NULL;
 
 
 

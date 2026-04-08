@@ -324,6 +324,7 @@ export function wireRdaceCatalogs() {
     initRdaceCatalogSelect2("#RDACE_EntornoAtencion", "EntornoAtencion", "Buscar entorno de atención...");
     initRdaceCatalogSelect2("#RDACE_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
     initRdaceCatalogSelect2("#RDACE_ParentescoFamiliar", "ParentescoFamiliar", "Parentesco...");
+    initRdaceCatalogSelect2("#RDA_TipoDiagPrincipalEgresoCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal al egreso...");
     initRdaceCatalogSelect2("#RDACE_TipoDiagPrincipalCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal...");
     initRdaceCatalogSelect2("#RDACE_UnidadMedidaDosis", "UnidadMedidaDosis", "Unidad de medida de dosis...");
     initRdaceCatalogSelect2("#RDACE_ViaAdministracionMed", "ViaAdministracionMedicamento", "Vía de administración...");

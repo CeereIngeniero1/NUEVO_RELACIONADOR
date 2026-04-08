@@ -456,15 +456,26 @@ SelectPacientes.addEventListener("change", async function (e) {
 
         TelefonoPaciente.value = CargarDatosPaciente[0].Tel;
 
-        // Ocupacion
-        // console.log(CargarDatosPaciente[0].IdOcupación);
-        // console.log(CargarDatosPaciente[0].DescripciónOcupación);
-
-        const IdOcupación = CargarDatosPaciente[0].IdOcupación;
-        const textoDescripciónOcupación = CargarDatosPaciente[0].DescripciónOcupación;
+        // Ocupacion (evitar Option con texto null → se muestra "null" en el UI)
+        const rowPac = CargarDatosPaciente[0];
+        const IdOcupación =
+          rowPac.IdOcupación != null ? rowPac.IdOcupación : rowPac.IdOcupacion;
+        const textoDescripciónOcupación =
+          rowPac.DescripciónOcupación != null && rowPac.DescripciónOcupación !== ""
+            ? rowPac.DescripciónOcupación
+            : rowPac.DescripcionOcupacion != null
+              ? rowPac.DescripcionOcupacion
+              : "";
+        const valorOcupacion =
+          IdOcupación != null && IdOcupación !== "" ? String(IdOcupación) : "";
         const selectocupacionBase = $("#OcupacionBase");
-        const optionOcupacionBase = new Option(textoDescripciónOcupación, IdOcupación, true, true);
-        selectocupacionBase.append(optionOcupacionBase).trigger('change');
+        selectocupacionBase.empty();
+        if (valorOcupacion) {
+          selectocupacionBase.append(
+            new Option(textoDescripciónOcupación, valorOcupacion, true, true)
+          );
+        }
+        selectocupacionBase.val(valorOcupacion || null).trigger("change");
 
 
 

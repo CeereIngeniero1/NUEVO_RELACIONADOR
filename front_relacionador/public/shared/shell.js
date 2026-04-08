@@ -14,6 +14,14 @@ function getServidorHost() {
 function getApiBaseUrl() {
   return `http://${getServidorHost()}:3000`;
 }
+
+/** Evita llamar a /protected si el JWT ya expiró (menos 403 en consola). */
+function isStoredJwtExpired() {
+  const exp = localStorage.getItem("token_exp");
+  if (exp == null || exp === "") return false;
+  const now = Math.floor(Date.now() / 1000);
+  return now >= Number(exp);
+}
  
 export function initThemeToggle({
   buttonId = "crBtnThemeToggle",
@@ -70,7 +78,12 @@ export async function syncTopbarUserName({
     if (redirectOnFail) window.location.href = "index.html";
     return { ok: false, usedFallback: true };
   }
- 
+
+  if (isStoredJwtExpired()) {
+    barUser.textContent = fb;
+    return { ok: false, usedFallback: true };
+  }
+
   try {
     const res = await fetch(`${getApiBaseUrl()}/protected`, {
       method: "GET",

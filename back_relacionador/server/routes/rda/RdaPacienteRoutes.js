@@ -1,4 +1,4 @@
-﻿/**
+/**
  * RDA Paciente — Router independiente (Resolución 1888)
  *
  * Rutas incluidas:
@@ -34,6 +34,8 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
         FechaHoraInicioAtencion, FechaHoraFinAtencion,
         TipoDocProfesional, NumDocProfesional,
         DiagnosticoIngresoCIE11Codigo, DiagnosticoIngresoCIE11Termino,
+        DiagnosticoPrincipalEgresoCIE10Codigo, DiagnosticoPrincipalEgresoCIE10Nombre,
+        TipoDiagnosticoPrincipalEgreso,
         TipoAlergia,
         IdModalidadAtencion, IdGrupoServicios,
         NitPrestadorIPS, NombrePrestadorIPS,
@@ -85,10 +87,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('IdZonaResidencia',              sql.Int,       IdZonaResidencia                 ? parseInt(IdZonaResidencia)        : null)
             .input('Direccion',                     sql.NVarChar,  Direccion                        || null)
             .input('IdEtnia',                       sql.Int,       IdEtnia                          ? parseInt(IdEtnia)                 : 0)
-            .input('ComunidadEtnica',               sql.NVarChar,  ComunidadEtnica                  || '')
+            .input('ComunidadEtnica',               sql.NVarChar,  sanitizeComunidadEtnica(ComunidadEtnica))
             .input('IdDiscapacidad',                sql.Int,       IdDiscapacidad                   ? parseInt(IdDiscapacidad)          : 0)
             .input('TelefonoCelular',               sql.NVarChar,  TelefonoCelular                  || null)
-            .input('Alergeno',                      sql.NVarChar,  Alergeno                         || null)
+            .input('Alergeno',                      sql.NVarChar,  sanitizeAlergeno(Alergeno)       || null)
             // Campos RDA Paciente (Resolución 1888)
             .input('CodigoPrestador',               sql.NVarChar,  codPrestTrim)
             .input('CodigoAdminPlanBeneficios',     sql.NVarChar,  CodigoAdminPlanBeneficios        || null)
@@ -99,6 +101,9 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('NumDocProfesional',             sql.NVarChar,  NumDocProfesional                || null)
             .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar,  DiagnosticoIngresoCIE11Codigo    || null)
             .input('DiagnosticoIngresoCIE11Termino',sql.NVarChar,  DiagnosticoIngresoCIE11Termino   || null)
+            .input('DiagnosticoPrincipalEgresoCIE10Codigo', sql.NVarChar, DiagnosticoPrincipalEgresoCIE10Codigo || null)
+            .input('DiagnosticoPrincipalEgresoCIE10Nombre', sql.NVarChar, DiagnosticoPrincipalEgresoCIE10Nombre || null)
+            .input('TipoDiagnosticoPrincipalEgreso', sql.NVarChar, TipoDiagnosticoPrincipalEgreso || null)
             .input('TipoAlergia',                   sql.NVarChar,  TipoAlergia                      || null)
             .input('IdModalidadAtencion',           sql.Int,       idMod)
             .input('IdGrupoServicios',              sql.Int,       idGrp)
@@ -119,6 +124,8 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     [Fecha Hora Inicio Atencion], [Fecha Hora Fin Atencion],
                     [Tipo Doc Profesional], [Num Doc Profesional],
                     [Diagnostico Ingreso CIE11 Codigo], [Diagnostico Ingreso CIE11 Termino],
+                    [Diagnostico Principal Egreso CIE10 Codigo], [Diagnostico Principal Egreso CIE10 Nombre],
+                    [Tipo Diagnostico Principal Egreso],
                     [Tipo Alergia],
                     [Id Modalidad Atencion], [Id Grupo Servicios],
                     [NIT Prestador IPS], [Nombre Prestador IPS]
@@ -138,6 +145,8 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                     @FechaHoraInicioAtencion, @FechaHoraFinAtencion,
                     @TipoDocProfesional, @NumDocProfesional,
                     @DiagnosticoIngresoCIE11Codigo, @DiagnosticoIngresoCIE11Termino,
+                    @DiagnosticoPrincipalEgresoCIE10Codigo, @DiagnosticoPrincipalEgresoCIE10Nombre,
+                    @TipoDiagnosticoPrincipalEgreso,
                     @TipoAlergia,
                     @IdModalidadAtencion, @IdGrupoServicios,
                     @NitPrestadorIPS, @NombrePrestadorIPS
@@ -335,6 +344,16 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
     const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
     const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
     const ICD11_SYSTEM = 'http://hl7.org/fhir/sid/icd-11';
+    const CS_TIPO_DIAG = 'https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSTipoDiagnosticoPrincipalVersion2';
+    const tipoDiagnosticoPrincipalDisplay = (codigo) => {
+        const c = (codigo ?? '').toString().trim();
+        const map = {
+            '01': 'Impresión diagnóstica',
+            '02': 'Confirmado Nuevo',
+            '03': 'Confirmado repetido',
+        };
+        return map[c] || c || '';
+    };
 
     const toIsoDateTime = (v) => {
         if (v == null || v === '') return null;
@@ -445,6 +464,48 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
             })
             : null;
+
+        const c10Egreso = head && (head.DiagnosticoPrincipalEgresoCIE10Codigo || '').toString().trim();
+        const d10Egreso = head && (head.DiagnosticoPrincipalEgresoCIE10Nombre || '').toString().trim();
+        const tipoEgresoRaw =
+            head && head.TipoDiagnosticoPrincipalEgreso != null
+                ? String(head.TipoDiagnosticoPrincipalEgreso).trim()
+                : '';
+        const conditionEgresoEntry =
+            c10Egreso || d10Egreso
+                ? makeEntry({
+                    resourceType: 'Condition',
+                    id: 'ConditionEgreso-0',
+                    meta: {
+                        profile: [`${RDA_SD}/ConditionStatementRDA`],
+                    },
+                    ...(tipoEgresoRaw
+                        ? {
+                            extension: [
+                                {
+                                    url: `${RDA_SD}/ExtensionDiagnosisType`,
+                                    valueCoding: {
+                                        system: CS_TIPO_DIAG,
+                                        code: tipoEgresoRaw,
+                                        display:
+                                            tipoDiagnosticoPrincipalDisplay(tipoEgresoRaw) || tipoEgresoRaw,
+                                    },
+                                },
+                            ],
+                        }
+                        : {}),
+                    subject: { reference: refOf(patientEntry) },
+                    code: {
+                        coding: buildConditionCodings({
+                            cie10Code: c10Egreso,
+                            cie10Display: d10Egreso,
+                            cie11Code: '',
+                            cie11Display: '',
+                        }),
+                        text: d10Egreso || c10Egreso,
+                    },
+                })
+                : null;
 
         const familyHistoryEntries = (antecedentsFam || []).map((item, idx) => {
             const codings = [
@@ -651,6 +712,12 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 entry: [{ reference: refOf(conditionIngresoEntry) }],
             });
         }
+        if (conditionEgresoEntry) {
+            sections.push({
+                title: 'Diagnóstico principal al egreso (CIE-10)',
+                entry: [{ reference: refOf(conditionEgresoEntry) }],
+            });
+        }
         sections.push(
             medicationStatementEntries.length
                 ? {
@@ -762,6 +829,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             ...(organizationEapb ? [organizationEapb] : []),
             ...observationEntries,
             ...(conditionIngresoEntry ? [conditionIngresoEntry] : []),
+            ...(conditionEgresoEntry ? [conditionEgresoEntry] : []),
             ...conditionEntries,
             ...familyHistoryEntries,
             ...medicationStatementEntries,
@@ -856,6 +924,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     e.[Num Doc Profesional]            AS NumDocProfesional,
                     e.[Diagnostico Ingreso CIE11 Codigo]  AS DiagnosticoIngresoCIE11Codigo,
                     e.[Diagnostico Ingreso CIE11 Termino] AS DiagnosticoIngresoCIE11Termino,
+                    e.[Diagnostico Principal Egreso CIE10 Codigo] AS DiagnosticoPrincipalEgresoCIE10Codigo,
+                    e.[Diagnostico Principal Egreso CIE10 Nombre] AS DiagnosticoPrincipalEgresoCIE10Nombre,
+                    e.[Tipo Diagnostico Principal Egreso] AS TipoDiagnosticoPrincipalEgreso,
                     e.[Id Modalidad Atencion]          AS IdModalidadAtencion,
                     e.[Id Grupo Servicios]             AS IdGrupoServicios,
                     e.[NIT Prestador IPS]              AS NitPrestadorIPS,

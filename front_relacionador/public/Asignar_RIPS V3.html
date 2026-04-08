@@ -1212,6 +1212,37 @@
                                         </div>
                                     </div>
 
+                                    <!-- Diagnóstico principal al egreso (CIE-10) -->
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-12">
+                                            <div class="card p-2 border-secondary">
+                                                <h6 class="text-muted">Diagnóstico principal al egreso (CIE-10)</h6>
+                                                <div class="row g-2 align-items-end">
+                                                    <div class="col-md-4">
+                                                        <label>Código diagnóstico principal egreso CIE-10:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDA_DiagPrincipalEgresoCIE10Codigo">
+                                                            <option value="">Buscar CIE-10...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <label>Nombre diagnóstico principal egreso CIE-10:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDA_DiagPrincipalEgresoCIE10Nombre"
+                                                            placeholder="Nombre del diagnóstico" readonly>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label>Tipo diagnóstico principal al egreso:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDA_TipoDiagPrincipalEgresoCIE10">
+                                                            <option value="">Buscar tipo de diagnóstico...</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <!-- Tipo de Alergia -->
                                     <div class="row g-2 mt-2">
@@ -2400,6 +2431,13 @@
             NumDocProfesional:              rdaSelect2IdValue('RDA_NumDocProfesional'),
             DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
             DiagnosticoIngresoCIE11Termino: cie11Termino                                                                  || null,
+            DiagnosticoPrincipalEgresoCIE10Codigo:
+                rdaSelect2IdValue('RDA_DiagPrincipalEgresoCIE10Codigo')
+                || document.getElementById('RDA_DiagPrincipalEgresoCIE10Codigo')?.value
+                || null,
+            DiagnosticoPrincipalEgresoCIE10Nombre:
+                document.getElementById('RDA_DiagPrincipalEgresoCIE10Nombre')?.value?.trim() || null,
+            TipoDiagnosticoPrincipalEgreso: rdaSelect2IdValue('RDA_TipoDiagPrincipalEgresoCIE10'),
             TipoAlergia:                    document.getElementById('RDA_TipoAlergia')?.value                             || null,
             IdModalidadAtencion:            document.getElementById('RDA_IdModalidadAtencion')?.value                      || null,
             IdGrupoServicios:               document.getElementById('RDA_IdGrupoServicios')?.value                         || null,

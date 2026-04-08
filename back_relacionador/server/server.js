@@ -119,8 +119,9 @@ app.get('/api/sse', (req, res) => {
 
 // Middleware para verificar el token antes de permitir el acceso
 const authenticateToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ error: 'Token no proporcionado' });
+    let auth = req.headers['authorization'];
+    if (!auth) return res.status(401).json({ error: 'Token no proporcionado' });
+    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : auth;
 
     jwt.verify(token, 'secretKey', (err, user) => {
         if (err) {
