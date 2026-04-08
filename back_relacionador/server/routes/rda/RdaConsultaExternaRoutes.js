@@ -562,7 +562,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const c = (codigo ?? '').toString().trim();
         const map = {
             '01': 'Impresión diagnóstica',
-            '02': 'Confirmado Nuevo',
+            '02': 'Confirmado nuevo',
             '03': 'Confirmado repetido',
         };
         return map[c] || c || '';

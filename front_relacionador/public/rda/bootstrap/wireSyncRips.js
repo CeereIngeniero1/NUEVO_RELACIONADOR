@@ -57,11 +57,17 @@ function populateFromSource(target, source) {
     return true;
 }
 
-function syncValue(target, source) {
+/** Copia .value de source a target solo si existe la opción (evita CSS frágil con comillas). */
+function syncSelectValueFromSource(target, source) {
     if (!target || !source) return;
-    const v = source.value;
+    const v = String(source.value ?? "").trim();
     if (!v || v === "Sin Seleccionar") return;
-    if (target.querySelector(`option[value="${v}"]`)) target.value = v;
+    const ok = Array.from(target.options).some((o) => o.value === v);
+    if (ok) target.value = v;
+}
+
+function syncValue(target, source) {
+    syncSelectValueFromSource(target, source);
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -144,9 +150,21 @@ async function cargarYSincronizarModalidadYGrupoRdaPaciente() {
             o.textContent = cod && nom ? `${cod} - ${nom}` : (nom || cod || g.IdGrupoServicios);
             sg.appendChild(o);
         });
+        pushRipsAcModalidadGrupoToRdaPaciente();
     } catch (e) {
         console.warn("[RDA] No se pudieron cargar Modalidad/GrupoServicios desde API:", e);
     }
+}
+
+// RIPS AC → RDA Paciente (mismos IdModalidadAtencion / IdGrupoServicios que en Asignar_RIPS V3.js)
+function pushRipsAcModalidadGrupoToRdaPaciente() {
+    if (getPreferredFlow() !== "AC") return;
+    const srcMod = document.getElementById("SelectModalidadGrupoServicioTecnologiaSalud");
+    const srcGrp = document.getElementById("SelectGrupoServiciosAC");
+    const dstMod = document.getElementById("RDA_IdModalidadAtencion");
+    const dstGrp = document.getElementById("RDA_IdGrupoServicios");
+    syncSelectValueFromSource(dstMod, srcMod);
+    syncSelectValueFromSource(dstGrp, srcGrp);
 }
 
 // ── Sync 2: RDACE (modalidad + grupo + vía ingreso + causa) ──────────────
@@ -225,14 +243,183 @@ async function cargarYSincronizarRipsContextRdace() {
         await fillGrupoApi();
         await fillViaApi();
         await fillCausaApi();
+        pushRipsAcModalidadGrupoCausaToRdace();
     } catch (e) {
         console.warn("[RDACE] No se pudieron cargar catálogos RIPS/contexto:", e);
     }
 }
 
+/** RIPS AC → RDACE: modalidad, grupo y causa (mismos IDs que en los selects RIPS). Vía ingreso AC no tiene select en el bloque RIPS AC (ViaIngreso fijo "0" en URL); RDACE vía queda manual. */
+function pushRipsAcModalidadGrupoCausaToRdace() {
+    if (getPreferredFlow() !== "AC") return;
+    const srcMod = document.getElementById("SelectModalidadGrupoServicioTecnologiaSalud");
+    const srcGrp = document.getElementById("SelectGrupoServiciosAC");
+    const srcCausa = document.getElementById("SelectCausaMotivoAtencion");
+    const dstMod = document.getElementById("RDACE_IdModalidadAtencion");
+    const dstGrp = document.getElementById("RDACE_IdGrupoServicios");
+    const dstCausa = document.getElementById("RDACE_IdCausaMotivoAtencion");
+    syncSelectValueFromSource(dstMod, srcMod);
+    syncSelectValueFromSource(dstGrp, srcGrp);
+    syncSelectValueFromSource(dstCausa, srcCausa);
+}
+
+function wireRipsAcModalidadGrupoCausaListeners() {
+    if (typeof window !== "undefined" && window.__wireSyncRipsAcModalidadGrupoBound) return;
+    const srcMod = document.getElementById("SelectModalidadGrupoServicioTecnologiaSalud");
+    const srcGrp = document.getElementById("SelectGrupoServiciosAC");
+    const srcCausa = document.getElementById("SelectCausaMotivoAtencion");
+    const sources = [srcMod, srcGrp, srcCausa].filter(Boolean);
+    if (sources.length === 0) return;
+    if (typeof window !== "undefined") window.__wireSyncRipsAcModalidadGrupoBound = true;
+
+    const refresh = () => {
+        pushRipsAcModalidadGrupoToRdaPaciente();
+        pushRipsAcModalidadGrupoCausaToRdace();
+    };
+    observeAndPoll(sources, refresh);
+    refresh();
+}
+
+// ── Sync 3: Tipo diagnóstico principal (RIPS AC ↔ RDA Paciente / RDACE) ──
+// Misma clave que Catalogo1888/TipoDiagnosticoPrincipal: código 01, 02, 03.
+
+function wireTipoDiagnosticoPrincipalBidir() {
+    const rips = document.getElementById("SelectTipoDiagnosticoPrincipalAC");
+    if (!rips || typeof window.$ === "undefined" || !window.$) return;
+
+    const $ = window.$;
+    const rda = "#RDA_TipoDiagPrincipalEgresoCIE10";
+    const rdace = "#RDACE_TipoDiagPrincipalCIE10";
+
+    let syncing = false;
+
+    function displayForRipsCode(code) {
+        const hit = Array.from(rips.options).find((o) => o.value === code);
+        if (!hit) return code;
+        const t = String(hit.textContent || "").trim();
+        return t || code;
+    }
+
+    function ensureSelect2Option($el, code, displayText) {
+        if (!$el.length || !$el.data("select2")) return;
+        const c = code != null ? String(code).trim() : "";
+        if (!c) {
+            $el.val(null).trigger("change");
+            return;
+        }
+        const disp =
+            displayText && String(displayText).trim()
+                ? String(displayText).trim()
+                : displayForRipsCode(c);
+        const has =
+            $el.find("option").filter(function optValMatch() {
+                return this.value === c;
+            }).length > 0;
+        if (!has) {
+            $el.append(new Option(disp, c, true, true));
+        }
+        $el.val(c).trigger("change");
+    }
+
+    function pushRipsToSelect2Pair() {
+        const code = String(rips.value || "").trim();
+        const opt = rips.selectedOptions[0];
+        const label = opt ? String(opt.textContent || "").trim() : "";
+        syncing = true;
+        try {
+            if (
+                !code &&
+                !hasRealOptions(rips) &&
+                ($(rda).val() || $(rdace).val())
+            ) {
+                /* Catálogo RIPS aún no cargado: no borrar lo ya elegido en RDA/RDACE. */
+                return;
+            }
+            ensureSelect2Option($(rda), code, label);
+            ensureSelect2Option($(rdace), code, label);
+        } finally {
+            syncing = false;
+        }
+    }
+
+    /**
+     * @param {boolean} isRda - true si el cambio vino de RDA Paciente; false si de RDACE.
+     */
+    function pullFromSelect2(isRda) {
+        if (syncing) return;
+        const $src = $(isRda ? rda : rdace);
+        const $oth = $(isRda ? rdace : rda);
+        const codeRaw = $src.val();
+        const code = codeRaw != null ? String(codeRaw).trim() : "";
+        let label = "";
+        try {
+            const d = $src.select2("data");
+            if (d && d[0] && d[0].text) label = String(d[0].text);
+        } catch (_) {
+            /* ignore */
+        }
+        if (!label && code) label = displayForRipsCode(code);
+
+        syncing = true;
+        try {
+            if (!code) {
+                rips.selectedIndex = 0;
+                $oth.val(null).trigger("change");
+            } else {
+                const hit = Array.from(rips.options).find((o) => o.value === code);
+                if (hit) rips.value = code;
+                ensureSelect2Option($oth, code, label);
+            }
+        } finally {
+            syncing = false;
+        }
+    }
+
+    function onRipsDomMaybeUpdated() {
+        if (syncing) return;
+        const $rda = $(rda);
+        const $rdace = $(rdace);
+        const fromFhir =
+            ($rda.val() && String($rda.val()).trim()) ||
+            ($rdace.val() && String($rdace.val()).trim()) ||
+            "";
+        const v = String(fromFhir || "").trim();
+        if (v && !String(rips.value || "").trim()) {
+            const hit = Array.from(rips.options).find((o) => o.value === v);
+            if (hit) {
+                syncing = true;
+                try {
+                    rips.value = v;
+                } finally {
+                    syncing = false;
+                }
+            }
+        }
+        pushRipsToSelect2Pair();
+    }
+
+    rips.addEventListener("change", () => {
+        if (syncing) return;
+        pushRipsToSelect2Pair();
+    });
+
+    $(rda).on("change", () => {
+        if (syncing) return;
+        pullFromSelect2(true);
+    });
+    $(rdace).on("change", () => {
+        if (syncing) return;
+        pullFromSelect2(false);
+    });
+
+    observeAndPoll([rips], onRipsDomMaybeUpdated);
+}
+
 // ── Exportación ───────────────────────────────────────────────────────────
 
 export function wireSyncRips() {
+    wireRipsAcModalidadGrupoCausaListeners();
     cargarYSincronizarModalidadYGrupoRdaPaciente();
     cargarYSincronizarRipsContextRdace();
+    wireTipoDiagnosticoPrincipalBidir();
 }

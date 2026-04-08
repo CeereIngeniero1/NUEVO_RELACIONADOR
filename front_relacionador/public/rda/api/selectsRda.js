@@ -55,15 +55,17 @@ async function inicializarListaAdministradores() {
             optionsHTML += `<option value="${adm.Codigo}" data-nombre="${adm.Nombre}">${adm.Codigo} - ${adm.Nombre}</option>`;
         });
 
+        const syncNombreAdmin = (sel, inp) => {
+            if (!sel || !inp) return;
+            const opt = sel.options[sel.selectedIndex];
+            inp.value = opt?.dataset?.nombre || "";
+        };
+
         const setupSelect = (sel, inp) => {
             if (!sel) return;
             sel.innerHTML = optionsHTML;
-            sel.addEventListener("change", function () {
-                const selectedOption = sel.options[sel.selectedIndex];
-                if (inp) {
-                    inp.value = selectedOption.dataset.nombre || "";
-                }
-            });
+            sel.onchange = () => syncNombreAdmin(sel, inp);
+            syncNombreAdmin(sel, inp);
         };
 
         setupSelect(selectAdmin, inputNombreAdmin);

@@ -65,6 +65,31 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
     };
 
     try {
+        // #region agent log
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const _san = require('../../utils/sanitizePlainText');
+            const logPath = path.resolve(__dirname, '..', '..', '..', '..', 'debug-53a08a.log');
+            const payload = {
+                sessionId: '53a08a',
+                runId: 'post-inline-require',
+                hypothesisId: 'H1',
+                location: 'RdaPacienteRoutes.js:EvaluacionEntidadRDA:try',
+                message: 'sanitize module at handler entry',
+                data: {
+                    logPath,
+                    keys: _san && typeof _san === 'object' ? Object.keys(_san) : [],
+                    tCom: typeof _san.sanitizeComunidadEtnica,
+                    tPlain: typeof _san.sanitizePlainText,
+                },
+                timestamp: Date.now(),
+            };
+            fs.appendFileSync(logPath, JSON.stringify(payload) + '\n');
+        } catch (_e) {
+            console.error('[debug-53a08a] agent log failed:', _e && _e.message, _e && _e.code);
+        }
+        // #endregion
         const pool = await poolPromise;
         const result = await pool.request()
             .input('DocumentoEntidad',              sql.NVarChar,  DocumentoEntidad                 || null)
@@ -87,10 +112,10 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('IdZonaResidencia',              sql.Int,       IdZonaResidencia                 ? parseInt(IdZonaResidencia)        : null)
             .input('Direccion',                     sql.NVarChar,  Direccion                        || null)
             .input('IdEtnia',                       sql.Int,       IdEtnia                          ? parseInt(IdEtnia)                 : 0)
-            .input('ComunidadEtnica',               sql.NVarChar,  sanitizeComunidadEtnica(ComunidadEtnica))
+            .input('ComunidadEtnica',               sql.NVarChar,  require('../../utils/sanitizePlainText').sanitizeComunidadEtnica(ComunidadEtnica))
             .input('IdDiscapacidad',                sql.Int,       IdDiscapacidad                   ? parseInt(IdDiscapacidad)          : 0)
             .input('TelefonoCelular',               sql.NVarChar,  TelefonoCelular                  || null)
-            .input('Alergeno',                      sql.NVarChar,  sanitizeAlergeno(Alergeno)       || null)
+            .input('Alergeno',                      sql.NVarChar,  require('../../utils/sanitizePlainText').sanitizePlainText(Alergeno) || null)
             // Campos RDA Paciente (Resolución 1888)
             .input('CodigoPrestador',               sql.NVarChar,  codPrestTrim)
             .input('CodigoAdminPlanBeneficios',     sql.NVarChar,  CodigoAdminPlanBeneficios        || null)
@@ -349,7 +374,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const c = (codigo ?? '').toString().trim();
         const map = {
             '01': 'Impresión diagnóstica',
-            '02': 'Confirmado Nuevo',
+            '02': 'Confirmado nuevo',
             '03': 'Confirmado repetido',
         };
         return map[c] || c || '';
@@ -1651,11 +1676,14 @@ router.post(
         const isModularEndpoint =
             /\/RdaPaciente\/(Json)?EnviarIHCE(Modular)$/i.test(req.path) ||
             /\/RdaPaciente\/IHCE\/(Preview|Enviar)PacienteAntecedentes(Modular)$/i.test(req.path);
-        const wantsObservations = isModularEndpoint && incluirObservations === true;
-        const wantsConditionIngreso = isModularEndpoint && incluirConditionIngreso === true;
-        const wantsConditions = isModularEndpoint && incluirConditions === true;
-        const wantsFamilyHistory = isModularEndpoint && incluirFamilyHistory === true;
-        const wantsAllergy = isModularEndpoint && incluirAllergy === true;
+
+        // Por defecto (endpoints no-modulares), mantener el documento clínico completo.
+        // Los flags `incluir*` quedan reservados para el endpoint Modular (depuración incremental).
+        const wantsObservations = isModularEndpoint ? incluirObservations === true : false;
+        const wantsConditionIngreso = isModularEndpoint ? incluirConditionIngreso === true : true;
+        const wantsConditions = isModularEndpoint ? incluirConditions === true : true;
+        const wantsFamilyHistory = isModularEndpoint ? incluirFamilyHistory === true : true;
+        const wantsAllergy = isModularEndpoint ? incluirAllergy === true : true;
 
         // Base estable: no enviar Observations salvo que el endpoint de prueba lo solicite.
         if (bundle && Array.isArray(bundle.entry) && !wantsObservations) {

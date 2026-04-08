@@ -13,6 +13,65 @@ function setLoadingState(button, loading) {
   }
 }
 
+/** Catálogo Tipo DX principal (RIPS): filtra vacíos, ordena, etiqueta "cod - desc". */
+function normalizarFilasTipoDiagnosticoPrincipal(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => {
+    const c =
+      r.CódigoTipodeDiagnósticoPrincipal != null
+        ? String(r.CódigoTipodeDiagnósticoPrincipal).trim()
+        : "";
+    const d =
+      r.DescripcionTipodeDiagnósticoPrincipal != null
+        ? String(r.DescripcionTipodeDiagnósticoPrincipal).trim()
+        : "";
+    return c.length > 0 && d.length > 0;
+  });
+}
+
+function cmpTipoDxCodigo(a, b) {
+  const oa = a.ordenTipodeDiagnósticoPrincipal;
+  const ob = b.ordenTipodeDiagnósticoPrincipal;
+  if (oa != null && ob != null && Number(oa) !== Number(ob))
+    return Number(oa) - Number(ob);
+  const ca = String(a.CódigoTipodeDiagnósticoPrincipal ?? "").trim();
+  const cb = String(b.CódigoTipodeDiagnósticoPrincipal ?? "").trim();
+  return ca.localeCompare(cb, "es", { numeric: true });
+}
+
+function llenarSelectTipoDiagnosticoPrincipal(selectEl, rows) {
+  if (!selectEl) return;
+  const list = normalizarFilasTipoDiagnosticoPrincipal(rows).sort(cmpTipoDxCodigo);
+  selectEl.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.textContent = "Seleccione un diagnóstico principal";
+  defaultOption.value = "";
+  selectEl.appendChild(defaultOption);
+  for (let i = 0; i < list.length; i += 1) {
+    const r = list[i];
+    const cod = String(r.CódigoTipodeDiagnósticoPrincipal).trim();
+    const desc = String(r.DescripcionTipodeDiagnósticoPrincipal).trim();
+    const option = document.createElement("option");
+    option.value = cod;
+    option.textContent = `${cod} - ${desc}`;
+    selectEl.appendChild(option);
+  }
+}
+
+/** Coincide opción del select con texto guardado (solo descripción o "cod - desc"). */
+function opcionTipoDiagnosticoPrincipalCoincideConGuardado(option, textoGuardado) {
+  const saved = (textoGuardado != null ? String(textoGuardado) : "").trim();
+  if (!saved) return false;
+  const t = (option.textContent || "").trim();
+  const v = (option.value || "").trim();
+  if (t === saved || v === saved) return true;
+  const dash = t.indexOf(" - ");
+  if (dash !== -1) {
+    const partDesc = t.slice(dash + 3).trim();
+    if (partDesc === saved) return true;
+  }
+  return false;
+}
 
 function VerificarLogin() {
   const TokenLogin = localStorage.getItem("token");
@@ -952,38 +1011,10 @@ radioAC.addEventListener("change", async function (e) {
       }
       const CargarTipoDiagnosticoPrincipal =
         await TipoDiagnosticoPrincipal.json();
-      // console.log('Tipos de diagnósticos principales: ', CargarTipoDiagnosticoPrincipal);
-      SelectTipoDiagnosticoPrincipalAC.innerHTML = "";
-      // Opción por defecto
-      const defaultOption6 = document.createElement("option");
-      defaultOption6.textContent = "Seleccione un diagnóstico principal";
-      defaultOption6.value = "";
-      SelectTipoDiagnosticoPrincipalAC.appendChild(defaultOption6);
-      // Ordenar el array por el nombre del grupo
-      CargarTipoDiagnosticoPrincipal.sort((a, b) => {
-        if (
-          a.DescripcionTipodeDiagnósticoPrincipal <
-          b.DescripcionTipodeDiagnósticoPrincipal
-        )
-          return -1;
-        if (
-          a.DescripcionTipodeDiagnósticoPrincipal >
-          b.DescripcionTipodeDiagnósticoPrincipal
-        )
-          return 1;
-        return 0;
-      });
-      // Agregar las opciones al select de TipoDiagnosticoPrincipal
-      for (let i = 0; i < CargarTipoDiagnosticoPrincipal.length; i += 1) {
-        const option = document.createElement("option");
-        option.value =
-          CargarTipoDiagnosticoPrincipal[i].CódigoTipodeDiagnósticoPrincipal;
-        option.textContent =
-          CargarTipoDiagnosticoPrincipal[
-            i
-          ].DescripcionTipodeDiagnósticoPrincipal;
-        SelectTipoDiagnosticoPrincipalAC.appendChild(option);
-      }
+      llenarSelectTipoDiagnosticoPrincipal(
+        SelectTipoDiagnosticoPrincipalAC,
+        CargarTipoDiagnosticoPrincipal
+      );
 
       // Funcionalidad para el llenado del select de Consulta RIPS
       const TipoConsulta1 = "AC";
@@ -3427,36 +3458,10 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
     );
   }
   const CargarTipoDiagnosticoPrincipal = await TipoDiagnosticoPrincipal.json();
-  // console.log('Tipos de diagnósticos principales: ', CargarTipoDiagnosticoPrincipal);
-  SelectPorDefectoTipoDiagnosticoPrincipalAC.innerHTML = "";
-  // Opción por defecto
-  const defaultOption6 = document.createElement("option");
-  defaultOption6.textContent = "Seleccione un diagnóstico principal";
-  defaultOption6.value = "";
-  SelectPorDefectoTipoDiagnosticoPrincipalAC.appendChild(defaultOption6);
-  // Ordenar el array por el nombre del grupo
-  CargarTipoDiagnosticoPrincipal.sort((a, b) => {
-    if (
-      a.DescripcionTipodeDiagnósticoPrincipal <
-      b.DescripcionTipodeDiagnósticoPrincipal
-    )
-      return -1;
-    if (
-      a.DescripcionTipodeDiagnósticoPrincipal >
-      b.DescripcionTipodeDiagnósticoPrincipal
-    )
-      return 1;
-    return 0;
-  });
-  // Agregar las opciones al select de TipoDiagnosticoPrincipal
-  for (let i = 0; i < CargarTipoDiagnosticoPrincipal.length; i += 1) {
-    const option = document.createElement("option");
-    option.value =
-      CargarTipoDiagnosticoPrincipal[i].CódigoTipodeDiagnósticoPrincipal;
-    option.textContent =
-      CargarTipoDiagnosticoPrincipal[i].DescripcionTipodeDiagnósticoPrincipal;
-    SelectPorDefectoTipoDiagnosticoPrincipalAC.appendChild(option);
-  }
+  llenarSelectTipoDiagnosticoPrincipal(
+    SelectPorDefectoTipoDiagnosticoPrincipalAC,
+    CargarTipoDiagnosticoPrincipal
+  );
 
   // Funcionalidad para el llenado del select de Consulta RIPS
   const TipoConsulta1 = "AC";
@@ -5053,7 +5058,10 @@ async function CargarRIPSPorDefecto() {
             const SeleccionarTipoDiagnosticoPrincipalPorDefecto = Array.from(
               SelectTipoDiagnosticoPrincipalAC.options
             ).find((option) => {
-              return option.text === respuesta[0].TipoDiagnosticoPrincipal;
+              return opcionTipoDiagnosticoPrincipalCoincideConGuardado(
+                option,
+                respuesta[0].TipoDiagnosticoPrincipal
+              );
             });
             if (SeleccionarTipoDiagnosticoPrincipalPorDefecto) {
               SelectTipoDiagnosticoPrincipalAC.selectedIndex =

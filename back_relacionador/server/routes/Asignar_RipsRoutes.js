@@ -848,11 +848,12 @@ router.get('/DXPrincipal', async (req, res) => {
 
         const request = new Request(
             `
-              SELECT        IdTipodeDiagnósticoPrincipal, CódigoTipodeDiagnósticoPrincipal, 
-              TipodeDiagnósticoPrincipal, DescripcionTipodeDiagnósticoPrincipal,
-               ordenTipodeDiagnósticoPrincipal, [Id Estado]
-                FROM            [Cnsta Relacionador Tipo Diagnostico Principal]
-
+              SELECT        v.IdTipodeDiagnósticoPrincipal, v.CódigoTipodeDiagnósticoPrincipal, 
+              v.TipodeDiagnósticoPrincipal, v.DescripcionTipodeDiagnósticoPrincipal,
+               v.ordenTipodeDiagnósticoPrincipal, v.[Id Estado]
+                FROM            [Cnsta Relacionador Tipo Diagnostico Principal] AS v
+                WHERE NULLIF(LTRIM(RTRIM(CAST(v.CódigoTipodeDiagnósticoPrincipal AS NVARCHAR(50)))), N'') IS NOT NULL
+                  AND NULLIF(LTRIM(RTRIM(CAST(v.DescripcionTipodeDiagnósticoPrincipal AS NVARCHAR(500)))), N'') IS NOT NULL
                 `,
             (err) => {
                 if (err) {
