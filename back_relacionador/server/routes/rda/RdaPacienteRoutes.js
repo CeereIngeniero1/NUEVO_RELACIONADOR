@@ -1149,16 +1149,28 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     },
                 });
             }
-            if (str(h.CodigoEtnia)) {
-                patExt.push({
-                    url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
-                    valueCoding: {
-                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
-                        code: str(h.CodigoEtnia),
-                        display: str(h.TextoEtnia) || undefined,
-                    },
-                });
+            const idEt = h.IdEtnia;
+            let codEtnia = str(h.CodigoEtnia);
+            let dspEtnia = str(h.TextoEtnia);
+
+            // Rescate catálogo viejo: si guardó 12 o 19 (Afro) pero la vista 1888 devolvió nulo
+            if ((idEt === 12 || idEt === 19) && !codEtnia) {
+                codEtnia = '05';
+                dspEtnia = 'Negro(a), mulato(a), afrocolombiano(a)';
+            } else if (!codEtnia) {
+                // Si viene cualquier código nulo o no mapeado
+                codEtnia = '06';
+                dspEtnia = 'Ninguna de las anteriores';
             }
+
+            patExt.push({
+                url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
+                valueCoding: {
+                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
+                    code: codEtnia,
+                    display: dspEtnia || undefined,
+                },
+            });
             if (str(h.ComunidadEtnica)) {
                 patExt.push({
                     url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicCommunity',

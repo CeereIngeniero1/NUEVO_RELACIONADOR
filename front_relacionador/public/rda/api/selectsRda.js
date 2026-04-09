@@ -23,7 +23,7 @@ async function inicializarListaPrestadores() {
         empresas.forEach(emp => {
             const nombreMostrar = emp.NombreComercialEmpresa || emp.RazonSocialEmpresa || "";
             optionsHTML.push(
-                `<option value="${emp.NroIDPrestador}">${emp.NroIDPrestador} - ${nombreMostrar}</option>`
+                `<option value="${emp.NroIDPrestador}" data-nit="${emp.NroIDPrestador}" data-nombre="${nombreMostrar}">${emp.NroIDPrestador} - ${nombreMostrar}</option>`
             );
         });
 
