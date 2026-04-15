@@ -462,6 +462,8 @@ SelectPacientes.addEventListener("change", async function (e) {
 
         const IdOcupación = CargarDatosPaciente[0].IdOcupación;
         const textoDescripciónOcupación = CargarDatosPaciente[0].DescripciónOcupación;
+        console.log(IdOcupación);
+        console.log(textoDescripciónOcupación);
         const selectocupacionBase = $("#OcupacionBase");
         const optionOcupacionBase = new Option(textoDescripciónOcupación, IdOcupación, true, true);
         selectocupacionBase.append(optionOcupacionBase).trigger('change');

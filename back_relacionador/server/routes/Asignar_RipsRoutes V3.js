@@ -2423,6 +2423,8 @@ router.post('/ActualizarPaciente', async (req, res) => {
         IdOcupacion
     } = req.body;
 
+    console.log(req.body);
+    console.log(IdOcupacion);
     const fechaNacimientoValida = FechaNacimiento ? new Date(FechaNacimiento) : null;
 
     if (FechaNacimiento && isNaN(fechaNacimientoValida.getTime())) {

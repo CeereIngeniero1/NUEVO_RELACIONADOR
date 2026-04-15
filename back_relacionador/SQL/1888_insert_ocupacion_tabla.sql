@@ -1,3 +1,7 @@
+update [Ocupación] set [Id Estado] = 8  ;
+
+
+
 INSERT INTO [Ocupación] ([Código Ocupación],[Ocupación],[Descripción Ocupación],[Orden Ocupación],[Id Estado]) VALUES ('110','Oficiales de las fuerzas militares','Oficiales de las fuerzas militares',1,7);
 INSERT INTO [Ocupación] ([Código Ocupación],[Ocupación],[Descripción Ocupación],[Orden Ocupación],[Id Estado]) VALUES ('1110','Miembros del poder ejecutivo y de los cuerpos legislativos','Miembros del poder ejecutivo y de los cuerpos legislativos',2,7);
 INSERT INTO [Ocupación] ([Código Ocupación],[Ocupación],[Descripción Ocupación],[Orden Ocupación],[Id Estado]) VALUES ('1121','Directores generales, de empresas o entidades de la administración pública','Directores generales, de empresas o entidades de la administración pública',3,7);
