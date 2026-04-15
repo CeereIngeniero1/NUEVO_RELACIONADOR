@@ -11,7 +11,7 @@
    - Opcional: `CRINFO_INI_PATH` apunta a otro archivo INI.
 4. Los valores obtenidos del INI (y credenciales por defecto si aplican) se **escriben en** `.env` para que el fallback solo ocurra la primera vez en un servidor nuevo.
 5. Puerto del API: `BACK_PORT` (o `PORT` como compatibilidad), por defecto `3000`.
-6. Rutas de archivos RIPS (ZIP, JSON, XML, envío): la raíz es **`CEERE_RIPS_DATA_ROOT`** (alias **`RIPS_2275_ROOT`**). Si no se define, se usa `C:\CeereSio\RIPS_2275`. Afecta a descarga de RIPS/XML y al worker de preparación de envío. Implementación en [`back_relacionador/server/config/paths.js`](back_relacionador/server/config/paths.js).
+6. Rutas de archivos RIPS (ZIP, JSON, XML, envío): **`CEERE_RIPS_DATA_ROOT`** (alias **`RIPS_2275_ROOT`**) es **obligatoria** en `.env`; no hay ruta fija en el código. Así cada servidor puede apuntar a la carpeta que exista en disco. Implementación en [`back_relacionador/server/config/paths.js`](back_relacionador/server/config/paths.js).
 
 ## Frontend (`front_relacionador`)
 

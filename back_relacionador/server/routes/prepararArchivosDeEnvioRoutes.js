@@ -3,7 +3,7 @@ const fs = require('fs');
 const chokidar = require('chokidar');
 const { getRipsDataRoot } = require('../config/paths');
 
-// Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT o C:\CeereSio\RIPS_2275)
+// Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT en .env — ver server/config/paths.js)
 const RIPS_ROOT = getRipsDataRoot();
 const carpeta1 = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
 const carpeta2 = path.join(RIPS_ROOT, 'XMLS');

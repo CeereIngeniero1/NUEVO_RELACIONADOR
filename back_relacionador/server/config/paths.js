@@ -1,15 +1,18 @@
 const path = require('path');
 
 /**
- * Raíz de datos RIPS (equivale a la antigua `C:\CeereSio\RIPS_2275`).
- * Configurable con CEERE_RIPS_DATA_ROOT o RIPS_2275_ROOT en .env
+ * Raíz de datos RIPS (subcarpetas ARCHIVOS_RIPS, ARCHIVOS_RIPS_JSON, XMLS, ARCHIVOS_DE_ENVIO).
+ * Obligatorio en .env: CEERE_RIPS_DATA_ROOT o RIPS_2275_ROOT (sin valor por defecto en código).
  */
 function getRipsDataRoot() {
     const raw = process.env.CEERE_RIPS_DATA_ROOT || process.env.RIPS_2275_ROOT;
-    if (raw && String(raw).trim()) {
-        return path.normalize(String(raw).trim());
+    const trimmed = raw != null ? String(raw).trim() : '';
+    if (!trimmed) {
+        throw new Error(
+            '[paths] Defina CEERE_RIPS_DATA_ROOT (o RIPS_2275_ROOT) en back_relacionador/.env con la ruta base de las carpetas RIPS. Ejemplo: CEERE_RIPS_DATA_ROOT=C:\\CeereSio\\RIPS_2275'
+        );
     }
-    return path.join('C:', 'CeereSio', 'RIPS_2275');
+    return path.normalize(trimmed);
 }
 
 module.exports = { getRipsDataRoot };
