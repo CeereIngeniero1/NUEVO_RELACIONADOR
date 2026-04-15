@@ -52,6 +52,57 @@ El módulo consume estos endpoints:
      - `idRipsRelacion` (number)
      - `documentoPaciente` (string)
 
+### Respuestas (contrato esperado)
+
+- `GET .../pacientes/...`:
+
+```json
+{ "items": [{ "documentoPaciente": "10203040", "nombrePaciente": "NOMBRE APELLIDO" }] }
+```
+
+- `GET .../:documentoPaciente/...`:
+
+```json
+{
+  "items": [
+    {
+      "idRipsRelacion": 456,
+      "idEvaluacion": 123,
+      "prefijoEvalDisplay": "HC",
+      "fechaEvaluacion": "2026-04-15T00:00:00.000Z",
+      "cupsCie": "890201 / A09",
+      "facturaTipo": "sin | fev | eps",
+      "facturaEtiqueta": "Sin factura | <No Factura> | Plan #<id>",
+      "valorReportado": 0
+    }
+  ]
+}
+```
+
+- `DELETE` / `PATCH` (éxito):
+
+```json
+{ "message": "..." }
+```
+
+- Errores:
+
+```json
+{ "error": "..." }
+```
+
+## Implementación en backend (referencia)
+
+- Rutas: `back_relacionador/server/routes/desrelacionadorRoutes.js`
+- Montaje: `back_relacionador/server/server.js` (montado bajo `app.use('/apiV3', ...)`)
+
+## Verificación rápida (local)
+
+- Salud del backend:
+  - `GET http://localhost:3000/health`
+- Smoke tests HTTP:
+  - `cd back_relacionador && node --test test/http.smoke.test.js`
+
 ## Nota importante — facturas “automáticas”
 
 Si en la tabla se ve una **Factura relacionada** aunque el usuario no la haya vinculado manualmente, NO es la UI:

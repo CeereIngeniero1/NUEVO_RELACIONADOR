@@ -202,6 +202,9 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
 | DELETE | `/relacionesRipsDesrelacionador` | Elimina el vínculo HC↔RIPS (borra el registro RIPS) para que la historia vuelva a pendientes. |
 | PATCH | `/relacionesRipsDesrelacionador/factura` | Quita factura/plan del registro RIPS sin eliminar el vínculo HC↔RIPS. |
 
+**Implementación backend (referencia):**
+- `back_relacionador/server/routes/desrelacionadorRoutes.js` (montado en `back_relacionador/server/server.js` bajo `/apiV3`)
+
 **Body DELETE:**
 ```json
 {
@@ -216,6 +219,21 @@ Puerto: `3000`. Todos los endpoints devuelven JSON.
   "idRipsRelacion": 456,
   "documentoPaciente": "10203040"
 }
+```
+
+**Response (GET):**
+```json
+{ "items": [] }
+```
+
+**Response (DELETE/PATCH éxito):**
+```json
+{ "message": "..." }
+```
+
+**Response (error):**
+```json
+{ "error": "..." }
 ```
 
 ### Nota — asociaciones automáticas de factura/plan (SQL Server)

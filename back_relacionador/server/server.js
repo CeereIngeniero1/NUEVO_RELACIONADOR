@@ -23,6 +23,7 @@ const AsignarRips = require('./routes/Asignar_RipsRoutes');
 const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
 const AsignarRipsv3 = require('./routes/Asignar_RipsRoutes V3');
 const AsignarRipsv3Experimental = require('./routes/Asignar_RipsRoutes V3 experimental');
+const DesrelacionadorRoutes = require('./routes/desrelacionadorRoutes');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 
@@ -31,7 +32,7 @@ const Facturador = require('./routes/FacturadorRoutes');
 // const AsignarNombreDeServidor = new Worker(path.join(__dirname, './routes/asignarNombreServidorRoutes.js')); //Esto ya se haría desde el front_end
 /* =========================================================================================================== */
 // Se crea un nuevo worker que ejecutará el archivo prepararArchivosDeEnvioRoutes.js
-const PrepararArchivosDeEnvio = new Worker(path.join(__dirname, './routes/prepararArchivosDeEnvioRoutes.js'));
+let PrepararArchivosDeEnvio = null;
 /* =========================================================================================================== */
 
 const app = express();
@@ -50,6 +51,11 @@ app.use(cors());
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ limit: '1000mb', extended: true }));
 app.set('view engine', 'ejs');
+
+/** Salud del servicio (monitoreo y smoke tests HTTP sin tocar BD). */
+app.get('/health', (req, res) => {
+    res.status(200).json({ ok: true, service: 'back_relacionador' });
+});
 
 let connections = [];
 
@@ -134,6 +140,7 @@ app.use('/api', AsignarRips);
 
 app.use('/apiV2', AsignarRipsv2);
 app.use('/apiV3', AsignarRipsv3);
+app.use('/apiV3', DesrelacionadorRoutes);
 app.use('/apiV3Experimental', AsignarRipsv3Experimental);
 
 app.use('/api', MaestroListasRIPS);
@@ -156,6 +163,13 @@ const port = parseInt(process.env.BACK_PORT || process.env.PORT || '3000', 10);
 // });
 /* FIN FIN FIN */
 
-app.listen(port, () => {
-    console.log(`Servidor escuchando en http://localhost:${port}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+    // Worker solo cuando el servidor corre en modo standalone (evita colgar suites de prueba).
+    PrepararArchivosDeEnvio = new Worker(path.join(__dirname, './routes/prepararArchivosDeEnvioRoutes.js'));
+
+    app.listen(port, () => {
+        console.log(`Servidor escuchando en http://localhost:${port}`);
+    });
+}

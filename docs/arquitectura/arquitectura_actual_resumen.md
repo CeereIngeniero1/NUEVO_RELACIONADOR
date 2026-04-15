@@ -102,7 +102,7 @@ El **Desrelacionador RIPS** permite revertir/desvincular un vínculo entre una *
   - Página: `front_relacionador/public/Desrelacionar.html`
   - Módulo JS: `front_relacionador/public/desrelacionador/index.js`
   - Cliente de API: `front_relacionador/public/desrelacionador/api/relacionesRipsApi.js`
-- Endpoints backend (prefijo `/apiV3`, implementados en `back_relacionador/server/routes/Asignar_RipsRoutes V3.js`):
+- Endpoints backend (prefijo `/apiV3`, implementados en `back_relacionador/server/routes/desrelacionadorRoutes.js` y montados en `back_relacionador/server/server.js`):
   - `GET /apiV3/relacionesRipsDesrelacionador/:documentoPaciente/:documentoUsuario/:fechaInicio/:fechaFin`
   - `GET /apiV3/relacionesRipsDesrelacionador/pacientes/:documentoUsuario/:fechaInicio/:fechaFin`
   - `DELETE /apiV3/relacionesRipsDesrelacionador` (elimina vínculo HC↔RIPS) con body:
