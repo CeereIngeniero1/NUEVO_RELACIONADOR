@@ -1,11 +1,13 @@
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
+const { getRipsDataRoot } = require('../config/paths');
 
-// Rutas de las carpetas
-const carpeta1 = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS_JSON');
-const carpeta2 = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS');
-const carpeta3 = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_DE_ENVIO');
+// Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT o C:\CeereSio\RIPS_2275)
+const RIPS_ROOT = getRipsDataRoot();
+const carpeta1 = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
+const carpeta2 = path.join(RIPS_ROOT, 'XMLS');
+const carpeta3 = path.join(RIPS_ROOT, 'ARCHIVOS_DE_ENVIO');
 
 // Verificar que las carpetas existen
 function verificarCarpetas(...carpetas) {

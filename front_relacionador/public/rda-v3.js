@@ -12,6 +12,12 @@
 (function () {
     "use strict";
 
+    function apiRoot() {
+        if (typeof window.getApiBaseUrl === "function") return window.getApiBaseUrl();
+        var h = localStorage.getItem("NombreEquipoServidor") || window.location.hostname || "localhost";
+        return "http://" + h + ":3000";
+    }
+
     function clearFieldById(id) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -564,7 +570,6 @@
         const selectPrestadorCE = document.getElementById("RDACE_CodigoPrestador");
         if (!selectPrestador && !selectPrestadorCE) return;
 
-        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
         function escapeHtmlAttr(s) {
             if (s == null || s === "") return "";
             return String(s)
@@ -574,7 +579,7 @@
         }
 
         try {
-            const respuesta = await fetch(`http://${servidor}:3000/apiV3/Empresas/`);
+            const respuesta = await fetch(`${apiRoot()}/apiV3/Empresas/`);
             if (!respuesta.ok) throw new Error("Error al obtener Empresas: " + respuesta.statusText);
             
             const empresas = await respuesta.json();
@@ -618,9 +623,8 @@
 
         if (!selectAdmin && !selectAdminCE) return;
 
-        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
         try {
-            const respuesta = await fetch(`http://${servidor}:3000/apiV3/SSGSSS/`);
+            const respuesta = await fetch(`${apiRoot()}/apiV3/SSGSSS/`);
             if (!respuesta.ok) throw new Error("Error al obtener Administradores: " + respuesta.statusText);
             
             const administradores = await respuesta.json();

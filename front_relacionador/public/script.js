@@ -19,7 +19,7 @@ const login = async () => {
         });
     } else {
         try {
-            const response = await fetch(`http://${servidor}:3000/api/login`, {
+            const response = await fetch(`${getApiBaseUrl()}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

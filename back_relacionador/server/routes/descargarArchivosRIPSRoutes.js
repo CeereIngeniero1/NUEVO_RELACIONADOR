@@ -9,7 +9,10 @@ const fsExtra = require('fs-extra');
 const { promisify } = require('util');
 const { Console } = require('console');
 const pipelineAsync = promisify(require('stream').pipeline);
+const { getRipsDataRoot } = require('../config/paths');
 
+const INTERNAL_API_BASE = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
+const RIPS_ROOT = getRipsDataRoot();
 
 const router = Router();
 
@@ -203,9 +206,9 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
                         if (Sinfactura === 1) {
                            console.log(`DOCUMENTO DEL PACIENTE ${DocumentoPaciente} SIN FACTURA ? ${Sinfactura}`);
 
-                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
+                            consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
                         } else {
-                            consultasResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
+                            consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
                         }
 
                         const consultasData = await consultasResponse.json();
@@ -224,10 +227,10 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
                         if (Sinfactura === 1) {
                             // console.log(`Se supone que esta es la fecha pa ${IdFacrua} ${DocumentoPaciente}  ${fechaInicio}  ${fechaFin} `);
 
-                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
+                            procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
 
                         } else {
-                            procedimientosResponse = await fetch(`http://localhost:3000/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
+                            procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
 
                         }
                         const procedimientosData = await procedimientosResponse.json();
@@ -448,8 +451,8 @@ WHERE
 
                 for (const usuario of consulta.usuarios) {
                     try {
-                        // const consultasResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
-                        const consultasResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                        // const consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
+                        const consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const consultasData = await consultasResponse.json();
 
                         if (consultasData.length > 0) {
@@ -463,7 +466,7 @@ WHERE
                     }
 
                     try {
-                        const procedimientosResponse = await fetch(`http://localhost:3000/RIPS/serviciosEPS/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
+                        const procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
                         const procedimientosData = await procedimientosResponse.json();
 
                         if (procedimientosData.length > 0) {
@@ -1335,7 +1338,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
     const fechaFormateada = `${fechaActual.getFullYear()}-${(fechaActual.getMonth() + 1).toString().padStart(2, '0')}-${fechaActual.getDate().toString().padStart(2, '0')}`;
     const nombreArchivo = `${prefijo} --- ${fechaInicio} --- ${fechaFin}.zip`;
 
-    const rutaArchivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS', nombreArchivo);
+    const rutaArchivo = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS', nombreArchivo);
     const nombreCarpetaDeAlmacenadoJSON = `${fechaInicio} --- ${fechaFin}`;
 
     try {
@@ -1346,11 +1349,11 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
 
         // Descomprimir los archivos ZIP
         const rutasZips = [rutaArchivo]; // Aquí se pueden agregar más rutas de archivos ZIP
-        const rutaBaseDestino = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS_JSON');
+        const rutaBaseDestino = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
         await descomprimirZip(rutasZips, rutaBaseDestino);
         const NombreArchivoIgualdadCarpetaParaXMLS = `${prefijo} --- ${fechaInicio} --- ${fechaFin}`;
 
-        const IgualdadCarpetaParaXMLS = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
+        const IgualdadCarpetaParaXMLS = path.join(RIPS_ROOT, 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
         fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
 
     } catch (error) {

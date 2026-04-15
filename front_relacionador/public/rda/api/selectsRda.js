@@ -6,7 +6,7 @@
  *   GET /apiV3/SSGSSS/     → poblar RDA_CodigoAdminPlanBeneficios / RDACE_CodigoAdminPlanBeneficios
  */
 
-import { getServidor } from "./servidor.js";
+import { getApiBaseUrl } from "./apiBaseUrl.js";
 
 async function inicializarListaPrestadores() {
     const selectPrestador = document.getElementById("RDA_CodigoPrestador");
@@ -14,7 +14,7 @@ async function inicializarListaPrestadores() {
     if (!selectPrestador && !selectPrestadorCE) return;
 
     try {
-        const respuesta = await fetch(`http://${getServidor()}:3000/apiV3/Empresas/`);
+        const respuesta = await fetch(`${getApiBaseUrl()}/apiV3/Empresas/`);
         if (!respuesta.ok) throw new Error("Error al obtener Empresas: " + respuesta.statusText);
 
         const empresas = await respuesta.json();
@@ -45,7 +45,7 @@ async function inicializarListaAdministradores() {
     if (!selectAdmin && !selectAdminCE) return;
 
     try {
-        const respuesta = await fetch(`http://${getServidor()}:3000/apiV3/SSGSSS/`);
+        const respuesta = await fetch(`${getApiBaseUrl()}/apiV3/SSGSSS/`);
         if (!respuesta.ok) throw new Error("Error al obtener Administradores: " + respuesta.statusText);
 
         const administradores = await respuesta.json();

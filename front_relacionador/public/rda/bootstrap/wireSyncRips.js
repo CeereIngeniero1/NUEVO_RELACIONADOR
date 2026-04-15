@@ -10,9 +10,7 @@
  * polling temporizado para cubrir cargas asíncronas.
  */
 
-import { getServidor } from "../api/servidor.js";
-
-const servidor = getServidor();
+import { getApiBaseUrl } from "../api/apiBaseUrl.js";
 
 // ── Helpers compartidos ───────────────────────────────────────────────────
 
@@ -151,7 +149,7 @@ async function cargarYSincronizarModalidadYGrupoRdaPaciente() {
     syncValue(sg, sourceGrupo);
 
     if (!copiedModalidad || !copiedGrupo) {
-        const base = `http://${servidor}:3000/apiV3`;
+        const base = `${getApiBaseUrl()}/apiV3`;
         try {
             const [modRaw, grpRaw] = await Promise.all([
                 fetchJsonWithRetry(`${base}/ModalidadAtencion`),
@@ -209,7 +207,7 @@ async function cargarYSincronizarRipsContextRdace() {
     const sc = document.getElementById("RDACE_IdCausaMotivoAtencion");
     if (!sm || !sg || !sv || !sc) return;
 
-    const base = `http://${servidor}:3000/apiV3`;
+    const base = `${getApiBaseUrl()}/apiV3`;
 
     const sourceModalidadIds = [
         "listaModalidadAtencion",

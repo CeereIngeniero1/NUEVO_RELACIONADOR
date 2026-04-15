@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -5,6 +6,35 @@ const session = require('express-session');
 const jwt = require('jsonwebtoken');
 const compression = require('compression');
 const { Worker } = require('worker_threads');  // Importa Worker para trabajar en un hilo diferente
+
+(function loadFrontDotEnv() {
+    const candidates = [
+        path.join(__dirname, '.env'),
+        path.join(process.cwd(), 'front_relacionador', '.env'),
+        path.join(process.cwd(), '.env'),
+    ];
+    for (const envPath of candidates) {
+        try {
+            if (!fs.existsSync(envPath)) continue;
+            const text = fs.readFileSync(envPath, 'utf8');
+            for (const line of text.split(/\r?\n/)) {
+                const s = line.replace(/^\uFEFF/, '').trim();
+                if (!s || s.startsWith('#')) continue;
+                const eq = s.indexOf('=');
+                if (eq <= 0) continue;
+                const key = s.slice(0, eq).trim();
+                let val = s.slice(eq + 1).trim();
+                if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                    val = val.slice(1, -1);
+                }
+                if (process.env[key] === undefined) process.env[key] = val;
+            }
+            break;
+        } catch (err) {
+            console.warn('[front .env] Lectura fallida:', envPath, err && err.message ? err.message : err);
+        }
+    }
+})();
 
 /* =========================================================================================================== */
 // Se crea un nuevo worker que ejecutará el archivo asignarNombreServidorRoutes.js
@@ -25,6 +55,30 @@ AsignarNombreDeServidor.on('exit', code => {
 
 
 const app = express();
+
+/**
+ * Configuración para el navegador: API_BASE_URL y BACK_PORT (fallback).
+ * Debe registrarse antes de express.static para no servir un archivo estático con el mismo nombre.
+ */
+app.get('/config.js', (req, res) => {
+    res.type('application/javascript');
+    res.set('Cache-Control', 'no-store');
+    const explicit = (process.env.API_BASE_URL || '').trim();
+    const backPort = process.env.BACK_PORT || process.env.PORT || '3000';
+    let apiBase;
+    if (explicit) {
+        apiBase = explicit.replace(/\/$/, '');
+    } else {
+        const proto = req.protocol || 'http';
+        const host = req.hostname || 'localhost';
+        apiBase = `${proto}://${host}:${backPort}`;
+    }
+    const body =
+        'window.__APP_CONFIG__=' +
+        JSON.stringify({ API_BASE_URL: apiBase, BACK_PORT: String(backPort) }) +
+        ';';
+    res.send(body);
+});
 
 // Middleware para compresión
 app.use(compression());
@@ -55,7 +109,7 @@ app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: 0,
     etag: true,
-    lastModified: true
+    lastModified: true,
 }));
 
 let connections = [];
@@ -116,7 +170,6 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Ruta protegida (ejemplo con index.html)
 app.get('/index', authenticateToken, (req, res) => {
@@ -137,7 +190,7 @@ app.get('/Asignar_RIPS.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'Asignar_RIPS V3.html'))
 });
 
-const PORT = process.env.PORT || 3100;
+const PORT = parseInt(process.env.FRONT_PORT || process.env.PORT || '3100', 10);
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en el puerto ${PORT}`);
+    console.log(`Front escuchando en el puerto ${PORT} (config: FRONT_PORT / API_BASE_URL / BACK_PORT en .env)`);
 });

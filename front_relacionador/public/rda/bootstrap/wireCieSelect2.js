@@ -7,9 +7,7 @@
  *   GET /apiV3/Cie/:term           (CIE-10)
  */
 
-import { getServidor } from "../api/servidor.js";
-
-const servidor = getServidor();
+import { getApiBaseUrl } from "../api/apiBaseUrl.js";
 
 function initCIE11Select2(selector, codeSelector, descSelector) {
     if ($(selector).data("select2")) return;
@@ -22,8 +20,8 @@ function initCIE11Select2(selector, codeSelector, descSelector) {
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
                 const url = term.length < 3
-                    ? `http://${servidor}:3000/apiV3/icd11/search/`
-                    : `http://${servidor}:3000/apiV3/icd11/search/${encodeURIComponent(term)}`;
+                    ? `${getApiBaseUrl()}/apiV3/icd11/search/`
+                    : `${getApiBaseUrl()}/apiV3/icd11/search/${encodeURIComponent(term)}`;
 
                 fetch(url)
                     .then(r => r.json())
@@ -71,7 +69,7 @@ function initCIE10Select2(selector, descSelector) {
                     success({ results: [] });
                     return;
                 }
-                const url = `http://${servidor}:3000/apiV3/Cie/${encodeURIComponent(term)}`;
+                const url = `${getApiBaseUrl()}/apiV3/Cie/${encodeURIComponent(term)}`;
                 fetch(url)
                     .then(r => r.json())
                     .then(data => success({ results: data }))

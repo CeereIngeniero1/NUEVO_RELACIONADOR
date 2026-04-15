@@ -5,9 +5,7 @@
  * Catalogo1888 (genérico), FactorDeRiesgo, TipoTecnologiaEnSalud.
  */
 
-import { getServidor } from "../api/servidor.js";
-
-const servidor = getServidor();
+import { getApiBaseUrl } from "../api/apiBaseUrl.js";
 
 // ── Medicamentos DCI ──────────────────────────────────────────────────────
 
@@ -23,8 +21,8 @@ function initMedicamentosDCISelect2(selector, fillCodigoId, fillNombreId) {
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
                 const url = term.length
-                    ? `http://${servidor}:3000/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`
-                    : `http://${servidor}:3000/apiV3/MedicamentosDCI/`;
+                    ? `${getApiBaseUrl()}/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`
+                    : `${getApiBaseUrl()}/apiV3/MedicamentosDCI/`;
                 fetch(url)
                     .then(r => r.json())
                     .then(data => success({ results: data }))
@@ -72,7 +70,7 @@ function initCups1888Select2(selector, fillNombreId) {
                     success({ results: [] });
                     return;
                 }
-                const url = `http://${servidor}:3000/apiV3/Cups1888/${encodeURIComponent(term)}`;
+                const url = `${getApiBaseUrl()}/apiV3/Cups1888/${encodeURIComponent(term)}`;
                 fetch(url)
                     .then(r => r.json())
                     .then(data => success({ results: data }))
@@ -119,8 +117,8 @@ function initProfesionalesSelect2(selector) {
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
                 const url = term
-                    ? `http://${servidor}:3000/apiV3/Profesionales/${encodeURIComponent(term)}`
-                    : `http://${servidor}:3000/apiV3/Profesionales/`;
+                    ? `${getApiBaseUrl()}/apiV3/Profesionales/${encodeURIComponent(term)}`
+                    : `${getApiBaseUrl()}/apiV3/Profesionales/`;
                 fetch(url)
                     .then(r => r.json())
                     .then(data => success({ results: data || [] }))
@@ -152,7 +150,7 @@ function initEgresoRemisionSelect2(selector, placeholderText) {
             delay: 250,
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
-                const base = `http://${servidor}:3000/apiV3/EgresoRemision`;
+                const base = `${getApiBaseUrl()}/apiV3/EgresoRemision`;
                 const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
                 fetch(url)
                     .then(r => {
@@ -190,7 +188,7 @@ function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
             delay: 250,
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
-                const base = `http://${servidor}:3000/apiV3/Catalogo1888/${claveCatalogo}`;
+                const base = `${getApiBaseUrl()}/apiV3/Catalogo1888/${claveCatalogo}`;
                 const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
                 fetch(url)
                     .then(r => {
@@ -230,7 +228,7 @@ function initFactorDeRiesgoSelect2() {
             delay: 250,
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
-                const base = `http://${servidor}:3000/apiV3/FactorDeRiesgo`;
+                const base = `${getApiBaseUrl()}/apiV3/FactorDeRiesgo`;
                 const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
                 fetch(url)
                     .then(r => {
@@ -277,7 +275,7 @@ function initTipoTecnologiaEnSaludSelect2(selector, placeholderText) {
             delay: 250,
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
-                const base = `http://${servidor}:3000/apiV3/TipoTecnologiaEnSalud`;
+                const base = `${getApiBaseUrl()}/apiV3/TipoTecnologiaEnSalud`;
                 const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
                 fetch(url)
                     .then(r => {

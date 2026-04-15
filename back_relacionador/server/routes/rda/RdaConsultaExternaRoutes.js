@@ -1667,7 +1667,7 @@ router.post(
 
     try {
         // 1) Obtener Bundle desde el endpoint interno
-        const localBase = `http://localhost:${process.env.PORT || 3000}`;
+        const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
         const bundleResp = await new Promise((resolve, reject) => {
             const http = require('http');
             const bundleBody = { IdEvaluacionEntidadRDACE: id };

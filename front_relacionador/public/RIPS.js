@@ -101,7 +101,7 @@ const updatePacientesSelect = (pacientes) => {
 
 const getPacientes = async (fechaInicio, fechaFin) => {
     try {
-        const response = await fetch(`http://${servidor}:3000/api/pacientes/${fechaInicio}/${fechaFin}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/pacientes/${fechaInicio}/${fechaFin}/${documentoEmpresaSeleccionada}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de pacientes: ${response.statusText}`);
         }
@@ -167,7 +167,7 @@ const updateEvaluacionesTablet = (evaluaciones) => {
 
 const getEvaluaciones = async (documento, fechaInicio, fechaFin) => {
     try {
-        const response = await fetch(`http://${servidor}:3000/api/evaluaciones/${documento}/${fechaInicio}/${fechaFin}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/evaluaciones/${documento}/${fechaInicio}/${fechaFin}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de evaluaciones: ${response.statusText}`);
         }
@@ -235,7 +235,7 @@ const updateFacturasTable = (facturas) => {
 
 const getFacturas = async (documento) => {
     try {
-        const response = await fetch(`http://${servidor}:3000/api/facturas/${documento}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/facturas/${documento}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de las facturas: ${response.statusText}`);
         }
@@ -296,7 +296,7 @@ const relacionarDatosFacturaCero = async () => {
     const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaFilas');
 
     try {
-        const response = await fetch(`http://${servidor}:3000/api/facturaCero/${documentoEmpresaSeleccionada}`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/api/facturaCero/${documentoEmpresaSeleccionada}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -374,7 +374,7 @@ const relacionarDatos = async () => {
 
     // Realizar la solicitud al servidor para relacionar evaluaciones y facturas
     try {
-        const response = await fetch(`http://${servidor}:3000/api/relacionar`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/api/relacionar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -413,7 +413,7 @@ const relacionarFacturaManual = async () => {
 
     // Realizar la solicitud al servidor para relacionar evaluaciones y facturas
     try {
-        const response = await fetch(`http://${servidor}:3000/api/relacionar`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/api/relacionar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -630,7 +630,7 @@ const updateBuscarFacturasSelect = (facturas) => {
 
 const getBuscarFacturas = async (documento) => {
     try {
-        const response = await fetch(`http://${servidor}:3000/api/buscarFacturas/${documento}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/buscarFacturas/${documento}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de las facturas: ${response.statusText}`);
         }
@@ -734,7 +734,7 @@ function buscarPacientePorDocumento() {
 // Función para verificar si el usuario está autenticado
 const checkAuthentication = async () => {
     try {
-        const response = await fetch(`http://${servidor}:3000/protected`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/protected`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -841,8 +841,8 @@ async function DescargarArchivosJSON() {
     try {
         MensajeDeCarga("Descargando JSON...");
         await Esperar(1000);
-        // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
-        const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/rips/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        // const response = await fetch(`${window.getApiBaseUrl()}/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/RIPS/usuarios/rips/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
 
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
@@ -851,7 +851,7 @@ async function DescargarArchivosJSON() {
 
         console.log('Enviando datos al servidor para generar archivo ZIP...');
 
-        const zipResponse = await fetch(`http://${servidor}:3000/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
+        const zipResponse = await fetch(`${window.getApiBaseUrl()}/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -928,8 +928,8 @@ async function DescargarArchivosJSONParticulares() {
     try {
         MensajeDeCarga("Descargando JSON...");
         await Esperar(1000);
-        // const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
-        const response = await fetch(`http://${servidor}:3000/RIPS/usuarios/ripsParticular/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        // const response = await fetch(`${window.getApiBaseUrl()}/RIPS/usuarios/ripsEPS/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/RIPS/usuarios/ripsParticular/${fechaInicioValue}/${fechaFinValue}/${SelectResolucionesRips}/${documentoEmpresaSeleccionada}`);
 
         if (!response.ok) {
             throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
@@ -938,7 +938,7 @@ async function DescargarArchivosJSONParticulares() {
 
         console.log('Enviando datos al servidor para generar archivo ZIP...');
 
-        const zipResponse = await fetch(`http://${servidor}:3000/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
+        const zipResponse = await fetch(`${window.getApiBaseUrl()}/RIPS/generar-zip/${fechaInicioValue}/${fechaFinValue}/${TextoPrefijo}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -990,7 +990,7 @@ document.getElementById('descargarRIPS').addEventListener('click', async () => {
 
 
     // try {
-    //     const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
+    //     const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
     //     if (!response.ok) {
     //         throw new Error('Network response was not ok');
     //     }
@@ -1044,8 +1044,8 @@ document.getElementById('descargarRIPS').addEventListener('click', async () => {
 
     // console.log(EmpresaSeleccionada);
     try {
-        // const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${EmpresaSeleccionada}`);
-        const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
+        // const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${EmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
         console.log(documentoEmpresaSeleccionada);
         if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -1086,7 +1086,7 @@ document.getElementById('descargarRIPS').addEventListener('click', async () => {
 document.getElementById('XMLS').addEventListener('click', async () => {
 
     //     try {
-    //         const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
+    //         const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
     //         if (!response.ok) {
     //             throw new Error('Network response was not ok');
     //         }
@@ -1142,7 +1142,7 @@ document.getElementById('XMLS').addEventListener('click', async () => {
 
     //     console.log(EmpresaSeleccionada);
     try {
-        const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-resoluciones-vigentes-segun-empresa-seleccionada/${documentoEmpresaSeleccionada}`);
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
@@ -1348,8 +1348,8 @@ async function DescargarXMLSPorLaAPIDeFacturaTech() {
 
 
         try {
-            // const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
-            const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-facturatech/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
+            // const response = await fetch(`${window.getApiBaseUrl()}/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
+            const response = await fetch(`${window.getApiBaseUrl()}/XMLS/descargarxmls-api-facturatech/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
                 method: 'POST',
                 // headers: {
                 //     'Content-Type': 'application/json'
@@ -1626,7 +1626,7 @@ async function DescargarXMLSPorLaAPIFernalco() {
         // Mostrar mensaje de carga
         await MensajeDeCarga('Descargando XMLs, por favor espera...');
 
-        const response = await fetch(`http://${servidor}:3000/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/XMLS/descargarxmls-api-fenalco/${Resolucion.value}/${FechaInicial.value}/${FechaFinal.value}/${documentoEmpresaSeleccionada}`, {
             method: 'POST'
         });
 
@@ -1667,7 +1667,7 @@ async function DescargarXMLSPorLaAPIFernalco() {
 async function BuscarFacturador() {
        
     try {
-        const response = await fetch(`http://${servidor}:3000/XMLS//Facturador/${documentoEmpresaSeleccionada}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/XMLS//Facturador/${documentoEmpresaSeleccionada}`);
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
@@ -1716,7 +1716,7 @@ document.getElementById('tablaFilasFacturas').addEventListener('click', (event) 
         const idFactura = fila.querySelector('td:nth-child(2)').textContent; // Ajusta según la posición de la columna del ID de factura
 
         // Hacer la solicitud al nuevo endpoint
-        fetch(`http://${servidor}:3000/api/usuarios/factura/${idFactura}`)
+        fetch(`${window.getApiBaseUrl()}/api/usuarios/factura/${idFactura}`)
             .then(response => response.json())
             .then(data => {
                 // Llenar el modal con los datos obtenidos
@@ -1785,7 +1785,7 @@ const updateEPSSelect = (EPSS) => {
 
 const getEPS = async (fechaInicio, fechaFin) => {
     try {
-        const response = await fetch(`http://${servidor}:3000/api/EPS/${fechaInicio}/${fechaFin}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/EPS/${fechaInicio}/${fechaFin}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de las EPS: ${response.statusText}`);
         }
@@ -1819,8 +1819,8 @@ const updatePacientesEPS = (pacientesPre) => {
 
 const getPacientesEPS = async (idFacturaEPS) => {
     try {
-        // const response = await fetch(`http://${servidor}:3000/api/pacientesEPS/${idFacturaEPS}`);
-        const response = await fetch(`http://${servidor}:3000/api/PacientesTratamientosFacturaEps/${idFacturaEPS}`);
+        // const response = await fetch(`${window.getApiBaseUrl()}/api/pacientesEPS/${idFacturaEPS}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/PacientesTratamientosFacturaEps/${idFacturaEPS}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de evaluaciones: ${response.statusText}`);
         }
@@ -1856,8 +1856,8 @@ const updateHistoriasEPS = (historiasPre) => {
 
 const getHistoriasEPS = async (documentoPacienteEPS, DocumentoEPS, IdTratamiento) => {
     try {
-        // const response = await fetch(`http://${servidor}:3000/api/hcPacientesEPS/${documentoPacienteEPS}`);
-        const response = await fetch(`http://${servidor}:3000/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}/${IdTratamiento}`);
+        // const response = await fetch(`${window.getApiBaseUrl()}/api/hcPacientesEPS/${documentoPacienteEPS}`);
+        const response = await fetch(`${window.getApiBaseUrl()}/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}/${IdTratamiento}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de las historias clinicas EPS: ${response.statusText}`);
         }
@@ -1890,7 +1890,7 @@ document.getElementById('listaPacientePrepagada').addEventListener('change', asy
 const relacionarRIPSEPS = async (idFactura, idEveRips, IdTratamiento) => {
 
     try {
-        const response = await fetch(`http://${servidor}:3000/api/relacionarEPS/${idFactura}/${idEveRips}/${IdTratamiento}`, {
+        const response = await fetch(`${window.getApiBaseUrl()}/api/relacionarEPS/${idFactura}/${idEveRips}/${IdTratamiento}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2148,7 +2148,7 @@ const ripsParticular = async () => {
 
 async function EmpresaATrabajar() {
     try {
-        const response = await fetch(`http://${servidor}:3000/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
+        const response = await fetch(`${window.getApiBaseUrl()}/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }

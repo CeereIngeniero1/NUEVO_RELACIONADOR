@@ -136,7 +136,7 @@ Si quieres ubicar el código que maneja un campo concreto:
 
 ### Endpoints
 
-La mayoría de llamadas son a `http://{servidor}:3000/apiV3/...` donde `servidor` viene de:
+La mayoría de llamadas van a `{API_BASE}/apiV3/...` donde la base del API viene de `getApiBaseUrl()` (ver `/config.js` + `apiBaseUrl.js`). Históricamente se usaba el hostname en `localStorage` y el puerto `3000`; ahora es configurable por `.env`.
 
 - `localStorage.getItem("NombreEquipoServidor")` (ver `api/servidor.js`)
 

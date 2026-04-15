@@ -7,9 +7,7 @@
  * Ocupación + botón Actualizar Paciente.
  */
 
-import { getServidor } from "../api/servidor.js";
-
-const servidor = getServidor();
+import { getApiBaseUrl } from "../api/apiBaseUrl.js";
 
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
@@ -24,7 +22,7 @@ function initDemografiaSelect2(selector, placeholder, endpoint, mapFn) {
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
                 const q = term.length ? term : endpoint.defaultQuery || "";
-                fetch(`http://${servidor}:3000/apiV3/${endpoint.path}/${encodeURIComponent(q)}`)
+                fetch(`${getApiBaseUrl()}/apiV3/${endpoint.path}/${encodeURIComponent(q)}`)
                     .then(r => r.json())
                     .then(data => success({ results: data }))
                     .catch(failure);
@@ -192,7 +190,7 @@ function initActualizarPaciente() {
         }
 
         try {
-            const respuesta = await fetch(`http://${servidor}:3000/apiV3/ActualizarPaciente`, {
+            const respuesta = await fetch(`${getApiBaseUrl()}/apiV3/ActualizarPaciente`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

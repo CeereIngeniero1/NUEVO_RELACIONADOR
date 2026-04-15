@@ -2180,7 +2180,9 @@
 <script src="node_modules/alertifyjs/build/alertify.min.js"></script>
 
 <!-- SE CARGA ARCHIVO PARA MANEJO DEL NOMBRE DEL SERVIDOR -->
-<script src="./NombreEquipoServidor.js"></script>
+<script src="/config.js"></script>
+<script src="/apiConfig.js"></script>
+<script src="/NombreEquipoServidor.js"></script>
 
 <!-- Cargar primero -->
 <script src="Asignar_RIPS V3.js"></script>
@@ -2344,7 +2346,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
         const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
-        const base     = `http://${servidor}:3000/apiV3`;
+        const base     = `${getApiBaseUrl()}/apiV3`;
 
         try {
             // 1) Insertar registro principal y obtener ID
@@ -2458,7 +2460,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
         const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
         try {
-            const resp = await fetch(`http://${servidor}:3000/apiV3/RdaConsultaExterna/EnviarIHCE`, {
+            const resp = await fetch(`${getApiBaseUrl()}/apiV3/RdaConsultaExterna/EnviarIHCE`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ IdEvaluacionEntidadRDACE: _lastIdRDACE })
@@ -2541,7 +2543,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
         const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
-        const base = `http://${servidor}:3000/apiV3`;
+        const base = `${getApiBaseUrl()}/apiV3`;
 
         async function postJson(url, body) {
             const r = await fetch(url, {

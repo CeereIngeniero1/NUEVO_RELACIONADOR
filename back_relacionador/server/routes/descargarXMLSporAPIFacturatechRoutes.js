@@ -4,6 +4,9 @@ const connection = require('../db'); // Reutilizamos la conexión existente
 const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
+const { getRipsDataRoot } = require('../config/paths');
+
+const RIPS_ROOT = getRipsDataRoot();
 
 const router = Router();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -172,8 +175,8 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                     }
                 }
 
-                // const   = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
+                // const   = path.join(RIPS_ROOT, 'XMLS', `${factura.Prefijo}${factura.NoFactura}.xml`);
+                const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
 
 
                 if (fs.existsSync(RutaVerificarSiExisteElXML)) {
@@ -210,11 +213,11 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                         if (result && result.return && result.return.resourceData && result.return.resourceData.$value) {
                             const base64Data = result.return.resourceData.$value;
                             const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            // const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${args.prefijo}${args.folio}.xml`);
+                            // const filePath = path.join(RIPS_ROOT, 'XMLS', `${args.prefijo}${args.folio}.xml`);
                             // Crear la carpeta de manera recursiva
-                            const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+                            const carpetaPath = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
                             fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${args.prefijo}${parseInt(args.folio)}.xml`);
+                            const filePath = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${args.prefijo}${parseInt(args.folio)}.xml`);
 
                             fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
                                 if (err) {
@@ -378,7 +381,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     });
                 }
         
-                const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
+                const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
         
                 if (fs.existsSync(RutaVerificarSiExisteElXML)) {
                     console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
@@ -468,7 +471,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                         try {
                             const base64Data = resourceData.$value;
                             const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            const carpetaPath = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+                            const carpetaPath = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
                             fs.mkdirSync(carpetaPath, { recursive: true });
                             const filePath = path.join(carpetaPath, `${args.prefijo}${args.folio}.xml`);
         

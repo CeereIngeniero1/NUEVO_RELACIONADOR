@@ -355,7 +355,7 @@ $(document).ready((e) => {
     function llenarTabla(tabla, selectedValue) {
         let currentPage = 1;
 
-        fetch(`http://${servidor}:3000/api/listarMaestroRIPS?Tipo=${selectedValue}`, {
+        fetch(`${window.getApiBaseUrl()}/api/listarMaestroRIPS?Tipo=${selectedValue}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -386,7 +386,7 @@ $(document).ready((e) => {
     }
 
     function actualizarEstado(tabla, id, nuevoEstado) {
-        fetch(`http://${servidor}:3000/api/ActualizarElemento`, {
+        fetch(`${window.getApiBaseUrl()}/api/ActualizarElemento`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -415,7 +415,7 @@ $(document).ready((e) => {
     }
 
     function ActualizarEstadoATodosLosRegistros(tabla, nuevoEstado) {
-        fetch(`http://${servidor}:3000/api/ActualizarTodo`, {
+        fetch(`${window.getApiBaseUrl()}/api/ActualizarTodo`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

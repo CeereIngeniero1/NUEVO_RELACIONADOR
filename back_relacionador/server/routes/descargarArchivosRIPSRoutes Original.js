@@ -9,7 +9,9 @@ const fsExtra = require('fs-extra');
 const { promisify } = require('util');
 const { Console } = require('console');
 const pipelineAsync = promisify(require('stream').pipeline);
+const { getRipsDataRoot } = require('../config/paths');
 
+const RIPS_ROOT = getRipsDataRoot();
 
 const router = Router();
 
@@ -1335,7 +1337,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
     const fechaFormateada = `${fechaActual.getFullYear()}-${(fechaActual.getMonth() + 1).toString().padStart(2, '0')}-${fechaActual.getDate().toString().padStart(2, '0')}`;
     const nombreArchivo = `${prefijo} --- ${fechaInicio} --- ${fechaFin}.zip`;
 
-    const rutaArchivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS', nombreArchivo);
+    const rutaArchivo = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS', nombreArchivo);
     const nombreCarpetaDeAlmacenadoJSON = `${fechaInicio} --- ${fechaFin}`;
 
     try {
@@ -1346,11 +1348,11 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
 
         // Descomprimir los archivos ZIP
         const rutasZips = [rutaArchivo]; // Aquí se pueden agregar más rutas de archivos ZIP
-        const rutaBaseDestino = path.join('C:', 'CeereSio', 'RIPS_2275', 'ARCHIVOS_RIPS_JSON');
+        const rutaBaseDestino = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
         await descomprimirZip(rutasZips, rutaBaseDestino);
         const NombreArchivoIgualdadCarpetaParaXMLS = `${prefijo} --- ${fechaInicio} --- ${fechaFin}`;
 
-        const IgualdadCarpetaParaXMLS = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
+        const IgualdadCarpetaParaXMLS = path.join(RIPS_ROOT, 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
         fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
 
     } catch (error) {

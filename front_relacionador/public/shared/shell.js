@@ -2,18 +2,9 @@
  * Funciones compartidas para topbar: tema y nombre de usuario.
  * Se usa desde Asignar RIPS V3 (script embebido) y Desrelacionar (ES modules).
  */
- 
-function getServidorHost() {
-  return (
-    localStorage.getItem("NombreEquipoServidor") ||
-    window.location.hostname ||
-    "localhost"
-  );
-}
- 
-function getApiBaseUrl() {
-  return `http://${getServidorHost()}:3000`;
-}
+import { getApiBaseUrl } from "../rda/api/apiBaseUrl.js";
+
+export { getApiBaseUrl };
  
 export function initThemeToggle({
   buttonId = "crBtnThemeToggle",

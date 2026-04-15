@@ -4,6 +4,9 @@ const connection = require('../db'); // Reutilizamos la conexión existente
 const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
+const { getRipsDataRoot } = require('../config/paths');
+
+const RIPS_ROOT = getRipsDataRoot();
 
 const router = Router();
 
@@ -228,7 +231,7 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                     // console.log(listfacturas);
                     let promises = listfacturas.map(Factura => {
                         // let carpeta = path.join(__dirname, 'Xmls');
-                        var carpeta = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+                        var carpeta = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
                         // console.log(Factura.NoFactura )
                         let Parametros = {
                             token: token,
@@ -236,7 +239,7 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
+                        const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
 
                         // console.log(RutaVerificarSiExisteElXML);
 
@@ -262,7 +265,7 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                                 client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
 
                                 client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
-                                    // const archivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+                                    // const archivo = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
 
                                     if (err) {
                                         console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${Factura.NoFactura}:`, err);
@@ -523,7 +526,7 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                     // console.log(listfacturas);
                     let promises = listfacturas.map(Factura => {
                         // let carpeta = path.join(__dirname, 'Xmls');
-                        var carpeta = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
+                        var carpeta = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
                         // console.log(Factura.NoFactura )
                         let Parametros = {
                             token: token,
@@ -531,7 +534,7 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
+                        const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
 
                         // console.log(RutaVerificarSiExisteElXML);
 
@@ -554,7 +557,7 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                                 client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
 
                                 client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
-                                    // const archivo = path.join('C:', 'CeereSio', 'RIPS_2275', 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
+                                    // const archivo = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
 
                                     if (err) {
                                         console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${Factura.NoFactura}:`, err);

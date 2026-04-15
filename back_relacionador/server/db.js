@@ -1,54 +1,35 @@
 const { Connection, Request, TYPES } = require('tedious');
-const fs = require('fs');
 
+const server = process.env.DB_SERVER;
+const database = process.env.DB_DATABASE;
+const userName = process.env.DB_USER;
+const password = process.env.DB_PASSWORD;
+const encrypt = process.env.DB_ENCRYPT === 'true';
+const trustServerCertificate = process.env.DB_TRUST_CERT !== 'false';
+
+if (!server || !database || !userName || !password) {
+    throw new Error('[db.js] Faltan DB_SERVER, DB_DATABASE, DB_USER o DB_PASSWORD (cargar .env / envLoader antes de importar db)');
+}
 
 const connections = [];
 
-// Ruta completa al archivo CRInfo.ini
-const filePath = 'C:/CeereSio/CRInfo.ini';
-
-// Leer el contenido del archivo de manera síncrona (puede ser asíncrona también)
-const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-// Buscar la línea que contiene "DataSource"
-const dataSourceLine = fileContent.split('\n').find(line => line.includes('DataSource'));
-
-// Obtener el valor después del '=' y antes del '\'
-const dataSourceValue = dataSourceLine.split('=')[1].split('\\')[0].trim();
-// const dataSourceValue = 'FER-DEVELOPER\\MSSQLSERVER2017';
-console.log(dataSourceValue);
-
-// Buscar la línea que contiene exactamente Catalog
-const CatalogLine = fileContent.split('\n').find(line => line.trim().startsWith('Catalog='));
-const CatalogLineValue = CatalogLine.split('=')[1].split('\\')[0].trim();
-console.log(CatalogLineValue);
-
-
-
 const config = {
-    server: dataSourceValue,
+    server,
     authentication: {
         type: 'default',
         options: {
-            userName: 'CeereRIPS',
-            password: 'crsoft'
-        }
+            userName,
+            password,
+        },
     },
-   options: {
-        encrypt: false,
-        trustServerCertificate: true, // útil para entornos locales
-        language: 'Spanish', // Esto puede no funcionar en todas las versiones
+    options: {
+        database,
+        encrypt,
+        trustServerCertificate,
+        language: 'Spanish',
         requestTimeout: 300000,
     },
 };
-
-
-// Configuración del pool
-
-
-
-
-
 
 const connection = new Connection(config);
 
@@ -58,9 +39,8 @@ connection.on('connect', (err) => {
     if (err) {
         console.error('Error al conectarse a la base de datos:', err.message);
     } else {
-        console.log('Conectado a la base de datos');
+        console.log('Conectado a la base de datos (tedious)');
     }
 });
-
 
 module.exports = connection;

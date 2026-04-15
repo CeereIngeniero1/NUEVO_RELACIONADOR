@@ -198,7 +198,7 @@ async function Cargar() {
     await MostrarMensajeDeCarga("CARGANDO PACIENTES");
     await Esperar();
     const PacienteConHCSinRIPS = await fetch(
-      `http://${servidor}:3000/api/UsuariosHC/${documentoUsuarioLogeado}/${FechaInicioConsulta}/${FechaFinConsulta}`
+      `${getApiBaseUrl()}/api/UsuariosHC/${documentoUsuarioLogeado}/${FechaInicioConsulta}/${FechaFinConsulta}`
     );
     if (!PacienteConHCSinRIPS.ok) {
       throw new Error(
@@ -268,7 +268,7 @@ async function LlenarSelectDeHistoriasClinicas() {
   const SelectHistoriasSinRIPS = document.getElementById("HistoriasSinRIPS");
 
   const HCsinRIPS = await fetch(
-    `http://${servidor}:3000/api/DatosdeHC/${documentopaciente}/${documentoUsuarioLogeado}/${RangoInicio}/${RangoFin}`
+    `${getApiBaseUrl()}/api/DatosdeHC/${documentopaciente}/${documentoUsuarioLogeado}/${RangoInicio}/${RangoFin}`
   );
   if (!HCsinRIPS.ok) {
     throw new Error(
@@ -333,7 +333,7 @@ SelectPacientes.addEventListener("change", async function (e) {
     document.getElementById("BuscarPorPresupuestos").disabled = false;
     try {
       const DatosPaciente = await fetch(
-        `http://${servidor}:3000/api/DatosdeUsuarioHC/${this.value}`
+        `${getApiBaseUrl()}/api/DatosdeUsuarioHC/${this.value}`
       );
       if (!DatosPaciente.ok) {
         throw new Error(
@@ -502,7 +502,7 @@ radioAC.addEventListener("change", async function (e) {
     try {
       // Funcionalidad para el llenado del select de tipo de rips
       const TipoDeUsuarioRIPS = await fetch(
-        `http://${servidor}:3000/api/TipodeRips`
+        `${getApiBaseUrl()}/api/TipodeRips`
       );
       if (!TipoDeUsuarioRIPS) {
         throw new Error(
@@ -526,7 +526,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select de entidad
       const EntidadResponsable = await fetch(
-        `http://${servidor}:3000/api/Entidad`
+        `${getApiBaseUrl()}/api/Entidad`
       );
       if (!EntidadResponsable) {
         throw new Error(
@@ -570,7 +570,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select de ModalidadGrupoServicioTecnologíaSalud
       const ModalidadGrupoServicioTecnologiaSalud = await fetch(
-        `http://${servidor}:3000/api/ModalidadAtencion`
+        `${getApiBaseUrl()}/api/ModalidadAtencion`
       );
       if (!ModalidadGrupoServicioTecnologiaSalud) {
         throw new Error(
@@ -610,7 +610,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select de GrupoServiciosAC
       const GrupoServiciosAC = await fetch(
-        `http://${servidor}:3000/api/GrupoServicios`
+        `${getApiBaseUrl()}/api/GrupoServicios`
       );
       if (!GrupoServiciosAC) {
         throw new Error(
@@ -642,7 +642,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select de servicios
       const CargarServicios = await fetch(
-        `http://${servidor}:3000/api/Servicios`
+        `${getApiBaseUrl()}/api/Servicios`
       );
       if (!CargarServicios.ok) {
         // throw new Error(`Error al obtener los servicios: ${CargarServicios.statusText}`);
@@ -695,7 +695,7 @@ radioAC.addEventListener("change", async function (e) {
       // Funcionalidad para el llenado del select de FinalidadTecnologiaSalud
       const FinalidadParaAC = "AC";
       const FinalidadTecnologiaSaludAC = await fetch(
-        `http://${servidor}:3000/api/FinalidadV2/${FinalidadParaAC}`
+        `${getApiBaseUrl()}/api/FinalidadV2/${FinalidadParaAC}`
       );
       if (!FinalidadTecnologiaSaludAC) {
         throw new Error(
@@ -738,7 +738,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select CausaMotivoAtención
       const CausaMotivoAtencion = await fetch(
-        `http://${servidor}:3000/api/CausaExterna`
+        `${getApiBaseUrl()}/api/CausaExterna`
       );
       if (!CausaMotivoAtencion) {
         throw new Error(
@@ -772,7 +772,7 @@ radioAC.addEventListener("change", async function (e) {
 
       // Funcionalidad para el llenado del select de TipoDiagnósticoPrincipal
       const TipoDiagnosticoPrincipal = await fetch(
-        `http://${servidor}:3000/api/DXPrincipal`
+        `${getApiBaseUrl()}/api/DXPrincipal`
       );
       if (!TipoDiagnosticoPrincipal) {
         throw new Error(
@@ -817,7 +817,7 @@ radioAC.addEventListener("change", async function (e) {
       // Funcionalidad para el llenado del select de Consulta RIPS
       const TipoConsulta1 = "AC";
       const ConsultaRIPS1 = await fetch(
-        `http://${servidor}:3000/api/Cups/${TipoConsulta1}`
+        `${getApiBaseUrl()}/api/Cups/${TipoConsulta1}`
       );
       if (!ConsultaRIPS1) {
         throw new Error(
@@ -850,7 +850,7 @@ radioAC.addEventListener("change", async function (e) {
       // Funcionalidad para el llenado del select de Consulta RIPS 2
       const TipoConsulta2 = "AC";
       const ConsultaRIPS2 = await fetch(
-        `http://${servidor}:3000/api/Cups/${TipoConsulta2}`
+        `${getApiBaseUrl()}/api/Cups/${TipoConsulta2}`
       );
       if (!ConsultaRIPS2) {
         throw new Error(
@@ -881,7 +881,7 @@ radioAC.addEventListener("change", async function (e) {
       }
 
       // Funcinalidad para el llenado del select Diagnósitoco RIPS AC 1
-      const DiasnosticoRIPSAC1 = await fetch(`http://${servidor}:3000/api/Cie`);
+      const DiasnosticoRIPSAC1 = await fetch(`${getApiBaseUrl()}/api/Cie`);
       if (!DiasnosticoRIPSAC1) {
         throw new Error(
           `Error al obtener los diagnósticos RIPS: ${DiasnosticoRIPSAC1.statusText}`
@@ -913,7 +913,7 @@ radioAC.addEventListener("change", async function (e) {
       }
 
       // Funcinalidad para el llenado del select Diagnósitoco RIPS AC 2
-      const DiasnosticoRIPSAC2 = await fetch(`http://${servidor}:3000/api/Cie`);
+      const DiasnosticoRIPSAC2 = await fetch(`${getApiBaseUrl()}/api/Cie`);
       if (!DiasnosticoRIPSAC2) {
         throw new Error(
           `Error al obtener los diagnósticos RIPS: ${DiasnosticoRIPSAC2.statusText}`
@@ -1114,7 +1114,7 @@ radioAP.addEventListener("change", async function (e) {
   if (HistoriasSinRIPS !== "" || HistoriasSinRIPS !== "Sin Seleccionar") {
     // Funcionalidad para el llenado del select tipo usuario ap
     const TipoUsuarioRIPSAP = await fetch(
-      `http://${servidor}:3000/api/TipodeRips`
+      `${getApiBaseUrl()}/api/TipodeRips`
     );
     if (!TipoUsuarioRIPSAP) {
       throw new Error(
@@ -1143,7 +1143,7 @@ radioAP.addEventListener("change", async function (e) {
     }
 
     // Funcionalidad para el llenado del select entidad de rips ap
-    const EntidadesAP = await fetch(`http://${servidor}:3000/api/Entidad`);
+    const EntidadesAP = await fetch(`${getApiBaseUrl()}/api/Entidad`);
     if (!EntidadesAP) {
       throw new Error(
         `Error al obtener las entidades de RIPS: ${EntidadesAP.statusText}`
@@ -1180,7 +1180,7 @@ radioAP.addEventListener("change", async function (e) {
 
     // Funcionalidad para el llendao del select ViaIngresoServicioSalud
     const ViaIngresoServicioSaludAP = await fetch(
-      `http://${servidor}:3000/api/ViaIngresoUsuario`
+      `${getApiBaseUrl()}/api/ViaIngresoUsuario`
     );
     if (!ViaIngresoServicioSaludAP) {
       throw new Error(
@@ -1213,7 +1213,7 @@ radioAP.addEventListener("change", async function (e) {
 
     // Funcionalidad para el llenado del select ModalidadGrupoServicioTecSalAP
     const ModalidadGrupoServicioTecSalAP = await fetch(
-      `http://${servidor}:3000/api/ModalidadAtencion`
+      `${getApiBaseUrl()}/api/ModalidadAtencion`
     );
     if (!ModalidadGrupoServicioTecSalAP) {
       throw new Error(
@@ -1247,7 +1247,7 @@ radioAP.addEventListener("change", async function (e) {
 
     //Funcionalidad para el llenado del select GrupoServiciosAP
     const GrupoServiciosAP = await fetch(
-      `http://${servidor}:3000/api/GrupoServicios`
+      `${getApiBaseUrl()}/api/GrupoServicios`
     );
     if (!GrupoServiciosAP) {
       throw new Error(
@@ -1276,7 +1276,7 @@ radioAP.addEventListener("change", async function (e) {
     }
 
     // Funcionalidad para el llenado del select servicio de rips ap
-    const ServiciosAP = await fetch(`http://${servidor}:3000/api/Servicios`);
+    const ServiciosAP = await fetch(`${getApiBaseUrl()}/api/Servicios`);
     if (!ServiciosAP) {
       throw new Error(
         `Error al obtener los servicios de RIPS: ${ServiciosAP.statusText}`
@@ -1317,7 +1317,7 @@ radioAP.addEventListener("change", async function (e) {
     // Funcionalidad para el llenado del select FinalidadTecnologiaSaludAP
     const FinalidadRIPSAP = "AP";
     const FinalidadTecnologiaSaludAP = await fetch(
-      `http://${servidor}:3000/api/FinalidadV2/${FinalidadRIPSAP}`
+      `${getApiBaseUrl()}/api/FinalidadV2/${FinalidadRIPSAP}`
     );
     if (!FinalidadTecnologiaSaludAP) {
       throw new Error(
@@ -1360,7 +1360,7 @@ radioAP.addEventListener("change", async function (e) {
     // Funcionalidad para el llenado del select Procedimiento AP 1
     const TipoProcedimientoAP1 = "AP";
     const ProcedimientoAP1 = await fetch(
-      `http://${servidor}:3000/api/Cups/${TipoProcedimientoAP1}`
+      `${getApiBaseUrl()}/api/Cups/${TipoProcedimientoAP1}`
     );
     if (!ProcedimientoAP1) {
       throw new Error(
@@ -1394,7 +1394,7 @@ radioAP.addEventListener("change", async function (e) {
     // Funcionalidad para el llenado del select Procedimiento AP 2
     const TipoProcedimientoAP2 = "AP";
     const ProcedimientoAP2 = await fetch(
-      `http://${servidor}:3000/api/Cups/${TipoProcedimientoAP2}`
+      `${getApiBaseUrl()}/api/Cups/${TipoProcedimientoAP2}`
     );
     if (!ProcedimientoAP2) {
       throw new Error(
@@ -1426,7 +1426,7 @@ radioAP.addEventListener("change", async function (e) {
     }
 
     // Funcionalidad para el llenado del Select Diagnostico AP 1
-    const DiagnosticoAP1 = await fetch(`http://${servidor}:3000/api/Cie`);
+    const DiagnosticoAP1 = await fetch(`${getApiBaseUrl()}/api/Cie`);
     if (!DiagnosticoAP1) {
       throw new Error(
         `Error al obtener los diagnósticos AP 1: ${DiagnosticoAP1.statusText}`
@@ -1455,7 +1455,7 @@ radioAP.addEventListener("change", async function (e) {
     }
 
     // Funcionalidad para el llenado del Select Diagnostico AP 2
-    const DiagnosticoAP2 = await fetch(`http://${servidor}:3000/api/Cie`);
+    const DiagnosticoAP2 = await fetch(`${getApiBaseUrl()}/api/Cie`);
     if (!DiagnosticoAP2) {
       throw new Error(
         `Error al obtener los diagnósticos AP 1: ${DiagnosticoAP2.statusText}`
@@ -1781,7 +1781,7 @@ const AsignarRIPS = async () => {
       // return;
 
       const AsignarRIPSAP = await fetch(
-        `http://${servidor}:3000/api/RegistrarRips/${IdEvaluacionRIPSAP}/${TipoUsuarioRIPSAP}/${EntidadRIPSAP}/${ModalidadGrupoServicioTecSalRIPSAP}/${GrupoServiciosRIPSAP}/
+        `${getApiBaseUrl()}/api/RegistrarRips/${IdEvaluacionRIPSAP}/${TipoUsuarioRIPSAP}/${EntidadRIPSAP}/${ModalidadGrupoServicioTecSalRIPSAP}/${GrupoServiciosRIPSAP}/
                 ${CodServicioRIPSAP}/${FinalidadTecnologiaSaludRIPSAP}/${CausaMotivoAtencionRIPSAP}/${TipoDiagnosticoPrincipalRIPSAP}/${ViaIngresoServicioSaludRIPSAP}/${Cups1RIPSAP}/${Cups2RIPSAP}/${Cie1RIPSAP}/
                 ${Cie2RIPSAP}/${TipoRipsRIPSAP}/${ValorIdFactura}/${ValorIdPresupuesto}`,
         {
@@ -1967,7 +1967,7 @@ const AsignarRIPS = async () => {
         SelectDiagnosticoRIPSAC2 = "0";
       }
       const AsignarRIPSAC = await fetch(
-        `http://${servidor}:3000/api/RegistrarRips/${IdEvaluacionRIPSAC}/${SelectTipoUsuarioRIPSAC}/${SelectEntidadAC}/${SelectModalidadGrupoServicioTecnologiaSaludAC}/
+        `${getApiBaseUrl()}/api/RegistrarRips/${IdEvaluacionRIPSAC}/${SelectTipoUsuarioRIPSAC}/${SelectEntidadAC}/${SelectModalidadGrupoServicioTecnologiaSaludAC}/
                 ${SelectGrupoServiciosAC}/${SelectServiciosAC}/${SelectFinalidadTecnologiaSaludAC}/${SelectCausaMotivoAtencion}/${SelectTipoDiagnosticoPrincipalAC}/${ViaIngresoAC}/${SelectConsultaRIPSAC1}/${SelectConsultaRIPSAC2}/
                 ${SelectDiagnosticoRIPSAC1}/${SelectDiagnosticoRIPSAC2}/${TipoRipsRIPSAC}/${ValorIdFactura}/${ValorIdPresupuesto}`,
         {
@@ -2072,7 +2072,7 @@ async function NoAsignarRIPS() {
       if (Respuesta.isConfirmed) {
         console.log("Se confirmó");
         const GuardarSinRIPS = await fetch(
-          `http://${servidor}:3000/api/TieneRips/${HistoriasSinRIPS.value}`,
+          `${getApiBaseUrl()}/api/TieneRips/${HistoriasSinRIPS.value}`,
           {
             method: "POST",
             headers: {
@@ -2302,7 +2302,7 @@ const insertarRIPSHC = async (tipoInsertar) => {
 
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/insertarRIPS/${tipoInsertar}`,
+      `${getApiBaseUrl()}/api/insertarRIPS/${tipoInsertar}`,
       {
         method: "POST",
         headers: {
@@ -2401,7 +2401,7 @@ const updateEvaluacionesTablet = (evaluaciones) => {
 const getEvaluaciones = async (fechaInicio, fechaFin) => {
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/evaluacionesRIPS/${fechaInicio}/${fechaFin}`
+      `${getApiBaseUrl()}/api/evaluacionesRIPS/${fechaInicio}/${fechaFin}`
     );
     if (!response.ok) {
       throw new Error(
@@ -2448,7 +2448,7 @@ const updateTipoUsuario = (tipoUsuarios) => {
 
 const getTipoUsuario = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/tipoUsuario`);
+    const response = await fetch(`${getApiBaseUrl()}/api/tipoUsuario`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Tipo de Usuario: ${response.statusText}`
@@ -2487,7 +2487,7 @@ const updateTipoEntidad = (tipoEntidades) => {
 const getTipoEntidad = async (descripcionTipoRips) => {
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/tipoEntidad/${descripcionTipoRips}`
+      `${getApiBaseUrl()}/api/tipoEntidad/${descripcionTipoRips}`
     );
     if (!response.ok) {
       throw new Error(
@@ -2526,7 +2526,7 @@ const updateCodConsultaSelect = (codConsultas) => {
 
 const getCodConsulta = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/codConsulta`);
+    const response = await fetch(`${getApiBaseUrl()}/api/codConsulta`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de codConsulta: ${response.statusText}`
@@ -2604,7 +2604,7 @@ const updateModalidadAtencion = (modalidadAtenciones) => {
 const getmodalidadAtencion = async () => {
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/modalidadAtencion`
+      `${getApiBaseUrl()}/api/modalidadAtencion`
     );
     if (!response.ok) {
       throw new Error(
@@ -2641,7 +2641,7 @@ const updateGrupoServicios = (grupoServicios) => {
 
 const getGrupoServicios = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/grupoServicios`);
+    const response = await fetch(`${getApiBaseUrl()}/api/grupoServicios`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Grupo Servicios: ${response.statusText}`
@@ -2677,7 +2677,7 @@ const updateServicios = (Servicios) => {
 
 const getServicios = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/Servicios`);
+    const response = await fetch(`${getApiBaseUrl()}/api/Servicios`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Servicios: ${response.statusText}`
@@ -2714,7 +2714,7 @@ const updateFinalidadConsulta = (finalidadConsulta) => {
 const getFinalidadConsulta = async (tipoConsulta) => {
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/finalidadConsulta/${tipoConsulta}`
+      `${getApiBaseUrl()}/api/finalidadConsulta/${tipoConsulta}`
     );
     if (!response.ok) {
       throw new Error(
@@ -2753,7 +2753,7 @@ const updateCausaExterna = (causaExterna) => {
 
 const getCausaExterna = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/causaExterna`);
+    const response = await fetch(`${getApiBaseUrl()}/api/causaExterna`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Causa Externa: ${response.statusText}`
@@ -2791,7 +2791,7 @@ const updateCodDiagnostico = (codDiagnosticos) => {
 
 const getCodDiganostico = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/codDiagnostico`);
+    const response = await fetch(`${getApiBaseUrl()}/api/codDiagnostico`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Código Diagnóstico: ${response.statusText}`
@@ -2827,7 +2827,7 @@ const updateTipoDiagnostico = (tipoDiagnosticos) => {
 
 const getTipoDiagnostico = async () => {
   try {
-    const response = await fetch(`http://${servidor}:3000/api/tipoDiagnostico`);
+    const response = await fetch(`${getApiBaseUrl()}/api/tipoDiagnostico`);
     if (!response.ok) {
       throw new Error(
         `Error al obtener los datos de Tipo Diagnóstico Principal: ${response.statusText}`
@@ -2864,7 +2864,7 @@ const updateViaIngresoUsuario = (viaIngresoUsuarios) => {
 const getViaIngresoUsuario = async () => {
   try {
     const response = await fetch(
-      `http://${servidor}:3000/api/viaIngresoUsuario`
+      `${getApiBaseUrl()}/api/viaIngresoUsuario`
     );
     if (!response.ok) {
       throw new Error(
@@ -2978,7 +2978,7 @@ SelectTipoRIPSPorDefecto.addEventListener("change", async function (e) {
       APPorDefecto.style.display = "none";
       BotonVerRIPSPorDefectoo.disabled = false;
       const TieneRIPSACPorDefecto = await fetch(
-        `http://${servidor}:3000/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/1`
+        `${getApiBaseUrl()}/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/1`
       );
       const RIPSACPorDefecto = await TieneRIPSACPorDefecto.json();
       if (RIPSACPorDefecto.length === 0) {
@@ -2998,7 +2998,7 @@ SelectTipoRIPSPorDefecto.addEventListener("change", async function (e) {
       APPorDefecto.style.display = "block";
       BotonVerRIPSPorDefectoo.disabled = false;
       const TieneRIPSAPPorDefecto = await fetch(
-        `http://${servidor}:3000/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/2`
+        `${getApiBaseUrl()}/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/2`
       );
       const RIPSAPPorDefecto = await TieneRIPSAPPorDefecto.json();
       if (RIPSAPPorDefecto.length === 0) {
@@ -3069,7 +3069,7 @@ const SelectPorDefectoDiagnosticoRIPSAC2 = document.getElementById(
 const TraerInfoParaRIPSACPorDefecto = async function () {
   // Funcionalidad para el llenado del select de tipo de rips
   const TipoDeUsuarioRIPS = await fetch(
-    `http://${servidor}:3000/api/TipodeRips`
+    `${getApiBaseUrl()}/api/TipodeRips`
   );
   if (!TipoDeUsuarioRIPS) {
     throw new Error(
@@ -3093,7 +3093,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
 
   // Funcionalidad para el llenado del select de ModalidadGrupoServicioTecnologíaSalud
   const ModalidadGrupoServicioTecnologiaSalud = await fetch(
-    `http://${servidor}:3000/api/ModalidadAtencion`
+    `${getApiBaseUrl()}/api/ModalidadAtencion`
   );
   if (!ModalidadGrupoServicioTecnologiaSalud) {
     throw new Error(
@@ -3132,7 +3132,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
 
   // Funcionalidad para el llenado del select de GrupoServiciosAC
   const GrupoServiciosAC = await fetch(
-    `http://${servidor}:3000/api/GrupoServicios`
+    `${getApiBaseUrl()}/api/GrupoServicios`
   );
   if (!GrupoServiciosAC) {
     throw new Error(
@@ -3165,7 +3165,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Funcionalidad para el llenado del select de FinalidadTecnologiaSalud
   const FinalidadParaAC = "AC";
   const FinalidadTecnologiaSaludAC = await fetch(
-    `http://${servidor}:3000/api/FinalidadV2/${FinalidadParaAC}`
+    `${getApiBaseUrl()}/api/FinalidadV2/${FinalidadParaAC}`
   );
   if (!FinalidadTecnologiaSaludAC) {
     throw new Error(
@@ -3206,7 +3206,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
 
   // Funcionalidad para el llenado del select CausaMotivoAtención
   const CausaMotivoAtencion = await fetch(
-    `http://${servidor}:3000/api/CausaExterna`
+    `${getApiBaseUrl()}/api/CausaExterna`
   );
   if (!CausaMotivoAtencion) {
     throw new Error(
@@ -3240,7 +3240,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
 
   // Funcionalidad para el llenado del select de TipoDiagnósticoPrincipal
   const TipoDiagnosticoPrincipal = await fetch(
-    `http://${servidor}:3000/api/DXPrincipal`
+    `${getApiBaseUrl()}/api/DXPrincipal`
   );
   if (!TipoDiagnosticoPrincipal) {
     throw new Error(
@@ -3282,7 +3282,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Funcionalidad para el llenado del select de Consulta RIPS
   const TipoConsulta1 = "AC";
   const ConsultaRIPS1 = await fetch(
-    `http://${servidor}:3000/api/Cups/${TipoConsulta1}`
+    `${getApiBaseUrl()}/api/Cups/${TipoConsulta1}`
   );
   if (!ConsultaRIPS1) {
     throw new Error(
@@ -3315,7 +3315,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Funcionalidad para el llenado del select de Consulta RIPS 2
   const TipoConsulta2 = "AC";
   const ConsultaRIPS2 = await fetch(
-    `http://${servidor}:3000/api/Cups/${TipoConsulta2}`
+    `${getApiBaseUrl()}/api/Cups/${TipoConsulta2}`
   );
   if (!ConsultaRIPS2) {
     throw new Error(
@@ -3346,7 +3346,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   }
 
   // Funcinalidad para el llenado del select Diagnósitoco RIPS AC 1
-  const DiasnosticoRIPSAC1 = await fetch(`http://${servidor}:3000/api/Cie`);
+  const DiasnosticoRIPSAC1 = await fetch(`${getApiBaseUrl()}/api/Cie`);
   if (!DiasnosticoRIPSAC1) {
     throw new Error(
       `Error al obtener los diagnósticos RIPS: ${DiasnosticoRIPSAC1.statusText}`
@@ -3378,7 +3378,7 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   }
 
   // Funcinalidad para el llenado del select Diagnósitoco RIPS AC 2
-  const DiasnosticoRIPSAC2 = await fetch(`http://${servidor}:3000/api/Cie`);
+  const DiasnosticoRIPSAC2 = await fetch(`${getApiBaseUrl()}/api/Cie`);
   if (!DiasnosticoRIPSAC2) {
     throw new Error(
       `Error al obtener los diagnósticos RIPS: ${DiasnosticoRIPSAC2.statusText}`
@@ -3415,7 +3415,7 @@ SelectPorDefectoTipoUsuarioRIPS.addEventListener("change", async function (e) {
       const ValorSelectTipoUsuarioRIPS = this.value;
       // Funcionalidad para el llenado del select de entidad
       const EntidadResponsable = await fetch(
-        `http://${servidor}:3000/api/Entidad/${ValorSelectTipoUsuarioRIPS}`
+        `${getApiBaseUrl()}/api/Entidad/${ValorSelectTipoUsuarioRIPS}`
       );
       if (!EntidadResponsable) {
         throw new Error(
@@ -3461,7 +3461,7 @@ SelectPoDefectoGrupoServiciosAC.addEventListener("change", async function (e) {
   try {
     // console.log(this.value);
     const CargarServicios = await fetch(
-      `http://${servidor}:3000/api/Servicios/${this.value}`
+      `${getApiBaseUrl()}/api/Servicios/${this.value}`
     );
     if (!CargarServicios.ok) {
       throw new Error(
@@ -3535,7 +3535,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   console.log("CONSULTADO INFORMACIÓN EN LA BASE DE DATOS PARA RIPS AP");
   // Funcionalidad para el llenado del select de tipo de rips
   const TipoDeUsuarioRIPS = await fetch(
-    `http://${servidor}:3000/api/TipodeRips`
+    `${getApiBaseUrl()}/api/TipodeRips`
   );
   if (!TipoDeUsuarioRIPS) {
     throw new Error(
@@ -3559,7 +3559,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
 
   // Funcionalidad para el llendao del select ViaIngresoServicioSalud
   const ViaIngresoServicioSaludAP = await fetch(
-    `http://${servidor}:3000/api/ViaIngresoUsuario`
+    `${getApiBaseUrl()}/api/ViaIngresoUsuario`
   );
   if (!ViaIngresoServicioSaludAP) {
     throw new Error(
@@ -3591,7 +3591,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
 
   // Funcionalidad para el llenado del select ModalidadGrupoServicioTecSalAP
   const ModalidadGrupoServicioTecSalAP = await fetch(
-    `http://${servidor}:3000/api/ModalidadAtencion`
+    `${getApiBaseUrl()}/api/ModalidadAtencion`
   );
   if (!ModalidadGrupoServicioTecSalAP) {
     throw new Error(
@@ -3624,7 +3624,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
 
   //Funcionalidad para el llenado del select GrupoServiciosAP
   const GrupoServiciosAP = await fetch(
-    `http://${servidor}:3000/api/GrupoServicios`
+    `${getApiBaseUrl()}/api/GrupoServicios`
   );
   if (!GrupoServiciosAP) {
     throw new Error(
@@ -3655,7 +3655,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   // Funcionalidad para el llenado del select FinalidadTecnologiaSaludAP
   const FinalidadRIPSAP = "AP";
   const FinalidadTecnologiaSaludAP = await fetch(
-    `http://${servidor}:3000/api/FinalidadV2/${FinalidadRIPSAP}`
+    `${getApiBaseUrl()}/api/FinalidadV2/${FinalidadRIPSAP}`
   );
   if (!FinalidadTecnologiaSaludAP) {
     throw new Error(
@@ -3698,7 +3698,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   // Funcionalidad para el llenado del select Procedimiento AP 1
   const TipoProcedimientoAP1 = "AP";
   const ProcedimientoAP1 = await fetch(
-    `http://${servidor}:3000/api/Cups/${TipoProcedimientoAP1}`
+    `${getApiBaseUrl()}/api/Cups/${TipoProcedimientoAP1}`
   );
   if (!ProcedimientoAP1) {
     throw new Error(
@@ -3732,7 +3732,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   // Funcionalidad para el llenado del select Procedimiento AP 2
   const TipoProcedimientoAP2 = "AP";
   const ProcedimientoAP2 = await fetch(
-    `http://${servidor}:3000/api/Cups/${TipoProcedimientoAP2}`
+    `${getApiBaseUrl()}/api/Cups/${TipoProcedimientoAP2}`
   );
   if (!ProcedimientoAP2) {
     throw new Error(
@@ -3764,7 +3764,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   }
 
   // Funcionalidad para el llenado del Select Diagnostico AP 1
-  const DiagnosticoAP1 = await fetch(`http://${servidor}:3000/api/Cie`);
+  const DiagnosticoAP1 = await fetch(`${getApiBaseUrl()}/api/Cie`);
   if (!DiagnosticoAP1) {
     throw new Error(
       `Error al obtener los diagnósticos AP 1: ${DiagnosticoAP1.statusText}`
@@ -3793,7 +3793,7 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   }
 
   // Funcionalidad para el llenado del Select Diagnostico AP 2
-  const DiagnosticoAP2 = await fetch(`http://${servidor}:3000/api/Cie`);
+  const DiagnosticoAP2 = await fetch(`${getApiBaseUrl()}/api/Cie`);
   if (!DiagnosticoAP2) {
     throw new Error(
       `Error al obtener los diagnósticos AP 1: ${DiagnosticoAP2.statusText}`
@@ -3829,7 +3829,7 @@ SelectPorDefectoTipoUsuarioRIPSAP.addEventListener(
         const ValorSelectTipoUsuarioRIPS = this.value;
         // Funcionalidad para el llenado del select de entidad
         const EntidadResponsable = await fetch(
-          `http://${servidor}:3000/api/Entidad/${ValorSelectTipoUsuarioRIPS}`
+          `${getApiBaseUrl()}/api/Entidad/${ValorSelectTipoUsuarioRIPS}`
         );
         if (!EntidadResponsable) {
           throw new Error(
@@ -3877,7 +3877,7 @@ SelectPorDefectoGrupoServiciosAP.addEventListener("change", async function (e) {
   try {
     // console.log(this.value);
     const CargarServicios = await fetch(
-      `http://${servidor}:3000/api/Servicios/${this.value}`
+      `${getApiBaseUrl()}/api/Servicios/${this.value}`
     );
     if (!CargarServicios.ok) {
       throw new Error(
@@ -3924,7 +3924,7 @@ BotonVerRIPSPorDefecto.addEventListener("click", async function (e) {
     case "1":
       try {
         const ConsultarRIPSACPorDefecto = await fetch(
-          `http://${servidor}:3000/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/1`
+          `${getApiBaseUrl()}/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/1`
         );
         if (!ConsultarRIPSACPorDefecto.ok) {
           throw new Error(
@@ -4077,7 +4077,7 @@ BotonVerRIPSPorDefecto.addEventListener("click", async function (e) {
       // alertify.alert('This is a modeless dialog, not pinned to the screen.').set('modal', false).unpin();
       try {
         const ConsultarRIPSAPPorDefecto = await fetch(
-          `http://${servidor}:3000/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/2`
+          `${getApiBaseUrl()}/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/2`
         );
         if (!ConsultarRIPSAPPorDefecto.ok) {
           throw new Error(
@@ -4321,7 +4321,7 @@ async function GuardarRIPSPorDefecto() {
       };
 
       const GuardarRIPSACPorDefecto = await fetch(
-        `http://${servidor}:3000/api/GuardarRIPSPorDefecto`,
+        `${getApiBaseUrl()}/api/GuardarRIPSPorDefecto`,
         {
           method: "POST",
           headers: {
@@ -4416,7 +4416,7 @@ async function GuardarRIPSPorDefecto() {
       };
 
       const GuardarRIPSAPPorDefecto = await fetch(
-        `http://${servidor}:3000/api/GuardarRIPSPorDefecto`,
+        `${getApiBaseUrl()}/api/GuardarRIPSPorDefecto`,
         {
           method: "POST",
           headers: {
@@ -4530,7 +4530,7 @@ async function ActualizarRIPSPorDefecto() {
       };
 
       const ActualizarRIPSACPorDefecto = await fetch(
-        `http://${servidor}:3000/api/ActualizarRIPSPorDefecto`,
+        `${getApiBaseUrl()}/api/ActualizarRIPSPorDefecto`,
         {
           method: "POST",
           headers: {
@@ -4614,7 +4614,7 @@ async function ActualizarRIPSPorDefecto() {
       };
 
       const ActualizarRIPSAPPorDefecto = await fetch(
-        `http://${servidor}:3000/api/ActualizarRIPSPorDefecto`,
+        `${getApiBaseUrl()}/api/ActualizarRIPSPorDefecto`,
         {
           method: "POST",
           headers: {
@@ -4666,7 +4666,7 @@ async function EliminarRIPSPorDefecto() {
         TipoRIPS: SelectTipoRIPSPorDefecto.value,
       };
       const ElimnarRIPSPorDefecto = await fetch(
-        `http://${servidor}:3000/Api/EliminarRIPSPorDefecto`,
+        `${getApiBaseUrl()}/Api/EliminarRIPSPorDefecto`,
         {
           method: "POST",
           headers: {
@@ -4735,7 +4735,7 @@ async function CargarRIPSPorDefecto() {
       DocumentoProfesional: documentousuariologeado,
     };
     const RIPSPorDefecto = await fetch(
-      `http://${servidor}:3000/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/${TipoRIPS}`,
+      `${getApiBaseUrl()}/api/ConsultarRIPSPorDefecto/${documentousuariologeado}/${TipoRIPS}`,
       {
         method: "GET",
         headers: {
@@ -5203,7 +5203,7 @@ async function TraerFacturasPaciente(Select, DocumentoPaciente) {
   try {
     console.log(DocumentoPaciente);
     const FacturasPaciente = await fetch(
-      `http://${servidor}:3000/api/ConsultarFacturas/${DocumentoPaciente}`,
+      `${getApiBaseUrl()}/api/ConsultarFacturas/${DocumentoPaciente}`,
       {
         method: "GET",
         headers: {
@@ -5247,7 +5247,7 @@ async function TraerFacturasPaciente(Select, DocumentoPaciente) {
 async function TraerPresupuestosPaciente(Select, DocumentoPaciente) {
   try {
     const PresupuestosPaciente = await fetch(
-      `http://${servidor}:3000/api/ConsultarPresupuestos/${DocumentoPaciente}`,
+      `${getApiBaseUrl()}/api/ConsultarPresupuestos/${DocumentoPaciente}`,
       {
         method: "GET",
         headers: {
