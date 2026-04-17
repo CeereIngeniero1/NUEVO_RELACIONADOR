@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const jwt = require('jsonwebtoken');
 const path = require('path');
 
 const { ensureBackendEnv } = require('./config/envLoader');
@@ -24,6 +23,7 @@ const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
 const AsignarRipsv3 = require('./routes/Asignar_RipsRoutes V3');
 const AsignarRipsv3Experimental = require('./routes/Asignar_RipsRoutes V3 experimental');
 const DesrelacionadorRoutes = require('./routes/desrelacionadorRoutes');
+const VisorIhceRoutes = require('./routes/VisorIhceRoutes');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 
@@ -91,21 +91,7 @@ app.get('/api/sse', (req, res) => {
     });
 });
 
-// Middleware para verificar el token antes de permitir el acceso
-const authenticateToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ error: 'Token no proporcionado' });
-
-    jwt.verify(token, 'secretKey', (err, user) => {
-        if (err) {
-            console.error('Error al verificar el token:', err.message);
-            return res.status(403).json({ error: 'Token inválido' });
-        }
-
-        req.user = user;
-        next();
-    });
-};
+const { authenticateToken } = require('./middleware/authenticateToken');
 
 // Ruta protegida que requiere token
 app.get('/protected', authenticateToken, (req, res) => {
@@ -141,6 +127,7 @@ app.use('/api', AsignarRips);
 app.use('/apiV2', AsignarRipsv2);
 app.use('/apiV3', AsignarRipsv3);
 app.use('/apiV3', DesrelacionadorRoutes);
+app.use('/apiV3', VisorIhceRoutes);
 app.use('/apiV3Experimental', AsignarRipsv3Experimental);
 
 app.use('/api', MaestroListasRIPS);

@@ -1,5 +1,5 @@
 /**
- * UI: listado GET RdaEnvioMasivo/*/pendientes + envío POST masivo.
+ * UI: listado GET RdaEnvioMasivo (paciente o CE) pendientes + envío en lote (POST).
  */
 (function () {
     'use strict';
@@ -26,7 +26,17 @@
     }
 
     function apiBase() {
-        return typeof window.getApiBaseUrl === 'function' ? window.getApiBaseUrl() : '';
+        if (typeof window.getApiBaseUrl === 'function') {
+            const b = String(window.getApiBaseUrl() || '').replace(/\/$/, '');
+            if (b) return b;
+        }
+        const cfg = window.__APP_CONFIG__ || {};
+        const port = cfg.BACK_PORT != null && cfg.BACK_PORT !== '' ? String(cfg.BACK_PORT) : '3000';
+        const h =
+            (typeof localStorage !== 'undefined' && localStorage.getItem('NombreEquipoServidor')) ||
+            (typeof window.location !== 'undefined' && window.location.hostname) ||
+            'localhost';
+        return `http://${h}:${port}`;
     }
 
     function defaultDates() {
@@ -138,17 +148,34 @@
         });
     }
 
-    async function buscar() {
-        state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
-        const fd = el.fechaDesde.value;
-        const fh = el.fechaHasta.value;
-        const ambiente = el.selAmbiente.value;
-        if (!fd || !fh) {
-            Swal.fire({ icon: 'warning', title: 'Fechas', text: 'Indique fecha desde y hasta.' });
-            return;
+    function swalErr(title, text) {
+        if (typeof Swal !== 'undefined' && Swal.fire) {
+            Swal.fire({ icon: 'error', title, text });
+        } else {
+            window.alert(`${title}: ${text}`);
         }
-        el.btnBuscar.disabled = true;
+    }
+
+    async function buscar() {
         try {
+            if (!el.btnBuscar || !el.selTipo || !el.fechaDesde || !el.fechaHasta || !el.selAmbiente) {
+                swalErr('Interfaz', 'Faltan controles en la página. Recargue (Ctrl+F5).');
+                return;
+            }
+            state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
+            const fd = el.fechaDesde.value;
+            const fh = el.fechaHasta.value;
+            const ambiente = el.selAmbiente.value;
+            if (!fd || !fh) {
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({ icon: 'warning', title: 'Fechas', text: 'Indique fecha desde y hasta.' });
+                } else {
+                    window.alert('Indique fecha desde y hasta.');
+                }
+                return;
+            }
+            const base = apiBase();
+            el.btnBuscar.disabled = true;
             const path =
                 state.tipo === 'ce'
                     ? '/apiV3/RdaEnvioMasivo/ce/pendientes'
@@ -158,17 +185,28 @@
                 fechaHasta: fh,
                 ambiente,
             });
-            const resp = await fetch(`${apiBase()}${path}?${q}`, { headers: authHeaders() });
-            const data = await resp.json();
+            const url = `${base}${path}?${q}`;
+            const resp = await fetch(url, { headers: authHeaders() });
+            const raw = await resp.text();
+            let data;
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch (parseErr) {
+                throw new Error(
+                    'El servidor no devolvió JSON. ¿Abre esta página por http://localhost (front) y el API en el puerto del backend? Detalle: ' +
+                        raw.slice(0, 180)
+                );
+            }
             if (!resp.ok || !data.ok) {
                 throw new Error(data.error || resp.statusText || 'Error al listar');
             }
             state.filas = data.filas || [];
             renderTabla();
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error', text: err.message || String(err) });
+            console.error('[EnvioRdaPendientes] buscar:', err);
+            swalErr('Error', err.message || String(err));
         } finally {
-            el.btnBuscar.disabled = false;
+            if (el.btnBuscar) el.btnBuscar.disabled = false;
         }
     }
 
@@ -267,30 +305,40 @@
     }
 
     function init() {
-        const d = defaultDates();
-        el.fechaDesde.value = d.desde;
-        el.fechaHasta.value = d.hasta;
-        syncThead();
-
-        el.selTipo.addEventListener('change', () => {
-            state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
-            state.filas = [];
+        try {
+            if (!el.btnBuscar || !el.tbody || !el.selTipo || !el.fechaDesde || !el.fechaHasta || !el.selAmbiente) {
+                console.error('[EnvioRdaPendientes] Faltan elementos DOM.');
+                swalErr('Carga', 'No se encontraron los controles de la página. Use el servidor web (no abra el HTML como archivo).');
+                return;
+            }
+            const d = defaultDates();
+            el.fechaDesde.value = d.desde;
+            el.fechaHasta.value = d.hasta;
             syncThead();
-            const colspan = state.tipo === 'ce' ? 8 : 9;
-            el.tbody.innerHTML =
-                `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td></tr>`;
-            el.btnEnviar.disabled = true;
-        });
 
-        el.btnBuscar.addEventListener('click', buscar);
-        el.btnEnviar.addEventListener('click', enviarLote);
-
-        el.chkTodos.addEventListener('change', () => {
-            const on = el.chkTodos.checked;
-            el.tbody.querySelectorAll('.chk-fila').forEach((c) => {
-                c.checked = on;
+            el.selTipo.addEventListener('change', () => {
+                state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
+                state.filas = [];
+                syncThead();
+                const colspan = state.tipo === 'ce' ? 8 : 9;
+                el.tbody.innerHTML =
+                    `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td></tr>`;
+                el.btnEnviar.disabled = true;
             });
-        });
+
+            el.btnBuscar.addEventListener('click', buscar);
+            el.btnEnviar.addEventListener('click', enviarLote);
+
+            el.chkTodos.addEventListener('change', () => {
+                const on = el.chkTodos.checked;
+                el.tbody.querySelectorAll('.chk-fila').forEach((c) => {
+                    c.checked = on;
+                });
+            });
+        } catch (e) {
+            console.error('[EnvioRdaPendientes] init:', e);
+            swalErr('Inicio', e.message || String(e));
+        }
     }
 
     if (document.readyState === 'loading') {
