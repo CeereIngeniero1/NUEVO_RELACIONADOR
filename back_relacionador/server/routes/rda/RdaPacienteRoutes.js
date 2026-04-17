@@ -1367,6 +1367,9 @@ router.post(
         '/RdaPaciente/IHCE/PreviewPacienteAntecedentesModular',
     ],
     async (req, res) => {
+    const { loadDotEnvFromCandidates } = require('../../config/envLoader');
+    loadDotEnvFromCandidates();
+
     const https = require('https');
 
     const {

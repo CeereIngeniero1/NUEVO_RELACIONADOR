@@ -15,7 +15,7 @@ const LEGACY_DB_PASSWORD = 'crsoft';
 
 function loadDotEnvFromCandidates() {
     const candidates = [
-        path.join(__dirname, '..', '..', '.env'),
+        path.resolve(__dirname, '..', '..', '.env'),
         path.join(process.cwd(), 'back_relacionador', '.env'),
         path.join(process.cwd(), '.env'),
     ];
@@ -33,7 +33,19 @@ function loadDotEnvFromCandidates() {
                 if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
                     val = val.slice(1, -1);
                 }
-                if (process.env[key] === undefined) process.env[key] = val;
+                // IHCE / APIM: el .env del backend debe poder sustituir variables de sistema (a veces vacías o viejas).
+                const ihceOrApimKey =
+                    key.startsWith('IHCE') ||
+                    key.startsWith('OCP_APIM') ||
+                    key === 'OCP_APIM_SUBSCRIPTION_KEY' ||
+                    key === 'OCP_APIM_SUBSCRIPTION_KEY_PROD';
+                if (ihceOrApimKey && String(val).trim() !== '') {
+                    process.env[key] = val;
+                    continue;
+                }
+                const cur = process.env[key];
+                const vacio = cur === undefined || cur === null || String(cur).trim() === '';
+                if (vacio) process.env[key] = val;
             }
             return envPath;
         } catch (err) {

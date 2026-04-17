@@ -27,7 +27,9 @@ const { Worker } = require('worker_threads');  // Importa Worker para trabajar e
                 if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
                     val = val.slice(1, -1);
                 }
-                if (process.env[key] === undefined) process.env[key] = val;
+                const cur = process.env[key];
+                const vacio = cur === undefined || cur === null || String(cur).trim() === '';
+                if (vacio) process.env[key] = val;
             }
             break;
         } catch (err) {
