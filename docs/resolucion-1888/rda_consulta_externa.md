@@ -19,18 +19,21 @@ Misma estructura que RDA Paciente, con IDs prefijados `RDACE_` en lugar de `RDA_
 | 1 | Código Prestador | `RDACE_CodigoPrestador` |
 | 2 | Código Admin. Plan Beneficios | `RDACE_CodigoAdminPlanBeneficios` |
 | 3 | Nombre Admin. Plan Beneficios | `RDACE_NombreAdminPlanBeneficios` |
-| 4 | Fecha/Hora Inicio Atención | `RDACE_FechaHoraInicioAtencion` |
-| 5 | Fecha/Hora Fin Atención | `RDACE_FechaHoraFinAtencion` |
-| 5b | Modalidad tecnología salud (mismo catálogo que RIPS) | `RDACE_IdModalidadAtencion` |
-| 5c | Grupo servicios (mismo catálogo que RIPS) | `RDACE_IdGrupoServicios` |
-| 5d | Vía ingreso usuario (RIPS) | `RDACE_IdViaIngresoUsuario` |
-| 5e | Causa motivo atención (RIPS) | `RDACE_IdCausaMotivoAtencion` |
-| 6 | Tipo Doc Profesional | `RDACE_TipoDocProfesional` |
-| 7 | Número Doc Profesional | `RDACE_NumDocProfesional` |
-| 8 | Diag. Ingreso CIE-11 Código | `RDACE_DiagnosticoIngresoCIE11Codigo` |
-| 9 | Diag. Ingreso CIE-11 Término | `RDACE_DiagnosticoIngresoCIE11Termino` |
-| 10 | Tipo Alergia | `RDACE_TipoAlergia` |
-| 11-18 | Antecedentes (Salud, Familiares, Farmacológicos) | `RDACE_Antecedente*`, `RDACE_Medicamento*` |
+| 4 | Fecha de atención (mismo día para inicio/fin) | `RDACE_FechaAtencion` |
+| 5 | Hora inicio atención | `RDACE_HoraInicioAtencion` |
+| 6 | Hora fin atención | `RDACE_HoraFinAtencion` |
+| 7 | Modalidad tecnología salud (mismo catálogo que RIPS) | `RDACE_IdModalidadAtencion` |
+| 8 | Grupo servicios (mismo catálogo que RIPS) | `RDACE_IdGrupoServicios` |
+| 9 | Vía ingreso usuario (RIPS) | `RDACE_IdViaIngresoUsuario` |
+| 10 | Causa motivo atención (RIPS) | `RDACE_IdCausaMotivoAtencion` |
+| 11 | Tipo Doc Profesional | `RDACE_TipoDocProfesional` |
+| 12 | Número Doc Profesional | `RDACE_NumDocProfesional` |
+| 13 | Diag. Ingreso CIE-11 Código | `RDACE_DiagnosticoIngresoCIE11Codigo` |
+| 14 | Diag. Ingreso CIE-11 Término | `RDACE_DiagnosticoIngresoCIE11Termino` |
+| 15 | Tipo Alergia | `RDACE_TipoAlergia` |
+| 16-23 | Antecedentes (Salud, Familiares, Farmacológicos) | `RDACE_Antecedente*`, `RDACE_Medicamento*` |
+
+> Al guardar, el cliente compone `FechaHoraInicioAtencion` y `FechaHoraFinAtencion` como en RDA Paciente.
 
 ---
 
