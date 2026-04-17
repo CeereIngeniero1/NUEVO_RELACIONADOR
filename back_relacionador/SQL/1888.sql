@@ -386,7 +386,7 @@ CREATE PROCEDURE  sp_Paciente_Guardar
 	@ComunidadEtnica NVARCHAR(50) = NULL,	-- Entidad1888
 	@IdDiscapacidad INT,	-- Entidad1888
 	@Telefono NVARCHAR(50) = NULL,	-- EntidadII
-	@IdOcupacion INT,	-- EntidadVI
+	@IdOcupacion INT	-- EntidadVI
 
 
 AS
@@ -1555,3 +1555,42 @@ ALTER TABLE [dbo].[Ocupacion 1888] ADD  DEFAULT ((7)) FOR [Id Estado]
 GO
 
 
+-- -----------------------------------------------------------------------------
+-- RDA Paciente: marcas de envío exitoso a IHCE (ver RdaPacienteRoutes EnviarIHCE)
+--   [Enviado]          = 1 si el envío fue en ambiente producción
+--   [Enviado pruebas]  = 1 si el envío fue en sandbox / preproducción
+-- -----------------------------------------------------------------------------
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND name = N'Enviado'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA] ADD [Enviado] INT NOT NULL CONSTRAINT [DF_EERDA_Enviado] DEFAULT (0);
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND name = N'Enviado pruebas'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA] ADD [Enviado pruebas] INT NOT NULL CONSTRAINT [DF_EERDA_EnviadoPruebas] DEFAULT (0);
+GO
+
+-- -----------------------------------------------------------------------------
+-- RDA Consulta Externa: marcas de envío exitoso a IHCE (ver RdaConsultaExternaRoutes EnviarIHCE)
+-- -----------------------------------------------------------------------------
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U')
+      AND name = N'Enviado'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado] INT NOT NULL CONSTRAINT [DF_EERDACE_Enviado] DEFAULT (0);
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U')
+      AND name = N'Enviado pruebas'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado pruebas] INT NOT NULL CONSTRAINT [DF_EERDACE_EnviadoPruebas] DEFAULT (0);
+GO

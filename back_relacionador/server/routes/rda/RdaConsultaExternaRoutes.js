@@ -1837,6 +1837,30 @@ router.post(
             body: sendBody,
         });
 
+        const statusOk = sendResp.status >= 200 && sendResp.status < 300;
+        if (statusOk) {
+            try {
+                const pool = await poolPromise;
+                const isProd = envPrefix === 'IHCE_PROD_';
+                const setSql = isProd
+                    ? `UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
+                       SET [Enviado] = 1
+                       WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @IdEvaluacionEntidadRDACE`
+                    : `UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
+                       SET [Enviado pruebas] = 1
+                       WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @IdEvaluacionEntidadRDACE`;
+                await pool
+                    .request()
+                    .input('IdEvaluacionEntidadRDACE', sql.Int, id)
+                    .query(setSql);
+            } catch (dbErr) {
+                console.error(
+                    '❌ [RDACE] IHCE aceptó el envío pero no se pudo marcar envío en BD:',
+                    dbErr && dbErr.message ? dbErr.message : dbErr
+                );
+            }
+        }
+
         return res.status(sendResp.status || 502).send(sendResp.body || '');
 
     } catch (error) {

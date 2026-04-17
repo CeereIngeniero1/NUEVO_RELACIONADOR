@@ -7,7 +7,7 @@
  *  POST  /EvaluacionEntidadRDA/AntecedentesFamiliares  — tabla hija
  *  POST  /EvaluacionEntidadRDA/AntecedentesFarmacologicos — tabla hija
  *  POST  /RdaPaciente/FhirBundle                       — construcción Bundle FHIR
- *  POST  /RdaPaciente/EnviarIHCE (+ variantes)         — envío a IHCE (sandbox/prod)
+ *  POST  /RdaPaciente/EnviarIHCE (+ variantes)         — envío a IHCE (sandbox/prod); OK IHCE → [Enviado pruebas] o [Enviado] en BD
  *
  * Montaje en el router principal:
  *   router.use(require('./rda/RdaPacienteRoutes'));
@@ -1846,6 +1846,30 @@ router.post(
             },
             body: sendBody,
         });
+
+        const statusOk = sendResp.status >= 200 && sendResp.status < 300;
+        if (statusOk) {
+            try {
+                const pool = await poolPromise;
+                const isProd = envPrefix === 'IHCE_PROD_';
+                const setSql = isProd
+                    ? `UPDATE [dbo].[Evaluacion Entidad RDA]
+                       SET [Enviado] = 1
+                       WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA`
+                    : `UPDATE [dbo].[Evaluacion Entidad RDA]
+                       SET [Enviado pruebas] = 1
+                       WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA`;
+                await pool
+                    .request()
+                    .input('IdEvaluacionEntidadRDA', sql.Int, id)
+                    .query(setSql);
+            } catch (dbErr) {
+                console.error(
+                    '❌ [RDA] IHCE aceptó el envío pero no se pudo marcar envío en BD:',
+                    dbErr && dbErr.message ? dbErr.message : dbErr
+                );
+            }
+        }
 
         // Devolver lo que IHCE responde (útil para depurar OperationOutcome)
         return res.status(sendResp.status || 502).send(sendResp.body || '');

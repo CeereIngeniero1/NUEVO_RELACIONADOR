@@ -138,6 +138,24 @@
                             </select>
                             <button class="btn btn-success btn-sm fw-bolder w-100 mt-1"
                                 id="BotonConsultar">Consultar</button>
+                            <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
+                                <label for="inputBuscarDocumentoPaciente" class="mb-1 small fw-semibold">Buscar por
+                                    documento</label>
+                                <div class="input-group input-group-sm mb-1">
+                                    <input type="text" class="form-control border-secondary"
+                                        id="inputBuscarDocumentoPaciente" placeholder="Número de documento"
+                                        autocomplete="off" spellcheck="false">
+                                    <button class="btn btn-outline-primary fw-semibold" type="button"
+                                        id="btnBuscarPacientePorDocumento" title="Cargar paciente sin usar la lista de HC">
+                                        Buscar
+                                    </button>
+                                </div>
+                                <p class="small text-muted mb-0 lh-sm">
+                                    Usa el directorio de usuarios (no requiere que el paciente aparezca al pulsar Cargar en
+                                    el modal). Las fechas del modal <strong>Consultar</strong> definen el rango para
+                                    historias; si están vacías, se aplica el mes en curso hasta hoy.
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Buscar facturas y presupuestos (Checkboxes) -->
@@ -1116,13 +1134,13 @@
                                     <div class="row g-2">
                                         <!-- Código Prestador y Administrador Plan Beneficios -->
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Código Prestador:</label>
+                                            <label class="fw-bold">Código Prestador<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDA_CodigoPrestador">
                                                 <option value="">Seleccionar Prestador</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Administrador Plan Beneficios:</label>
+                                            <label class="fw-bold">Administrador Plan Beneficios<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDA_CodigoAdminPlanBeneficios">
                                                 <option value="">Seleccionar Administrador</option>
                                             </select>
@@ -1154,7 +1172,7 @@
                                         <!-- Profesional de Salud -->
                                         <div class="col-md-4">
                                             <label class="fw-bold">Profesional de Salud que
-                                                Atiende:</label>
+                                                Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
                                                 <select class="form-select border border-secondary"
                                                     id="RDA_TipoDocProfesional" style="max-width: 100px;">
@@ -1382,13 +1400,13 @@
                                     <div class="row g-2">
                                         <!-- Código Prestador y Administrador Plan Beneficios -->
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Código Prestador:</label>
+                                            <label class="fw-bold">Código Prestador<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_CodigoPrestador">
                                                 <option value="">Seleccionar Prestador</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="fw-bold">Administrador Plan Beneficios:</label>
+                                            <label class="fw-bold">Administrador Plan Beneficios<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_CodigoAdminPlanBeneficios">
                                                 <option value="">Seleccionar Administrador</option>
                                             </select>
@@ -1420,7 +1438,7 @@
                                         <!-- Profesional de Salud -->
                                         <div class="col-md-4">
                                             <label class="fw-bold">Profesional de Salud que
-                                                Atiende:</label>
+                                                Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
                                                 <!-- <select class="form-select border border-secondary"
                                                     id="RDACE_TipoDocProfesional" style="max-width: 90px;">
@@ -2240,6 +2258,400 @@
     })();
 </script>
 
+<!-- RDA — Envío IHCE compartido (Paciente + Consulta Externa) -->
+<script>
+(function (global) {
+    'use strict';
+
+    function ambienteBody(val) {
+        return val === 'prod' ? 'prod' : 'sandbox';
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    /** Panel de texto dentro de SweetAlert2 (tema oscuro del CDN): evita bg-light + texto claro ilegible */
+    var RDA_IHCE_SWAL_LABEL_STYLE = 'color:rgba(241,245,249,0.78);';
+    var RDA_IHCE_SWAL_PANEL_STYLE =
+        'max-height:220px;overflow:auto;text-align:left;font-size:0.875rem;' +
+        'background:#1e293b;color:#f1f5f9;border:1px solid rgba(148,163,184,0.35);' +
+        'border-radius:0.375rem;padding:0.65rem;line-height:1.45;';
+    var RDA_IHCE_SWAL_PRE_STYLE =
+        'text-align:left;font-size:0.72rem;max-height:70vh;overflow:auto;white-space:pre-wrap;' +
+        'background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,0.25);' +
+        'border-radius:0.35rem;padding:0.75rem;';
+
+    /** Texto legible a partir de la respuesta IHCE (APIM, OperationOutcome, OAuth, etc.) */
+    function extractIhceMessage(data) {
+        if (data == null) return '';
+        if (typeof data === 'string') return data.trim();
+        if (typeof data !== 'object') return String(data);
+        if (typeof data.message === 'string' && data.message.trim()) return data.message.trim();
+        if (typeof data.error === 'string' && data.error.trim()) return data.error.trim();
+        if (typeof data.error_description === 'string' && data.error_description.trim()) {
+            return data.error_description.trim();
+        }
+        if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue)) {
+            var parts = data.issue.map(function (i) {
+                if (!i) return '';
+                if (i.diagnostics) return String(i.diagnostics);
+                if (i.details && i.details.text) return String(i.details.text);
+                if (i.code && i.code.display) return String(i.code.display);
+                return '';
+            }).filter(Boolean);
+            if (parts.length) return parts.join('\n');
+        }
+        if (typeof data.resourceType === 'string' && data.resourceType.trim()) {
+            var rt = data.resourceType.trim();
+            if (rt === 'Bundle' && Array.isArray(data.entry)) {
+                var outcomes = [];
+                var hasFatal = false;
+                var statuses = [];
+                data.entry.forEach(function (ent) {
+                    if (!ent) return;
+                    if (ent.response && ent.response.status) {
+                        statuses.push(String(ent.response.status).trim());
+                        var sn = parseInt(String(ent.response.status), 10);
+                        if (sn >= 400) hasFatal = true;
+                    }
+                    var res = ent.resource;
+                    if (res && res.resourceType === 'OperationOutcome' && Array.isArray(res.issue)) {
+                        res.issue.forEach(function (i) {
+                            if (!i) return;
+                            var sev = String(i.severity || '').toLowerCase();
+                            var txt =
+                                (i.diagnostics && String(i.diagnostics)) ||
+                                (i.details && i.details.text && String(i.details.text)) ||
+                                '';
+                            if (!txt) return;
+                            if (sev === 'error' || sev === 'fatal') hasFatal = true;
+                            var label =
+                                sev === 'error'
+                                    ? 'Error'
+                                    : sev === 'fatal'
+                                      ? 'Fatal'
+                                      : sev === 'warning'
+                                        ? 'Advertencia'
+                                        : sev || 'Aviso';
+                            outcomes.push(label + ': ' + txt);
+                        });
+                    }
+                });
+                var lines = [];
+                lines.push(
+                    'IHCE devolvió un Bundle FHIR (' +
+                    (data.type ? 'tipo «' + data.type + '»' : 'sin tipo') +
+                    ', ' +
+                    data.entry.length +
+                    ' entrada(s)). El JSON es válido.'
+                );
+                if (statuses.length) {
+                    var okN = statuses.filter(function (s) {
+                        var n = parseInt(s, 10);
+                        return n >= 200 && n < 400;
+                    }).length;
+                    lines.push(
+                        'Estados por recurso: ' +
+                            statuses.slice(0, 14).join(', ') +
+                            (statuses.length > 14 ? '…' : '') +
+                            ' → ' +
+                            okN +
+                            '/' +
+                            statuses.length +
+                            ' con código de éxito (2xx/3xx).'
+                    );
+                }
+                if (outcomes.length) {
+                    lines.push('');
+                    lines.push('Validación MPI / IHCE (OperationOutcome dentro del Bundle):');
+                    outcomes.forEach(function (o) {
+                        lines.push('• ' + o);
+                    });
+                    if (!hasFatal) {
+                        lines.push('');
+                        lines.push(
+                            'Son advertencias (warning), no rechazo: los recursos con 201/200 quedaron registrados. Si quiere eliminar los avisos MPI003, revise que las extensiones de apellidos del Patient coincidan exactamente con lo esperado por IHCE.'
+                        );
+                    }
+                } else {
+                    lines.push('No hay OperationOutcome en el Bundle. Detalle completo: «Ver JSON de la respuesta».');
+                }
+                return lines.join('\n');
+            }
+            if (rt === 'Parameters' && Array.isArray(data.parameter)) {
+                var j;
+                for (j = 0; j < data.parameter.length; j += 1) {
+                    var par = data.parameter[j];
+                    if (par && par.name === 'message' && par.valueString) return String(par.valueString);
+                }
+            }
+            return (
+                'IHCE respondió con un recurso FHIR tipo «' +
+                rt +
+                '». Use «Ver JSON de la respuesta» para ver el cuerpo completo.'
+            );
+        }
+        var keys = Object.keys(data);
+        if (keys.length === 0) {
+            return 'La API respondió con un objeto JSON vacío (operación aceptada). Detalle en «Ver JSON de la respuesta».';
+        }
+        if (typeof data.raw === 'string' && data.raw.trim()) return data.raw.trim().slice(0, 4000);
+        return '';
+    }
+
+    /**
+     * @param {Response} resp
+     * @param {object} data — cuerpo parseado (o { raw })
+     * @param {'sandbox'|'prod'} ambienteUi — ambiente elegido en la UI
+     * @param {{ id: number, kind: 'paciente'|'rdace' }|null} bundleCtx — para «Ver Bundle FHIR enviado» (solo sandbox)
+     */
+    function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
+        var prettyJson = JSON.stringify(data, null, 2);
+        var isSandbox = ambienteUi !== 'prod';
+
+        function showJsonRespuesta() {
+            Swal.fire({
+                title: 'Respuesta IHCE (JSON)',
+                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(prettyJson) + '</pre>',
+                width: 'min(95vw, 720px)',
+                confirmButtonText: 'Cerrar',
+            });
+        }
+
+        if (isSandbox) {
+            var msg = extractIhceMessage(data);
+            if (!msg) {
+                msg = resp.ok
+                    ? 'El envío a IHCE (sandbox) finalizó correctamente. Use los botones de abajo para ver JSON de respuesta o el Bundle enviado.'
+                    : 'IHCE respondió con error HTTP ' + resp.status + '. Use «Ver JSON de la respuesta» para el detalle técnico.';
+            }
+            var icon = resp.ok ? 'success' : 'error';
+            var bundleBtnHtml =
+                bundleCtx && bundleCtx.id != null
+                    ? '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-bundle-fhir">Ver Bundle FHIR enviado</button></p>'
+                    : '';
+            Swal.fire({
+                icon: icon,
+                title: resp.ok ? 'IHCE — Sandbox' : 'IHCE — Sandbox (error)',
+                html:
+                    '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
+                    '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +
+                    escapeHtml(msg).replace(/\n/g, '<br>') +
+                    '</div>' +
+                    bundleBtnHtml,
+                confirmButtonText: 'Cerrar',
+                showDenyButton: true,
+                denyButtonText: 'Ver JSON de la respuesta',
+                denyButtonColor: '#6c757d',
+                didOpen: function (popup) {
+                    var b = popup.querySelector('#rda-ihce-btn-bundle-fhir');
+                    if (!b || !bundleCtx) return;
+                    b.addEventListener('click', function () {
+                        var amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
+                        var url =
+                            bundleCtx.kind === 'rdace'
+                                ? global.getApiBaseUrl() + '/apiV3/RdaConsultaExterna/JsonEnviarIHCE'
+                                : global.getApiBaseUrl() + '/apiV3/RdaPaciente/JsonEnviarIHCE';
+                        var body =
+                            bundleCtx.kind === 'rdace'
+                                ? JSON.stringify({
+                                      IdEvaluacionEntidadRDACE: bundleCtx.id,
+                                      ambiente: amb,
+                                  })
+                                : JSON.stringify({
+                                      IdEvaluacionEntidadRDA: bundleCtx.id,
+                                      ambiente: amb,
+                                  });
+                        Swal.fire({
+                            title: 'Cargando Bundle…',
+                            allowOutsideClick: false,
+                            didOpen: function () {
+                                Swal.showLoading();
+                            },
+                        });
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: body,
+                        })
+                            .then(function (r) {
+                                return r.text().then(function (t) {
+                                    return { ok: r.ok, status: r.status, text: t };
+                                });
+                            })
+                            .then(function (out) {
+                                var parsed;
+                                try {
+                                    parsed = JSON.parse(out.text);
+                                } catch (e) {
+                                    parsed = { raw: out.text };
+                                }
+                                var bundleStr = JSON.stringify(parsed, null, 2);
+                                Swal.fire({
+                                    title: 'Bundle FHIR generado (mismo que se envió)',
+                                    html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.7rem;">' + escapeHtml(bundleStr) + '</pre>',
+                                    width: 'min(95vw, 800px)',
+                                    confirmButtonText: 'Cerrar',
+                                });
+                            })
+                            .catch(function (err) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No se pudo cargar el Bundle',
+                                    text: err.message || String(err),
+                                });
+                            });
+                    });
+                },
+            }).then(function (r) {
+                if (r.isDenied) {
+                    showJsonRespuesta();
+                }
+            });
+            return;
+        }
+
+        if (resp.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Enviado a IHCE (producción)',
+                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.75rem;max-height:300px;">' + escapeHtml(prettyJson) + '</pre>',
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error IHCE (' + resp.status + ')',
+                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.75rem;max-height:300px;">' + escapeHtml(prettyJson) + '</pre>',
+            });
+        }
+    }
+
+    /**
+     * @param {number} id - IdEvaluacionEntidadRDACE
+     * @param {{ ambiente?: string, manageButton?: HTMLElement|null, showSwal?: boolean }} [opts]
+     */
+    async function enviarIhceRdace(id, opts) {
+        opts = opts || {};
+        const ambiente = ambienteBody(opts.ambiente || 'sandbox');
+        const btn = opts.manageButton || null;
+        const showSwal = opts.showSwal !== false;
+        const textoOrig = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+        }
+        try {
+            const resp = await fetch(global.getApiBaseUrl() + '/apiV3/RdaConsultaExterna/EnviarIHCE', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ IdEvaluacionEntidadRDACE: id, ambiente: ambiente }),
+            });
+            const texto = await resp.text();
+            let data = {};
+            try { data = JSON.parse(texto); } catch (e) { data = { raw: texto }; }
+            if (showSwal) {
+                swalRespuestaIhce(resp, data, ambiente, { id: id, kind: 'rdace' });
+            }
+            return { ok: resp.ok, status: resp.status, data: data };
+        } catch (err) {
+            if (showSwal) {
+                Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
+            }
+            throw err;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = textoOrig;
+            }
+        }
+    }
+
+    /**
+     * @param {number} id - IdEvaluacionEntidadRDA
+     * @param {{ ambiente?: string, manageButton?: HTMLElement|null, showSwal?: boolean }} [opts]
+     */
+    async function enviarIhcePaciente(id, opts) {
+        opts = opts || {};
+        const ambiente = ambienteBody(opts.ambiente || 'sandbox');
+        const btn = opts.manageButton || null;
+        const showSwal = opts.showSwal !== false;
+        const textoOrig = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+        }
+        try {
+            const resp = await fetch(global.getApiBaseUrl() + '/apiV3/RdaPaciente/EnviarIHCE', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ IdEvaluacionEntidadRDA: id, ambiente: ambiente }),
+            });
+            const texto = await resp.text();
+            let data = {};
+            try { data = JSON.parse(texto); } catch (e) { data = { raw: texto }; }
+            if (showSwal) {
+                swalRespuestaIhce(resp, data, ambiente, { id: id, kind: 'paciente' });
+            }
+            return { ok: resp.ok, status: resp.status, data: data };
+        } catch (err) {
+            if (showSwal) {
+                Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
+            }
+            throw err;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = textoOrig;
+            }
+        }
+    }
+
+    /**
+     * Tras guardar: ofrece envío inmediato a IHCE (sandbox / prod).
+     * @param {string} titulo
+     * @param {string} htmlResumen - HTML seguro (solo datos propios de la app)
+     * @param {(ambiente: string) => Promise<unknown>} enviarFn - recibe 'sandbox' | 'prod'
+     */
+    function rdaOfrecerEnvioIhce(titulo, htmlResumen, enviarFn) {
+        return Swal.fire({
+            icon: 'success',
+            title: titulo,
+            html:
+                '<div class="text-start">' + htmlResumen + '</div>' +
+                '<hr class="my-2">' +
+                '<p class="small text-muted mb-2">¿Desea enviar este documento al Ministerio (IHCE) ahora?</p>' +
+                '<div class="text-start">' +
+                '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="sandbox" checked> Sandbox (pruebas)</label>' +
+                '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod"> Producción</label>' +
+                '</div>',
+            showDenyButton: true,
+            denyButtonText: 'Solo cerrar',
+            confirmButtonText: 'Enviar a Ministerio (IHCE)',
+            preConfirm: function () {
+                var el = Swal.getPopup().querySelector('input[name="swalRdaAmbIhce"]:checked');
+                return el ? el.value : 'sandbox';
+            },
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                var raw = result.value;
+                var amb = raw === 'prod' ? 'prod' : 'sandbox';
+                return enviarFn(amb);
+            }
+        });
+    }
+
+    global.enviarIhceRdace = enviarIhceRdace;
+    global.enviarIhcePaciente = enviarIhcePaciente;
+    global.rdaOfrecerEnvioIhce = rdaOfrecerEnvioIhce;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+
 <!-- RDA PACIENTE — Guardar -->
 <script>
 (function () {
@@ -2407,12 +2819,11 @@
                 if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Error en Antecedentes Farmacológicos'); }
             }
 
-            Swal.fire({
-                icon: 'success',
-                title: 'RDA Paciente guardado',
-                html: `<b>ID Evaluación:</b> ${idRDA}<br>Antecedentes de salud: ${antSalud.length} | Familiares: ${antFam.length} | Medicamentos: ${medic.length}`,
-                timer: 4000,
-                timerProgressBar: true
+            const resumenPac =
+                '<b>ID Evaluación:</b> ' + idRDA + '<br>' +
+                'Antecedentes de salud: ' + antSalud.length + ' | Familiares: ' + antFam.length + ' | Medicamentos: ' + medic.length;
+            await window.rdaOfrecerEnvioIhce('RDA Paciente guardado', resumenPac, function (ambiente) {
+                return window.enviarIhcePaciente(idRDA, { ambiente: ambiente });
             });
 
         } catch (error) {
@@ -2455,38 +2866,28 @@
             return;
         }
         const btn = document.getElementById('RDACE_BtnEnviarIHCE');
-        const textoOrig = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
-        const servidor = localStorage.getItem('NombreEquipoServidor') || 'localhost';
-        try {
-            const resp = await fetch(`${getApiBaseUrl()}/apiV3/RdaConsultaExterna/EnviarIHCE`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ IdEvaluacionEntidadRDACE: _lastIdRDACE })
-            });
-            const texto = await resp.text();
-            let data = {};
-            try { data = JSON.parse(texto); } catch (e) { data = { raw: texto }; }
-            if (resp.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Enviado a IHCE',
-                    html: `<pre style="text-align:left;font-size:0.75rem;max-height:300px;overflow:auto">${JSON.stringify(data, null, 2)}</pre>`,
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: `Error IHCE (${resp.status})`,
-                    html: `<pre style="text-align:left;font-size:0.75rem;max-height:300px;overflow:auto">${JSON.stringify(data, null, 2)}</pre>`,
-                });
-            }
-        } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = textoOrig;
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Enviar a Ministerio (IHCE)',
+            html:
+                '<p class="small text-start mb-2">Seleccione el ambiente y confirme el envío del RDACE ID <b>' + _lastIdRDACE + '</b>.</p>' +
+                '<div class="text-start">' +
+                '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="sandbox" checked> Sandbox (pruebas)</label>' +
+                '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod"> Producción</label>' +
+                '</div>',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar',
+            confirmButtonText: 'Enviar',
+            preConfirm: function () {
+                var el = Swal.getPopup().querySelector('input[name="swalRdaAmbIhceBtn"]:checked');
+                return el ? el.value : 'sandbox';
+            },
+        });
+        if (!result.isConfirmed) {
+            return;
         }
+        const ambiente = result.value === 'prod' ? 'prod' : 'sandbox';
+        await window.enviarIhceRdace(_lastIdRDACE, { ambiente: ambiente, manageButton: btn });
     });
 
     async function guardarRDACE() {
@@ -2653,15 +3054,13 @@
             _lastIdRDACE = idCE;
             const btnEnviar = document.getElementById('RDACE_BtnEnviarIHCE');
             if (btnEnviar) { btnEnviar.disabled = false; btnEnviar.title = `Enviar RDACE ID ${idCE} al Ministerio`; }
-            Swal.fire({
-                icon: 'success',
-                title: 'RDA Consulta Externa guardado',
-                html: `<b>ID RDACE:</b> ${idCE}<br>
-                    Ant. salud: ${antSalud.length} | Familiares: ${antFam.length} | Farmacológicos: ${medic.length}<br>
-                    Diag. relacionados: ${diags.length} | Prescr. med: ${presMed.length} | Proc: ${presProc.length} | Otras tec: ${otras.length}<br>
-                    <small class="text-muted">Use el botón <b>Enviar a Ministerio (IHCE)</b> para enviar al Ministerio.</small>`,
-                timer: 6000,
-                timerProgressBar: true
+            const resumenCe =
+                '<b>ID RDACE:</b> ' + idCE + '<br>' +
+                'Ant. salud: ' + antSalud.length + ' | Familiares: ' + antFam.length + ' | Farmacológicos: ' + medic.length + '<br>' +
+                'Diag. relacionados: ' + diags.length + ' | Prescr. med: ' + presMed.length + ' | Proc: ' + presProc.length + ' | Otras tec: ' + otras.length + '<br>' +
+                '<small class="text-muted">También puede usar el botón <b>Enviar a Ministerio (IHCE)</b> más abajo para reintentar.</small>';
+            await window.rdaOfrecerEnvioIhce('RDA Consulta Externa guardado', resumenCe, function (ambiente) {
+                return window.enviarIhceRdace(idCE, { ambiente: ambiente });
             });
         } catch (error) {
             console.error('[RDACE] Error al guardar:', error);

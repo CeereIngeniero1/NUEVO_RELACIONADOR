@@ -270,6 +270,132 @@ BotonCargarPacientesConHCSinRIPS.addEventListener("click", async () => {
   await Cargar();
 });
 
+/** Si faltan fechas del modal Consultar, asigna primer día del mes actual → hoy (YYYY-MM-DD). Devuelve true si aplicó defaults. */
+function ensureFechasConsultaDefault() {
+  const ini = document.getElementById("FechaInicioConsulta");
+  const fin = document.getElementById("FechaFinConsulta");
+  if (!ini || !fin) return false;
+  if (ini.value && fin.value) return false;
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const toYmd = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  if (!ini.value) ini.value = toYmd(first);
+  if (!fin.value) fin.value = toYmd(now);
+  return true;
+}
+
+const btnBuscarPacientePorDocumento = document.getElementById(
+  "btnBuscarPacientePorDocumento"
+);
+const inputBuscarDocumentoPaciente = document.getElementById(
+  "inputBuscarDocumentoPaciente"
+);
+
+async function buscarPacientePorDocumentoManual() {
+  const raw = inputBuscarDocumentoPaciente
+    ? inputBuscarDocumentoPaciente.value
+    : "";
+  const doc = String(raw || "").trim();
+  if (!doc) {
+    Swal.fire({
+      icon: "warning",
+      title: "Documento",
+      text: "Ingrese el documento del paciente.",
+    });
+    return;
+  }
+
+  const usoFechasDefault = ensureFechasConsultaDefault();
+  if (usoFechasDefault) {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "info",
+      title: "Fechas",
+      text: "Se aplicó el rango del mes en curso hasta hoy para buscar historias. Ajuste en Consultar si lo necesita.",
+      showConfirmButton: false,
+      timer: 4500,
+      timerProgressBar: true,
+    });
+  }
+
+  try {
+    const url = `${getApiBaseUrl()}/apiV3/DatosdeUsuarioHC/${encodeURIComponent(
+      doc
+    )}`;
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `No se pudo consultar el paciente (${resp.status}).`,
+      });
+      return;
+    }
+    const data = await resp.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sin datos",
+        text: "No se encontró el paciente en el directorio de usuarios para ese documento.",
+      });
+      return;
+    }
+
+    const row = data[0];
+    const docVal = String(row.DocumentoPaciente != null ? row.DocumentoPaciente : doc).trim();
+    const nombre =
+      row.NombreCompletoPaciente != null && String(row.NombreCompletoPaciente).trim()
+        ? String(row.NombreCompletoPaciente).trim()
+        : docVal;
+
+    const listaHC = document.getElementById("listaHC");
+    let existe = false;
+    for (let i = 0; i < listaHC.options.length; i += 1) {
+      if (listaHC.options[i].value === docVal) {
+        listaHC.options[i].textContent = nombre;
+        existe = true;
+        break;
+      }
+    }
+    if (!existe) {
+      const opt = document.createElement("option");
+      opt.value = docVal;
+      opt.textContent = nombre;
+      listaHC.appendChild(opt);
+    }
+
+    listaHC.value = docVal;
+    listaHC.dispatchEvent(new Event("change"));
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: err && err.message ? err.message : String(err),
+    });
+  }
+}
+
+if (btnBuscarPacientePorDocumento) {
+  btnBuscarPacientePorDocumento.addEventListener("click", () => {
+    buscarPacientePorDocumentoManual();
+  });
+}
+if (inputBuscarDocumentoPaciente) {
+  inputBuscarDocumentoPaciente.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      buscarPacientePorDocumentoManual();
+    }
+  });
+}
+
 async function LlenarSelectDeHistoriasClinicas() {
   // Funcionalidad para el llenado del select de las historias/evoluciones sin RIPS
   const RangoInicio = document.getElementById("FechaInicioConsulta").value;

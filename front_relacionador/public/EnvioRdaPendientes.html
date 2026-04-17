@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envío masivo RDA pendientes — CEERE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="Asignar_RIPS.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="icon" href="images/Logo.png" type="image/x-icon">
+    <script>
+        if (localStorage.getItem('ceere_theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+
+<body class="app-layout">
+
+    <nav class="cr-topbar" id="crTopbar">
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
+            <img src="images/Ceere_logo.png" alt="Logo" class="cr-topbar-logo">
+            <span class="cr-topbar-title">Relacionador RIPS</span>
+            <span class="text-muted d-none d-sm-inline">|</span>
+            <nav class="d-flex align-items-center gap-2 flex-wrap" aria-label="Módulos">
+                <a href="RIPS.html" class="link-secondary text-decoration-none small fw-semibold">Inicio</a>
+                <span class="text-muted small">·</span>
+                <a href="Asignar_RIPS V3.html" class="link-secondary text-decoration-none small fw-semibold">Asignar RIPS</a>
+                <span class="text-muted small">·</span>
+                <span class="small fw-semibold" style="color: var(--color-primary, #007E82);">Envío RDA pendientes</span>
+                <span class="text-muted small">·</span>
+                <a href="Desrelacionar.html" class="link-secondary text-decoration-none small fw-semibold">Desrelacionar</a>
+            </nav>
+        </div>
+        <div class="cr-topbar-right">
+            <div class="cr-topbar-user">
+                <div class="cr-topbar-user-icon">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span id="TopbarUserName">Usuario</span>
+            </div>
+            <button type="button" class="cr-topbar-logout" id="crBtnThemeToggle">
+                <i class="fa-solid fa-moon"></i>
+                <span>Tema Oscuro</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="cr-page-content">
+        <h1 class="cr-page-heading">Envío masivo RDA pendientes</h1>
+        <main class="container-fluid px-0">
+
+            <div class="alert border-0 mb-4" role="alert"
+                style="background: var(--color-primary-light); color: var(--color-text); border-left: 4px solid var(--color-primary) !important;">
+                <div class="d-flex gap-2 align-items-start">
+                    <i class="ri-send-plane-line fs-5" style="color: var(--color-primary);"></i>
+                    <div>
+                        Lista RDA <strong>pendientes</strong> según ambiente: en sandbox filtra por
+                        <code>[Enviado pruebas] = 0</code>; en producción por <code>[Enviado] = 0</code>.
+                        El envío en lote llama al mismo endpoint <strong>EnviarIHCE</strong> que el flujo manual (máx. 50 por solicitud).
+                    </div>
+                </div>
+            </div>
+
+            <div class="cr-card cr-card-left-border mb-4">
+                <div class="cr-card-body">
+                    <h2 class="h6 text-uppercase fw-bold mb-3" style="color: var(--color-text-secondary);">Filtros</h2>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold">Tipo de RDA</label>
+                            <select id="selTipo" class="form-select">
+                                <option value="paciente" selected>RDA Paciente</option>
+                                <option value="ce">RDA Consulta externa</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label for="fechaDesde" class="form-label small fw-semibold">Fecha desde</label>
+                            <input type="date" id="fechaDesde" class="form-control">
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label for="fechaHasta" class="form-label small fw-semibold">Fecha hasta</label>
+                            <input type="date" id="fechaHasta" class="form-control">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label small fw-semibold">Ambiente (pendiente)</label>
+                            <select id="selAmbiente" class="form-select">
+                                <option value="sandbox" selected>Sandbox (pruebas)</option>
+                                <option value="prod">Producción</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+                            <button type="button" id="btnBuscar" class="btn"
+                                style="background: var(--color-primary); color: #fff; border: none;">
+                                <i class="ri-search-line me-1"></i> Buscar
+                            </button>
+                            <button type="button" id="btnEnviar" class="btn btn-outline-secondary" disabled>
+                                <i class="ri-send-plane-2-line me-1"></i> Enviar seleccionados
+                            </button>
+                        </div>
+                    </div>
+                    <div id="envioProgreso" class="small text-muted mt-3 d-none" aria-live="polite"></div>
+                    <div class="progress mt-2 d-none" id="envioBarWrap" style="height: 6px;">
+                        <div class="progress-bar" id="envioBar" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cr-card cr-card-left-border mb-4">
+                <div class="cr-card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h2 class="h6 text-uppercase fw-bold mb-0" style="color: var(--color-text-secondary);">Resultados</h2>
+                        <label class="small mb-0 d-flex align-items-center gap-2">
+                            <input type="checkbox" id="chkTodos" class="form-check-input">
+                            Seleccionar todos
+                        </label>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0" id="tablaPendientes">
+                            <thead class="table-light">
+                                <tr id="theadPaciente">
+                                    <th style="width:2.5rem;"></th>
+                                    <th>Id</th>
+                                    <th>Documento</th>
+                                    <th>Nombre paciente</th>
+                                    <th>Fecha RDA</th>
+                                    <th>Cód. prestador</th>
+                                    <th>Plan beneficios</th>
+                                    <th>Atención</th>
+                                    <th>Resultado</th>
+                                </tr>
+                                <tr id="theadCe" class="d-none">
+                                    <th style="width:2.5rem;"></th>
+                                    <th>Id</th>
+                                    <th>Documento</th>
+                                    <th>Fecha RDA</th>
+                                    <th>Cód. prestador</th>
+                                    <th>Plan beneficios</th>
+                                    <th>Atención</th>
+                                    <th>Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyPendientes">
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/config.js"></script>
+    <script src="/apiConfig.js"></script>
+    <script src="/NombreEquipoServidor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="module">
+        import { initThemeToggle, syncTopbarUserName } from "./shared/shell.js";
+        initThemeToggle();
+        syncTopbarUserName();
+    </script>
+    <script src="EnvioRdaPendientes.js"></script>
+</body>
+
+</html>
