@@ -1153,24 +1153,28 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraInicioAtencion">
+                                                id="RDA_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDA_FechaHoraFinAtencion">
+                                                id="RDA_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDA_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
@@ -1419,24 +1423,28 @@
                                     </div>
 
                                     <div class="row g-2 mt-2">
-                                        <!-- Fecha/Hora inicio y fin de atención -->
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Inicio
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <!-- Fecha de atención + horas inicio/fin (mismo día) -->
+                                        <div class="col-md-3">
+                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraInicioAtencion">
+                                                id="RDACE_FechaAtencion">
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="fw-bold">Fecha y Hora Fin
-                                                Atención:</label>
-                                            <input type="datetime-local"
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora inicio:</label>
+                                            <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_FechaHoraFinAtencion">
+                                                id="RDACE_HoraInicioAtencion">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="fw-bold">Hora fin:</label>
+                                            <input type="time"
+                                                class="form-control-sm border border-secondary w-100"
+                                                id="RDACE_HoraFinAtencion">
                                         </div>
 
                                         <!-- Profesional de Salud -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-5">
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
@@ -2652,6 +2660,48 @@
 })(typeof window !== 'undefined' ? window : this);
 </script>
 
+<!-- RDA / RDACE: fecha de atención + horas → FechaHoraInicio/Fin (API) -->
+<script>
+(function (g) {
+    'use strict';
+    function normTime(t) {
+        if (!t) return '';
+        var s = String(t).trim();
+        return s.length >= 5 ? s.slice(0, 5) : s;
+    }
+    /** @param {string} prefix "RDA_" o "RDACE_" */
+    g.rdaParseFechaHorasAtencion = function (prefix) {
+        var fecha = (document.getElementById(prefix + 'FechaAtencion') || {}).value;
+        var hi = (document.getElementById(prefix + 'HoraInicioAtencion') || {}).value;
+        var hf = (document.getElementById(prefix + 'HoraFinAtencion') || {}).value;
+        fecha = fecha ? String(fecha).trim() : '';
+        hi = hi ? String(hi).trim() : '';
+        hf = hf ? String(hf).trim() : '';
+        var parts = (fecha ? 1 : 0) + (hi ? 1 : 0) + (hf ? 1 : 0);
+        if (parts === 0) return { ok: true, inicio: null, fin: null };
+        if (parts < 3) {
+            return {
+                ok: false,
+                error: 'Indique la fecha de atención, hora de inicio y hora de fin, o deje los tres campos vacíos.'
+            };
+        }
+        var t1 = normTime(hi);
+        var t2 = normTime(hf);
+        var inicioStr = fecha + 'T' + t1;
+        var finStr = fecha + 'T' + t2;
+        var d1 = new Date(inicioStr);
+        var d2 = new Date(finStr);
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+            return { ok: false, error: 'Fecha u hora no válida.' };
+        }
+        if (d2 <= d1) {
+            return { ok: false, error: 'La hora de fin debe ser posterior a la hora de inicio.' };
+        }
+        return { ok: true, inicio: inicioStr, fin: finStr };
+    };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+
 <!-- RDA PACIENTE — Guardar -->
 <script>
 (function () {
@@ -2686,6 +2736,12 @@
         }
         if (!rdaIdGrp) {
             Swal.fire({ icon: 'warning', title: 'Grupo de servicios requerido', text: 'Seleccione el grupo de servicios (RDA / FHIR).' });
+            return;
+        }
+
+        const fhRda = window.rdaParseFechaHorasAtencion('RDA_');
+        if (!fhRda.ok) {
+            Swal.fire({ icon: 'warning', title: 'Fecha y horas de atención', text: fhRda.error });
             return;
         }
 
@@ -2739,8 +2795,8 @@
             CodigoPrestador:                document.getElementById('RDA_CodigoPrestador')?.value                         || null,
             CodigoAdminPlanBeneficios:      document.getElementById('RDA_CodigoAdminPlanBeneficios')?.value               || null,
             NombreAdminPlanBeneficios:      document.getElementById('RDA_NombreAdminPlanBeneficios')?.value               || null,
-            FechaHoraInicioAtencion:        document.getElementById('RDA_FechaHoraInicioAtencion')?.value                 || null,
-            FechaHoraFinAtencion:           document.getElementById('RDA_FechaHoraFinAtencion')?.value                    || null,
+            FechaHoraInicioAtencion:        fhRda.inicio,
+            FechaHoraFinAtencion:           fhRda.fin,
             TipoDocProfesional:             document.getElementById('RDA_TipoDocProfesional')?.value                      || null,
             NumDocProfesional:              document.getElementById('RDA_NumDocProfesional')?.value                       || null,
             DiagnosticoIngresoCIE11Codigo:  document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value           || null,
@@ -2908,14 +2964,20 @@
             cie11TerminoCE = document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null;
         }
 
+        const fhRdace = window.rdaParseFechaHorasAtencion('RDACE_');
+        if (!fhRdace.ok) {
+            Swal.fire({ icon: 'warning', title: 'Fecha y horas de atención', text: fhRdace.error });
+            return;
+        }
+
         const payload = {
             DocumentoEntidad: documento,
             FechaRDA: ahora,
             CodigoPrestador: document.getElementById('RDACE_CodigoPrestador')?.value || null,
             CodigoAdminPlanBeneficios: document.getElementById('RDACE_CodigoAdminPlanBeneficios')?.value || null,
             NombreAdminPlanBeneficios: document.getElementById('RDACE_NombreAdminPlanBeneficios')?.value || null,
-            FechaHoraInicioAtencion: document.getElementById('RDACE_FechaHoraInicioAtencion')?.value || null,
-            FechaHoraFinAtencion: document.getElementById('RDACE_FechaHoraFinAtencion')?.value || null,
+            FechaHoraInicioAtencion: fhRdace.inicio,
+            FechaHoraFinAtencion: fhRdace.fin,
             TipoDocProfesional: document.getElementById('RDACE_TipoDocProfesional')?.value || null,
             NumDocProfesional: rdaceSelect2Value('RDACE_NumDocProfesional') || document.getElementById('RDACE_NumDocProfesional')?.value || null,
             DiagnosticoIngresoCIE11Codigo: document.getElementById('RDACE_DiagnosticoIngresoCIE11Codigo')?.value || null,
