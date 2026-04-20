@@ -2097,6 +2097,13 @@
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_NombreDocumentoPDF"
                                                             placeholder="Se genera automáticamente o ingrese nombre">
+                                                        <input type="hidden" id="RDACE_IdEvaluacionActual" value="">
+                                                    </div>
+                                                    <div class="col-md-12 mt-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            id="RDACE_BtnDescargarPdf" title="Requiere haber guardado el RDA al menos una vez en esta sesión">
+                                                            <i class="fa-solid fa-file-pdf me-1"></i> Descargar resumen clínico (PDF)
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -3084,6 +3091,31 @@
     rdaceAttachDigitsOnlyFilter('RDACE_DiasIncapacidad');
     rdaceAttachDigitsOnlyFilter('RDACE_DiasLicenciaMaternidad');
 
+    document.getElementById('RDACE_BtnDescargarPdf')?.addEventListener('click', async function () {
+        const id = document.getElementById('RDACE_IdEvaluacionActual')?.value?.trim();
+        if (!id) {
+            Swal.fire({ icon: 'info', title: 'PDF', text: 'Guarde primero el RDA Consulta Externa para generar el resumen clínico.' });
+            return;
+        }
+        const baseDl = `${getApiBaseUrl()}/apiV3`;
+        const pdfUrl = baseDl + '/EvaluacionEntidadRDACE/' + id + '/ResumenClinico.pdf';
+        try {
+            const pr = await fetch(pdfUrl);
+            if (!pr.ok) throw new Error(pr.statusText || 'Error al obtener el PDF');
+            const blob = await pr.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const rawName = document.getElementById('RDACE_NombreDocumentoPDF')?.value || ('RDA_CE_' + id + '.pdf');
+            a.download = String(rawName).replace(/[^\w.\-]+/g, '_');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'PDF', text: err.message || 'No se pudo descargar el PDF.' });
+        }
+    });
+
     document.getElementById('RDACE_BtnGuardarConsultaExterna')?.addEventListener('click', async function () {
         await guardarRDACE();
     });
@@ -3255,6 +3287,32 @@
                     finalidad: item.finalidad || null,
                     IdEstado: 1
                 });
+            }
+
+            const hidId = document.getElementById('RDACE_IdEvaluacionActual');
+            if (hidId) hidId.value = String(idCE);
+            const fnEl = document.getElementById('RDACE_NombreDocumentoPDF');
+            if (fnEl && !String(fnEl.value || '').trim()) {
+                const slug = (documento || 'paciente').replace(/\W+/g, '_');
+                fnEl.value = 'RDA_CE_' + slug + '_' + idCE + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+            }
+
+            const pdfUrlAuto = base + '/EvaluacionEntidadRDACE/' + idCE + '/ResumenClinico.pdf';
+            try {
+                const prPdf = await fetch(pdfUrlAuto);
+                if (prPdf.ok) {
+                    const blob = await prPdf.blob();
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    const rawName = (fnEl && fnEl.value) ? fnEl.value : ('RDA_CE_' + idCE + '.pdf');
+                    a.download = String(rawName).replace(/[^\w.\-]+/g, '_');
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
+                }
+            } catch (ePdf) {
+                console.warn('[RDACE] Descarga automática PDF:', ePdf);
             }
 
             const resumenCe =

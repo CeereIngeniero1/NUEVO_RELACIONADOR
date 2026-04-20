@@ -14,6 +14,7 @@
  *  GET   /FactorDeRiesgo                               — catálogo 1888
  *  GET   /TipoTecnologiaEnSalud                        — catálogo 1888
  *  GET   /Catalogo1888/:clave                          — catálogos 1888 genéricos
+ *  GET   /EvaluacionEntidadRDACE/:id/ResumenClinico.pdf — descarga PDF resumen clínico (Decreto 780)
  *  POST  /RdaConsultaExterna/FhirBundle                — construcción Bundle FHIR
  *  POST  /RdaConsultaExterna/EnviarIHCE                — envío IHCE ($enviar-rda-consulta)
  *  POST  /RdaConsultaExterna/JsonEnviarIHCE            — mismo JSON que se POSTea a IHCE (sin enviar)
@@ -33,6 +34,8 @@
 
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
+const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
+const { getOrBuildRdacePdfBuffer } = require('../../rda/rdacePdfService');
 
 /** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
@@ -450,6 +453,42 @@ router.get('/Catalogo1888/:clave', async (req, res) => {
 });
 
 // ===========================================================================
+// RDACE — PDF resumen clínico (descarga)
+// ===========================================================================
+router.get('/EvaluacionEntidadRDACE/:id/ResumenClinico.pdf', async (req, res) => {
+    const id = req.params.id != null ? parseInt(req.params.id, 10) : NaN;
+    if (!Number.isFinite(id)) {
+        return res.status(400).send('Id inválido');
+    }
+    const forceRegenerate = req.query.regenerar === '1' || String(req.query.regenerar || '').toLowerCase() === 'true';
+    try {
+        const pool = await poolPromise;
+        const aggregate = await loadRdaceAggregate(pool, sql, id, req.query || {});
+        const pdfBuf = await getOrBuildRdacePdfBuffer({
+            pool,
+            sql,
+            id,
+            aggregate,
+            forceRegenerate,
+            reqBody: req.query || {},
+        });
+        const strFn = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
+        const doc = strFn(aggregate.head.DocumentoEntidad) || 'paciente';
+        const nombre = strFn(aggregate.head.NombreDocumentoPDF) || `RDA_CE_${doc}_${id}.pdf`;
+        const asciiName = nombre.replace(/[^\w.\-]+/g, '_').slice(0, 180) || `RDA_CE_${id}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${asciiName}"`);
+        res.send(pdfBuf);
+    } catch (e) {
+        if (e.code === 'RDACE_NOT_FOUND') {
+            return res.status(404).send('No existe el registro RDACE indicado');
+        }
+        console.error('[RDACE] Error sirviendo ResumenClinico.pdf:', e);
+        return res.status(500).send('Error al generar el PDF');
+    }
+});
+
+// ===========================================================================
 // FHIR BUNDLE — construcción local (sin envío a IHCE)
 // ===========================================================================
 // Body:  { "IdEvaluacionEntidadRDACE": 123,
@@ -701,151 +740,28 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     try {
         const pool = await poolPromise;
 
-        // 1) Cabecera RDACE + catálogos de modalidad, grupo, vía, causa
-        const mainResult = await pool.request()
-            .input('Id', sql.Int, id)
-            .query(`
-                SELECT
-                    ce.[Documento Entidad]               AS DocumentoEntidad,
-                    ce.[Fecha RDA]                       AS FechaRDA,
-                    ce.[Codigo Prestador]                AS CodigoPrestador,
-                    ce.[Codigo Admin Plan Beneficios]    AS CodigoAdminPlanBeneficios,
-                    ce.[Nombre Admin Plan Beneficios]    AS NombreAdminPlanBeneficios,
-                    ce.[Fecha Hora Inicio Atencion]      AS FechaHoraInicioAtencion,
-                    ce.[Fecha Hora Fin Atencion]         AS FechaHoraFinAtencion,
-                    ce.[Tipo Doc Profesional]            AS TipoDocProfesional,
-                    ce.[Num Doc Profesional]             AS NumDocProfesional,
-                    ce.[Diagnostico Ingreso CIE11 Codigo]  AS DiagnosticoIngresoCIE11Codigo,
-                    ce.[Diagnostico Ingreso CIE11 Termino] AS DiagnosticoIngresoCIE11Termino,
-                    ce.[Tipo Alergia]                    AS TipoAlergia,
-                    ce.[Entorno Atencion]                AS EntornoAtencion,
-                    ce.[Tipo Factor Riesgo]              AS TipoFactorRiesgo,
-                    ce.[Nombre Factor Riesgo]            AS NombreFactorRiesgo,
-                    ce.[Diagnostico Principal CIE10 Codigo]  AS DiagPrincipalCIE10Codigo,
-                    ce.[Diagnostico Principal CIE10 Nombre]  AS DiagPrincipalCIE10Nombre,
-                    ce.[Tipo Diagnostico Principal]      AS TipoDiagnosticoPrincipal,
-                    ce.[Condicion Destino Egreso]        AS CondicionDestinoEgreso,
-                    ce.[Codigo Prestador Remite]         AS CodigoPrestadorRemite,
-                    ce.[Alcance Incapacidad]             AS AlcanceIncapacidad,
-                    ce.[Dias Incapacidad]                AS DiasIncapacidad,
-                    ce.[Dias Licencia Maternidad]        AS DiasLicenciaMaternidad,
-                    ce.[Nombre Documento PDF]            AS NombreDocumentoPDF,
-                    ce.[Id Modalidad Atencion]           AS IdModalidadAtencion,
-                    ce.[Id Grupo Servicios]              AS IdGrupoServicios,
-                    ce.[Id Via Ingreso Usuario]          AS IdViaIngresoUsuario,
-                    ce.[Id Causa Motivo Atencion]        AS IdCausaMotivoAtencion,
-                    ma.[Codigo]                          AS CodigoModalidadAtencion,
-                    ma.[NombreModalidadAtencion]         AS NombreModalidadAtencion,
-                    gs.[Codigo]                          AS CodigoGrupoServicios,
-                    gs.[NombreGrupoServicios]            AS NombreGrupoServicios,
-                    via.[Codigo]                         AS CodigoViaIngreso,
-                    via.[NombreViaIngresoUsuario]        AS NombreViaIngreso,
-                    causa.[Codigo]                       AS CodigoCausaMotivo,
-                    causa.[NombreRIPSCausaExternaVersion2] AS NombreCausaMotivo
-                FROM [dbo].[Evaluacion Entidad RDA Consulta Externa] ce
-                LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
-                    ON ma.[IdModalidadAtencion] = ce.[Id Modalidad Atencion]
-                LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
-                    ON gs.[IdGrupoServicios] = ce.[Id Grupo Servicios]
-                LEFT JOIN [dbo].[Cnsta Relacionador Via Ingreso Usuario] via
-                    ON via.[IdViaIngresoUsuario] = ce.[Id Via Ingreso Usuario]
-                LEFT JOIN [dbo].[Cnsta Relacionador Causa Externa] causa
-                    ON causa.[Id RIPS Causa Externa Version2] = ce.[Id Causa Motivo Atencion]
-                WHERE ce.[Id Evaluacion Entidad RDA Consulta Externa] = @Id
-            `);
-
-        if (!mainResult.recordset || !mainResult.recordset.length) {
-            return res.status(404).json({ ok: false, error: 'No existe Evaluacion Entidad RDA Consulta Externa para el Id indicado' });
-        }
-        const head = mainResult.recordset[0];
-
-        // 2) Demographics del paciente desde [Cnsta Relacionador Usuarios Info]
-        let pdem = {};
-        const docPac = str(head.DocumentoEntidad);
-        if (docPac) {
-            const patResult = await pool.request()
-                .input('DocumentoPaciente', sql.VarChar(50), docPac)
-                .query(`
-                    SELECT TOP 1
-                        TipoDocumentoBase,
-                        PrimerApellidoBase, SegundoApellidoBase,
-                        PrimerNombreBase, SegundoNombreBase,
-                        [CódigoSexo]              AS CodigoSexo,
-                        Sexo,
-                        FechaNacimientoBase        AS FechaNacimiento,
-                        codigoIdentidadGeneroBase  AS CodigoIdentidadGenero,
-                        IdentidadGeneroBase        AS TextoIdentidadGenero,
-                        IdSexoIdentidadGenero      AS IdIdentidadGenero,
-                        [CódigoZonaResidencia]     AS CodigoZonaResidencia,
-                        ZonaResidencia,
-                        [CódigoEtnia]              AS CodigoEtnia,
-                        Etnia                      AS TextoEtnia,
-                        ComunidadEtnica,
-                        Codigo                     AS CodigoDiscapacidad,
-                        Discapacidad               AS TextoDiscapacidad,
-                        CodigoPaisNacionalidad,
-                        NombrePaisNACIONALIDAD     AS NombrePaisNacionalidad,
-                        CodigoPaisRecidencia       AS CodigoPaisResidencia,
-                        NombrePaisRecidencia       AS NombrePaisResidencia,
-                        CodigoMunicipioRecidencia  AS CodigoMunicipio,
-                        NombreMunicipioRecidencia  AS NombreMunicipio,
-                        Direccion,
-                        Tel                        AS TelefonoCelular
-                    FROM [dbo].[Cnsta Relacionador Usuarios Info]
-                    WHERE DocumentoPaciente = @DocumentoPaciente
-                `);
-            if (patResult.recordset && patResult.recordset.length) pdem = patResult.recordset[0];
+        let aggregate;
+        try {
+            aggregate = await loadRdaceAggregate(pool, sql, id, req.body || {});
+        } catch (loadErr) {
+            if (loadErr.code === 'RDACE_NOT_FOUND') {
+                return res.status(404).json({ ok: false, error: loadErr.message });
+            }
+            throw loadErr;
         }
 
-        // 3) IPS en Organization: la tabla RDACE solo trae [Codigo Prestador] (REPS), no NIT ni razón social.
-        //    override* en body o IHCE_RDACE_DEFAULT_* en .env completan NIT/nombre para alinear con el registro IHCE del token.
-        if ((req.body || {}).overrideCodigoPrestador != null && String((req.body || {}).overrideCodigoPrestador).trim()) {
-            head.CodigoPrestador = String((req.body || {}).overrideCodigoPrestador).trim();
-        }
+        const head = aggregate.head;
+        const pdem = aggregate.pdem;
+        const diagRelacionados = aggregate.diagRelacionados;
+        const medPrescripciones = aggregate.medPrescripciones;
+        const procPrescripciones = aggregate.procPrescripciones;
+        const otrasTecnologias = aggregate.otrasTecnologias;
+
         const codPrest = str(head.CodigoPrestador);
         const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS)
             || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS);
         const nomIpsOverride = str((req.body || {}).overrideNombrePrestadorIPS)
             || str(process.env.IHCE_RDACE_DEFAULT_NOMBRE_IPS);
-
-        // 4) Tablas hijas en paralelo
-        const [diagRelRes, medPresRes, procPresRes, otrasTecRes] = await Promise.all([
-            pool.request().input('Id', sql.Int, id).query(`
-                SELECT [Codigo CIE10] AS CodigoCIE10, [Nombre CIE10] AS NombreCIE10,
-                       [Codigo CIE11] AS CodigoCIE11, [Termino CIE11] AS TerminoCIE11
-                FROM [dbo].[Evaluacion Entidad RDA CE Diagnosticos Relacionados]
-                WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
-            `),
-            pool.request().input('Id', sql.Int, id).query(`
-                SELECT [Codigo Medicamento] AS CodigoMedicamento, [Nombre Medicamento] AS NombreMedicamento,
-                       [Descripcion Comun DCI] AS DCI, [Fecha Prescripcion] AS FechaPrescripcion,
-                       [Dosis Ordenada] AS DosisOrdenada, [Unidad Medida Dosis] AS UnidadDosis,
-                       [Via Administracion] AS ViaAdministracion,
-                       [Duracion Cantidad] AS DuracionCantidad, [Duracion Unidad Tiempo] AS DuracionUnidad,
-                       [Frecuencia Cantidad] AS FrecuenciaCantidad, [Frecuencia Unidad Tiempo] AS FrecuenciaUnidad,
-                       [Finalidad Tec Salud] AS Finalidad
-                FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos]
-                WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
-            `),
-            pool.request().input('Id', sql.Int, id).query(`
-                SELECT [Codigo Procedimiento] AS CodigoProcedimiento,
-                       [Nombre Procedimiento] AS NombreProcedimiento,
-                       [Finalidad Tec Salud] AS Finalidad, [Fecha Prescripcion] AS FechaPrescripcion
-                FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos]
-                WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
-            `),
-            pool.request().input('Id', sql.Int, id).query(`
-                SELECT [Codigo] AS Codigo, [Nombre] AS Nombre,
-                       [Fecha Prescripcion] AS FechaPrescripcion, [Finalidad Tec Salud] AS Finalidad
-                FROM [dbo].[Evaluacion Entidad RDA CE Otras Tecnologias]
-                WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
-            `),
-        ]);
-
-        const diagRelacionados   = diagRelRes.recordset  || [];
-        const medPrescripciones  = medPresRes.recordset  || [];
-        const procPrescripciones = procPresRes.recordset || [];
-        const otrasTecnologias   = otrasTecRes.recordset || [];
 
         // =======================================================================
         // CONSTRUCCIÓN DE RECURSOS FHIR
@@ -936,7 +852,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             });
         }
 
-        // Patient
+        // Patient (documento desde cabecera CE; mismo criterio que loadRdaceAggregate)
+        const docPac = str(head.DocumentoEntidad);
         const docTypeLabels = {
             CC: 'Cédula ciudadanía', TI: 'Tarjeta de identidad', RC: 'Registro civil',
             CE: 'Cédula de extranjería', PA: 'Pasaporte', PE: 'Permiso especial de permanencia',
@@ -1428,16 +1345,34 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 use: { coding: [{ system: CS_DIAG_ROLE, code: '8319008', display: 'diagnóstico primario' }] },
                 rank: 1,
             }] } : {}),
-            ...(ipsOrgEntry ? { serviceProvider: { reference: refOf(ipsOrgEntry) } } : {}),
+            ...(ipsOrgEntry ? { serviceProvider: { reference: `#${codPrest}` } } : {}),
         });
 
         const compositionDateIso = toIsoDateTime(head.FechaRDA) || nowIso;
 
+        let attachmentPdfBase64;
+        try {
+            const pdfBuf = await getOrBuildRdacePdfBuffer({
+                pool,
+                sql,
+                id,
+                aggregate,
+                forceRegenerate: Boolean((req.body || {}).regenerarPdf),
+                reqBody: req.body || {},
+            });
+            attachmentPdfBase64 = pdfBuf.toString('base64');
+        } catch (pdfErr) {
+            console.error('[RDACE] Error generando PDF resumen clínico:', pdfErr);
+            return res.status(500).json({
+                ok: false,
+                error: 'No se pudo generar el PDF del resumen clínico: ' + (pdfErr.message || String(pdfErr)),
+            });
+        }
+
         // DocumentReference (DocumentReferenceEPIRDA): description y securityLabel fijos. IHCE DOC-001 exige attachment con datos no vacíos (url sola no basta en $enviar-rda-consulta).
         const DOC_EPI_DESCRIPTION = 'Epicrisis del encuentro de atención en salud - RDA';
-        const RDACE_MINIMAL_PDF_B64 = 'JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqIDIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iaiAzIDAgb2JqPDwvVHlwZS9QYWdlL01lZGlhQm94WzAgMCAzIDNdPj5lbmRvYmogdHJhaWxlcjw8L1NpemUgMy9Sb290IDEgMCBSPj4KJSVFT0YK';
-        // IHCE suele resolver #REPS → Organization/<uuid interno>; en DocumentReferenceEPIRDA ese uuid falla (err-000).
-        // Referencia por identifier REPS + display evita esa resolución y mantiene el custodian como Organization lógica.
+        // custodian/author: SOLO referencia lógica por REPS (identifier + display). IHCE resuelve #REPS u Organization/REPS
+        // a Organization/<uuid> y DocumentReferenceEPIRDA falla («Reference Organization/… in path DocumentReference.custodian is invalid»).
         const ipsOrgRefByIdentifier = ipsOrgEntry ? {
             identifier: {
                 use: 'official',
@@ -1485,7 +1420,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 // Perfil DocumentReferenceEPIRDA (IHCE): attachment.contentType 0..0; format fijo urn:ietf:bcp:13 + application/pdf.
                 attachment: {
                     language: 'es-CO',
-                    data: RDACE_MINIMAL_PDF_B64,
+                    data: attachmentPdfBase64,
                     title: str(head.NombreDocumentoPDF) || DOC_EPI_DESCRIPTION,
                     creation: compositionDateIso,
                 },
@@ -1556,7 +1491,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             title:           'Resumen Digital de Atención en Salud - RDA de consulta externa',
             confidentiality: 'N',
             attester:        [{ mode: 'legal', party: { reference: refOf(practitionerEntry) } }],
-            custodian:       ipsOrgEntry ? { reference: refOf(ipsOrgEntry) } : { reference: refOf(practitionerEntry) },
+            custodian:       ipsOrgEntry ? { reference: `#${codPrest}` } : { reference: refOf(practitionerEntry) },
             event:           [{ period: {
                 ...(toIsoDateTime(head.FechaHoraInicioAtencion) ? { start: toIsoDateTime(head.FechaHoraInicioAtencion) } : {}),
                 ...(toIsoDateTime(head.FechaHoraFinAtencion)    ? { end:   toIsoDateTime(head.FechaHoraFinAtencion)    } : {}),
@@ -1792,6 +1727,34 @@ router.post(
         return m ? m[1] : raw;
     };
 
+    /** IHCE BUNDLE-005 en $enviar-rda-consulta: exige coherencia entre Bundle.entry y refs en Composition/recursos; mezclar #REPS con Patient/CC-… puede hacer que el validador no cuente enlaces. Unificar a #<resource.id>. */
+    const normalizeBundleRefsToHashFragment = (bd) => {
+        if (!bd || !Array.isArray(bd.entry)) return;
+        const idSet = new Set();
+        bd.entry.forEach((e) => {
+            if (e && e.resource && e.resource.id != null && String(e.resource.id).trim() !== '') {
+                idSet.add(String(e.resource.id).trim());
+            }
+        });
+        const rewrite = (node) => {
+            if (Array.isArray(node)) {
+                node.forEach(rewrite);
+                return;
+            }
+            if (!node || typeof node !== 'object') return;
+            if (typeof node.reference === 'string') {
+                const ref = node.reference.trim();
+                if (!ref || ref.startsWith('http://') || ref.startsWith('https://') || ref.startsWith('urn:')) return;
+                if (ref.startsWith('#')) return;
+                const m = ref.match(/^[A-Za-z]+\/(.+)$/);
+                if (m && idSet.has(m[1])) node.reference = `#${m[1]}`;
+                return;
+            }
+            Object.keys(node).forEach((k) => rewrite(node[k]));
+        };
+        rewrite(bd);
+    };
+
     try {
         // 1) Obtener Bundle desde el endpoint interno
         const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
@@ -1904,9 +1867,11 @@ router.post(
                 : `IPS (${reps})`;
             const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
             const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
-            if (compE && compE.resource) compE.resource.custodian = { reference: refOf(reps, 'Organization') };
+            // Misma forma que RdaPaciente/EnviarIHCE: referencia por fragmento al Organization del bundle.
+            // Organization/<reps> en $enviar-rda-consulta puede disparar err-000 (custodian vs token) aunque RDA Paciente pase.
+            if (compE && compE.resource) compE.resource.custodian = { reference: `#${reps}` };
             const encE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Encounter');
-            if (encE && encE.resource) encE.resource.serviceProvider = { reference: refOf(reps, 'Organization') };
+            if (encE && encE.resource) encE.resource.serviceProvider = { reference: `#${reps}` };
             const docRefE = entries.find((e) => e && e.resource && e.resource.resourceType === 'DocumentReference');
             if (docRefE && docRefE.resource) {
                 const drCust = {
@@ -1950,6 +1915,8 @@ router.post(
                 return String(e.resource.id) === reps;
             });
         }
+
+        normalizeBundleRefsToHashFragment(bundle);
 
         // Mismo cuerpo que JSON.stringify(bundle) en POST a IHCE; sin token ni llamada remota
         const isBundlePayloadPreview = /\/Json/i.test(req.path)
