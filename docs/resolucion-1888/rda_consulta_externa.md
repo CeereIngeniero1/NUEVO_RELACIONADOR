@@ -2,6 +2,8 @@
 
 Campos implementados en la sección `#SeccionRDAConsultaExterna` del HTML. Todos los IDs llevan prefijo `RDACE_`.
 
+**Envío IHCE (pruebas):** en `docs/Envio/` está la colección Postman oficial v1.3 de MinSalud ([InteropAPI_Minsalud_Sandbox_Prestadores_v1_3.postman_collection.json](../Envio/InteropAPI_Minsalud_Sandbox_Prestadores_v1_3.postman_collection.json)), con `obtener-token` y `Composition/$enviar-rda-consulta`. Parámetros de conexión y token: [consulta_token_sispro.md](../Envio/consulta_token_sispro.md).
+
 ---
 
 ## Activación y tipo RDA (compartido con RDA Paciente)

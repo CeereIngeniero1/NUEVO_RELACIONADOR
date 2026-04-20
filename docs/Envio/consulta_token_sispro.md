@@ -30,4 +30,16 @@ Información obtenida de la página: `https://ihcecol.sispro.gov.co/AdminTokens/
 - **APIMsubskey:** `<no commitear — configurar fuera del repositorio>`
 
 ---
+
+## Colección Postman oficial (sandbox prestadores v1.3)
+
+Material de referencia enviado por el Ministerio (IHCE / interoperabilidad): colección importable en Postman con **obtener-token**, **$enviar-rda-paciente**, **$enviar-rda-hospitalización**, **$enviar-rda-urgencias** y **$enviar-rda-consulta** (consulta externa).
+
+Archivo versionado en este repositorio (sin secretos del cliente: sustituir variables `clientid`, `clientsecret`, `APIMsubsKey`, `APIkey` —Azure Functions—, etc. con los valores de SISPRO del prestador que estén validando). En el JSON original de MinSalud algunos query params traían una function key literal; aquí quedó referenciada como `{{APIkey}}` para que GitHub no bloquee el push.
+
+- [InteropAPI_Minsalud_Sandbox_Prestadores_v1_3.postman_collection.json](./InteropAPI_Minsalud_Sandbox_Prestadores_v1_3.postman_collection.json)
+
+Flujo sugerido: definir variables de la colección → ejecutar **obtener-token** → probar **enviar-rda-consulta-externa** con el cuerpo de ejemplo; si responde bien en Postman y falla el Relacionador, comparar custodian / REPS y el JSON generado por `JsonEnviarIHCE`.
+
+---
 *Archivo generado automáticamente por Antigravity el 26 de marzo de 2026.*
