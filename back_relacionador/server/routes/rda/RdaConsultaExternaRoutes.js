@@ -453,6 +453,7 @@ router.get('/Catalogo1888/:clave', async (req, res) => {
 // FHIR BUNDLE — construcción local (sin envío a IHCE)
 // ===========================================================================
 // Body:  { "IdEvaluacionEntidadRDACE": 123,
+//          "overrideCodigoPrestador": "...",   // opcional (REPS)
 //          "overrideNombrePrestadorIPS": "...",   // opcional
 //          "overrideNitPrestadorIPS":   "..." }   // opcional
 // Envío IHCE: POST {IHCE_BASE}/Composition/$enviar-rda-consulta (ver handler EnviarIHCE más abajo)
@@ -798,6 +799,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
         // 3) IPS en Organization: la tabla RDACE solo trae [Codigo Prestador] (REPS), no NIT ni razón social.
         //    override* en body o IHCE_RDACE_DEFAULT_* en .env completan NIT/nombre para alinear con el registro IHCE del token.
+        if ((req.body || {}).overrideCodigoPrestador != null && String((req.body || {}).overrideCodigoPrestador).trim()) {
+            head.CodigoPrestador = String((req.body || {}).overrideCodigoPrestador).trim();
+        }
         const codPrest = str(head.CodigoPrestador);
         const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS)
             || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS);
@@ -1592,6 +1596,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 // ======================================================================================
 // Body requerido: { "IdEvaluacionEntidadRDACE": 123 }
 // Body opcional:  { "ambiente": "sandbox" | "prod",
+//                   "overrideCodigoPrestador": "...",
 //                   "overrideNitPrestadorIPS": "...", "overrideNombrePrestadorIPS": "..." }
 //   incluirAllergyIntolerance: false — omitir AllergyIntolerance (workaround validador IHCE que exige condition-ver-status en perfil AllergyIntoleranceRDA).
 // Flags modular (rutas *Modular) y también filtrado en EnviarIHCE estándar:
@@ -1631,6 +1636,7 @@ router.post(
     const {
         IdEvaluacionEntidadRDACE,
         ambiente,
+        overrideCodigoPrestador,
         overrideNitPrestadorIPS,
         overrideNombrePrestadorIPS,
         incluirConditions,
@@ -1657,6 +1663,35 @@ router.post(
         }
         return '';
     };
+    const readEnvKeyFromFile = (key) => {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const envCandidates = [
+                path.resolve(__dirname, '..', '..', '..', '.env'),
+                path.resolve(__dirname, '..', '..', '..', '.env acquir'),
+            ];
+            for (const envPath of envCandidates) {
+                if (!fs.existsSync(envPath)) continue;
+                const txt = fs.readFileSync(envPath, 'utf8');
+                for (const line of txt.split(/\r?\n/)) {
+                    const s = line.replace(/^\uFEFF/, '').trim();
+                    if (!s || s.startsWith('#')) continue;
+                    const eq = s.indexOf('=');
+                    if (eq <= 0) continue;
+                    const k = s.slice(0, eq).trim();
+                    if (k !== key) continue;
+                    let val = s.slice(eq + 1).trim();
+                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                        val = val.slice(1, -1);
+                    }
+                    return val != null ? String(val).trim() : '';
+                }
+            }
+        } catch (_) {}
+        return '';
+    };
+    const envPathDiag = require('path').resolve(__dirname, '..', '..', '..', '.env');
 
     let baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey;
     if (envPrefix === 'IHCE_SANDBOX_') {
@@ -1675,9 +1710,23 @@ router.post(
         subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
     }
 
-    const forceCustodianNIT  = firstEnv(`${envPrefix}CUSTODIAN_NIT`);
-    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`);
-    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`);
+    const forceCustodianNIT  = firstEnv(`${envPrefix}CUSTODIAN_NIT`)  || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_NIT`);
+    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`) || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_REPS`);
+    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`) || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_NAME`);
+    console.log('[RDACE] Diagnóstico env custodian:', {
+        envPath: envPathDiag,
+        envPrefix,
+        fromEnv: {
+            reps: firstEnv(`${envPrefix}CUSTODIAN_REPS`) ? 'OK' : 'EMPTY',
+            nit: firstEnv(`${envPrefix}CUSTODIAN_NIT`) ? 'OK' : 'EMPTY',
+            name: firstEnv(`${envPrefix}CUSTODIAN_NAME`) ? 'OK' : 'EMPTY',
+        },
+        resolved: {
+            reps: forceCustodianREPS ? 'OK' : 'EMPTY',
+            nit: forceCustodianNIT ? 'OK' : 'EMPTY',
+            name: forceCustodianName ? 'OK' : 'EMPTY',
+        },
+    });
     const omitAllergyForIHCE = ['1', 'true', 'yes'].includes(String(process.env.IHCE_RDACE_OMIT_ALLERGY_INTOLERANCE || '').trim().toLowerCase());
     const includeAllergyIntolerance = incluirAllergyIntolerance === true
         ? true
@@ -1744,8 +1793,30 @@ router.post(
         const bundleResp = await new Promise((resolve, reject) => {
             const http = require('http');
             const bundleBody = { IdEvaluacionEntidadRDACE: id };
-            if (overrideNitPrestadorIPS    != null && String(overrideNitPrestadorIPS).trim())    bundleBody.overrideNitPrestadorIPS    = String(overrideNitPrestadorIPS).trim();
-            if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
+            const forcedCodigoPrestador = (forceCustodianREPS && String(forceCustodianREPS).trim())
+                ? String(forceCustodianREPS).trim()
+                : ((overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim())
+                    ? String(overrideCodigoPrestador).trim()
+                    : '');
+            const forcedNit = (forceCustodianNIT && String(forceCustodianNIT).trim())
+                ? String(forceCustodianNIT).trim()
+                : ((overrideNitPrestadorIPS != null && String(overrideNitPrestadorIPS).trim())
+                    ? String(overrideNitPrestadorIPS).trim()
+                    : '');
+            const forcedNombre = (forceCustodianName && String(forceCustodianName).trim())
+                ? String(forceCustodianName).trim()
+                : ((overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim())
+                    ? String(overrideNombrePrestadorIPS).trim()
+                    : '');
+            if (forcedCodigoPrestador) bundleBody.overrideCodigoPrestador = forcedCodigoPrestador;
+            if (forcedNit) bundleBody.overrideNitPrestadorIPS = forcedNit;
+            if (forcedNombre) bundleBody.overrideNombrePrestadorIPS = forcedNombre;
+            console.log('[RDACE] Custodian forzado para prueba (env/body):', {
+                ambiente: envPrefix === 'IHCE_PROD_' ? 'prod' : 'sandbox',
+                CodigoPrestador: bundleBody.overrideCodigoPrestador || '(sin override)',
+                NitPrestadorIPS: bundleBody.overrideNitPrestadorIPS || '(sin override)',
+                NombrePrestadorIPS: bundleBody.overrideNombrePrestadorIPS || '(sin override)',
+            });
             const payload = JSON.stringify(bundleBody);
             const req3 = http.request(
                 `${localBase}/apiV3/RdaConsultaExterna/FhirBundle`,

@@ -1594,3 +1594,28 @@ IF NOT EXISTS (
 )
     ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado pruebas] INT NOT NULL CONSTRAINT [DF_EERDACE_EnviadoPruebas] DEFAULT (0);
 GO
+
+CREATE TABLE [Factor De Riesgo 1888]
+(
+[Id Factor De Riesgo 1888] INT IDENTITY (1,1) PRIMARY KEY,
+Codigo varchar (50),
+Descripcion varchar (50),
+[Id Estado] int default 7
+)
+
+
+INSERT INTO [Factor De Riesgo 1888] (Codigo, Descripcion)
+VALUES 
+('00', 'Sin factor'),
+('01', 'Biológico'),
+('02', 'Social'),
+('03', 'Ambiental'),
+('04', 'Comportamental'),
+('05', 'Económico');
+
+create view [dbo].[Cnsta Factor De Riesgo 1888]
+as
+select [Id Factor De Riesgo 1888] AS IdFactorDeRiesgo1888, Codigo, Descripcion, [Id Estado] AS IdEstado
+from [Factor De Riesgo 1888]
+where [Id Estado] = 7
+go

@@ -53,6 +53,7 @@
 
     const state = {
         tipo: 'paciente',
+        ambiente: 'sandbox',
         filas: [],
         /** @type {Record<number, { ok: boolean, httpStatus: number, cuerpoTextoTruncado: string }>} */
         resultadosPorId: {},
@@ -163,9 +164,10 @@
                 return;
             }
             state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
+            state.ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
             const fd = el.fechaDesde.value;
             const fh = el.fechaHasta.value;
-            const ambiente = el.selAmbiente.value;
+            const ambiente = state.ambiente;
             if (!fd || !fh) {
                 if (typeof Swal !== 'undefined' && Swal.fire) {
                     Swal.fire({ icon: 'warning', title: 'Fechas', text: 'Indique fecha desde y hasta.' });
@@ -217,26 +219,191 @@
     function mostrarDetalle(res) {
         const body = res.cuerpoTextoTruncado || '';
         let pretty = body;
+        let parsed = null;
         try {
-            pretty = JSON.stringify(JSON.parse(body), null, 2);
+            parsed = JSON.parse(body);
+            pretty = JSON.stringify(parsed, null, 2);
         } catch (e) {
             /* texto plano */
         }
         const ok = res.ok;
+        const resumen = (() => {
+            if (parsed && parsed.resourceType === 'OperationOutcome' && Array.isArray(parsed.issue)) {
+                const issues = parsed.issue
+                    .map((it) => {
+                        const txt = (it && it.details && it.details.text) || it.diagnostics || '';
+                        return String(txt || '').trim();
+                    })
+                    .filter(Boolean);
+                if (issues.length) return issues.join('\n');
+            }
+            if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 700);
+            return ok ? 'Envío finalizado correctamente.' : `Error HTTP ${res.httpStatus}`;
+        })();
+
+        const showJsonRespuesta = () => {
+            Swal.fire({
+                title: 'Respuesta IHCE (JSON)',
+                html: `<pre style="${SWAL_PRE}">${escapeHtml(pretty)}</pre>`,
+                width: 760,
+                confirmButtonText: 'Cerrar',
+            });
+        };
+
+        const showJsonEnviado = async () => {
+            const isCe = state.tipo === 'ce';
+            const url = isCe
+                ? `${apiBase()}/apiV3/RdaConsultaExterna/JsonEnviarIHCE`
+                : `${apiBase()}/apiV3/RdaPaciente/JsonEnviarIHCE`;
+            const reqBody = isCe
+                ? { IdEvaluacionEntidadRDACE: res.id, ambiente: state.ambiente }
+                : { IdEvaluacionEntidadRDA: res.id, ambiente: state.ambiente };
+            Swal.fire({
+                title: 'Cargando JSON enviado…',
+                allowOutsideClick: false,
+                didOpen: function () {
+                    Swal.showLoading();
+                },
+            });
+            try {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(reqBody),
+                });
+                const t = await r.text();
+                let parsedSent;
+                try {
+                    parsedSent = JSON.parse(t);
+                } catch (_) {
+                    parsedSent = { raw: t };
+                }
+                Swal.fire({
+                    title: 'JSON generado para envío IHCE',
+                    html: `<pre style="${SWAL_PRE}">${escapeHtml(JSON.stringify(parsedSent, null, 2))}</pre>`,
+                    width: 860,
+                    confirmButtonText: 'Cerrar',
+                });
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'No se pudo cargar JSON enviado', text: err.message || String(err) });
+            }
+        };
+
         Swal.fire({
             icon: ok ? 'success' : 'error',
             title: ok ? 'Respuesta IHCE' : `Error HTTP ${res.httpStatus}`,
             html:
-                '<p class="small text-start mb-2">HTTP <strong>' +
-                res.httpStatus +
-                '</strong></p>' +
-                '<pre style="' +
-                SWAL_PRE +
-                '">' +
-                escapeHtml(pretty) +
-                '</pre>',
-            width: 720,
+                '<p class="small text-start mb-2">Resumen del mensaje:</p>' +
+                `<div style="${SWAL_PRE}">${escapeHtml(resumen).replace(/\n/g, '<br>')}</div>` +
+                '<div class="d-flex gap-2 justify-content-center mt-3">' +
+                '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonEnviado">Ver JSON enviado</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonResp">Ver JSON de la respuesta</button>' +
+                '</div>',
+            width: 780,
             confirmButtonText: 'Cerrar',
+            didOpen: function (popup) {
+                const bResp = popup.querySelector('#btnJsonResp');
+                const bSent = popup.querySelector('#btnJsonEnviado');
+                if (bResp) bResp.addEventListener('click', showJsonRespuesta);
+                if (bSent) bSent.addEventListener('click', showJsonEnviado);
+            },
+        });
+    }
+
+    function mostrarResumenLote(list) {
+        if (!Array.isArray(list) || list.length === 0) return;
+        const okN = list.filter((r) => r && r.ok).length;
+        const errN = list.length - okN;
+        const optionsHtml = list
+            .map((r) => `<option value="${r.id}">ID ${r.id} — ${r.ok ? 'OK' : 'Error ' + r.httpStatus}</option>`)
+            .join('');
+
+        Swal.fire({
+            icon: errN === 0 ? 'success' : 'warning',
+            title: 'Resumen envío masivo',
+            html:
+                `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · Error: <b>${errN}</b></p>` +
+                '<label class="form-label small mb-1">Seleccione un registro para inspeccionar:</label>' +
+                `<select id="selDetalleLote" class="form-select form-select-sm">${optionsHtml}</select>` +
+                '<div class="d-flex gap-2 justify-content-center mt-3">' +
+                '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonEnviado">Ver JSON enviado</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonResp">Ver JSON de la respuesta</button>' +
+                '</div>',
+            width: 780,
+            confirmButtonText: 'Cerrar',
+            didOpen: function (popup) {
+                const getSelected = () => {
+                    const sel = popup.querySelector('#selDetalleLote');
+                    const id = sel ? parseInt(sel.value, 10) : NaN;
+                    if (!Number.isFinite(id)) return null;
+                    return list.find((r) => r.id === id) || null;
+                };
+                const bResp = popup.querySelector('#btnLoteJsonResp');
+                const bSent = popup.querySelector('#btnLoteJsonEnviado');
+                if (bResp) {
+                    bResp.addEventListener('click', function () {
+                        const r = getSelected();
+                        if (!r) return;
+                        const body = r.cuerpoTextoTruncado || '';
+                        let pretty = body;
+                        try {
+                            pretty = JSON.stringify(JSON.parse(body), null, 2);
+                        } catch (_) {}
+                        Swal.fire({
+                            title: 'Respuesta IHCE (JSON)',
+                            html: `<pre style="${SWAL_PRE}">${escapeHtml(pretty)}</pre>`,
+                            width: 760,
+                            confirmButtonText: 'Cerrar',
+                        });
+                    });
+                }
+                if (bSent) {
+                    bSent.addEventListener('click', async function () {
+                        const r = getSelected();
+                        if (!r) return;
+                        const isCe = state.tipo === 'ce';
+                        const url = isCe
+                            ? `${apiBase()}/apiV3/RdaConsultaExterna/JsonEnviarIHCE`
+                            : `${apiBase()}/apiV3/RdaPaciente/JsonEnviarIHCE`;
+                        const reqBody = isCe
+                            ? { IdEvaluacionEntidadRDACE: r.id, ambiente: state.ambiente }
+                            : { IdEvaluacionEntidadRDA: r.id, ambiente: state.ambiente };
+                        Swal.fire({
+                            title: 'Cargando JSON enviado…',
+                            allowOutsideClick: false,
+                            didOpen: function () {
+                                Swal.showLoading();
+                            },
+                        });
+                        try {
+                            const resp = await fetch(url, {
+                                method: 'POST',
+                                headers: authHeaders(),
+                                body: JSON.stringify(reqBody),
+                            });
+                            const txt = await resp.text();
+                            let parsed;
+                            try {
+                                parsed = JSON.parse(txt);
+                            } catch (_) {
+                                parsed = { raw: txt };
+                            }
+                            Swal.fire({
+                                title: 'JSON generado para envío IHCE',
+                                html: `<pre style="${SWAL_PRE}">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`,
+                                width: 860,
+                                confirmButtonText: 'Cerrar',
+                            });
+                        } catch (err) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'No se pudo cargar JSON enviado',
+                                text: err.message || String(err),
+                            });
+                        }
+                    });
+                }
+            },
         });
     }
 
@@ -246,7 +413,8 @@
             Swal.fire({ icon: 'info', title: 'Selección', text: 'Marque al menos un registro.' });
             return;
         }
-        const ambiente = el.selAmbiente.value;
+        const ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
+        state.ambiente = ambiente;
         const path =
             state.tipo === 'ce'
                 ? '/apiV3/RdaEnvioMasivo/ce/enviar'
@@ -294,6 +462,7 @@
             });
             el.envioBar.style.width = '100%';
             el.envioProgreso.textContent = `Listo: ${list.length} respuesta(s) recibidas.`;
+            mostrarResumenLote(list);
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Envío', text: err.message || String(err) });
         } finally {

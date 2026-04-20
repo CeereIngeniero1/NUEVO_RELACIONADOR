@@ -2436,6 +2436,7 @@
     function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
         var prettyJson = JSON.stringify(data, null, 2);
         var isSandbox = ambienteUi !== 'prod';
+        var amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
 
         function showJsonRespuesta() {
             Swal.fire({
@@ -2444,6 +2445,62 @@
                 width: 'min(95vw, 720px)',
                 confirmButtonText: 'Cerrar',
             });
+        }
+        function showJsonEnviado() {
+            if (!bundleCtx || bundleCtx.id == null) return;
+            var url =
+                bundleCtx.kind === 'rdace'
+                    ? global.getApiBaseUrl() + '/apiV3/RdaConsultaExterna/JsonEnviarIHCE'
+                    : global.getApiBaseUrl() + '/apiV3/RdaPaciente/JsonEnviarIHCE';
+            var body =
+                bundleCtx.kind === 'rdace'
+                    ? JSON.stringify({
+                          IdEvaluacionEntidadRDACE: bundleCtx.id,
+                          ambiente: amb,
+                      })
+                    : JSON.stringify({
+                          IdEvaluacionEntidadRDA: bundleCtx.id,
+                          ambiente: amb,
+                      });
+            Swal.fire({
+                title: 'Cargando JSON enviado…',
+                allowOutsideClick: false,
+                didOpen: function () {
+                    Swal.showLoading();
+                },
+            });
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+            })
+                .then(function (r) {
+                    return r.text().then(function (t) {
+                        return { ok: r.ok, status: r.status, text: t };
+                    });
+                })
+                .then(function (out) {
+                    var parsed;
+                    try {
+                        parsed = JSON.parse(out.text);
+                    } catch (e) {
+                        parsed = { raw: out.text };
+                    }
+                    var sentStr = JSON.stringify(parsed, null, 2);
+                    Swal.fire({
+                        title: 'JSON generado para envío IHCE',
+                        html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.7rem;">' + escapeHtml(sentStr) + '</pre>',
+                        width: 'min(95vw, 800px)',
+                        confirmButtonText: 'Cerrar',
+                    });
+                })
+                .catch(function (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No se pudo cargar el JSON enviado',
+                        text: err.message || String(err),
+                    });
+                });
         }
 
         if (isSandbox) {
@@ -2456,7 +2513,10 @@
             var icon = resp.ok ? 'success' : 'error';
             var bundleBtnHtml =
                 bundleCtx && bundleCtx.id != null
-                    ? '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-bundle-fhir">Ver Bundle FHIR enviado</button></p>'
+                    ? '<div class="mt-3 mb-0 text-center d-flex flex-column gap-2">' +
+                      '<button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-json-enviado">Ver JSON enviado</button>' +
+                      '<button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-bundle-fhir">Ver Bundle FHIR enviado</button>' +
+                      '</div>'
                     : '';
             Swal.fire({
                 icon: icon,
@@ -2472,10 +2532,15 @@
                 denyButtonText: 'Ver JSON de la respuesta',
                 denyButtonColor: '#6c757d',
                 didOpen: function (popup) {
+                    var jb = popup.querySelector('#rda-ihce-btn-json-enviado');
+                    if (jb && bundleCtx) {
+                        jb.addEventListener('click', function () {
+                            showJsonEnviado();
+                        });
+                    }
                     var b = popup.querySelector('#rda-ihce-btn-bundle-fhir');
                     if (!b || !bundleCtx) return;
                     b.addEventListener('click', function () {
-                        var amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
                         var url =
                             bundleCtx.kind === 'rdace'
                                 ? global.getApiBaseUrl() + '/apiV3/RdaConsultaExterna/JsonEnviarIHCE'
@@ -2539,19 +2604,39 @@
             return;
         }
 
-        if (resp.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Enviado a IHCE (producción)',
-                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.75rem;max-height:300px;">' + escapeHtml(prettyJson) + '</pre>',
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error IHCE (' + resp.status + ')',
-                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.75rem;max-height:300px;">' + escapeHtml(prettyJson) + '</pre>',
-            });
-        }
+        var msgProd = extractIhceMessage(data) || (resp.ok
+            ? 'Envío a IHCE (producción) finalizado.'
+            : 'IHCE respondió con error HTTP ' + resp.status + '.');
+        var jsonBtnProdHtml =
+            bundleCtx && bundleCtx.id != null
+                ? '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-json-enviado">Ver JSON enviado</button></p>'
+                : '';
+        Swal.fire({
+            icon: resp.ok ? 'success' : 'error',
+            title: resp.ok ? 'IHCE — Producción' : 'IHCE — Producción (error)',
+            html:
+                '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
+                '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +
+                escapeHtml(msgProd).replace(/\n/g, '<br>') +
+                '</div>' +
+                jsonBtnProdHtml,
+            confirmButtonText: 'Cerrar',
+            showDenyButton: true,
+            denyButtonText: 'Ver JSON de la respuesta',
+            denyButtonColor: '#6c757d',
+            didOpen: function (popup) {
+                var jb = popup.querySelector('#rda-ihce-btn-json-enviado');
+                if (jb && bundleCtx) {
+                    jb.addEventListener('click', function () {
+                        showJsonEnviado();
+                    });
+                }
+            },
+        }).then(function (r) {
+            if (r.isDenied) {
+                showJsonRespuesta();
+            }
+        });
     }
 
     /**
