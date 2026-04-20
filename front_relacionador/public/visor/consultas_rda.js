@@ -11,6 +11,30 @@ const CONFIG = {
   /** 'sandbox' | 'prod' — alineado con variables IHCE_SANDBOX_* / IHCE_PROD_* */
   ambiente: 'sandbox'
 };
+const VISOR_IHCE_AMBIENTE_KEY = 'visor_ihce_ambiente';
+
+function normalizeAmbiente(val) {
+  const s = String(val || '').trim().toLowerCase();
+  return (s === 'prod' || s === 'produccion' || s === 'production') ? 'prod' : 'sandbox';
+}
+
+function loadAmbienteFromStorage() {
+  try {
+    if (typeof localStorage === 'undefined') return 'sandbox';
+    return normalizeAmbiente(localStorage.getItem(VISOR_IHCE_AMBIENTE_KEY) || 'sandbox');
+  } catch (_) {
+    return 'sandbox';
+  }
+}
+
+function saveAmbienteToStorage(amb) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(VISOR_IHCE_AMBIENTE_KEY, normalizeAmbiente(amb));
+  } catch (_) {
+    /* noop */
+  }
+}
 
 function getVisorApiBase() {
   if (typeof getApiBaseUrl !== 'function') return '';
@@ -3707,8 +3731,19 @@ const AppController = {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📱 Página cargada completamente');
+  CONFIG.ambiente = loadAmbienteFromStorage();
 
   const elements = DOM.elements;
+
+  const selAmb = document.getElementById('inputAmbienteIHCE');
+  if (selAmb) {
+    selAmb.value = CONFIG.ambiente;
+    selAmb.addEventListener('change', function () {
+      CONFIG.ambiente = normalizeAmbiente(this.value);
+      saveAmbienteToStorage(CONFIG.ambiente);
+      console.log('🌐 Ambiente visor IHCE:', CONFIG.ambiente);
+    });
+  }
 
   // Botón de consulta
   if (elements.botonConsulta) {

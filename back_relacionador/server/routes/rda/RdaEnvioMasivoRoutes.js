@@ -12,10 +12,14 @@ const router = Router();
 
 const MAX_IDS = 50;
 const BODY_TRUNC = 4000;
+const FORCE_SANDBOX_ONLY = ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
+);
 
 const internalPort = () => parseInt(process.env.BACK_PORT || process.env.PORT || '3000', 10);
 
 const normalizeAmbiente = (a) => {
+    if (FORCE_SANDBOX_ONLY) return 'sandbox';
     const s = String(a || 'sandbox').toLowerCase();
     if (s === 'prod' || s === 'produccion' || s === 'production') return 'prod';
     return 'sandbox';

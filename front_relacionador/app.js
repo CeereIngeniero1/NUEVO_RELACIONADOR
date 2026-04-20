@@ -77,7 +77,13 @@ app.get('/config.js', (req, res) => {
     }
     const body =
         'window.__APP_CONFIG__=' +
-        JSON.stringify({ API_BASE_URL: apiBase, BACK_PORT: String(backPort) }) +
+        JSON.stringify({
+            API_BASE_URL: apiBase,
+            BACK_PORT: String(backPort),
+            IHCE_FORCE_SANDBOX_ONLY: ['1', 'true', 'yes', 'on'].includes(
+                String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
+            ),
+        }) +
         ';';
     res.send(body);
 });

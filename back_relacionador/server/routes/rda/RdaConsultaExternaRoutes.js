@@ -1652,9 +1652,14 @@ router.post(
         return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDACE requerido (number)' });
     }
 
-    const envPrefix = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
-        ? 'IHCE_PROD_'
-        : 'IHCE_SANDBOX_';
+    const forceSandboxOnly = ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
+    );
+    const requestedAmb = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
+        ? 'prod'
+        : 'sandbox';
+    const effectiveAmb = forceSandboxOnly ? 'sandbox' : requestedAmb;
+    const envPrefix = effectiveAmb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
 
     const firstEnv = (...keys) => {
         for (let i = 0; i < keys.length; i += 1) {

@@ -38,6 +38,10 @@
             'localhost';
         return `http://${h}:${port}`;
     }
+    function ihceForceSandboxOnlyUi() {
+        const cfg = window.__APP_CONFIG__ || {};
+        return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+    }
 
     function defaultDates() {
         const now = new Date();
@@ -489,6 +493,11 @@
             const d = defaultDates();
             el.fechaDesde.value = d.desde;
             el.fechaHasta.value = d.hasta;
+            if (ihceForceSandboxOnlyUi() && el.selAmbiente) {
+                const sandboxOpt = el.selAmbiente.querySelector('option[value="sandbox"]');
+                if (sandboxOpt) sandboxOpt.remove();
+                el.selAmbiente.value = 'prod';
+            }
             syncThead();
 
             el.selTipo.addEventListener('change', () => {

@@ -2286,7 +2286,15 @@
     'use strict';
 
     function ambienteBody(val) {
+        var cfg = window.__APP_CONFIG__ || {};
+        var forceSandboxOnly = cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+        if (forceSandboxOnly) return 'prod';
         return val === 'prod' ? 'prod' : 'sandbox';
+    }
+
+    function ihceForceSandboxOnlyUi() {
+        var cfg = window.__APP_CONFIG__ || {};
+        return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
     }
 
     function escapeHtml(s) {
@@ -2737,6 +2745,11 @@
      * @param {(ambiente: string) => Promise<unknown>} enviarFn - recibe 'sandbox' | 'prod'
      */
     function rdaOfrecerEnvioIhce(titulo, htmlResumen, enviarFn) {
+        var forceSandboxUi = ihceForceSandboxOnlyUi();
+        var radiosHtml = forceSandboxUi
+            ? '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod" checked> Producción</label>'
+            : '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="sandbox" checked> Sandbox (pruebas)</label>' +
+              '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod"> Producción</label>';
         return Swal.fire({
             icon: 'success',
             title: titulo,
@@ -2745,8 +2758,7 @@
                 '<hr class="my-2">' +
                 '<p class="small text-muted mb-2">¿Desea enviar este documento al Ministerio (IHCE) ahora?</p>' +
                 '<div class="text-start">' +
-                '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="sandbox" checked> Sandbox (pruebas)</label>' +
-                '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod"> Producción</label>' +
+                radiosHtml +
                 '</div>',
             showDenyButton: true,
             denyButtonText: 'Solo cerrar',
@@ -3082,14 +3094,18 @@
             return;
         }
         const btn = document.getElementById('RDACE_BtnEnviarIHCE');
+        var forceSandboxUi = ihceForceSandboxOnlyUi();
+        var radiosHtml = forceSandboxUi
+            ? '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod" checked> Producción</label>'
+            : '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="sandbox" checked> Sandbox (pruebas)</label>' +
+              '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod"> Producción</label>';
         const result = await Swal.fire({
             icon: 'question',
             title: 'Enviar a Ministerio (IHCE)',
             html:
                 '<p class="small text-start mb-2">Seleccione el ambiente y confirme el envío del RDACE ID <b>' + _lastIdRDACE + '</b>.</p>' +
                 '<div class="text-start">' +
-                '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="sandbox" checked> Sandbox (pruebas)</label>' +
-                '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod"> Producción</label>' +
+                radiosHtml +
                 '</div>',
             showCancelButton: true,
             cancelButtonText: 'Cancelar',
