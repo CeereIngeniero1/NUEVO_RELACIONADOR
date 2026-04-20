@@ -1,50 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
-	<meta http-equiv="X-UA-Compatible" content="ie=edge" />
-	<title>Visor Nacional de Historia Clínica - Ministerio de Salud y Protección Social</title>
-	<link href="https://cdn.datatables.net/v/bs5/dt-2.0.8/datatables.min.css" rel="stylesheet" />
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
-	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css" />
-	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-	
-	
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Visor IHCE — RDA | CEERE</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+    <link href="https://cdn.datatables.net/v/bs5/dt-2.0.8/datatables.min.css" rel="stylesheet" />
+
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="../Asignar_RIPS.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="../images/Logo.png" type="image/x-icon">
+
+    <script>
+        if (localStorage.getItem('ceere_theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
-<body>
-    <div class="main-wrapper">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-        <div class="content-wrapper">
-            <!-- Header Gobierno -->
-            <header>
-                <nav class="navbar header-govco">
-                    <div class="container-fluid" style="height: 60px;">
-                        <a class="navbar-brand" href="https://www.minsalud.gov.co/Portada2021/index.html">
-                            <img src="https://www.secretariatransparencia.gov.co/SiteCollectionImages/gov.co-footer.png" alt="Logo Gov.co" style="height: 30px;" />
-                        </a>
-                    </div>
-                </nav>
-                
-                <!-- Logo IHCE -->
-                <div class="logo-container">
-                    <div class="container text-center">
-                        <img src="https://www.minsalud.gov.co/ihce/PublishingImages/Logos/logo-IHCE.png" alt="IHCE - Interoperabilidad de la Historia Clínica Electrónica" />
-                    </div>
+<body class="app-layout">
+
+    <nav class="cr-topbar" id="crTopbar" aria-label="Navegación principal">
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
+            <img src="../images/Ceere_logo.png" alt="Ceere" class="cr-topbar-logo">
+            <span class="cr-topbar-title">Relacionador RIPS</span>
+            <span class="text-muted d-none d-sm-inline">|</span>
+            <nav class="d-flex align-items-center gap-2 flex-wrap" aria-label="Módulos">
+                <a href="../RIPS.html" class="link-secondary text-decoration-none small fw-semibold">Inicio</a>
+                <span class="text-muted small">·</span>
+                <a href="../Asignar_RIPS V3.html" class="link-secondary text-decoration-none small fw-semibold">Asignar RIPS</a>
+                <span class="text-muted small">·</span>
+                <a href="../EnvioRdaPendientes.html" class="link-secondary text-decoration-none small fw-semibold">Envío RDA pendientes</a>
+                <span class="text-muted small">·</span>
+                <span class="small fw-semibold" style="color: var(--color-primary, #007E82);">Visor IHCE</span>
+                <span class="text-muted small">·</span>
+                <a href="../Desrelacionar.html" class="link-secondary text-decoration-none small fw-semibold">Desrelacionar</a>
+            </nav>
+        </div>
+        <div class="cr-topbar-right">
+            <div class="cr-topbar-user">
+                <div class="cr-topbar-user-icon">
+                    <i class="fa-solid fa-user"></i>
                 </div>
-            </header>
+                <span id="TopbarUserName">Usuario</span>
+            </div>
+            <button type="button" class="cr-topbar-logout" id="crBtnThemeToggle">
+                <i class="fa-solid fa-moon"></i>
+                <span>Tema Oscuro</span>
+            </button>
+        </div>
+    </nav>
 
-        <!-- Contenedor Principal -->
-        <div class="main-container">
-            <div class="accordion" id="accordionExample">
+    <div class="cr-page-content">
+        <h1 class="cr-page-heading">Visor IHCE — RDA</h1>
+        <p class="text-muted mb-3 small">Consulta interoperable del Resumen Digital de Atención en Salud (IHCE / MinSalud), usando las credenciales configuradas en el servidor.</p>
 
-                <!-- Formulario de Consulta -->
+        <div class="alert border-0 mb-4" role="status"
+            style="background: var(--color-primary-light); color: var(--color-text); border-left: 4px solid var(--color-primary) !important;">
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+                <img src="https://www.minsalud.gov.co/ihce/PublishingImages/Logos/logo-IHCE.png" alt="IHCE"
+                    style="height: 36px; width: auto;" />
+                <div class="small mb-0">
+                    Integración <strong>RDA</strong> del Relacionador. Los datos provienen del entorno IHCE (sandbox o producción) según variables <code>IHCE_*</code> del backend.
+                </div>
+            </div>
+        </div>
+
+        <main class="container-fluid px-0 pb-4">
+            <div class="accordion visor-accordion" id="accordionExample">
+
                 <div class="accordion-item card-custom">
                     <h2 class="accordion-header">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConsulta">
@@ -74,8 +112,6 @@
                                             <option value="RC">Registro Civil</option>
                                         </select>
                                     </div>
-                                    
-                                    <!-- Filtro de Fecha -->
                                     <div class="col-md-12">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" role="switch" id="activarFiltroFecha">
@@ -84,7 +120,6 @@
                                             </label>
                                         </div>
                                     </div>
-                                    
                                     <div class="col-md-6" id="contenedorFecha" style="display: none;">
                                         <label for="inputFechaDesde" class="form-label">
                                             <i class="bx bx-calendar"></i> Fecha desde
@@ -94,10 +129,9 @@
                                             Solo se mostrarán documentos actualizados desde esta fecha
                                         </div>
                                     </div>
-                                    
                                     <div class="col-12">
                                         <hr class="my-4">
-                                        <button type="submit" class="btn btn-primary btn-lg" id="consultaInfoIhce">
+                                        <button type="submit" class="btn btn-lg visor-btn-primary" id="consultaInfoIhce">
                                             <i class="bx bx-search-alt"></i> Consultar Información
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary btn-lg ms-2" id="limpiarFiltros">
@@ -110,7 +144,6 @@
                     </div>
                 </div>
 
-                <!-- Información del Paciente -->
                 <div class="accordion-item card-custom">
                     <h2 class="accordion-header" id="headingOne">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
@@ -119,13 +152,10 @@
                         </button>
                     </h2>
                     <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
-                        <div class="accordion-body" id="accordion-body-patient">
-                            <!-- Contenido dinámico del paciente -->
-                        </div>
+                        <div class="accordion-body" id="accordion-body-patient"></div>
                     </div>
                 </div>
 
-                <!-- Certificado de Vacunación -->
                 <div class="accordion-item card-custom">
                     <h2 class="accordion-header" id="headingTwo">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
@@ -136,9 +166,7 @@
                     </h2>
                     <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
                         <div class="accordion-body" id="accordion-body-certificado">
-                            <div class="row g-3 align-items-end mb-3">
-                               
-                            </div>
+                            <div class="row g-3 align-items-end mb-3"></div>
                             <div id="contenedorInmunizaciones" class="mt-3">
                                 <table id="tablaInmunizaciones" class="table table-striped table-hover"></table>
                             </div>
@@ -146,7 +174,6 @@
                     </div>
                 </div>
 
-                <!-- Encuentros Clínicos -->
                 <div class="accordion-item card-custom">
                     <h2 class="accordion-header" id="headingSeven">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven">
@@ -167,7 +194,6 @@
                                         <option value="consulta">🚶 Consulta externa </option>
                                         <option value="hospitalización">🏥 Hospitalización</option>
                                         <option value="urgencias">🚑 Urgencias</option>
-                                        
                                     </select>
                                 </div>
                                 <div class="col-md-4 text-end">
@@ -177,16 +203,13 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-body" id="accordion-body-encuentros" style="max-height: 500px; overflow-y: auto;">
-                            <!-- Contenido dinámico de encuentros -->
-                        </div>
+                        <div class="accordion-body" id="accordion-body-encuentros" style="max-height: 500px; overflow-y: auto;"></div>
                         <div class="accordion-body border-top">
                             <div id="paginacionEncuentros" class="d-flex justify-content-center flex-wrap gap-2"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Historial de Atenciones -->
                 <div class="accordion-item card-custom">
                     <h2 class="accordion-header" id="headingSix">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix">
@@ -196,9 +219,7 @@
                         </button>
                     </h2>
                     <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-                        <div class="accordion-body" id="accordion-body-envios" style="max-height: 500px; overflow-y: auto;">
-                            <!-- Contenido dinámico del historial -->
-                        </div>
+                        <div class="accordion-body" id="accordion-body-envios" style="max-height: 500px; overflow-y: auto;"></div>
                         <div class="accordion-body border-top">
                             <div id="paginacion" class="d-flex justify-content-center flex-wrap gap-2"></div>
                         </div>
@@ -206,18 +227,17 @@
                 </div>
 
             </div>
-        </div>
+        </main>
 
-        <!-- Modal de Detalle -->
         <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 id="exampleModalLabel" class="mb-0">
+                        <h2 id="exampleModalLabel" class="mb-0 h5">
                             <i class='bx bxs-detail bx-md'></i>
                             Detalle del Resumen de Atención en Salud
                         </h2>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body" id="mostrarCompositions">
                         <div class="text-center text-muted p-5">
@@ -229,12 +249,11 @@
             </div>
         </div>
 
-        <!-- Modal de Carga -->
         <div class="modal fade" id="loadingModal" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-body text-center p-5">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-primary" role="status" style="color: var(--color-primary) !important;">
                             <span class="visually-hidden">Cargando...</span>
                         </div>
                         <p class="mt-3 mb-0 fw-bold">Consultando Información...</p>
@@ -243,69 +262,45 @@
                 </div>
             </div>
         </div>
-        </div>
-        <!-- Fin del content-wrapper -->
     </div>
-    <!-- Fin del main-wrapper -->
-    
-    <!-- Footer -->
-    <footer class="footer-govco">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <a href="https://www.minsalud.gov.co/Portada2021/index.html" class="d-flex align-items-center gap-3">
-                        <img src="https://cdn.www.gov.co/v4/assets/images/logo-colombia.svg" alt="Logo Colombia" style="height: 50px;" />
-                        <img src="https://www.secretariatransparencia.gov.co/SiteCollectionImages/gov.co-footer.png" alt="Logo Gov.co" style="height: 30px;" />
-                    </a>
-                </div>
-                <div class="col-md-6 text-end text-white">
-                    <small>© 2026 Ministerio de Salud y Protección Social</small>
-                </div>
-            </div>
-        </div>
-    </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" crossorigin="anonymous"></script>
     <script>
-        // Control de visibilidad del filtro de fecha
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const activarFiltro = document.getElementById('activarFiltroFecha');
             const contenedorFecha = document.getElementById('contenedorFecha');
             const inputFecha = document.getElementById('inputFechaDesde');
             const limpiarBtn = document.getElementById('limpiarFiltros');
-            
-            activarFiltro.addEventListener('change', function() {
+            if (!activarFiltro || !contenedorFecha || !inputFecha || !limpiarBtn) return;
+
+            activarFiltro.addEventListener('change', function () {
                 if (this.checked) {
                     contenedorFecha.style.display = 'block';
-                    if (!inputFecha.value) {
-                        inputFecha.value = '2025-05-01';
-                    }
+                    if (!inputFecha.value) inputFecha.value = '2025-05-01';
                 } else {
                     contenedorFecha.style.display = 'none';
                     inputFecha.value = '';
                 }
             });
-            
-            limpiarBtn.addEventListener('click', function() {
+
+            limpiarBtn.addEventListener('click', function () {
                 document.getElementById('inputDocumento').value = '';
                 document.getElementById('inputTipoDocumento').value = 'CC';
                 activarFiltro.checked = false;
                 contenedorFecha.style.display = 'none';
                 inputFecha.value = '';
-                
                 const filtroEncuentro = document.getElementById('filtroTipoEncuentro');
                 if (filtroEncuentro) filtroEncuentro.value = 'todos';
-                
                 document.getElementById('accordion-body-patient').innerHTML = '';
                 document.getElementById('accordion-body-envios').innerHTML = '';
-                
                 const contador = document.getElementById('contadorDocumentos');
                 if (contador) {
                     contador.style.display = 'none';
                     contador.textContent = '0';
                 }
             });
-            
-            window.obtenerParametrosConsulta = function() {
+
+            window.obtenerParametrosConsulta = function () {
                 const documento = document.getElementById('inputDocumento').value;
                 const tipoDocumento = document.getElementById('inputTipoDocumento').value;
                 const fechaDesde = activarFiltro.checked ? inputFecha.value : null;
@@ -314,11 +309,20 @@
         });
     </script>
 
-    <script src="https://cdn.datatables.net/v/bs5/dt-2.0.8/datatables.min.js"></script>
+    <script src="/config.js"></script>
     <script src="../apiConfig.js"></script>
+    <script src="/NombreEquipoServidor.js"></script>
+    <!-- Bootstrap JS debe cargar (SRI correcto); si falla, acordeones y modales no funcionan -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/v/bs5/dt-2.0.8/datatables.min.js"></script>
     <script src="consultas_rda.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
-
+    <script type="module">
+        import { initThemeToggle, syncTopbarUserName } from '../shared/shell.js';
+        initThemeToggle();
+        syncTopbarUserName();
+    </script>
 </body>
+
 </html>
