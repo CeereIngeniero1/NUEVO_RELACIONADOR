@@ -34,6 +34,15 @@
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 
+/** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
+function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
+    const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    if (c === '7') return true;
+    if (t && /sin\s*asignar/i.test(t)) return true;
+    return false;
+}
+
 const router = Router();
 
 // ---------------------------------------------------------------------------
@@ -459,13 +468,33 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         try { if (typeof randomUUID === 'function') return randomUUID(); } catch (_) {}
         return `uuid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     };
-    const makeEntry = (resource) => { resource.id = resource.id || newUuid(); return { resource }; };
-    const refOf = (entryOrId) => {
-        if (typeof entryOrId === 'string') return `#${entryOrId}`;
+    const makeEntry = (resource) => {
+        resource.id = resource.id || newUuid();
+        return { resource };
+    };
+    const refOf = (entryOrId, resourceTypeHint = '') => {
+        if (typeof entryOrId === 'string') {
+            const raw = String(entryOrId).trim();
+            if (!raw) throw new Error('[RDACE] No se puede referenciar un id vacío');
+            if (/^[A-Za-z]+\/.+$/.test(raw)) return raw;
+            if (resourceTypeHint) return `${resourceTypeHint}/${raw.replace(/^#/, '')}`;
+            return raw.replace(/^#/, '');
+        }
         const r = entryOrId && entryOrId.resource ? entryOrId.resource : entryOrId;
         const rid = r && r.id ? String(r.id) : '';
+        const rt = r && r.resourceType ? String(r.resourceType) : '';
         if (!rid) throw new Error('[RDACE] No se puede referenciar un recurso sin id');
-        return `#${rid}`;
+        if (!rt) throw new Error(`[RDACE] Recurso ${rid} sin resourceType para referencia interna`);
+        return `${rt}/${rid}`;
+    };
+
+    const refId = (reference) => {
+        const raw = String(reference || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('urn:uuid:')) return raw.slice('urn:uuid:'.length);
+        if (raw.startsWith('#')) return raw.slice(1);
+        const m = raw.match(/^[A-Za-z]+\/(.+)$/);
+        return m ? m[1] : raw;
     };
 
     const nowIso        = new Date().toISOString();
@@ -940,7 +969,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             const dispNat = cNat === '170' ? 'Colombia' : (dNat && dNat.toUpperCase() === 'COLOMBIA' ? 'Colombia' : dNat);
             patExt.push({ url: `${RDA_SD}/ExtensionPatientNationality`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661', code: cNat, display: dispNat || undefined } });
         }
-        if (str(pdem.CodigoEtnia))            patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicity`,     valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',           code: str(pdem.CodigoEtnia),            display: str(pdem.TextoEtnia)            || undefined } });
+        if (str(pdem.CodigoEtnia) && !skipRdaEthnicityExtension(pdem.CodigoEtnia, pdem.TextoEtnia)) patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicity`,     valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',           code: str(pdem.CodigoEtnia),            display: str(pdem.TextoEtnia)            || undefined } });
         if (str(pdem.ComunidadEtnica))        patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicCommunity`, valueString: str(pdem.ComunidadEtnica) });
         if (str(pdem.CodigoDiscapacidad))     patExt.push({ url: `${RDA_SD}/ExtensionPatientDisability`,    valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification', code: str(pdem.CodigoDiscapacidad),    display: str(pdem.TextoDiscapacidad)     || undefined } });
         if (str(pdem.CodigoIdentidadGenero) && pdem.IdIdentidadGenero && pdem.IdIdentidadGenero !== 0) patExt.push({ url: `${RDA_SD}/ExtensionPatientGenderIdentity`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity', code: str(pdem.CodigoIdentidadGenero), display: str(pdem.TextoIdentidadGenero) || undefined } });
@@ -1032,7 +1061,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             id: `Condition-${conditionSeq++}`,
             meta: { profile: [`${RDA_SD}/ConditionRDA`] },
             ...CONDITION_RDA_BASE,
-            subject: { reference: `#${pacienteId}` },
+            subject: { reference: refOf(patientEntry) },
             code: {
                 coding: [
                     ...(str(head.DiagPrincipalCIE10Codigo)     ? [{ system: ICD10_SYSTEM, code: str(head.DiagPrincipalCIE10Codigo),     display: str(head.DiagPrincipalCIE10Nombre)       || undefined }] : []),
@@ -1051,7 +1080,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 id: `Condition-${conditionSeq++}`,
                 meta: { profile: [`${RDA_SD}/ConditionRDA`] },
                 ...CONDITION_RDA_BASE,
-                subject: { reference: `#${pacienteId}` },
+                subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: [
                         ...(c10 ? [{ system: ICD10_SYSTEM, code: c10, display: str(r.NombreCIE10)   || undefined }] : []),
@@ -1080,7 +1109,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 }],
                 text: tipoAlergiaDisplay(tipoAlergiaCode) || tipoAlergia || undefined,
             },
-            patient: { reference: `#${pacienteId}` },
+            patient: { reference: refOf(patientEntry) },
         }) : null;
 
         // RiskAssessment — RiskFactorRDA: status registered (fijo); encounter 1..1; FactorRiesgo + texto obligatorio
@@ -1093,8 +1122,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 id: 'RiskAssessment-0',
                 meta: { profile: [`${RDA_SD}/RiskFactorRDA`] },
                 status: 'registered',
-                encounter: { reference: '#Encounter-0' },
-                subject: { reference: `#${pacienteId}` },
+                encounter: { reference: refOf('Encounter-0', 'Encounter') },
+                subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: [{ system: CS_FACTOR_RIESGO_IG, code: fr.code, display: fr.display }],
                     // Alinear text con display del coding (evita rechazos / inconsistencias en validador).
@@ -1134,8 +1163,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     coding: [{ system: CS_MIPRES_INN, code: String(medCode).slice(0, 64), display: medName }],
                     text: medName,
                 },
-                subject: { reference: `#${pacienteId}` },
-                encounter: { reference: '#Encounter-0' },
+                subject: { reference: refOf(patientEntry) },
+                encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 reasonCode: [ripsFinalidadCodeable(m.Finalidad)],
                 authoredOn: toIsoDateTime(m.FechaPrescripcion) || authoredOnFallback,
             };
@@ -1214,8 +1243,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     }] : [],
                     text: str(p.NombreProcedimiento) || cprod || 'Procedimiento',
                 },
-                subject: { reference: `#${pacienteId}` },
-                encounter: { reference: '#Encounter-0' },
+                subject: { reference: refOf(patientEntry) },
+                encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 authoredOn: toIsoDateTime(p.FechaPrescripcion) || authoredOnFallback,
             });
         });
@@ -1241,8 +1270,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     coding: [{ system: SCT, code: '71388002', display: nom }],
                     text: cotra ? `${nom} (${cotra})` : nom,
                 },
-                subject: { reference: `#${pacienteId}` },
-                encounter: { reference: '#Encounter-0' },
+                subject: { reference: refOf(patientEntry) },
+                encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 authoredOn: toIsoDateTime(o.FechaPrescripcion) || authoredOnFallback,
             });
         });
@@ -1268,8 +1297,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     coding: [{ system: SCT, code: '71388002', display: 'Procedure' }],
                     text: 'Sin órdenes o solicitudes adicionales registradas',
                 },
-                subject: { reference: `#${pacienteId}` },
-                encounter: { reference: '#Encounter-0' },
+                subject: { reference: refOf(patientEntry) },
+                encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 authoredOn: authoredOnFallback,
             });
         }
@@ -1292,7 +1321,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 coding: [{ system: SCT, code: '160983005', display: 'permiso de concurrencia' }],
                 text: 'Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)',
             },
-            subject: { reference: `#${pacienteId}` },
+            subject: { reference: refOf(patientEntry) },
             component: [
                 {
                     id: 'LicenseScope',
@@ -1334,7 +1363,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             const egresoDisp = EGRESO_DISP_OFICIAL[condicionEgreso] || condicionEgreso;
             const egresExt = [{ url: 'DispositionCode', valueCoding: { system: CS_EGRESO, code: condicionEgreso, display: egresoDisp } }];
             if (codPrestRemite) {
-                const remRef = codPrestRemite === codPrest ? `#${ipsId}` : `#${codPrestRemite}`;
+                const remRef = codPrestRemite === codPrest ? refOf(ipsOrgEntry) : refOf(codPrestRemite);
                 egresExt.push({ url: 'ReferenceOrganization', valueReference: { reference: remRef } });
             }
             encounterExt.push({ url: `${RDA_SD}/ExtensionDischargeDisposition`, extension: egresExt });
@@ -1366,11 +1395,11 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             class: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'AMB', display: 'ambulatory' },
             type: encounterTypes,
             serviceType: serviceTypeObj,
-            subject: { reference: `#${pacienteId}` },
+            subject: { reference: refOf(patientEntry) },
             participant: [{
                 id: 'AttenderPhysician',
                 type: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', code: 'ATND', display: 'attender' }] }],
-                individual: { reference: `#${practId}` },
+                individual: { reference: refOf(practitionerEntry) },
             }],
             ...(toIsoDateTime(head.FechaHoraInicioAtencion) || toIsoDateTime(head.FechaHoraFinAtencion) ? {
                 period: {
@@ -1395,7 +1424,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 use: { coding: [{ system: CS_DIAG_ROLE, code: '8319008', display: 'diagnóstico primario' }] },
                 rank: 1,
             }] } : {}),
-            ...(ipsOrgEntry ? { serviceProvider: { reference: `#${ipsId}` } } : {}),
+            ...(ipsOrgEntry ? { serviceProvider: { reference: refOf(ipsOrgEntry) } } : {}),
         });
 
         const compositionDateIso = toIsoDateTime(head.FechaRDA) || nowIso;
@@ -1435,10 +1464,10 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             category: [{
                 coding: [{ system: 'http://loinc.org', code: '55108-5', display: 'Clinical presentation Document' }],
             }],
-            subject: { reference: `#${pacienteId}` },
+            subject: { reference: refOf(patientEntry) },
             date: compositionDateIso,
-            author: [ipsOrgRefByIdentifier || { reference: `#${practId}` }],
-            custodian: ipsOrgRefByIdentifier || { reference: `#${practId}` },
+            author: [ipsOrgRefByIdentifier || { reference: refOf(practitionerEntry) }],
+            custodian: ipsOrgRefByIdentifier || { reference: refOf(practitionerEntry) },
             description: DOC_EPI_DESCRIPTION,
             securityLabel: [{
                 coding: [{
@@ -1447,7 +1476,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     display: 'restricted',
                 }],
             }],
-            context: { encounter: [{ reference: refOf(encounterEntry) }] },
+            context: { encounter: [{ reference: refOf('Encounter-0', 'Encounter') }] },
             content: [{
                 // Perfil DocumentReferenceEPIRDA (IHCE): attachment.contentType 0..0; format fijo urn:ietf:bcp:13 + application/pdf.
                 attachment: {
@@ -1516,14 +1545,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             meta: { profile: [`${RDA_SD}/CompositionAmbulatoryRDA`] },
             status: 'final',
             type: { coding: [{ system: 'http://loinc.org', code: '51845-6', display: 'Outpatient Consult note' }] },
-            subject:         { reference: `#${pacienteId}` },
-            encounter:       { reference: refOf(encounterEntry) },
+            subject:         { reference: refOf(patientEntry) },
+            encounter:       { reference: refOf('Encounter-0', 'Encounter') },
             date:            compositionDateIso,
-            author:          [{ reference: `#${practId}` }],
+            author:          [{ reference: refOf(practitionerEntry) }],
             title:           'Resumen Digital de Atención en Salud - RDA de consulta externa',
             confidentiality: 'N',
-            attester:        [{ mode: 'legal', party: { reference: `#${practId}` } }],
-            custodian:       ipsOrgEntry ? { reference: `#${ipsId}` } : { reference: `#${practId}` },
+            attester:        [{ mode: 'legal', party: { reference: refOf(practitionerEntry) } }],
+            custodian:       ipsOrgEntry ? { reference: refOf(ipsOrgEntry) } : { reference: refOf(practitionerEntry) },
             event:           [{ period: {
                 ...(toIsoDateTime(head.FechaHoraInicioAtencion) ? { start: toIsoDateTime(head.FechaHoraInicioAtencion) } : {}),
                 ...(toIsoDateTime(head.FechaHoraFinAtencion)    ? { end:   toIsoDateTime(head.FechaHoraFinAtencion)    } : {}),
@@ -1685,6 +1714,30 @@ router.post(
             req2.end();
         });
 
+    // Helpers de referencia para normalizar refs internas del Bundle (# / ResourceType/id / urn:uuid).
+    const refOf = (entryOrId, resourceTypeHint = '') => {
+        if (typeof entryOrId === 'string') {
+            const raw = String(entryOrId).trim();
+            if (!raw) return '';
+            if (/^[A-Za-z]+\/.+$/.test(raw)) return raw;
+            if (resourceTypeHint) return `${resourceTypeHint}/${raw.replace(/^#/, '')}`;
+            return raw.replace(/^#/, '');
+        }
+        const r = entryOrId && entryOrId.resource ? entryOrId.resource : entryOrId;
+        const rid = r && r.id ? String(r.id) : '';
+        const rt = r && r.resourceType ? String(r.resourceType) : '';
+        if (!rid) return '';
+        return rt ? `${rt}/${rid}` : rid;
+    };
+    const refId = (reference) => {
+        const raw = String(reference || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('urn:uuid:')) return raw.slice('urn:uuid:'.length);
+        if (raw.startsWith('#')) return raw.slice(1);
+        const m = raw.match(/^[A-Za-z]+\/(.+)$/);
+        return m ? m[1] : raw;
+    };
+
     try {
         // 1) Obtener Bundle desde el endpoint interno
         const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
@@ -1742,7 +1795,7 @@ router.post(
                 const loincOf = (sec) => (sec && sec.code && sec.code.coding && sec.code.coding[0] && sec.code.coding[0].code) || '';
                 comp.section = (Array.isArray(comp.section) ? comp.section : []).map((s) => {
                     if (!Array.isArray(s.entry) || s.entry.length === 0) return s;
-                    const filtered = s.entry.filter((r) => avail.has(String(r.reference || '').replace(/^#/, '')));
+                    const filtered = s.entry.filter((r) => avail.has(refId(r.reference)));
                     if (filtered.length === 0) {
                         if (loincOf(s) === '55107-7') {
                             return { ...s, entry: [] };
@@ -1780,7 +1833,7 @@ router.post(
                 : `IPS (${reps})`;
             const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
             const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
-            if (compE && compE.resource) compE.resource.custodian = { reference: `#${reps}` };
+            if (compE && compE.resource) compE.resource.custodian = { reference: refOf(reps, 'Organization') };
             const docRefE = entries.find((e) => e && e.resource && e.resource.resourceType === 'DocumentReference');
             if (docRefE && docRefE.resource) {
                 const drCust = {

@@ -20,6 +20,15 @@
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 
+/** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
+function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
+    const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    if (c === '7') return true;
+    if (t && /sin\s*asignar/i.test(t)) return true;
+    return false;
+}
+
 const router = Router();
 router.post('/EvaluacionEntidadRDA/', async (req, res) => {
     const {
@@ -1053,7 +1062,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     },
                 });
             }
-            if (str(h.CodigoEtnia)) {
+            if (str(h.CodigoEtnia) && !skipRdaEthnicityExtension(h.CodigoEtnia, h.TextoEtnia)) {
                 patExt.push({
                     url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
                     valueCoding: {

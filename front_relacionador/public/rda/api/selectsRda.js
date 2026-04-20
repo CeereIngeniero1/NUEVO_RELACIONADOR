@@ -40,6 +40,29 @@ function aplicarSelect2AdministradorPlanBeneficios(selector) {
     });
 }
 
+/**
+ * Select2 no siempre deja al listener nativo `change` sincronizado con data-* de la opción.
+ * Enlazar change + select2:select (jQuery) tras init de Select2.
+ */
+function vincularNombreAdministradorPlanBeneficios(selectEl, inputEl) {
+    if (!selectEl || !inputEl) return;
+    const sync = () => {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        const nombre =
+            opt && opt.dataset && opt.dataset.nombre != null ? String(opt.dataset.nombre) : "";
+        inputEl.value = nombre.trim() ? nombre : "";
+    };
+    if (typeof window.jQuery !== "undefined") {
+        const $ = window.jQuery;
+        $(selectEl)
+            .off(".rdaAdminNombreSync")
+            .on("change.rdaAdminNombreSync select2:select.rdaAdminNombreSync", sync);
+    } else {
+        selectEl.addEventListener("change", sync);
+    }
+    sync();
+}
+
 async function inicializarListaPrestadores() {
     const selectPrestador = document.getElementById("RDA_CodigoPrestador");
     const selectPrestadorCE = document.getElementById("RDACE_CodigoPrestador");
@@ -87,22 +110,17 @@ async function inicializarListaAdministradores() {
             optionsHTML += `<option value="${adm.Codigo}" data-nombre="${adm.Nombre}">${adm.Codigo} - ${adm.Nombre}</option>`;
         });
 
-        const setupSelect = (sel, inp) => {
-            if (!sel) return;
-            sel.innerHTML = optionsHTML;
-            sel.addEventListener("change", function () {
-                const selectedOption = sel.options[sel.selectedIndex];
-                if (inp) {
-                    inp.value = selectedOption.dataset.nombre || "";
-                }
-            });
+        const rellenarOpciones = (sel) => {
+            if (sel) sel.innerHTML = optionsHTML;
         };
-
-        setupSelect(selectAdmin, inputNombreAdmin);
-        setupSelect(selectAdminCE, inputNombreAdminCE);
+        rellenarOpciones(selectAdmin);
+        rellenarOpciones(selectAdminCE);
 
         aplicarSelect2AdministradorPlanBeneficios("#RDA_CodigoAdminPlanBeneficios");
         aplicarSelect2AdministradorPlanBeneficios("#RDACE_CodigoAdminPlanBeneficios");
+
+        vincularNombreAdministradorPlanBeneficios(selectAdmin, inputNombreAdmin);
+        vincularNombreAdministradorPlanBeneficios(selectAdminCE, inputNombreAdminCE);
     } catch (error) {
         console.error("[RDA V3] Error al cargar administradores (SSGSSS):", error);
     }

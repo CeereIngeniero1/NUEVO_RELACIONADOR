@@ -106,7 +106,7 @@ function initCups1888Select2(selector, fillNombreId) {
 
 // ── Profesionales ─────────────────────────────────────────────────────────
 
-function initProfesionalesSelect2(selector) {
+function initProfesionalesSelect2(selector, tipoDocInputSelector) {
     if ($(selector).data("select2")) return;
     $(selector).select2({
         placeholder: "Buscar por nombre o documento...",
@@ -129,12 +129,61 @@ function initProfesionalesSelect2(selector) {
                 return {
                     results: arr.map(p => ({
                         id: p.Documento,
-                        text: `${p.Nombres || ""} (${p.Documento || ""})`
+                        text: `${p.Nombres || ""} (${p.Documento || ""})`,
+                        tipoDocProfesional: p.TipoDocProfesional || p.TipoDocumento || "",
+                        codigoTipoDocProfesional: p.CodigoTipoDocProfesional || p.CodigoTipoDocumento || "",
                     }))
                 };
             }
         }
     });
+
+    if (tipoDocInputSelector) {
+        const $tipo = $(tipoDocInputSelector);
+
+        const escogerTipo = (row) => {
+            const codigo = row && row.CodigoTipoDocProfesional != null ? String(row.CodigoTipoDocProfesional).trim() : "";
+            const tipo = row && row.TipoDocProfesional != null ? String(row.TipoDocProfesional).trim() : "";
+            return codigo || tipo || "";
+        };
+
+        $(selector).on("select2:select", async function (e) {
+            const d = (e && e.params && e.params.data) ? e.params.data : {};
+            const doc = d && d.id != null ? String(d.id).trim() : "";
+
+            // Si la lista ya trae el tipo/código, usarlo directo.
+            const localTipo = escogerTipo({
+                CodigoTipoDocProfesional: d.codigoTipoDocProfesional,
+                TipoDocProfesional: d.tipoDocProfesional,
+            });
+            if (localTipo) {
+                $tipo.val(localTipo).trigger("change");
+                return;
+            }
+
+            if (!doc) {
+                $tipo.val("").trigger("change");
+                return;
+            }
+
+            // Fallback: consultar endpoint por documento.
+            try {
+                const url = `${getApiBaseUrl()}/apiV3/Profesionales/TipoDocumento/${encodeURIComponent(doc)}`;
+                const r = await fetch(url);
+                if (!r.ok) throw new Error(`status ${r.status}`);
+                const data = await r.json();
+                const tipoFinal = escogerTipo(data);
+                $tipo.val(tipoFinal).trigger("change");
+            } catch (err) {
+                console.warn("[RDA V3] No se pudo cargar tipo de documento del profesional:", err);
+                $tipo.val("").trigger("change");
+            }
+        });
+
+        $(selector).on("select2:clear", function () {
+            $tipo.val("").trigger("change");
+        });
+    }
 }
 
 // ── Egreso y Remisión ─────────────────────────────────────────────────────
@@ -312,8 +361,8 @@ export function wireRdaceCatalogs() {
     initCups1888Select2("#RDACE_CodigoProcedimiento", "#RDACE_NombreProcedimiento");
 
     // Profesionales
-    initProfesionalesSelect2("#RDA_NumDocProfesional");
-    initProfesionalesSelect2("#RDACE_NumDocProfesional");
+    initProfesionalesSelect2("#RDA_NumDocProfesional", "#RDA_TipoDocProfesional");
+    initProfesionalesSelect2("#RDACE_NumDocProfesional", "#RDACE_TipoDocProfesional");
 
     // Egreso y Remisión
     initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");

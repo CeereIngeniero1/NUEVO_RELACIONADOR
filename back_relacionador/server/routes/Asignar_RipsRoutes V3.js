@@ -2649,6 +2649,52 @@ router.get('/Profesionales/', async (req, res) => {
 
 });
 
+// Devuelve el tipo de documento del profesional por número de documento.
+// Útil para autollenar RDA_TipoDocProfesional / RDACE_TipoDocProfesional al seleccionar en Select2.
+router.get('/Profesionales/TipoDocumento/:Documento', async (req, res) => {
+    try {
+        const documento = (req.params.Documento || '').toString().trim();
+        if (!documento) {
+            return res.status(400).json({ ok: false, error: 'Documento requerido' });
+        }
+
+        const pool = await poolPromise;
+        const q = await pool
+            .request()
+            .input('Documento', sql.NVarChar(50), documento)
+            .query(`
+                SELECT TOP 1
+                    e.[Documento Entidad]          AS Documento,
+                    td.[Tipo de Documento]         AS TipoDocumento,
+                    td.[Código Tipo de Documento]  AS CodigoTipoDocumento
+                FROM [Entidad] e
+                LEFT JOIN [Tipo de Documento] td
+                    ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
+                WHERE e.[Documento Entidad] = @Documento
+            `);
+
+        const row = (q.recordset && q.recordset[0]) || null;
+        if (!row) {
+            return res.status(404).json({ ok: false, error: 'Profesional no encontrado' });
+        }
+
+        const tipo = row.TipoDocumento != null ? String(row.TipoDocumento).trim() : '';
+        const codigo = row.CodigoTipoDocumento != null ? String(row.CodigoTipoDocumento).trim() : '';
+
+        return res.json({
+            ok: true,
+            Documento: row.Documento,
+            TipoDocProfesional: tipo || null,
+            CodigoTipoDocProfesional: codigo || null,
+        });
+    } catch (error) {
+        console.error('❌ Error al obtener tipo de documento del profesional:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: 'Error interno del servidor' });
+        }
+    }
+});
+
 // =================================================================================================
 // ==========================RDA=====================================
 
