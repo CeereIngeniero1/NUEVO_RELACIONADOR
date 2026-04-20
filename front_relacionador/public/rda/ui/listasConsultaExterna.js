@@ -169,18 +169,57 @@ export function initListasConsultaExterna() {
 
     // ── Antecedentes Familiares CE ──────────────────────────
     const btnFamCE = document.getElementById("RDACE_BtnAgregarAntecedenteFam");
+    const selectParentescoCE = document.getElementById("RDACE_ParentescoFamiliar");
     const inputFamCIE10CE = document.getElementById("RDACE_AntecedenteFamiliarCIE10");
+    const inputFamCIE11CE = document.getElementById("RDACE_AntecedenteFamiliarCIE11");
     const inputFamDescCE = document.getElementById("RDACE_AntecedenteFamiliarDescripcion");
     const contFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
 
     btnFamCE?.addEventListener("click", () => {
-        const codigo = inputFamCIE10CE?.value?.trim();
-        if (!codigo) return;
+        const parentesco = selectParentescoCE?.value || "";
+        const textoParentesco =
+            selectParentescoCE?.options?.[selectParentescoCE.selectedIndex]?.text || "";
 
-        addAntecedenteFamiliarCE({ codigo, descripcion: inputFamDescCE?.value || "" });
-        rerender(contFamCE, getAntecedentesFamiliaresCE(), "antecedente");
+        const codigo = inputFamCIE10CE?.value?.trim() || "";
+        const descripcion = inputFamDescCE?.value || "";
+
+        let cie11Codigo = "";
+        let cie11Termino = "";
+        try {
+            if (inputFamCIE11CE && typeof $ !== "undefined" && $(inputFamCIE11CE).data("select2")) {
+                const d11 = $(inputFamCIE11CE).select2("data")[0];
+                if (d11) {
+                    cie11Codigo = d11.id != null ? String(d11.id) : "";
+                    cie11Termino = d11.text || "";
+                }
+            } else if (inputFamCIE11CE) {
+                cie11Termino = inputFamCIE11CE.value || "";
+            }
+        } catch (_) {
+            // ignore
+        }
+
+        if (!parentesco) return;
+        // Permitir solo CIE-11, solo CIE-10 o ambos.
+        if (!codigo && !cie11Codigo && !cie11Termino) return;
+
+        addAntecedenteFamiliarCE({
+            parentesco,
+            textoParentesco,
+            codigo,
+            descripcion,
+            cie11Codigo: cie11Codigo || undefined,
+            cie11Termino: cie11Termino || undefined,
+        });
+        rerender(contFamCE, getAntecedentesFamiliaresCE(), "familiar");
 
         clearSelect2("#RDACE_AntecedenteFamiliarCIE10");
+        if (inputFamCIE11CE && typeof $ !== "undefined") $(inputFamCIE11CE).val(null).trigger("change");
+        if (selectParentescoCE && typeof $ !== "undefined" && $(selectParentescoCE).data("select2")) {
+            $(selectParentescoCE).val(null).trigger("change");
+        } else if (selectParentescoCE) {
+            selectParentescoCE.value = "";
+        }
         if (inputFamDescCE) inputFamDescCE.value = "";
     });
 
@@ -212,14 +251,30 @@ export function initListasConsultaExterna() {
     const contDiagRel = document.getElementById("RDACE_ListaDiagRelacionados");
 
     btnDiagRel?.addEventListener("click", () => {
-        const codCIE10 = document.getElementById("RDACE_DiagRelacionadoCIE10Codigo")?.value?.trim();
-        if (!codCIE10) return;
+        const codCIE10 = document.getElementById("RDACE_DiagRelacionadoCIE10Codigo")?.value?.trim() || "";
+        const codCIE11 = document.getElementById("RDACE_DiagRelacionadoCIE11Codigo")?.value?.trim() || "";
+
+        let termCIE11 = "";
+        const elTerm = document.getElementById("RDACE_DiagRelacionadoCIE11Termino");
+        try {
+            if (elTerm && typeof $ !== "undefined" && $(elTerm).data("select2")) {
+                const td = $(elTerm).select2("data")[0];
+                termCIE11 = td ? (td.text || "") : "";
+            } else {
+                termCIE11 = elTerm?.value?.trim() || "";
+            }
+        } catch (_) {
+            termCIE11 = elTerm?.value?.trim() || "";
+        }
+
+        // Permitir guardar con solo CIE-11 (sin CIE-10) o con ambos.
+        if (!codCIE10 && !codCIE11 && !termCIE11) return;
 
         addDiagRelacionado({
             codigoCIE10: codCIE10,
             nombreCIE10: document.getElementById("RDACE_DiagRelacionadoCIE10Nombre")?.value || "",
-            codigoCIE11: document.getElementById("RDACE_DiagRelacionadoCIE11Codigo")?.value?.trim() || "",
-            terminoCIE11: document.getElementById("RDACE_DiagRelacionadoCIE11Termino")?.value?.trim() || "",
+            codigoCIE11: codCIE11,
+            terminoCIE11: termCIE11,
         });
         rerender(contDiagRel, getDiagRelacionados(), "diagRel");
 

@@ -199,8 +199,8 @@
 
         btnFam?.addEventListener("click", function () {
             var parentesco = selectParentesco?.value;
-            var codigo = inputFamCIE10?.value?.trim();
-            if (!parentesco || !codigo) return;
+            var codigo = inputFamCIE10?.value?.trim() || "";
+            if (!parentesco) return;
 
             var textoParentesco =
                 selectParentesco?.options[selectParentesco.selectedIndex]?.text || "";
@@ -213,6 +213,8 @@
                     cie11Termino = d11.text || "";
                 }
             }
+            // Permitir solo CIE-11, solo CIE-10 o ambos.
+            if (!codigo && !cie11Codigo && !cie11Termino) return;
             var item = {
                 parentesco: parentesco,
                 textoParentesco: textoParentesco,
@@ -336,20 +338,36 @@
         var contenedorFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
 
         btnFamCE?.addEventListener("click", function () {
-            var codigo = inputFamCIE10CE?.value?.trim();
-            if (!codigo) return;
+            var codigo = inputFamCIE10CE?.value?.trim() || "";
             var parentescoVal = selectParentCE?.value || "";
             var parentescoTexto = selectParentCE?.options?.[selectParentCE.selectedIndex]?.text || "";
+            var inputFamCIE11CE = document.getElementById("RDACE_AntecedenteFamiliarCIE11");
+            var cie11Codigo = "";
+            var cie11Termino = "";
+            if (inputFamCIE11CE && typeof $ !== "undefined" && $(inputFamCIE11CE).data("select2")) {
+                var d11 = $(inputFamCIE11CE).select2("data")[0];
+                if (d11) {
+                    cie11Codigo = d11.id != null ? String(d11.id) : "";
+                    cie11Termino = d11.text || "";
+                }
+            }
+
+            if (!parentescoVal) return;
+            // Permitir solo CIE-11, solo CIE-10 o ambos.
+            if (!codigo && !cie11Codigo && !cie11Termino) return;
             var item = {
                 parentesco: parentescoVal,
                 textoParentesco: parentescoTexto,
                 codigo: codigo,
-                descripcion: inputFamDescCE?.value || ""
+                descripcion: inputFamDescCE?.value || "",
+                cie11Codigo: cie11Codigo || undefined,
+                cie11Termino: cie11Termino || undefined,
             };
             listaAntecedentesFamCE.push(item);
             renderizarLista(contenedorFamCE, listaAntecedentesFamCE, "antecedente");
             if (inputFamCIE10CE) $(inputFamCIE10CE).val("").trigger("change");
             if (inputFamDescCE) inputFamDescCE.value = "";
+            if (inputFamCIE11CE) $(inputFamCIE11CE).val(null).trigger("change");
             if (selectParentCE && typeof $ !== "undefined" && $(selectParentCE).data("select2")) {
                 $(selectParentCE).val(null).trigger("change");
             } else if (selectParentCE) selectParentCE.value = "";
@@ -388,8 +406,8 @@
         var contDiagRel = document.getElementById("RDACE_ListaDiagRelacionados");
 
         btnDiagRel?.addEventListener("click", function () {
-            var codCIE10 = inputDiagCIE10Cod?.value?.trim();
-            if (!codCIE10) return;
+            var codCIE10 = inputDiagCIE10Cod?.value?.trim() || "";
+            var codCIE11 = inputDiagCIE11Cod?.value?.trim() || "";
 
             var termCIE11 = "";
             if (inputDiagCIE11Term && typeof $ !== "undefined" && $(inputDiagCIE11Term).data("select2")) {
@@ -398,10 +416,13 @@
             } else {
                 termCIE11 = inputDiagCIE11Term?.value?.trim() || "";
             }
+
+            // Permitir guardar con solo CIE-11 (sin CIE-10) o con ambos.
+            if (!codCIE10 && !codCIE11 && !termCIE11) return;
             listaDiagRelacionados.push({
                 codigoCIE10: codCIE10,
                 nombreCIE10: inputDiagCIE10Nom?.value || "",
-                codigoCIE11: inputDiagCIE11Cod?.value?.trim() || "",
+                codigoCIE11: codCIE11,
                 terminoCIE11: termCIE11
             });
             renderizarListaCE(contDiagRel, listaDiagRelacionados, "diagRel");

@@ -38,6 +38,27 @@
     <!-- ESTILOS ESPECÍFICOS DE ESTA PÁGINA (última prioridad = gana) -->
     <link rel="stylesheet" href="Asignar_RIPS.css">
 
+    <style>
+        /* Select2: asegurar botón de limpiar visible (CIE-10). */
+        .select2-container--default .select2-selection--single {
+            position: relative;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            position: absolute;
+            right: 1.75rem; /* deja espacio para la flecha */
+            top: 50%;
+            transform: translateY(-50%);
+            margin: 0;
+            float: none;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            right: 0.25rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-right: 3rem; /* espacio para X + flecha */
+        }
+    </style>
+
     <!-- ICONO -->
     <link rel="icon" href="images/Logo.png" type="image/x-icon">
     <!-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
@@ -1304,7 +1325,7 @@
                                             <div class="card p-2 border-secondary">
                                                 <h6 class="text-muted">Antecedentes Familiares</h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-3">
                                                         <label>Parentesco:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDA_ParentescoFamiliar">
@@ -1316,14 +1337,14 @@
                                                             <option value="04">04 - Abuelos</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-4">
                                                         <label>Condición salud (CIE-10):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDA_AntecedenteFamiliarCIE10">
                                                             <option value="">Seleccione o busque un diagnóstico...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-4">
                                                         <label>Condición salud (CIE-11):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDA_AntecedenteFamiliarCIE11">
@@ -1331,14 +1352,8 @@
                                                             </option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-2">
-                                                        <label>Descripción:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDA_AntecedenteFamiliarDescripcion"
-                                                            placeholder="Nombre diagnóstico" readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
+                                                    <input type="hidden" id="RDA_AntecedenteFamiliarDescripcion">
+                                                    <div class="col-md-1">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
                                                             id="RDA_BtnAgregarAntecedenteFam">+
@@ -1576,21 +1591,21 @@
                                             <div class="card p-2 border-secondary">
                                                 <h6 class="text-muted">Antecedentes Familiares</h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-3">
                                                         <label>Parentesco:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_ParentescoFamiliar">
                                                             <option value="">Buscar parentesco...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-4">
                                                         <label>Condición salud (CIE-10):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_AntecedenteFamiliarCIE10">
                                                             <option value="">Seleccione o busque un diagnóstico...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-4">
                                                         <label>Condición salud (CIE-11):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_AntecedenteFamiliarCIE11">
@@ -1598,14 +1613,8 @@
                                                             </option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-2">
-                                                        <label>Descripción:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_AntecedenteFamiliarDescripcion"
-                                                            placeholder="Nombre diagnóstico" readonly>
-                                                    </div>
-                                                    <div class="col-md-2">
+                                                    <input type="hidden" id="RDACE_AntecedenteFamiliarDescripcion">
+                                                    <div class="col-md-1">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
                                                             id="RDACE_BtnAgregarAntecedenteFam">+
@@ -1755,6 +1764,7 @@
                                                     <div class="col-md-2">
                                                         <label>Término diag. CIE-11:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
+                                                            style="min-width: 0;"
                                                             id="RDACE_DiagRelacionadoCIE11Termino">
                                                             <option value="">Busque un diagnóstico CIE-11...</option>
                                                         </select>
@@ -2850,7 +2860,7 @@
             // 3) Antecedentes Familiares
             const antFam = (window.RDA?.getAntecedentesFamiliares?.() || []);
             for (const item of antFam) {
-                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                const desc = item.codigo ? (item.codigo + (item.descripcion ? ' - ' + item.descripcion : '')) : null;
                 const r = await fetch(`${base}/EvaluacionEntidadRDA/AntecedentesFamiliares`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3090,12 +3100,14 @@
 
             const antFam = (window.RDA?.getAntecedentesFamiliaresCE?.() || []);
             for (const item of antFam) {
-                const desc = item.codigo + (item.descripcion ? ' - ' + item.descripcion : '');
+                const desc = item.codigo ? (item.codigo + (item.descripcion ? ' - ' + item.descripcion : '')) : null;
                 await postJson(`${base}/EvaluacionEntidadRDACE/AntecedentesFamiliares`, {
                     IdEvaluacionEntidadRDACE: idCE,
                     DocumentoEntidad: documento,
                     Parentesco: item.parentesco != null ? String(item.parentesco) : null,
                     Descripcion: desc,
+                    CIE11Codigo: item.cie11Codigo || null,
+                    CIE11Termino: item.cie11Termino || null,
                     IdEstado: 1
                 });
             }

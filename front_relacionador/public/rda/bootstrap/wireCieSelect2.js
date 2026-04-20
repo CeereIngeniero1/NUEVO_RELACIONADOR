@@ -13,6 +13,8 @@ function initCIE11Select2(selector, codeSelector, descSelector) {
     if ($(selector).data("select2")) return;
     $(selector).select2({
         placeholder: "Busque un diagnóstico CIE-11",
+        width: "100%",
+        dropdownAutoWidth: true,
         allowClear: true,
         minimumInputLength: 0,
         ajax: {
@@ -41,7 +43,11 @@ function initCIE11Select2(selector, codeSelector, descSelector) {
             processResults: function (data) {
                 return { results: data.results };
             }
-        }
+        },
+        templateSelection: function (selection) {
+            const t = selection && selection.text ? String(selection.text) : "";
+            return t.length > 50 ? t.substring(0, 50) + "..." : t;
+        },
     });
 
     $(selector).on("select2:select", function (e) {

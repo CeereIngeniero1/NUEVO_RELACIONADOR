@@ -14,8 +14,24 @@ const formatters = {
         return item.codigo + (item.descripcion ? ` - ${item.descripcion}` : "");
     },
     familiar(item) {
-        return `${item.textoParentesco} | ${item.codigo}` +
-            (item.descripcion ? ` - ${item.descripcion}` : "");
+        const parentesco = item.textoParentesco || item.parentesco || "";
+        const c10 = item.codigo || "";
+        const c10Nombre = item.descripcion || "";
+
+        const c11 = item.cie11Codigo || "";
+        const c11Term = item.cie11Termino || "";
+
+        let t = parentesco ? String(parentesco) : "";
+
+        if (c10) {
+            t += (t ? " | " : "") + `CIE-10: ${c10}` + (c10Nombre ? ` - ${c10Nombre}` : "");
+        }
+        if (c11 || c11Term) {
+            t += (t ? " | " : "") + `CIE-11: ${c11 || ""}` + (c11Term ? ` ${c11Term}` : "");
+        }
+
+        // Fallback por si llega un item incompleto
+        return t || (c10 || c11 || "");
     },
     medicamento(item) {
         return item.nombre + (item.observacion ? ` (${item.observacion})` : "");
