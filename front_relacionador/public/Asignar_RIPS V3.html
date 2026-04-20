@@ -1162,17 +1162,14 @@
                                                 <option value="">Seleccionar Prestador</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-9">
                                             <label class="fw-bold">Administrador Plan Beneficios<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDA_CodigoAdminPlanBeneficios">
                                                 <option value="">Seleccionar Administrador</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-5">
-                                            <label class="fw-bold">Nombre Administrador:</label>
-                                            <input type="text" class="form-control-sm border border-secondary w-100"
-                                                id="RDA_NombreAdminPlanBeneficios" placeholder="Nombre EPS/entidad" readonly>
-                                        </div>
+                                        <!-- Campo duplicado: se conserva oculto para payload/compatibilidad -->
+                                        <input type="hidden" id="RDA_NombreAdminPlanBeneficios" value="">
                                     </div>
 
                                     <div class="row g-2 mt-2">
@@ -1427,17 +1424,14 @@
                                                 <option value="">Seleccionar Prestador</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-9">
                                             <label class="fw-bold">Administrador Plan Beneficios<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_CodigoAdminPlanBeneficios">
                                                 <option value="">Seleccionar Administrador</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-5">
-                                            <label class="fw-bold">Nombre Administrador:</label>
-                                            <input type="text" class="form-control-sm border border-secondary w-100"
-                                                id="RDACE_NombreAdminPlanBeneficios" placeholder="Nombre EPS/entidad" readonly>
-                                        </div>
+                                        <!-- Campo duplicado: se conserva oculto para payload/compatibilidad -->
+                                        <input type="hidden" id="RDACE_NombreAdminPlanBeneficios" value="">
                                     </div>
 
                                     <div class="row g-2 mt-2">
