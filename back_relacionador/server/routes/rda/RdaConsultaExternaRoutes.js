@@ -45,6 +45,23 @@ const toDateTimeRDACE = (str) => {
     return isNaN(d.getTime()) ? null : d;
 };
 
+// ---------------------------------------------------------------------------
+// Helper: solo enteros en string (devuelve null si inválido)
+// ---------------------------------------------------------------------------
+const toStrictIntStringOrNull = (value) => {
+    if (value == null) return null;
+    const s = String(value).trim();
+    if (!s) return null;
+    return /^[0-9]+$/.test(s) ? s : null;
+};
+
+const toStrictIntOrNull = (value) => {
+    const s = toStrictIntStringOrNull(value);
+    if (s == null) return null;
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+};
+
 // ===========================================================================
 // PERSISTENCIA — tablas RDACE
 // ===========================================================================
@@ -96,8 +113,8 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
             .input('CondicionDestinoEgreso', sql.NVarChar, CondicionDestinoEgreso || null)
             .input('CodigoPrestadorRemite', sql.NVarChar, CodigoPrestadorRemite || null)
             .input('AlcanceIncapacidad', sql.NVarChar, AlcanceIncapacidad || null)
-            .input('DiasIncapacidad', sql.Int, DiasIncapacidad != null && DiasIncapacidad !== '' ? parseInt(DiasIncapacidad, 10) : null)
-            .input('DiasLicenciaMaternidad', sql.Int, DiasLicenciaMaternidad != null && DiasLicenciaMaternidad !== '' ? parseInt(DiasLicenciaMaternidad, 10) : null)
+            .input('DiasIncapacidad', sql.Int, toStrictIntOrNull(DiasIncapacidad))
+            .input('DiasLicenciaMaternidad', sql.Int, toStrictIntOrNull(DiasLicenciaMaternidad))
             .input('NombreDocumentoPDF', sql.NVarChar, NombreDocumentoPDF || null)
             .input('IdModalidadAtencion', sql.Int, rdaceIntOrNull(IdModalidadAtencion))
             .input('IdGrupoServicios', sql.Int, rdaceIntOrNull(IdGrupoServicios))
@@ -248,12 +265,12 @@ router.post('/EvaluacionEntidadRDACE/PrescripcionMedicamentos', async (req, res)
             .input('NombreMed', sql.NVarChar, nombre || null)
             .input('Dci', sql.NVarChar, dci || null)
             .input('FechaPresc', sql.DateTime2, toDateTimeRDACE(fechaPrescripcion))
-            .input('Dosis', sql.NVarChar, dosis != null ? String(dosis) : null)
+            .input('Dosis', sql.NVarChar, toStrictIntStringOrNull(dosis))
             .input('UnidadDosis', sql.NVarChar, unidadDosis || null)
             .input('Via', sql.NVarChar, via || null)
-            .input('DurCant', sql.NVarChar, duracionCant != null ? String(duracionCant) : null)
+            .input('DurCant', sql.NVarChar, toStrictIntStringOrNull(duracionCant))
             .input('DurUnid', sql.NVarChar, duracionUnid || null)
-            .input('FreqCant', sql.NVarChar, frecuenciaCant != null ? String(frecuenciaCant) : null)
+            .input('FreqCant', sql.NVarChar, toStrictIntStringOrNull(frecuenciaCant))
             .input('FreqUnid', sql.NVarChar, frecuenciaUnid || null)
             .input('Finalidad', sql.NVarChar, finalidad != null ? String(finalidad) : null)
             .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
@@ -1259,8 +1276,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
         // Observation incapacidad — AttendanceAllowanceRDA: slices LicenseScope (1..1), LicenseTime, MaternityLicenseTime (IG 0.7+/0.8)
         const alcanceIncapacidad = str(head.AlcanceIncapacidad);
-        const diasIncapacidad    = head.DiasIncapacidad        != null ? parseInt(head.DiasIncapacidad, 10)        : null;
-        const diasLicencia       = head.DiasLicenciaMaternidad != null ? parseInt(head.DiasLicenciaMaternidad, 10) : null;
+        const diasIncapacidad    = toStrictIntOrNull(head.DiasIncapacidad);
+        const diasLicencia       = toStrictIntOrNull(head.DiasLicenciaMaternidad);
         const colombianLicenseScopeCoding = () => {
             const a = (alcanceIncapacidad || '').toString().trim();
             if (a === '02') return [{ system: CS_COLOMBIAN_LICENSE_SCOPE, code: '02', display: 'Prórroga' }];

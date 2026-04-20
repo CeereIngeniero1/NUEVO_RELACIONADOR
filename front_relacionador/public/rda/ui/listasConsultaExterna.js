@@ -84,7 +84,71 @@ function clearSelect2(selector) {
     }
 }
 
+function digitsOnly(value) {
+    if (value == null) return "";
+    const s = String(value);
+    return s.replace(/\D+/g, "");
+}
+
+function attachDigitsOnlyFilter(input) {
+    if (!input || input.dataset?.digitsOnlyAttached === "1") return;
+    try { input.dataset.digitsOnlyAttached = "1"; } catch (_) { /* noop */ }
+
+    // Bloquear caracteres no numéricos al teclear
+    input.addEventListener("keydown", (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const allowed = [
+            "Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+            "Home", "End", "Tab", "Enter",
+        ];
+        if (allowed.includes(e.key)) return;
+        if (/^\d$/.test(e.key)) return;
+        e.preventDefault();
+    });
+
+    // Bloquear inserciones no numéricas (IME/drag/drop/input methods)
+    input.addEventListener("beforeinput", (e) => {
+        const t = e.inputType || "";
+        if (!t.startsWith("insert")) return;
+        const data = e.data ?? "";
+        if (data && /\D/.test(String(data))) {
+            e.preventDefault();
+        }
+    });
+
+    // Sanitizar lo pegado: solo dígitos
+    input.addEventListener("paste", (e) => {
+        const txt = e.clipboardData?.getData("text") ?? "";
+        const d = digitsOnly(txt);
+        e.preventDefault();
+
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        const next = (input.value.slice(0, start) + d + input.value.slice(end));
+        input.value = digitsOnly(next);
+        try {
+            const caret = start + d.length;
+            input.setSelectionRange(caret, caret);
+        } catch (_) { /* noop */ }
+    });
+
+    // Capa final: si por cualquier medio entró algo raro, lo limpia.
+    input.addEventListener("input", () => {
+        const next = digitsOnly(input.value);
+        if (next !== input.value) input.value = next;
+    });
+}
+
+function initDigitsOnlyInputs() {
+    [
+        "RDACE_DosisOrdenadaMed",
+        "RDACE_DuracionCantidadMed",
+        "RDACE_FrecuenciaCantidadMed",
+    ].forEach((id) => attachDigitsOnlyFilter(document.getElementById(id)));
+}
+
 export function initListasConsultaExterna() {
+    initDigitsOnlyInputs();
 
     // ── Antecedentes de Salud CE ────────────────────────────
     const btnAntCE = document.getElementById("RDACE_BtnAgregarAntecedente");
@@ -182,12 +246,12 @@ export function initListasConsultaExterna() {
             nombre: nombre || "",
             dci: document.getElementById("RDACE_DescripcionComunMed")?.value || "",
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
-            dosis: document.getElementById("RDACE_DosisOrdenadaMed")?.value || "",
+            dosis: digitsOnly(document.getElementById("RDACE_DosisOrdenadaMed")?.value || ""),
             unidadDosis: getSelectValue("RDACE_UnidadMedidaDosis"),
             via: getSelectText("RDACE_ViaAdministracionMed"),
-            duracionCant: document.getElementById("RDACE_DuracionCantidadMed")?.value || "",
+            duracionCant: digitsOnly(document.getElementById("RDACE_DuracionCantidadMed")?.value || ""),
             duracionUnid: getSelectValue("RDACE_DuracionUnidadTiempoMed"),
-            frecuenciaCant: document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || "",
+            frecuenciaCant: digitsOnly(document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || ""),
             frecuenciaUnid: getSelectValue("RDACE_FrecuenciaUnidadTiempoMed"),
             finalidad: getSelectValue("RDACE_FinalidadTecSaludMed"),
         });

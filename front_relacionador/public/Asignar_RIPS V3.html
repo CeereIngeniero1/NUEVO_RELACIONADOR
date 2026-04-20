@@ -1843,10 +1843,10 @@
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label>Dosis ordenada:</label>
-                                                        <input type="number"
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DosisOrdenadaMed" placeholder="Cantidad"
-                                                            step="0.01">
+                                                            >
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label>Unidad medida dosis:</label>
@@ -1870,7 +1870,7 @@
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label>Duración cantidad:</label>
-                                                        <input type="number"
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DuracionCantidadMed" placeholder="Ej: 7">
                                                     </div>
@@ -1885,7 +1885,7 @@
                                                 <div class="row g-2 mt-1 align-items-end">
                                                     <div class="col-md-2">
                                                         <label>Frecuencia cantidad:</label>
-                                                        <input type="number"
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_FrecuenciaCantidadMed" placeholder="Ej: 8">
                                                     </div>
@@ -2047,14 +2047,14 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label>Días de incapacidad:</label>
-                                                        <input type="number"
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiasIncapacidad" placeholder="0" min="0">
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label>Días de licencia de
                                                             maternidad:</label>
-                                                        <input type="number"
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiasLicenciaMaternidad" placeholder="0" min="0">
                                                     </div>
@@ -2912,7 +2912,57 @@
         return el.value || null;
     }
 
+    function rdaceDigitsOnly(value) {
+        if (value == null) return '';
+        return String(value).replace(/\D+/g, '');
+    }
+
+    function rdaceAttachDigitsOnlyFilter(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input || input.dataset?.digitsOnlyAttached === '1') return;
+        try { input.dataset.digitsOnlyAttached = '1'; } catch (e) { /* ignore */ }
+
+        input.addEventListener('keydown', function (e) {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab', 'Enter'];
+            if (allowed.indexOf(e.key) !== -1) return;
+            if (/^\d$/.test(e.key)) return;
+            e.preventDefault();
+        });
+
+        input.addEventListener('beforeinput', function (e) {
+            const t = e.inputType || '';
+            if (t.indexOf('insert') !== 0) return;
+            const data = e.data == null ? '' : String(e.data);
+            if (data && /\D/.test(data)) e.preventDefault();
+        });
+
+        input.addEventListener('paste', function (e) {
+            const txt = (e.clipboardData && e.clipboardData.getData) ? (e.clipboardData.getData('text') || '') : '';
+            const d = rdaceDigitsOnly(txt);
+            e.preventDefault();
+
+            const start = (input.selectionStart != null) ? input.selectionStart : input.value.length;
+            const end = (input.selectionEnd != null) ? input.selectionEnd : input.value.length;
+            const next = (input.value.slice(0, start) + d + input.value.slice(end));
+            input.value = rdaceDigitsOnly(next);
+            try {
+                const caret = start + d.length;
+                input.setSelectionRange(caret, caret);
+            } catch (err) { /* ignore */ }
+        });
+
+        input.addEventListener('input', function () {
+            const next = rdaceDigitsOnly(input.value);
+            if (next !== input.value) input.value = next;
+        });
+    }
+
     let _lastIdRDACE = null;
+
+    // Filtro duro: evitar e/+/-/. desde el inicio
+    rdaceAttachDigitsOnlyFilter('RDACE_DiasIncapacidad');
+    rdaceAttachDigitsOnlyFilter('RDACE_DiasLicenciaMaternidad');
 
     document.getElementById('RDACE_BtnGuardarConsultaExterna')?.addEventListener('click', async function () {
         await guardarRDACE();
@@ -2994,8 +3044,8 @@
             CondicionDestinoEgreso: rdaceSelect2Value('RDACE_CondicionDestinoEgreso'),
             CodigoPrestadorRemite: document.getElementById('RDACE_CodigoPrestadorRemite')?.value || null,
             AlcanceIncapacidad: rdaceSelect2Value('RDACE_AlcanceIncapacidad'),
-            DiasIncapacidad: document.getElementById('RDACE_DiasIncapacidad')?.value || null,
-            DiasLicenciaMaternidad: document.getElementById('RDACE_DiasLicenciaMaternidad')?.value || null,
+            DiasIncapacidad: rdaceDigitsOnly(document.getElementById('RDACE_DiasIncapacidad')?.value || '') || null,
+            DiasLicenciaMaternidad: rdaceDigitsOnly(document.getElementById('RDACE_DiasLicenciaMaternidad')?.value || '') || null,
             NombreDocumentoPDF: document.getElementById('RDACE_NombreDocumentoPDF')?.value || null,
             IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
             IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
