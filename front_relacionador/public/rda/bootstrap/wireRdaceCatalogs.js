@@ -147,6 +147,37 @@ function initProfesionalesSelect2(selector, tipoDocInputSelector) {
             return codigo || tipo || "";
         };
 
+        const setTipoDocValue = (raw) => {
+            const v = raw != null ? String(raw).trim() : "";
+            if (!v) {
+                $tipo.val("").trigger("change");
+                return;
+            }
+            // Soporta <input> o <select>: si es select y no hay match por value, intentar por texto de opción.
+            const el = $tipo.get(0);
+            if (el && el.tagName === "SELECT") {
+                $tipo.val(v);
+                if ($tipo.val() === v) {
+                    $tipo.trigger("change");
+                    return;
+                }
+                const needle = v.toLowerCase();
+                let matchedVal = "";
+                $tipo.find("option").each(function () {
+                    const ov = ($(this).attr("value") || "").trim();
+                    const ot = ($(this).text() || "").trim().toLowerCase();
+                    if (!ov) return;
+                    if (ov.toLowerCase() === needle || ot === needle || ot.includes(needle)) {
+                        matchedVal = ov;
+                        return false;
+                    }
+                });
+                $tipo.val(matchedVal || "").trigger("change");
+                return;
+            }
+            $tipo.val(v).trigger("change");
+        };
+
         $(selector).on("select2:select", async function (e) {
             const d = (e && e.params && e.params.data) ? e.params.data : {};
             const doc = d && d.id != null ? String(d.id).trim() : "";
@@ -157,12 +188,12 @@ function initProfesionalesSelect2(selector, tipoDocInputSelector) {
                 TipoDocProfesional: d.tipoDocProfesional,
             });
             if (localTipo) {
-                $tipo.val(localTipo).trigger("change");
+                setTipoDocValue(localTipo);
                 return;
             }
 
             if (!doc) {
-                $tipo.val("").trigger("change");
+                setTipoDocValue("");
                 return;
             }
 
@@ -173,15 +204,15 @@ function initProfesionalesSelect2(selector, tipoDocInputSelector) {
                 if (!r.ok) throw new Error(`status ${r.status}`);
                 const data = await r.json();
                 const tipoFinal = escogerTipo(data);
-                $tipo.val(tipoFinal).trigger("change");
+                setTipoDocValue(tipoFinal);
             } catch (err) {
                 console.warn("[RDA V3] No se pudo cargar tipo de documento del profesional:", err);
-                $tipo.val("").trigger("change");
+                setTipoDocValue("");
             }
         });
 
         $(selector).on("select2:clear", function () {
-            $tipo.val("").trigger("change");
+            setTipoDocValue("");
         });
     }
 }

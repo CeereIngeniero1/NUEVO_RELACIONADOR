@@ -57,6 +57,10 @@
         .select2-container--default .select2-selection--single .select2-selection__rendered {
             padding-right: 3rem; /* espacio para X + flecha */
         }
+        /* Diagnósticos relacionados RDACE: el contenedor Select2 no debe desbordar la columna Bootstrap. */
+        .rdace-diag-rel-card .select2-container {
+            max-width: 100%;
+        }
     </style>
 
     <!-- ICONO -->
@@ -1198,9 +1202,11 @@
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="hidden" name="RDA_TipoDocProfesional" id="RDA_TipoDocProfesional">
-                                                <!-- <select class="form-select border border-secondary"
-                                                    id="RDA_TipoDocProfesional" style="max-width: 100px;">
+                                                <select class="form-select border border-secondary"
+                                                    name="RDA_TipoDocProfesional"
+                                                    id="RDA_TipoDocProfesional"
+                                                    aria-label="Tipo de documento del profesional"
+                                                    style="max-width: 100px; flex-shrink: 0;">
                                                     <option value="">Tipo</option>
                                                     <option value="CC">CC</option>
                                                     <option value="TI">TI</option>
@@ -1208,7 +1214,7 @@
                                                     <option value="PA">PA</option>
                                                     <option value="PE">PE</option>
                                                     <option value="SI">SI</option>
-                                                </select> -->
+                                                </select>
                                                 <select class="form-select border border-secondary" id="RDA_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
@@ -1239,14 +1245,6 @@
                                                 <h6 class="text-muted">Diagnóstico Principal de
                                                     Ingreso (CIE-11)</h6>
                                                 <div class="row g-2">
-                                                    <div class="col-md-5">
-                                                        <label>Código Diagnóstico Ingreso
-                                                            CIE-11:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDA_DiagnosticoIngresoCIE11Codigo"
-                                                            placeholder="Código CIE-11">
-                                                    </div>
                                                     <div class="col-md-7">
                                                         <label>Término Diagnóstico Ingreso
                                                             CIE-11:</label>
@@ -1255,6 +1253,14 @@
                                                             <option value="">Seleccione o busque un diagnóstico...
                                                             </option>
                                                         </select>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <label>Código Diagnóstico Ingreso
+                                                            CIE-11:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDA_DiagnosticoIngresoCIE11Codigo"
+                                                            placeholder="Código CIE-11">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1460,15 +1466,19 @@
                                             <label class="fw-bold">Profesional de Salud que
                                                 Atiende<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="hidden" name="RDACE_TipoDocProfesional" id="RDACE_TipoDocProfesional">
-                                                <!-- <select class="form-select border border-secondary"
-                                                    id="RDACE_TipoDocProfesional" style="max-width: 90px;">
+                                                <select class="form-select border border-secondary"
+                                                    name="RDACE_TipoDocProfesional"
+                                                    id="RDACE_TipoDocProfesional"
+                                                    aria-label="Tipo de documento del profesional"
+                                                    style="max-width: 100px; flex-shrink: 0;">
                                                     <option value="">Tipo</option>
                                                     <option value="CC">CC</option>
+                                                    <option value="TI">TI</option>
                                                     <option value="CE">CE</option>
                                                     <option value="PA">PA</option>
                                                     <option value="PE">PE</option>
-                                                </select> -->
+                                                    <option value="SI">SI</option>
+                                                </select>
                                                 <select class="form-select border border-secondary" id="RDACE_NumDocProfesional"
                                                     style="flex: 1; min-width: 180px;">
                                                     <option value="">Buscar por nombre o documento...</option>
@@ -1511,14 +1521,6 @@
                                                 <h6 class="text-muted">Diagnóstico Principal de
                                                     Ingreso (CIE-11)</h6>
                                                 <div class="row g-2">
-                                                    <div class="col-md-5">
-                                                        <label>Código Diagnóstico Ingreso
-                                                            CIE-11:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagnosticoIngresoCIE11Codigo"
-                                                            placeholder="Código CIE-11">
-                                                    </div>
                                                     <div class="col-md-7">
                                                         <label>Término Diagnóstico Ingreso
                                                             CIE-11:</label>
@@ -1527,6 +1529,14 @@
                                                             <option value="">Seleccione o busque un diagnóstico...
                                                             </option>
                                                         </select>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <label>Código Diagnóstico Ingreso
+                                                            CIE-11:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_DiagnosticoIngresoCIE11Codigo"
+                                                            placeholder="Código CIE-11">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1729,11 +1739,11 @@
                                     <!-- Diagnósticos Relacionados (lista dinámica) -->
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
-                                            <div class="card p-2 border-secondary">
+                                            <div class="card p-2 border-secondary rdace-diag-rel-card">
                                                 <h6 class="text-muted">Diagnósticos Relacionados
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-6" style="min-width: 0;">
                                                         <label>Código diag. relacionado
                                                             CIE-10:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
@@ -1741,7 +1751,7 @@
                                                             <option value="">Seleccionar CIE-10</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-6" style="min-width: 0;">
                                                         <label>Nombre diag. relacionado
                                                             CIE-10:</label>
                                                         <input type="text"
@@ -1749,23 +1759,25 @@
                                                             id="RDACE_DiagRelacionadoCIE10Nombre" placeholder="Nombre"
                                                             readonly>
                                                     </div>
-                                                    <div class="col-md-2">
+                                                </div>
+                                                <div class="row g-2 align-items-end mt-2">
+                                                    <div class="col-md-7" style="min-width: 0;">
+                                                        <label>Término diag. CIE-11:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE11Termino">
+                                                            <option value="">Busque un diagnóstico CIE-11...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
                                                         <label>Código diag. CIE-11:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11" readonly>
                                                     </div>
-                                                    <div class="col-md-2">
-                                                        <label>Término diag. CIE-11:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            style="min-width: 0;"
-                                                            id="RDACE_DiagRelacionadoCIE11Termino">
-                                                            <option value="">Busque un diagnóstico CIE-11...</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-2 d-grid">
+                                                        <label class="form-label mb-1">&nbsp;</label>
                                                         <button type="button"
-                                                            class="btn btn-sm btn-outline-primary w-100"
+                                                            class="btn btn-sm btn-outline-primary"
                                                             id="RDACE_BtnAgregarDiagRelacionado">+
                                                             Agregar</button>
                                                     </div>
@@ -2090,14 +2102,6 @@
                                     <!-- Guardar RDA Consulta Externa (tabla [Evaluacion Entidad RDA Consulta Externa] + hijas) -->
                                     <div class="row g-2 mt-2 mb-2">
                                         <div class="col-md-12 d-flex justify-content-end gap-2">
-                                            <button type="button"
-                                                class="btn btn-outline-primary btn-sm fw-bold px-3"
-                                                id="RDACE_BtnEnviarIHCE"
-                                                disabled
-                                                title="Primero guarde el RDA para habilitar el envío">
-                                                <i class="fa-solid fa-paper-plane me-2"></i>
-                                                Enviar a Ministerio (IHCE)
-                                            </button>
                                             <button type="button"
                                                 class="btn btn-success btn-sm fw-bold px-4"
                                                 id="RDACE_BtnGuardarConsultaExterna">
@@ -3072,48 +3076,12 @@
         });
     }
 
-    let _lastIdRDACE = null;
-
     // Filtro duro: evitar e/+/-/. desde el inicio
     rdaceAttachDigitsOnlyFilter('RDACE_DiasIncapacidad');
     rdaceAttachDigitsOnlyFilter('RDACE_DiasLicenciaMaternidad');
 
     document.getElementById('RDACE_BtnGuardarConsultaExterna')?.addEventListener('click', async function () {
         await guardarRDACE();
-    });
-
-    document.getElementById('RDACE_BtnEnviarIHCE')?.addEventListener('click', async function () {
-        if (!_lastIdRDACE) {
-            Swal.fire({ icon: 'warning', title: 'Sin registro guardado', text: 'Guarde primero el RDA Consulta Externa para obtener el ID necesario.' });
-            return;
-        }
-        const btn = document.getElementById('RDACE_BtnEnviarIHCE');
-        var forceSandboxUi = ihceForceSandboxOnlyUi();
-        var radiosHtml = forceSandboxUi
-            ? '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod" checked> Producción</label>'
-            : '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="sandbox" checked> Sandbox (pruebas)</label>' +
-              '<label class="d-block"><input type="radio" name="swalRdaAmbIhceBtn" value="prod"> Producción</label>';
-        const result = await Swal.fire({
-            icon: 'question',
-            title: 'Enviar a Ministerio (IHCE)',
-            html:
-                '<p class="small text-start mb-2">Seleccione el ambiente y confirme el envío del RDACE ID <b>' + _lastIdRDACE + '</b>.</p>' +
-                '<div class="text-start">' +
-                radiosHtml +
-                '</div>',
-            showCancelButton: true,
-            cancelButtonText: 'Cancelar',
-            confirmButtonText: 'Enviar',
-            preConfirm: function () {
-                var el = Swal.getPopup().querySelector('input[name="swalRdaAmbIhceBtn"]:checked');
-                return el ? el.value : 'sandbox';
-            },
-        });
-        if (!result.isConfirmed) {
-            return;
-        }
-        const ambiente = result.value === 'prod' ? 'prod' : 'sandbox';
-        await window.enviarIhceRdace(_lastIdRDACE, { ambiente: ambiente, manageButton: btn });
     });
 
     async function guardarRDACE() {
@@ -3285,14 +3253,10 @@
                 });
             }
 
-            _lastIdRDACE = idCE;
-            const btnEnviar = document.getElementById('RDACE_BtnEnviarIHCE');
-            if (btnEnviar) { btnEnviar.disabled = false; btnEnviar.title = `Enviar RDACE ID ${idCE} al Ministerio`; }
             const resumenCe =
                 '<b>ID RDACE:</b> ' + idCE + '<br>' +
                 'Ant. salud: ' + antSalud.length + ' | Familiares: ' + antFam.length + ' | Farmacológicos: ' + medic.length + '<br>' +
-                'Diag. relacionados: ' + diags.length + ' | Prescr. med: ' + presMed.length + ' | Proc: ' + presProc.length + ' | Otras tec: ' + otras.length + '<br>' +
-                '<small class="text-muted">También puede usar el botón <b>Enviar a Ministerio (IHCE)</b> más abajo para reintentar.</small>';
+                'Diag. relacionados: ' + diags.length + ' | Prescr. med: ' + presMed.length + ' | Proc: ' + presProc.length + ' | Otras tec: ' + otras.length + '<br>';
             await window.rdaOfrecerEnvioIhce('RDA Consulta Externa guardado', resumenCe, function (ambiente) {
                 return window.enviarIhceRdace(idCE, { ambiente: ambiente });
             });
