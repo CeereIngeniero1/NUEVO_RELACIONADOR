@@ -289,6 +289,9 @@ function ensureFechasConsultaDefault() {
   return true;
 }
 
+/** True solo cuando el change de listaHC viene de "Buscar por documento" (directorio usuarios). */
+let listaHCChangeDesdeBusquedaPorDocumento = false;
+
 const btnBuscarPacientePorDocumento = document.getElementById(
   "btnBuscarPacientePorDocumento"
 );
@@ -371,6 +374,7 @@ async function buscarPacientePorDocumentoManual() {
     }
 
     listaHC.value = docVal;
+    listaHCChangeDesdeBusquedaPorDocumento = true;
     listaHC.dispatchEvent(new Event("change"));
   } catch (err) {
     console.error(err);
@@ -443,6 +447,20 @@ async function LlenarSelectDeHistoriasClinicas() {
 const SelectPacientes = document.getElementById("listaHC");
 SelectPacientes.addEventListener("change", async function (e) {
   // console.log(this.value);
+
+  const desdeBusquedaDocumento = listaHCChangeDesdeBusquedaPorDocumento;
+  listaHCChangeDesdeBusquedaPorDocumento = false;
+
+  const cardHistoriaClinicaRips = document.getElementById("cardHistoriaClinica");
+  if (cardHistoriaClinicaRips) {
+    if (desdeBusquedaDocumento) {
+      cardHistoriaClinicaRips.classList.add("d-none");
+      cardHistoriaClinicaRips.setAttribute("aria-hidden", "true");
+    } else {
+      cardHistoriaClinicaRips.classList.remove("d-none");
+      cardHistoriaClinicaRips.removeAttribute("aria-hidden");
+    }
+  }
 
   if (document.getElementById("BuscarPorFacturas").checked === true) {
     document.getElementById("BuscarPorFacturas").click();

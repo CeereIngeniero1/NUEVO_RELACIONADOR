@@ -8,6 +8,38 @@
 
 import { getApiBaseUrl } from "./apiBaseUrl.js";
 
+/**
+ * Select2 con búsqueda (misma idea que CIE / selects largos en Asignar RIPS V3).
+ */
+function aplicarSelect2AdministradorPlanBeneficios(selector) {
+    if (typeof window.jQuery === "undefined") return;
+    const $ = window.jQuery;
+    const $el = $(selector);
+    if (!$el.length) return;
+    if ($el.data("select2")) {
+        $el.select2("destroy");
+    }
+    $el.select2({
+        width: "100%",
+        dropdownAutoWidth: true,
+        placeholder: "Buscar por código o nombre…",
+        allowClear: false,
+        language: {
+            noResults: function () {
+                return "Sin coincidencias";
+            },
+            searching: function () {
+                return "Buscando…";
+            },
+        },
+        templateSelection: function (data) {
+            const t = data.text || "";
+            const truncated = t.length > 55 ? `${t.substring(0, 55)}…` : t;
+            return $("<span>").text(truncated);
+        },
+    });
+}
+
 async function inicializarListaPrestadores() {
     const selectPrestador = document.getElementById("RDA_CodigoPrestador");
     const selectPrestadorCE = document.getElementById("RDACE_CodigoPrestador");
@@ -68,6 +100,9 @@ async function inicializarListaAdministradores() {
 
         setupSelect(selectAdmin, inputNombreAdmin);
         setupSelect(selectAdminCE, inputNombreAdminCE);
+
+        aplicarSelect2AdministradorPlanBeneficios("#RDA_CodigoAdminPlanBeneficios");
+        aplicarSelect2AdministradorPlanBeneficios("#RDACE_CodigoAdminPlanBeneficios");
     } catch (error) {
         console.error("[RDA V3] Error al cargar administradores (SSGSSS):", error);
     }
