@@ -61,6 +61,10 @@
         .rdace-diag-rel-card .select2-container {
             max-width: 100%;
         }
+        /* Prescripción procedimientos RDACE: CUPS Select2 no debe invadir columnas vecinas. */
+        .rdace-pres-proc-card .select2-container {
+            max-width: 100%;
+        }
     </style>
 
     <!-- ICONO -->
@@ -1937,41 +1941,41 @@
                                     <!-- Prescripción de Procedimientos (lista dinámica) -->
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
-                                            <div class="card p-2 border-secondary">
+                                            <div class="card p-2 border-secondary rdace-pres-proc-card">
                                                 <h6 class="text-muted">Prescripción de
                                                     Procedimientos (Tecnología en
                                                     Salud)
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-2" style="min-width: 0;">
                                                         <label>Tipo tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludProc">
                                                             <option value="">Buscar tipo (ej. Procedimiento)...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-3" style="min-width: 0;">
                                                         <label>Código procedimiento (CUPS):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_CodigoProcedimiento">
                                                             <option value="">Buscar procedimiento CUPS...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-3" style="min-width: 0;">
                                                         <label>Nombre procedimiento:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_NombreProcedimiento" placeholder="Nombre"
                                                             readonly>
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-2" style="min-width: 0;">
                                                         <label>Finalidad tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludProc">
                                                             <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-2" style="min-width: 0;">
                                                         <label>Fecha prescripción:</label>
                                                         <input type="datetime-local"
                                                             class="form-control-sm border border-secondary w-100"

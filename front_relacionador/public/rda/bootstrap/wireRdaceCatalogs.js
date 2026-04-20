@@ -60,6 +60,7 @@ function initCups1888Select2(selector, fillNombreId) {
     if ($(selector).data("select2")) return;
     $(selector).select2({
         placeholder: "Buscar procedimiento CUPS...",
+        width: "100%",
         allowClear: true,
         minimumInputLength: 2,
         ajax: {
@@ -90,7 +91,7 @@ function initCups1888Select2(selector, fillNombreId) {
         },
         templateSelection: function (selection) {
             if (!selection.id) return selection.text;
-            return selection.text.length > 50 ? selection.text.substring(0, 50) + "..." : selection.text;
+            return selection.text.length > 72 ? selection.text.substring(0, 72) + "..." : selection.text;
         }
     });
     if (fillNombreId) {
