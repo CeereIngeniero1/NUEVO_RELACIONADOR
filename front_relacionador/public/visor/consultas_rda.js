@@ -18,6 +18,11 @@ function normalizeAmbiente(val) {
   return (s === 'prod' || s === 'produccion' || s === 'production') ? 'prod' : 'sandbox';
 }
 
+function ihceForceSandboxOnlyUi() {
+  const cfg = window.__APP_CONFIG__ || {};
+  return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+}
+
 function loadAmbienteFromStorage() {
   try {
     if (typeof localStorage === 'undefined') return 'sandbox';
@@ -3731,18 +3736,27 @@ const AppController = {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📱 Página cargada completamente');
-  CONFIG.ambiente = loadAmbienteFromStorage();
+  CONFIG.ambiente = ihceForceSandboxOnlyUi() ? 'sandbox' : loadAmbienteFromStorage();
 
   const elements = DOM.elements;
 
   const selAmb = document.getElementById('inputAmbienteIHCE');
   if (selAmb) {
-    selAmb.value = CONFIG.ambiente;
-    selAmb.addEventListener('change', function () {
-      CONFIG.ambiente = normalizeAmbiente(this.value);
-      saveAmbienteToStorage(CONFIG.ambiente);
-      console.log('🌐 Ambiente visor IHCE:', CONFIG.ambiente);
-    });
+    if (ihceForceSandboxOnlyUi()) {
+      const sandboxOpt = selAmb.querySelector('option[value="sandbox"]');
+      if (sandboxOpt) sandboxOpt.remove();
+      selAmb.value = 'prod';
+      selAmb.disabled = true;
+      selAmb.title = 'Modo sandbox camuflado activo';
+      console.log('🌐 Ambiente visor IHCE: sandbox (camuflado como producción)');
+    } else {
+      selAmb.value = CONFIG.ambiente;
+      selAmb.addEventListener('change', function () {
+        CONFIG.ambiente = normalizeAmbiente(this.value);
+        saveAmbienteToStorage(CONFIG.ambiente);
+        console.log('🌐 Ambiente visor IHCE:', CONFIG.ambiente);
+      });
+    }
   }
 
   // Botón de consulta
