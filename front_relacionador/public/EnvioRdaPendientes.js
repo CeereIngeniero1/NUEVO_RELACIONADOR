@@ -61,6 +61,8 @@
         filas: [],
         /** @type {Record<number, { ok: boolean, httpStatus: number, cuerpoTextoTruncado: string }>} */
         resultadosPorId: {},
+        /** Última respuesta de envío masivo: metadatos de la petición OAuth del token (sin secretos). */
+        ihceTokenRequestDebug: null,
     };
 
     const el = {
@@ -189,6 +191,7 @@
 
     async function buscar() {
         try {
+            state.ihceTokenRequestDebug = null;
             if (!el.btnBuscar || !el.selTipo || !el.fechaDesde || !el.fechaHasta || !el.selAmbiente) {
                 swalErr('Interfaz', 'Faltan controles en la página. Recargue (Ctrl+F5).');
                 return;
@@ -275,6 +278,23 @@
             openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
         };
 
+        const showJsonTokenOAuth = () => {
+            const dbg = state.ihceTokenRequestDebug;
+            if (!dbg) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Solicitud de token',
+                    text: 'No hay datos de la última ejecución de envío masivo. Envíe un lote de nuevo.',
+                });
+                return;
+            }
+            openJsonModal(
+                'Solicitud de token IHCE (referencia)',
+                JSON.stringify(dbg, null, 2),
+                860
+            );
+        };
+
         const showJsonEnviado = async () => {
             const isCe = state.tipo === 'ce';
             const url = isCe
@@ -309,23 +329,30 @@
             }
         };
 
+        const tokenBtnHtml = state.ihceTokenRequestDebug
+            ? '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonTokenReq">Solicitud token</button>'
+            : '';
+
         Swal.fire({
             icon: ok ? 'success' : 'error',
             title: ok ? 'Respuesta IHCE' : `Error HTTP ${res.httpStatus}`,
             html:
                 '<p class="small text-start mb-2">Resumen del mensaje:</p>' +
                 `<div style="${SWAL_PRE}">${escapeHtml(resumen).replace(/\n/g, '<br>')}</div>` +
-                '<div class="d-flex gap-2 justify-content-center mt-3">' +
+                '<div class="d-flex flex-wrap gap-2 justify-content-center mt-3">' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonEnviado">Ver JSON enviado</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonResp">Ver JSON de la respuesta</button>' +
+                tokenBtnHtml +
                 '</div>',
             width: 780,
             confirmButtonText: 'Cerrar',
             didOpen: function (popup) {
                 const bResp = popup.querySelector('#btnJsonResp');
                 const bSent = popup.querySelector('#btnJsonEnviado');
+                const bTok = popup.querySelector('#btnJsonTokenReq');
                 if (bResp) bResp.addEventListener('click', showJsonRespuesta);
                 if (bSent) bSent.addEventListener('click', showJsonEnviado);
+                if (bTok) bTok.addEventListener('click', showJsonTokenOAuth);
             },
         });
     }
@@ -338,6 +365,23 @@
             .map((r) => `<option value="${r.id}">ID ${r.id} — ${r.ok ? 'OK' : 'Error ' + r.httpStatus}</option>`)
             .join('');
 
+        const showJsonTokenOAuthLote = () => {
+            const dbg = state.ihceTokenRequestDebug;
+            if (!dbg) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Solicitud de token',
+                    text: 'No hay datos de token en esta respuesta. Actualice el servidor o reenvíe el lote.',
+                });
+                return;
+            }
+            openJsonModal('Solicitud de token IHCE (referencia)', JSON.stringify(dbg, null, 2), 860);
+        };
+
+        const tokenBtnLoteHtml = state.ihceTokenRequestDebug
+            ? '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonTokenReq">Solicitud token</button>'
+            : '';
+
         Swal.fire({
             icon: errN === 0 ? 'success' : 'warning',
             title: 'Resumen envío masivo',
@@ -345,9 +389,10 @@
                 `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · Error: <b>${errN}</b></p>` +
                 '<label class="form-label small mb-1">Seleccione un registro para inspeccionar:</label>' +
                 `<select id="selDetalleLote" class="form-select form-select-sm">${optionsHtml}</select>` +
-                '<div class="d-flex gap-2 justify-content-center mt-3">' +
+                '<div class="d-flex flex-wrap gap-2 justify-content-center mt-3">' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonEnviado">Ver JSON enviado</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonResp">Ver JSON de la respuesta</button>' +
+                tokenBtnLoteHtml +
                 '</div>',
             width: 780,
             confirmButtonText: 'Cerrar',
@@ -360,6 +405,8 @@
                 };
                 const bResp = popup.querySelector('#btnLoteJsonResp');
                 const bSent = popup.querySelector('#btnLoteJsonEnviado');
+                const bTok = popup.querySelector('#btnLoteJsonTokenReq');
+                if (bTok) bTok.addEventListener('click', showJsonTokenOAuthLote);
                 if (bResp) {
                     bResp.addEventListener('click', function () {
                         const r = getSelected();
@@ -447,6 +494,7 @@
             if (!resp.ok || !data.ok) {
                 throw new Error(data.error || resp.statusText || 'Error en envío masivo');
             }
+            state.ihceTokenRequestDebug = data.ihceTokenRequestDebug || null;
             const list = data.resultados || [];
             list.forEach((r) => {
                 state.resultadosPorId[r.id] = r;

@@ -1797,30 +1797,25 @@ router.post(
         const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
         const bundleResp = await new Promise((resolve, reject) => {
             const http = require('http');
+            // Igual que RdaPaciente/EnviarIHCE: solo overrides explícitos en el body al construir el Bundle.
+            // IHCE_*_CUSTODIAN_* se aplica después sobre el JSON (bloque «Override custodian»), no aquí,
+            // para no pisar el [Codigo Prestador] de BD con un REPS de .env distinto al del token.
             const bundleBody = { IdEvaluacionEntidadRDACE: id };
-            const forcedCodigoPrestador = (forceCustodianREPS && String(forceCustodianREPS).trim())
-                ? String(forceCustodianREPS).trim()
-                : ((overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim())
-                    ? String(overrideCodigoPrestador).trim()
-                    : '');
-            const forcedNit = (forceCustodianNIT && String(forceCustodianNIT).trim())
-                ? String(forceCustodianNIT).trim()
-                : ((overrideNitPrestadorIPS != null && String(overrideNitPrestadorIPS).trim())
-                    ? String(overrideNitPrestadorIPS).trim()
-                    : '');
-            const forcedNombre = (forceCustodianName && String(forceCustodianName).trim())
-                ? String(forceCustodianName).trim()
-                : ((overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim())
-                    ? String(overrideNombrePrestadorIPS).trim()
-                    : '');
-            if (forcedCodigoPrestador) bundleBody.overrideCodigoPrestador = forcedCodigoPrestador;
-            if (forcedNit) bundleBody.overrideNitPrestadorIPS = forcedNit;
-            if (forcedNombre) bundleBody.overrideNombrePrestadorIPS = forcedNombre;
-            console.log('[RDACE] Custodian forzado para prueba (env/body):', {
+            if (overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim()) {
+                bundleBody.overrideCodigoPrestador = String(overrideCodigoPrestador).trim();
+            }
+            if (overrideNitPrestadorIPS != null && String(overrideNitPrestadorIPS).trim()) {
+                bundleBody.overrideNitPrestadorIPS = String(overrideNitPrestadorIPS).trim();
+            }
+            if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) {
+                bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
+            }
+            console.log('[RDACE] FhirBundle request (overrides body solamente):', {
                 ambiente: envPrefix === 'IHCE_PROD_' ? 'prod' : 'sandbox',
-                CodigoPrestador: bundleBody.overrideCodigoPrestador || '(sin override)',
-                NitPrestadorIPS: bundleBody.overrideNitPrestadorIPS || '(sin override)',
-                NombrePrestadorIPS: bundleBody.overrideNombrePrestadorIPS || '(sin override)',
+                overrideCodigoPrestador: bundleBody.overrideCodigoPrestador || '(ninguno; usa BD)',
+                overrideNitPrestadorIPS: bundleBody.overrideNitPrestadorIPS || '(ninguno)',
+                overrideNombrePrestadorIPS: bundleBody.overrideNombrePrestadorIPS || '(ninguno)',
+                custodianEnvActivo: Boolean(forceCustodianREPS && String(forceCustodianREPS).trim()),
             });
             const payload = JSON.stringify(bundleBody);
             const req3 = http.request(
@@ -1900,7 +1895,7 @@ router.post(
                 });
         }
 
-        // 3) Override custodian si las variables de entorno lo solicitan
+        // 3) Override custodian si las variables de entorno lo solicitan (misma idea que RdaPaciente/EnviarIHCE)
         if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
             const reps = String(forceCustodianREPS).trim();
             const nit  = forceCustodianNIT  ? String(forceCustodianNIT).trim()  : '';
@@ -1910,6 +1905,8 @@ router.post(
             const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
             const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
             if (compE && compE.resource) compE.resource.custodian = { reference: refOf(reps, 'Organization') };
+            const encE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Encounter');
+            if (encE && encE.resource) encE.resource.serviceProvider = { reference: refOf(reps, 'Organization') };
             const docRefE = entries.find((e) => e && e.resource && e.resource.resourceType === 'DocumentReference');
             if (docRefE && docRefE.resource) {
                 const drCust = {
@@ -1944,6 +1941,14 @@ router.post(
                     ]}, system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps },
                 ]
                 : orgE.resource.identifier || [{ system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps }];
+            // Evitar dos Organization IPS (id distinto al REPS forzado) en el mismo Bundle
+            const ipsProf = 'CareDeliveryOrganizationRDA';
+            bundle.entry = bundle.entry.filter((e) => {
+                if (!e || !e.resource || e.resource.resourceType !== 'Organization') return true;
+                const prof0 = (e.resource.meta && Array.isArray(e.resource.meta.profile) && e.resource.meta.profile[0]) || '';
+                if (!String(prof0).includes(ipsProf)) return true;
+                return String(e.resource.id) === reps;
+            });
         }
 
         // Mismo cuerpo que JSON.stringify(bundle) en POST a IHCE; sin token ni llamada remota

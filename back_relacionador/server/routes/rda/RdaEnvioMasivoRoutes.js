@@ -7,6 +7,8 @@
 const http = require('http');
 const Router = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
+const { loadDotEnvFromCandidates } = require('../../config/envLoader');
+const { buildIhceTokenRequestDebug } = require('../../services/ihceTokenDebug');
 
 const router = Router();
 
@@ -173,6 +175,8 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
                 maxIds: MAX_IDS,
             });
         }
+        loadDotEnvFromCandidates();
+        const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
         const resultados = [];
         for (let i = 0; i < numeric.length; i += 1) {
             const id = numeric[i];
@@ -192,7 +196,7 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
                 cuerpoTextoTruncado,
             });
         }
-        return res.json({ ok: true, ambiente, resultados });
+        return res.json({ ok: true, ambiente, ihceTokenRequestDebug, resultados });
     } catch (err) {
         console.error('❌ [RdaEnvioMasivo] paciente/enviar:', err);
         return res.status(500).json({ ok: false, error: err.message || String(err) });
@@ -216,6 +220,8 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
                 maxIds: MAX_IDS,
             });
         }
+        loadDotEnvFromCandidates();
+        const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
         const resultados = [];
         for (let i = 0; i < numeric.length; i += 1) {
             const id = numeric[i];
@@ -235,7 +241,7 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
                 cuerpoTextoTruncado,
             });
         }
-        return res.json({ ok: true, ambiente, resultados });
+        return res.json({ ok: true, ambiente, ihceTokenRequestDebug, resultados });
     } catch (err) {
         console.error('❌ [RdaEnvioMasivo] ce/enviar:', err);
         return res.status(500).json({ ok: false, error: err.message || String(err) });
