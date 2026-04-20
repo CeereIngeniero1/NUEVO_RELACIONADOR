@@ -156,6 +156,32 @@
             window.alert(`${title}: ${text}`);
         }
     }
+    function openJsonModal(title, jsonText, widthPx) {
+        Swal.fire({
+            title,
+            html:
+                `<pre style="${SWAL_PRE}">${escapeHtml(jsonText)}</pre>` +
+                '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="btnCopyJsonModal">Copiar al portapapeles</button></p>',
+            width: widthPx || 760,
+            confirmButtonText: 'Cerrar',
+            didOpen: function (popup) {
+                const b = popup.querySelector('#btnCopyJsonModal');
+                if (!b) return;
+                b.addEventListener('click', function () {
+                    const txt = String(jsonText || '');
+                    const copy = (navigator.clipboard && navigator.clipboard.writeText)
+                        ? navigator.clipboard.writeText(txt)
+                        : Promise.reject(new Error('Clipboard API no disponible'));
+                    copy.then(function () {
+                        Swal.showValidationMessage('Copiado al portapapeles.');
+                        setTimeout(function () { Swal.resetValidationMessage(); }, 900);
+                    }).catch(function () {
+                        Swal.showValidationMessage('No se pudo copiar automáticamente.');
+                    });
+                });
+            },
+        });
+    }
 
     async function buscar() {
         try {
@@ -242,12 +268,7 @@
         })();
 
         const showJsonRespuesta = () => {
-            Swal.fire({
-                title: 'Respuesta IHCE (JSON)',
-                html: `<pre style="${SWAL_PRE}">${escapeHtml(pretty)}</pre>`,
-                width: 760,
-                confirmButtonText: 'Cerrar',
-            });
+            openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
         };
 
         const showJsonEnviado = async () => {
@@ -278,12 +299,7 @@
                 } catch (_) {
                     parsedSent = { raw: t };
                 }
-                Swal.fire({
-                    title: 'JSON generado para envío IHCE',
-                    html: `<pre style="${SWAL_PRE}">${escapeHtml(JSON.stringify(parsedSent, null, 2))}</pre>`,
-                    width: 860,
-                    confirmButtonText: 'Cerrar',
-                });
+                openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsedSent, null, 2), 860);
             } catch (err) {
                 Swal.fire({ icon: 'error', title: 'No se pudo cargar JSON enviado', text: err.message || String(err) });
             }
@@ -349,12 +365,7 @@
                         try {
                             pretty = JSON.stringify(JSON.parse(body), null, 2);
                         } catch (_) {}
-                        Swal.fire({
-                            title: 'Respuesta IHCE (JSON)',
-                            html: `<pre style="${SWAL_PRE}">${escapeHtml(pretty)}</pre>`,
-                            width: 760,
-                            confirmButtonText: 'Cerrar',
-                        });
+                        openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
                     });
                 }
                 if (bSent) {
@@ -388,12 +399,7 @@
                             } catch (_) {
                                 parsed = { raw: txt };
                             }
-                            Swal.fire({
-                                title: 'JSON generado para envío IHCE',
-                                html: `<pre style="${SWAL_PRE}">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`,
-                                width: 860,
-                                confirmButtonText: 'Cerrar',
-                            });
+                            openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsed, null, 2), 860);
                         } catch (err) {
                             Swal.fire({
                                 icon: 'error',

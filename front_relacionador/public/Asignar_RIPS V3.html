@@ -2437,14 +2437,35 @@
         var prettyJson = JSON.stringify(data, null, 2);
         var isSandbox = ambienteUi !== 'prod';
         var amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
+        function openJsonModal(title, jsonText, width) {
+            Swal.fire({
+                title: title,
+                html:
+                    '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(jsonText) + '</pre>' +
+                    '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-copy-json">Copiar al portapapeles</button></p>',
+                width: width || 'min(95vw, 760px)',
+                confirmButtonText: 'Cerrar',
+                didOpen: function (popup) {
+                    var b = popup.querySelector('#rda-ihce-btn-copy-json');
+                    if (!b) return;
+                    b.addEventListener('click', function () {
+                        var txt = String(jsonText || '');
+                        var copy = (navigator.clipboard && navigator.clipboard.writeText)
+                            ? navigator.clipboard.writeText(txt)
+                            : Promise.reject(new Error('Clipboard API no disponible'));
+                        copy.then(function () {
+                            Swal.showValidationMessage('Copiado al portapapeles.');
+                            setTimeout(function () { Swal.resetValidationMessage(); }, 900);
+                        }).catch(function () {
+                            Swal.showValidationMessage('No se pudo copiar automáticamente.');
+                        });
+                    });
+                },
+            });
+        }
 
         function showJsonRespuesta() {
-            Swal.fire({
-                title: 'Respuesta IHCE (JSON)',
-                html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(prettyJson) + '</pre>',
-                width: 'min(95vw, 720px)',
-                confirmButtonText: 'Cerrar',
-            });
+            openJsonModal('Respuesta IHCE (JSON)', prettyJson, 'min(95vw, 760px)');
         }
         function showJsonEnviado() {
             if (!bundleCtx || bundleCtx.id == null) return;
@@ -2487,12 +2508,7 @@
                         parsed = { raw: out.text };
                     }
                     var sentStr = JSON.stringify(parsed, null, 2);
-                    Swal.fire({
-                        title: 'JSON generado para envío IHCE',
-                        html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.7rem;">' + escapeHtml(sentStr) + '</pre>',
-                        width: 'min(95vw, 800px)',
-                        confirmButtonText: 'Cerrar',
-                    });
+                    openJsonModal('JSON generado para envío IHCE', sentStr, 'min(95vw, 860px)');
                 })
                 .catch(function (err) {
                     Swal.fire({
@@ -2580,12 +2596,7 @@
                                     parsed = { raw: out.text };
                                 }
                                 var bundleStr = JSON.stringify(parsed, null, 2);
-                                Swal.fire({
-                                    title: 'Bundle FHIR generado (mismo que se envió)',
-                                    html: '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + 'font-size:0.7rem;">' + escapeHtml(bundleStr) + '</pre>',
-                                    width: 'min(95vw, 800px)',
-                                    confirmButtonText: 'Cerrar',
-                                });
+                                openJsonModal('Bundle FHIR generado (mismo que se envió)', bundleStr, 'min(95vw, 860px)');
                             })
                             .catch(function (err) {
                                 Swal.fire({
