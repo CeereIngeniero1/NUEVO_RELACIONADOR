@@ -33,9 +33,32 @@
 'use strict';
 
 const Router      = require('express').Router;
+const { randomUUID } = require('crypto');
 const { sql, poolPromise } = require('../../db2');
 const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
-const { getOrBuildRdacePdfBuffer } = require('../../rda/rdacePdfService');
+
+/**
+ * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
+ * Solo se requiere al usar `ResumenClinico.pdf` o `FhirBundle` (epicrisis). Instalar: npm install en back_relacionador.
+ */
+let _rdacePdfService;
+function rdacePdfService() {
+    if (_rdacePdfService) return _rdacePdfService;
+    try {
+        _rdacePdfService = require('../../rda/rdacePdfService');
+        return _rdacePdfService;
+    } catch (e) {
+        if (e && e.code === 'MODULE_NOT_FOUND') {
+            const wrap = new Error(
+                'Dependencias PDF RDACE no instaladas (p. ej. pdfkit). En la carpeta back_relacionador ejecute: npm install'
+            );
+            wrap.code = 'RDACE_PDF_DEPS_MISSING';
+            wrap.cause = e;
+            throw wrap;
+        }
+        throw e;
+    }
+}
 
 /** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
@@ -464,7 +487,7 @@ router.get('/EvaluacionEntidadRDACE/:id/ResumenClinico.pdf', async (req, res) =>
     try {
         const pool = await poolPromise;
         const aggregate = await loadRdaceAggregate(pool, sql, id, req.query || {});
-        const pdfBuf = await getOrBuildRdacePdfBuffer({
+        const pdfBuf = await rdacePdfService().getOrBuildRdacePdfBuffer({
             pool,
             sql,
             id,
@@ -482,6 +505,9 @@ router.get('/EvaluacionEntidadRDACE/:id/ResumenClinico.pdf', async (req, res) =>
     } catch (e) {
         if (e.code === 'RDACE_NOT_FOUND') {
             return res.status(404).send('No existe el registro RDACE indicado');
+        }
+        if (e.code === 'RDACE_PDF_DEPS_MISSING') {
+            return res.status(503).send(e.message || 'Faltan dependencias PDF (npm install en back_relacionador).');
         }
         console.error('[RDACE] Error sirviendo ResumenClinico.pdf:', e);
         return res.status(500).send('Error al generar el PDF');
@@ -503,7 +529,6 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDACE requerido (number)' });
     }
 
-    const { randomUUID } = require('crypto');
     const newUuid = () => {
         try { if (typeof randomUUID === 'function') return randomUUID(); } catch (_) {}
         return `uuid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -1352,7 +1377,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
         let attachmentPdfBase64;
         try {
-            const pdfBuf = await getOrBuildRdacePdfBuffer({
+            const pdfBuf = await rdacePdfService().getOrBuildRdacePdfBuffer({
                 pool,
                 sql,
                 id,
@@ -1363,6 +1388,12 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             attachmentPdfBase64 = pdfBuf.toString('base64');
         } catch (pdfErr) {
             console.error('[RDACE] Error generando PDF resumen clínico:', pdfErr);
+            if (pdfErr && pdfErr.code === 'RDACE_PDF_DEPS_MISSING') {
+                return res.status(503).json({
+                    ok: false,
+                    error: pdfErr.message || 'Faltan dependencias PDF (npm install en back_relacionador).',
+                });
+            }
             return res.status(500).json({
                 ok: false,
                 error: 'No se pudo generar el PDF del resumen clínico: ' + (pdfErr.message || String(pdfErr)),

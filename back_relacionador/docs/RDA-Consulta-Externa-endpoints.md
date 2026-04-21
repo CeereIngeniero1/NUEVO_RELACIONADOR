@@ -189,6 +189,97 @@ Todos bajo `POST` y prefijo `/apiV3`. Resumen de rutas y cuerpos típicos:
 
 ---
 
+## 5.1 Token OAuth IHCE (desde `.env`, archivo `RdaConsultaExternaRoutesv2.js`)
+
+`POST` sin cuerpo JSON. Cargan variables con `loadDotEnvFromCandidates()` y usan la misma resolución de credenciales que `ihceTokenDebug.resolveIhceCreds` (equivalente a `EnviarIHCE`).
+
+| Método | Ruta | Variables |
+|--------|------|-----------|
+| `POST` | `/RdaConsultaExterna/IhceToken/sandbox` | `IHCE_SANDBOX_*` / alias `IHCE_TENANT_ID`, etc. |
+| `POST` | `/RdaConsultaExterna/IhceToken/produccion` | `IHCE_PROD_*` |
+
+Respuesta exitosa (`200`): JSON con `ok`, `access_token`, `expires_in`, `token_type`, `token_url`, `ihce_base_url`, `subscription_key_configurada`, `ambiente`.
+
+Si `IHCE_FORCE_SANDBOX_ONLY=true`, la ruta **producción** responde `403` y no pide token a Microsoft.
+
+**Advertencia:** el `access_token` es secreto; exponer estos endpoints en internet sin autenticación adicional es riesgoso.
+
+---
+
+## 5.2 Consultar profesional de la salud (IHCE, proxy desde `.env`)
+
+`POST` con JSON. El backend pide token OAuth, luego llama a **`POST {IHCE_BASE}/Practitioner/$consultar-profesional-salud`** con un recurso **`Parameters`** (misma forma que la colección Interoperabilidad Prestadores).
+
+| Método | Ruta |
+|--------|------|
+| `POST` | `/RdaConsultaExterna/IhceConsultarProfesional/sandbox` |
+| `POST` | `/RdaConsultaExterna/IhceConsultarProfesional/produccion` |
+
+### Cuerpo JSON (campos aceptados)
+
+Obligatorios (cualquiera de los alias por par):
+
+| Concepto | Nombres aceptados |
+|----------|-------------------|
+| Tipo documento profesional | `tipoDocumentoProfesional`, `tipoDocumento`, `tipoDocProfesional`, `tipo` |
+| Número documento profesional | `numeroDocumentoProfesional`, `numeroDocumento`, `documentoProfesional`, `documento`, `numDocProfesional`, `numero` |
+
+Opcional:
+
+| Campo | Uso |
+|--------|-----|
+| `humanuser` o `humanUser` | Cadena `TIPO-NUMERO` del usuario humano que consulta (algunas versiones de la operación lo exigen). Si no se envía, no se incluye el parámetro en el `Parameters`. |
+
+Ejemplo mínimo:
+
+```json
+{
+  "tipoDocumento": "CC",
+  "numeroDocumento": "1143131723"
+}
+```
+
+Respuesta: JSON con `ok`, `status` (HTTP devuelto por IHCE), `ambiente`, `ihce_url`, `request_parameters` (payload enviado), `ihce_response` (cuerpo parseado o `raw` si no es JSON).
+
+Si `IHCE_FORCE_SANDBOX_ONLY=true`, la ruta **producción** responde `403`.
+
+---
+
+## 5.3 Consultar organización (IHCE, solo `.env`)
+
+`POST` **sin cuerpo JSON**. El backend arma el recurso **`Parameters`** para **`POST {IHCE_BASE}/Organization/$consultar-organizacion`** con valores leídos del `.env` (misma colección Interoperabilidad Prestadores).
+
+| Método | Ruta |
+|--------|------|
+| `POST` | `/RdaConsultaExterna/IhceConsultarOrganizacion/sandbox` |
+| `POST` | `/RdaConsultaExterna/IhceConsultarOrganizacion/produccion` |
+
+La palabra completa es **`produccion`** (no `/produc`). Por compatibilidad, **`/produc`** también está registrado y ejecuta el mismo handler.
+
+Las peticiones salientes (token Microsoft y POST FHIR) usan tiempo máximo por defecto **45 s**; se puede cambiar con **`IHCE_OUTBOUND_TIMEOUT_MS`** en `.env`. Si se agota, el backend responde **504** con `code: IHCE_OUTBOUND_TIMEOUT`.
+
+### Variables usadas (en orden de preferencia)
+
+Por ambiente, prefijo **`IHCE_SANDBOX_`** o **`IHCE_PROD_`**:
+
+| Parámetro FHIR | Variable principal | Respaldo |
+|----------------|-------------------|----------|
+| `TaxIdentifier` (NIT) | `{pfx}CUSTODIAN_NIT` | `IHCE_RDACE_DEFAULT_NIT_IPS` |
+| `HealthcareProviderIdentifier` (REPS / habilitación) | `{pfx}CUSTODIAN_REPS` | `IHCE_RDACE_DEFAULT_CODIGO_PRESTADOR` |
+| `name` (razón social) | `{pfx}CUSTODIAN_NAME` | `IHCE_RDACE_DEFAULT_NOMBRE_IPS` |
+
+En **`produccion`**, si un campo sigue vacío tras lo anterior, se intenta el equivalente **`IHCE_SANDBOX_CUSTODIAN_*`** solo para ese campo (mismo prestador sin duplicar variables `IHCE_PROD_CUSTODIAN_*`).
+
+Solo se envían entradas **no vacías**. Debe existir **al menos un** criterio (NIT, REPS o nombre) entre las variables anteriores; si no, el backend responde **`400`** con mensaje indicando qué definir.
+
+La URL FHIR coincide con la colección oficial: `{IHCE_*_BASE_URL}/Organization/$consultar-organizacion` (p. ej. base `https://www.ihcecol.gov.co/ihce` en prod). El **401** en Postman sin `Authorization: Bearer` y sin `Ocp-Apim-Subscription-Key` es esperado; el proxy del backend añade ambos.
+
+Respuesta: JSON con `ok`, `status`, `ambiente`, `ihce_url`, `request_parameters`, `env_usado` (valores efectivos usados), `ihce_response`.
+
+Si `IHCE_FORCE_SANDBOX_ONLY=true`, la ruta **producción** responde `403`.
+
+---
+
 ## 6. Notas rápidas
 
 - **Duplicados en IHCE:** Si reenvías el mismo encuentro (mismo paciente + periodo + prestador), IHCE puede responder `409` “already exist”.

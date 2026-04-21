@@ -104,4 +104,4 @@ function buildIhceTokenRequestDebug(effectiveAmb) {
     };
 }
 
-module.exports = { buildIhceTokenRequestDebug };
+module.exports = { buildIhceTokenRequestDebug, resolveIhceCreds };

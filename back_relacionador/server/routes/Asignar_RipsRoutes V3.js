@@ -2795,6 +2795,7 @@ router.get('/Cups1888/:Cups', async (req, res) => {
 router.use(require('./rda/RdaPacienteRoutes'));
 // --- RDA Consulta Externa — rutas en archivo separado (rda/RdaConsultaExternaRoutes.js) ---
 router.use(require('./rda/RdaConsultaExternaRoutes'));
+router.use(require('./rda/RdaConsultaExternaRoutesv2'));
 // --- Envío masivo RDA pendientes (listado + lotes vía EnviarIHCE) ---
 router.use(require('./rda/RdaEnvioMasivoRoutes'));
 
