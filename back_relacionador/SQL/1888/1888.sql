@@ -1192,10 +1192,10 @@ Descripcion varchar (50),
 
 INSERT INTO [Tipo de tecnología en salud 1888] (Codigo, Descripcion)
 VALUES 
-('02', 'Registro sanitario'),
-('03', 'Vital no disponible'),
+('02', 'Medicamento con registro sanitario'),
+('03', 'Medicamento Vital no disponible'),
 ('04', 'Preparación magistral'),
-('05', 'UNIRS');
+('05', 'Medicamento UNIRS');
 
 
 create view [dbo].[Cnsta Tipo de tecnología en salud 1888]
@@ -1396,11 +1396,27 @@ CREATE TABLE [dbo].[Finalidad tecnologia salud 1888](
 GO
 IF NOT EXISTS (SELECT 1 FROM [Finalidad tecnologia salud 1888])
 INSERT INTO [Finalidad tecnologia salud 1888] (Codigo, Descripcion) VALUES
-('01', 'Diagnóstico'),
-('02', 'Terapéutico'),
-('03', 'Protección específica'),
-('04', 'Detección temprana'),
-('05', 'Paliativo');
+INSERT INTO [Finalidad tecnologia salud 1888] (Codigo, Descripcion) VALUES
+('11', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO'),
+('12', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL'),
+('13', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL'),
+('14', 'PROTECCION ESPECIFICA'),
+('15', 'DIAGNOSTICO'),
+('16', 'TRATAMIENTO'),
+('17', 'REHABILITACION'),
+('18', 'PALIACION'),
+('19', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION'),
+('20', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA'),
+('21', 'ATENCION BASICA DE ORIENTACION FAMILIAR'),
+('22', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL'),
+('23', 'ATENCION PARA EL CUIDADO PRENATAL'),
+('24', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO'),
+('25', 'ATENCION DEL PARTO Y PUERPERIO'),
+('26', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO'),
+('27', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO'),
+('28', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD'),
+('29', 'PROMOCION DE ACTIVIDAD FISICA'),
+('30', 'PROMOCION DE LA CESACION DEL TABAQUISMO');
 GO
 IF OBJECT_ID(N'[dbo].[Cnsta Finalidad tecnologia salud 1888]', N'V') IS NULL
 EXEC('CREATE VIEW [dbo].[Cnsta Finalidad tecnologia salud 1888] AS
