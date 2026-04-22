@@ -1,6 +1,6 @@
 /**
  * Envío masivo de RDA pendientes (Paciente + Consulta Externa).
- * GET listados por [Fecha RDA]; POST reenvía en serie a EnviarIHCE existentes.
+ * GET listados por [Fecha RDA]; POST reenvía en serie a EnviarIHCE (legacy) o rutas V2 si RDA_ENVIO_MASIVO_VERSION=v2.
  */
 'use strict';
 
@@ -17,10 +17,27 @@ const BODY_TRUNC = 4000;
 const FORCE_SANDBOX_ONLY = ['1', 'true', 'yes', 'on'].includes(
     String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
 );
+const FORCE_PROD_ONLY = ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+);
+
+/**
+ * `legacy` (default): POST interno a `/RdaPaciente/EnviarIHCE` y `/RdaConsultaExterna/EnviarIHCE` con `ambiente` en body.
+ * `v2`: delega a las rutas V2 (`/RdaPacienteV2/EnviarIhce*V2` y CE `.../EnviarIhce*V2`, sin `ambiente` en body).
+ * Alinear con el piloto: `RDA_ENVIO_MASIVO_VERSION=v2` en el servidor; rollback: quitar o `legacy`.
+ * Ver `back_relacionador/docs/RDA-V2-Migracion-Contratos.md`.
+ */
+function rdaEnvioMasivoVersion() {
+    const v = String(process.env.RDA_ENVIO_MASIVO_VERSION || 'legacy')
+        .trim()
+        .toLowerCase();
+    return v === 'v2' ? 'v2' : 'legacy';
+}
 
 const internalPort = () => parseInt(process.env.BACK_PORT || process.env.PORT || '3000', 10);
 
 const normalizeAmbiente = (a) => {
+    if (FORCE_PROD_ONLY) return 'prod';
     if (FORCE_SANDBOX_ONLY) return 'sandbox';
     const s = String(a || 'sandbox').toLowerCase();
     if (s === 'prod' || s === 'produccion' || s === 'production') return 'prod';
@@ -178,12 +195,22 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
         loadDotEnvFromCandidates();
         const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
         const resultados = [];
+        const v = rdaEnvioMasivoVersion();
         for (let i = 0; i < numeric.length; i += 1) {
             const id = numeric[i];
-            const sendResp = await internalPostJson('/RdaPaciente/EnviarIHCE', {
-                IdEvaluacionEntidadRDA: id,
-                ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
-            });
+            let sendResp;
+            if (v === 'v2') {
+                const path =
+                    ambiente === 'prod'
+                        ? '/RdaPacienteV2/EnviarIhceProduccionV2'
+                        : '/RdaPacienteV2/EnviarIhceSandboxV2';
+                sendResp = await internalPostJson(path, { IdEvaluacionEntidadRDA: id });
+            } else {
+                sendResp = await internalPostJson('/RdaPaciente/EnviarIHCE', {
+                    IdEvaluacionEntidadRDA: id,
+                    ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
+                });
+            }
             const ok = sendResp.status >= 200 && sendResp.status < 300;
             let cuerpoTextoTruncado = String(sendResp.body || '');
             if (cuerpoTextoTruncado.length > BODY_TRUNC) {
@@ -223,12 +250,22 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
         loadDotEnvFromCandidates();
         const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
         const resultados = [];
+        const v = rdaEnvioMasivoVersion();
         for (let i = 0; i < numeric.length; i += 1) {
             const id = numeric[i];
-            const sendResp = await internalPostJson('/RdaConsultaExterna/EnviarIHCE', {
-                IdEvaluacionEntidadRDACE: id,
-                ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
-            });
+            let sendResp;
+            if (v === 'v2') {
+                const path =
+                    ambiente === 'prod'
+                        ? '/RdaConsultaExterna/EnviarIhceProduccionV2'
+                        : '/RdaConsultaExterna/EnviarIhceSandboxV2';
+                sendResp = await internalPostJson(path, { IdEvaluacionEntidadRDACE: id });
+            } else {
+                sendResp = await internalPostJson('/RdaConsultaExterna/EnviarIHCE', {
+                    IdEvaluacionEntidadRDACE: id,
+                    ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
+                });
+            }
             const ok = sendResp.status >= 200 && sendResp.status < 300;
             let cuerpoTextoTruncado = String(sendResp.body || '');
             if (cuerpoTextoTruncado.length > BODY_TRUNC) {

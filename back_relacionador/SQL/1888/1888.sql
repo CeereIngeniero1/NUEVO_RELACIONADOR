@@ -1180,6 +1180,114 @@ from [Factor De Riesgo 1888]
 where [Id Estado] = 7
 go
 
+/* ---------------------------------------------------------------------------
+   Hotfix catálogo "Tipo de Documento" para RDA/IHCE (idempotente):
+   Normaliza códigos y asegura existencia de tipos conocidos.
+--------------------------------------------------------------------------- */
+IF OBJECT_ID(N'[dbo].[Tipo de Documento]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @TiposDoc TABLE
+    (
+        TipoDoc VARCHAR(10) NOT NULL PRIMARY KEY,
+        CodigoTipoDoc VARCHAR(10) NOT NULL,
+        Descripcion VARCHAR(120) NOT NULL,
+        OrdenTipoDoc INT NOT NULL,
+        IdEstado INT NOT NULL,
+        CodigoDian INT NULL
+    );
+
+    INSERT INTO @TiposDoc (TipoDoc, CodigoTipoDoc, Descripcion, OrdenTipoDoc, IdEstado, CodigoDian)
+    VALUES
+        ('CC', 'CC', 'Cédula ciudadanía', 1, 7, 13),
+        ('CE', 'X',  'Cédula extranjería', 1, 7, 22),
+        ('PA', 'P',  'Pasaporte', 1, 7, 41),
+        ('RC', 'RC', 'Registro civil', 1, 7, 11),
+        ('TI', 'TI', 'Tarjeta de identidad', 1, 7, 12),
+        ('AS', 'AS', 'Adulto sin identificación', 1, 7, NULL),
+        ('MS', 'MS', 'Menor sin identificación', 1, 7, NULL),
+        ('UN', 'UN', 'Número único de identificación personal', 1, 7, NULL),
+        ('NI', 'NI', 'Número de identificación tributaria', 1, 7, 31),
+        ('NH', 'NH', 'Número de historia clínica', 1, 7, NULL);
+
+    MERGE [dbo].[Tipo de Documento] AS tgt
+    USING @TiposDoc AS src
+       ON tgt.[Tipo de Documento] = src.TipoDoc
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.[Código Tipo de Documento] = src.CodigoTipoDoc,
+            tgt.[Descripción Tipo de Documento] =
+                CASE
+                    WHEN tgt.[Descripción Tipo de Documento] IS NULL OR LTRIM(RTRIM(tgt.[Descripción Tipo de Documento])) = ''
+                    THEN src.Descripcion
+                    ELSE tgt.[Descripción Tipo de Documento]
+                END,
+            tgt.[Orden Tipo de Documento] = COALESCE(tgt.[Orden Tipo de Documento], src.OrdenTipoDoc),
+            tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado),
+            tgt.codigoDian = COALESCE(tgt.codigoDian, src.CodigoDian)
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT
+        (
+            [Código Tipo de Documento],
+            [Tipo de Documento],
+            [Descripción Tipo de Documento],
+            [Orden Tipo de Documento],
+            [Id Estado],
+            codigoDian
+        )
+        VALUES
+        (
+            src.CodigoTipoDoc,
+            src.TipoDoc,
+            src.Descripcion,
+            src.OrdenTipoDoc,
+            src.IdEstado,
+            src.CodigoDian
+        );
+END
+GO
+
+/* ---------------------------------------------------------------------------
+   Hotfix catálogo "Tipo de Documento" para RDA/IHCE:
+   - Asegura que Cédula ciudadanía use código "CC" (no "C")
+   - Script idempotente: UPDATE si existe, INSERT si no existe
+--------------------------------------------------------------------------- */
+IF EXISTS (
+    SELECT 1
+    FROM [dbo].[Tipo de Documento]
+    WHERE [Tipo de Documento] = 'CC'
+)
+BEGIN
+    UPDATE [dbo].[Tipo de Documento]
+       SET [Código Tipo de Documento] = 'CC',
+           [Descripción Tipo de Documento] = COALESCE(NULLIF([Descripción Tipo de Documento], ''), 'Cédula ciudadanía'),
+           [Orden Tipo de Documento] = COALESCE([Orden Tipo de Documento], 1),
+           [Id Estado] = COALESCE([Id Estado], 7),
+           codigoDian = COALESCE(codigoDian, 13)
+     WHERE [Tipo de Documento] = 'CC';
+END
+ELSE
+BEGIN
+    INSERT INTO [dbo].[Tipo de Documento]
+    (
+        [Código Tipo de Documento],
+        [Tipo de Documento],
+        [Descripción Tipo de Documento],
+        [Orden Tipo de Documento],
+        [Id Estado],
+        codigoDian
+    )
+    VALUES
+    (
+        'CC',
+        'CC',
+        'Cédula ciudadanía',
+        1,
+        7,
+        13
+    );
+END
+GO
+
 
 CREATE TABLE [Tipo de tecnología en salud 1888]
 (
@@ -1643,3 +1751,69 @@ select [Id Factor De Riesgo 1888] AS IdFactorDeRiesgo1888, Codigo, Descripcion, 
 from [Factor De Riesgo 1888]
 where [Id Estado] = 7
 go
+
+/* ---------------------------------------------------------------------------
+   Hotfix catálogo "Tipo de Documento" para RDA/IHCE (idempotente):
+   Normaliza códigos y asegura existencia de tipos conocidos.
+--------------------------------------------------------------------------- */
+IF OBJECT_ID(N'[dbo].[Tipo de Documento]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @TiposDoc TABLE
+    (
+        TipoDoc VARCHAR(10) NOT NULL PRIMARY KEY,
+        CodigoTipoDoc VARCHAR(10) NOT NULL,
+        Descripcion VARCHAR(120) NOT NULL,
+        OrdenTipoDoc INT NOT NULL,
+        IdEstado INT NOT NULL,
+        CodigoDian INT NULL
+    );
+
+    INSERT INTO @TiposDoc (TipoDoc, CodigoTipoDoc, Descripcion, OrdenTipoDoc, IdEstado, CodigoDian)
+    VALUES
+        ('CC', 'CC', 'Cédula ciudadanía', 1, 7, 13),
+        ('CE', 'X',  'Cédula extranjería', 1, 7, 22),
+        ('PA', 'P',  'Pasaporte', 1, 7, 41),
+        ('RC', 'RC', 'Registro civil', 1, 7, 11),
+        ('TI', 'TI', 'Tarjeta de identidad', 1, 7, 12),
+        ('AS', 'AS', 'Adulto sin identificación', 1, 7, NULL),
+        ('MS', 'MS', 'Menor sin identificación', 1, 7, NULL),
+        ('UN', 'UN', 'Número único de identificación personal', 1, 7, NULL),
+        ('NI', 'NI', 'Número de identificación tributaria', 1, 7, 31),
+        ('NH', 'NH', 'Número de historia clínica', 1, 7, NULL);
+
+    MERGE [dbo].[Tipo de Documento] AS tgt
+    USING @TiposDoc AS src
+       ON tgt.[Tipo de Documento] = src.TipoDoc
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.[Código Tipo de Documento] = src.CodigoTipoDoc,
+            tgt.[Descripción Tipo de Documento] =
+                CASE
+                    WHEN tgt.[Descripción Tipo de Documento] IS NULL OR LTRIM(RTRIM(tgt.[Descripción Tipo de Documento])) = ''
+                    THEN src.Descripcion
+                    ELSE tgt.[Descripción Tipo de Documento]
+                END,
+            tgt.[Orden Tipo de Documento] = COALESCE(tgt.[Orden Tipo de Documento], src.OrdenTipoDoc),
+            tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado),
+            tgt.codigoDian = COALESCE(tgt.codigoDian, src.CodigoDian)
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT
+        (
+            [Código Tipo de Documento],
+            [Tipo de Documento],
+            [Descripción Tipo de Documento],
+            [Orden Tipo de Documento],
+            [Id Estado],
+            codigoDian
+        )
+        VALUES
+        (
+            src.CodigoTipoDoc,
+            src.TipoDoc,
+            src.Descripcion,
+            src.OrdenTipoDoc,
+            src.IdEstado,
+            src.CodigoDian
+        );
+END
+GO

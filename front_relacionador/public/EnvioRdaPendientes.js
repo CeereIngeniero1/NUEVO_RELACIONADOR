@@ -1,5 +1,10 @@
 /**
  * UI: listado GET RdaEnvioMasivo (paciente o CE) pendientes + envío en lote (POST).
+ *
+ * RDA V2:
+ * - Preview "Ver JSON enviado" usa `JsonEnviarIHCE` (paciente/CE), igual que en modo legacy (ver docs RDA-V2).
+ * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
+ *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
 (function () {
     'use strict';
@@ -41,6 +46,10 @@
     function ihceForceSandboxOnlyUi() {
         const cfg = window.__APP_CONFIG__ || {};
         return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+    }
+    function ihceForceProdOnlyUi() {
+        const cfg = window.__APP_CONFIG__ || {};
+        return cfg.IHCE_FORCE_PROD_ONLY === true;
     }
 
     function defaultDates() {
@@ -541,10 +550,23 @@
             const d = defaultDates();
             el.fechaDesde.value = d.desde;
             el.fechaHasta.value = d.hasta;
-            if (ihceForceSandboxOnlyUi() && el.selAmbiente) {
+            if (ihceForceProdOnlyUi() && el.selAmbiente) {
                 const sandboxOpt = el.selAmbiente.querySelector('option[value="sandbox"]');
                 if (sandboxOpt) sandboxOpt.remove();
                 el.selAmbiente.value = 'prod';
+                el.selAmbiente.disabled = true;
+            } else if (ihceForceSandboxOnlyUi() && el.selAmbiente) {
+                const prodOpt = el.selAmbiente.querySelector('option[value="prod"]');
+                if (prodOpt) prodOpt.remove();
+                el.selAmbiente.value = 'sandbox';
+                el.selAmbiente.disabled = true;
+            } else if (el.selAmbiente) {
+                el.selAmbiente.disabled = false;
+            }
+            if (ihceForceProdOnlyUi()) {
+                state.ambiente = 'prod';
+            } else if (ihceForceSandboxOnlyUi()) {
+                state.ambiente = 'sandbox';
             }
             syncThead();
 

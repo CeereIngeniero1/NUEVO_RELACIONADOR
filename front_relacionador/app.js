@@ -83,6 +83,9 @@ app.get('/config.js', (req, res) => {
             IHCE_FORCE_SANDBOX_ONLY: ['1', 'true', 'yes', 'on'].includes(
                 String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
             ),
+            IHCE_FORCE_PROD_ONLY: ['1', 'true', 'yes', 'on'].includes(
+                String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+            ),
         }) +
         ';';
     res.send(body);

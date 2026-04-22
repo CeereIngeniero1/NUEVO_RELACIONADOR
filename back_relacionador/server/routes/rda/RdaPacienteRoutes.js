@@ -21,13 +21,99 @@ const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
 
-/** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
+/** Catálogo Res. 1888: código "7" = Sin Asignar (no permitido para envío real IHCE). */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
     const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
     if (c === '7') return true;
     if (t && /sin\s*asignar/i.test(t)) return true;
     return false;
+}
+
+function sanitizeOptionalPatientFields(patient) {
+    if (!patient || typeof patient !== 'object') return;
+
+    if (Array.isArray(patient.extension)) {
+        patient.extension = patient.extension.filter((ex) => {
+            if (!ex || typeof ex !== 'object' || !ex.url) return false;
+            if (Object.prototype.hasOwnProperty.call(ex, 'valueString')) {
+                return String(ex.valueString || '').trim() !== '';
+            }
+            if (Object.prototype.hasOwnProperty.call(ex, 'valueCoding')) {
+                const vc = ex.valueCoding || {};
+                return String(vc.code || '').trim() !== '';
+            }
+            return true;
+        });
+    }
+
+    if (Array.isArray(patient.telecom)) {
+        patient.telecom = patient.telecom.filter((t) => t && String(t.value || '').trim() !== '');
+    }
+
+    if (Array.isArray(patient.address)) {
+        patient.address = patient.address.filter((a) => {
+            if (!a || typeof a !== 'object') return false;
+            return Boolean(
+                String(a.city || '').trim() ||
+                String(a.country || '').trim() ||
+                (Array.isArray(a.extension) && a.extension.length)
+            );
+        });
+    }
+}
+
+function validateRequiredForIhcePatientBundle(bundle) {
+    if (!bundle || !Array.isArray(bundle.entry)) {
+        return 'Bundle inválido: no contiene entry.';
+    }
+
+    const entries = bundle.entry;
+    const patientEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Patient');
+    const compositionEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+    if (!patientEntry || !patientEntry.resource) return 'Falta recurso Patient.';
+    if (!compositionEntry || !compositionEntry.resource) return 'Falta recurso Composition.';
+
+    const patient = patientEntry.resource;
+    const composition = compositionEntry.resource;
+    if (!String(patient.id || '').trim()) return 'Patient.id es obligatorio.';
+    if (!/^[A-Z]{1,4}-[0-9A-Za-z]+$/.test(String(patient.id || '').trim())) {
+        return 'Patient.id debe cumplir el patrón TipoDocumento-NumeroDocumento (ej: CC-123456).';
+    }
+
+    if (!composition.subject || !String(composition.subject.reference || '').trim()) {
+        return 'Composition.subject.reference es obligatorio.';
+    }
+    if (!composition.custodian || !String(composition.custodian.reference || '').trim()) {
+        return 'Composition.custodian.reference es obligatorio.';
+    }
+
+    const patientExt = Array.isArray(patient.extension) ? patient.extension : [];
+    const ethnicityExt = patientExt.find(
+        (x) => x && typeof x.url === 'string' && /ExtensionPatientEthnicity$/i.test(x.url)
+    );
+    const ethnicityCode = ethnicityExt && ethnicityExt.valueCoding && ethnicityExt.valueCoding.code != null
+        ? String(ethnicityExt.valueCoding.code).trim()
+        : '';
+    const ethnicityDisplay = ethnicityExt && ethnicityExt.valueCoding && ethnicityExt.valueCoding.display != null
+        ? String(ethnicityExt.valueCoding.display).trim()
+        : '';
+    if (!ethnicityExt || !ethnicityCode || ethnicityCode === '7' || /sin\s*asignar/i.test(ethnicityDisplay)) {
+        return 'La etnia del paciente es obligatoria para envío IHCE y no puede estar en "Sin asignar".';
+    }
+
+    const custRef = String(composition.custodian.reference || '').trim().replace(/^#/, '');
+    const orgExists = entries.some((e) =>
+        e &&
+        e.resource &&
+        e.resource.resourceType === 'Organization' &&
+        String(e.resource.id || '').trim() === custRef
+    );
+    if (!orgExists) {
+        return `El custodian de Composition referencia una Organization inexistente en el bundle (${custRef}).`;
+    }
+
+    return '';
 }
 
 const router = Router();
@@ -1403,10 +1489,16 @@ router.post(
     const forceSandboxOnly = ['1', 'true', 'yes', 'on'].includes(
         String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
     );
+    const forceProdOnly = ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+    );
+    const strictRequiredFields = !['0', 'false', 'no', 'off'].includes(
+        String(process.env.RDA_STRICT_REQUIRED_FIELDS || 'true').trim().toLowerCase()
+    );
     const requestedAmb = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
         ? 'prod'
         : 'sandbox';
-    const effectiveAmb = forceSandboxOnly ? 'sandbox' : requestedAmb;
+    const effectiveAmb = forceProdOnly ? 'prod' : (forceSandboxOnly ? 'sandbox' : requestedAmb);
     const envPrefix = effectiveAmb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
 
     /** Primer valor de entorno no vacío (trim). Orden importa. */
@@ -1593,6 +1685,17 @@ router.post(
                     },
                 ];
             }
+
+            // Evitar Organization IPS duplicada cuando el bundle base ya trae otra (p.ej. id = NIT).
+            // Conservamos solo la Organization de perfil CareDeliveryOrganizationRDA cuyo id sea el REPS forzado.
+            const ipsProfileToken = 'CareDeliveryOrganizationRDA';
+            bundle.entry = (Array.isArray(bundle.entry) ? bundle.entry : []).filter((e) => {
+                if (!e || !e.resource || e.resource.resourceType !== 'Organization') return true;
+                const profiles = e.resource.meta && Array.isArray(e.resource.meta.profile) ? e.resource.meta.profile : [];
+                const isIpsOrg = profiles.some((p) => String(p || '').includes(ipsProfileToken));
+                if (!isIpsOrg) return true;
+                return String(e.resource.id || '') === reps;
+            });
         }
 
         const isModularEndpoint =
@@ -1793,6 +1896,7 @@ router.post(
             // Patient.address.line no permitido por este perfil IHCE.
             byType('Patient').forEach((e) => {
                 const p = e.resource;
+                sanitizeOptionalPatientFields(p);
                 if (Array.isArray(p.extension)) {
                     p.extension.forEach((ex) => {
                         if (
@@ -1825,6 +1929,15 @@ router.post(
             /\/RdaPaciente\/IHCE\/PreviewPacienteAntecedentes($|Modular$)/i.test(req.path)
         ) {
             return res.json(bundle);
+        }
+
+        const requiredErr = validateRequiredForIhcePatientBundle(bundle);
+        if (strictRequiredFields && requiredErr) {
+            return res.status(400).json({
+                ok: false,
+                code: 'RDA_PACIENTE_VALIDACION_OBLIGATORIOS',
+                error: `No se puede enviar a IHCE: ${requiredErr}`,
+            });
         }
 
         // 2) Obtener token Entra (client_credentials) desde servicio compartido IHCE

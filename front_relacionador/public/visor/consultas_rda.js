@@ -7,6 +7,8 @@
 // ============================================================================
 
 /** IHCE: credenciales solo en el backend (/apiV3/VisorIHCE/*). */
+// RDA V2: el flujo Asignar/Envio masivo usa rutas RdaPacienteV2 / CE; el visor sigue en VisorIHCE
+// (sin cambio de contrato aquí — ver docs/RDA-V2-Migracion-Contratos.md).
 const CONFIG = {
   /** 'sandbox' | 'prod' — alineado con variables IHCE_SANDBOX_* / IHCE_PROD_* */
   ambiente: 'sandbox'
@@ -21,6 +23,10 @@ function normalizeAmbiente(val) {
 function ihceForceSandboxOnlyUi() {
   const cfg = window.__APP_CONFIG__ || {};
   return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+}
+function ihceForceProdOnlyUi() {
+  const cfg = window.__APP_CONFIG__ || {};
+  return cfg.IHCE_FORCE_PROD_ONLY === true;
 }
 
 function loadAmbienteFromStorage() {
@@ -3736,19 +3742,30 @@ const AppController = {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📱 Página cargada completamente');
-  CONFIG.ambiente = ihceForceSandboxOnlyUi() ? 'sandbox' : loadAmbienteFromStorage();
+  CONFIG.ambiente = ihceForceProdOnlyUi()
+    ? 'prod'
+    : ihceForceSandboxOnlyUi()
+      ? 'sandbox'
+      : loadAmbienteFromStorage();
 
   const elements = DOM.elements;
 
   const selAmb = document.getElementById('inputAmbienteIHCE');
   if (selAmb) {
-    if (ihceForceSandboxOnlyUi()) {
+    if (ihceForceProdOnlyUi()) {
       const sandboxOpt = selAmb.querySelector('option[value="sandbox"]');
       if (sandboxOpt) sandboxOpt.remove();
       selAmb.value = 'prod';
       selAmb.disabled = true;
-      selAmb.title = 'Modo sandbox camuflado activo';
-      console.log('🌐 Ambiente visor IHCE: sandbox (camuflado como producción)');
+      selAmb.title = 'Modo solo producción activo';
+      console.log('🌐 Ambiente visor IHCE: producción forzada');
+    } else if (ihceForceSandboxOnlyUi()) {
+      const prodOpt = selAmb.querySelector('option[value="prod"]');
+      if (prodOpt) prodOpt.remove();
+      selAmb.value = 'sandbox';
+      selAmb.disabled = true;
+      selAmb.title = 'Modo solo sandbox activo';
+      console.log('🌐 Ambiente visor IHCE: sandbox forzado');
     } else {
       selAmb.value = CONFIG.ambiente;
       selAmb.addEventListener('change', function () {

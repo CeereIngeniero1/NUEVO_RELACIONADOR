@@ -8,6 +8,7 @@ const { loadDotEnvFromCandidates } = require('../../config/envLoader');
 const { resolveIhceCreds } = require('../../services/ihceTokenDebug');
 const {
     isForceSandboxOnly,
+    isForceProdOnly,
     solicitarTokenIhceShared,
     ihceConsultarProfesionalSaludShared,
     ihceConsultarOrganizacionShared,
@@ -2045,6 +2046,14 @@ async function enviarIhceDesdeV2(req, res, ambiente) {
         loadDotEnvFromCandidates();
         const isProd = ambiente === 'prod';
         const forceSandboxOnly = isForceSandboxOnly();
+        const forceProdOnly = isForceProdOnly();
+        if (!isProd && forceProdOnly) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite envío a sandbox desde este endpoint.',
+            });
+        }
         if (isProd && forceSandboxOnly) {
             return res.status(403).json({
                 ok: false,
@@ -2124,6 +2133,14 @@ router.post('/RdaConsultaExterna/EnviarIhceProduccionV2', async (req, res) => en
 router.post('/RdaConsultaExterna/IhceToken/sandbox', async (req, res) => {
     try {
         loadDotEnvFromCandidates();
+        const forceProdOnly = isForceProdOnly();
+        if (forceProdOnly) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite solicitar token de sandbox desde este endpoint.',
+            });
+        }
         const out = await solicitarTokenIhceShared('sandbox');
         if (!out.access_token) {
             return res.status(502).json({ ok: false, error: 'Respuesta sin access_token', details: out });
@@ -2168,6 +2185,14 @@ router.post('/RdaConsultaExterna/IhceToken/produccion', async (req, res) => {
 router.post('/RdaConsultaExterna/IhceConsultarProfesional/sandbox', async (req, res) => {
     try {
         loadDotEnvFromCandidates();
+        const forceProdOnly = isForceProdOnly();
+        if (forceProdOnly) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite consultar profesional en sandbox desde este endpoint.',
+            });
+        }
         const out = await ihceConsultarProfesionalSaludShared('sandbox', req.body || {});
         return res.status(out.status > 0 ? out.status : 502).json(out);
     } catch (e) {
@@ -2204,6 +2229,14 @@ router.post('/RdaConsultaExterna/IhceConsultarProfesional/produccion', async (re
 router.post('/RdaConsultaExterna/IhceConsultarOrganizacion/sandbox', async (req, res) => {
     try {
         loadDotEnvFromCandidates();
+        const forceProdOnly = isForceProdOnly();
+        if (forceProdOnly) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite consultar organización en sandbox desde este endpoint.',
+            });
+        }
         const out = await ihceConsultarOrganizacionShared('sandbox');
         return res.status(out.status > 0 ? out.status : 502).json(out);
     } catch (e) {

@@ -1028,6 +1028,16 @@ router.post('/RdaPacienteV2/JsonCompletoEstricto', async (req, res) => {
  */
 async function enviarIhceDesdeV2(req, res, ambiente) {
     try {
+        const forceProdOnly = ['1', 'true', 'yes', 'on'].includes(
+            String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+        );
+        if (ambiente !== 'prod' && forceProdOnly) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite envío a sandbox desde este endpoint.',
+            });
+        }
         const id = req.body && req.body.IdEvaluacionEntidadRDA != null
             ? parseInt(req.body.IdEvaluacionEntidadRDA, 10)
             : NaN;

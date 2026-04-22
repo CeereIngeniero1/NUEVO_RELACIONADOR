@@ -2,6 +2,8 @@
  * ==========================================================================
  * RDA V3 — Resumen Digital de Atención (Resolución 1888)
  * ==========================================================================
+ * @deprecated Para la UI principal usar el módulo ES `rda/index.js` (migración RDA V2).
+ * Este bundle IIFE se mantiene solo para páginas experimentales / compatibilidad.
  * Archivo independiente. NO depende de Asignar_RIPS V3.js
  * Toda la lógica vive dentro de un IIFE para evitar colisión de variables.
  *

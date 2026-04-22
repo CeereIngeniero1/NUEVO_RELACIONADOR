@@ -60,13 +60,98 @@ function rdacePdfService() {
     }
 }
 
-/** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
+/** Catálogo Res. 1888: código "7" = Sin Asignar (no permitido para envío real IHCE). */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
     const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
     if (c === '7') return true;
     if (t && /sin\s*asignar/i.test(t)) return true;
     return false;
+}
+
+function sanitizeOptionalPatientFields(patient) {
+    if (!patient || typeof patient !== 'object') return;
+
+    if (Array.isArray(patient.extension)) {
+        patient.extension = patient.extension.filter((ex) => {
+            if (!ex || typeof ex !== 'object' || !ex.url) return false;
+            if (Object.prototype.hasOwnProperty.call(ex, 'valueString')) {
+                return String(ex.valueString || '').trim() !== '';
+            }
+            if (Object.prototype.hasOwnProperty.call(ex, 'valueCoding')) {
+                const vc = ex.valueCoding || {};
+                return String(vc.code || '').trim() !== '';
+            }
+            return true;
+        });
+    }
+
+    if (Array.isArray(patient.telecom)) {
+        patient.telecom = patient.telecom.filter((t) => t && String(t.value || '').trim() !== '');
+    }
+
+    if (Array.isArray(patient.address)) {
+        patient.address = patient.address.filter((a) => {
+            if (!a || typeof a !== 'object') return false;
+            return Boolean(
+                String(a.city || '').trim() ||
+                String(a.country || '').trim() ||
+                (Array.isArray(a.extension) && a.extension.length)
+            );
+        });
+    }
+}
+
+function validateRequiredForIhceCeBundle(bundle) {
+    if (!bundle || !Array.isArray(bundle.entry)) {
+        return 'Bundle inválido: no contiene entry.';
+    }
+
+    const entries = bundle.entry;
+    const patientEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Patient');
+    const compositionEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
+    if (!patientEntry || !patientEntry.resource) return 'Falta recurso Patient.';
+    if (!compositionEntry || !compositionEntry.resource) return 'Falta recurso Composition.';
+
+    const patient = patientEntry.resource;
+    const composition = compositionEntry.resource;
+    if (!String(patient.id || '').trim()) return 'Patient.id es obligatorio.';
+    if (!/^[A-Z]{1,4}-[0-9A-Za-z]+$/.test(String(patient.id || '').trim())) {
+        return 'Patient.id debe cumplir el patrón TipoDocumento-NumeroDocumento (ej: CC-123456).';
+    }
+    if (!composition.subject || !String(composition.subject.reference || '').trim()) {
+        return 'Composition.subject.reference es obligatorio.';
+    }
+    if (!composition.custodian || !String(composition.custodian.reference || '').trim()) {
+        return 'Composition.custodian.reference es obligatorio.';
+    }
+
+    const patientExt = Array.isArray(patient.extension) ? patient.extension : [];
+    const ethnicityExt = patientExt.find(
+        (x) => x && typeof x.url === 'string' && /ExtensionPatientEthnicity$/i.test(x.url)
+    );
+    const ethnicityCode = ethnicityExt && ethnicityExt.valueCoding && ethnicityExt.valueCoding.code != null
+        ? String(ethnicityExt.valueCoding.code).trim()
+        : '';
+    const ethnicityDisplay = ethnicityExt && ethnicityExt.valueCoding && ethnicityExt.valueCoding.display != null
+        ? String(ethnicityExt.valueCoding.display).trim()
+        : '';
+    if (!ethnicityExt || !ethnicityCode || ethnicityCode === '7' || /sin\s*asignar/i.test(ethnicityDisplay)) {
+        return 'La etnia del paciente es obligatoria para envío IHCE y no puede estar en "Sin asignar".';
+    }
+
+    const custRef = String(composition.custodian.reference || '').trim().replace(/^#/, '');
+    const orgExists = entries.some((e) =>
+        e &&
+        e.resource &&
+        e.resource.resourceType === 'Organization' &&
+        String(e.resource.id || '').trim() === custRef
+    );
+    if (!orgExists) {
+        return `El custodian de Composition referencia una Organization inexistente en el bundle (${custRef}).`;
+    }
+
+    return '';
 }
 
 const router = Router();
@@ -915,7 +1000,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             const dispNat = cNat === '170' ? 'Colombia' : (dNat && dNat.toUpperCase() === 'COLOMBIA' ? 'Colombia' : dNat);
             patExt.push({ url: `${RDA_SD}/ExtensionPatientNationality`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661', code: cNat, display: dispNat || undefined } });
         }
-        if (str(pdem.CodigoEtnia) && !skipRdaEthnicityExtension(pdem.CodigoEtnia, pdem.TextoEtnia)) patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicity`,     valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',           code: str(pdem.CodigoEtnia),            display: str(pdem.TextoEtnia)            || undefined } });
+        if (str(pdem.CodigoEtnia) && !skipRdaEthnicityExtension(pdem.CodigoEtnia, pdem.TextoEtnia)) patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicity`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup', code: str(pdem.CodigoEtnia), display: str(pdem.TextoEtnia) || undefined } });
         if (str(pdem.ComunidadEtnica))        patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicCommunity`, valueString: str(pdem.ComunidadEtnica) });
         if (str(pdem.CodigoDiscapacidad))     patExt.push({ url: `${RDA_SD}/ExtensionPatientDisability`,    valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification', code: str(pdem.CodigoDiscapacidad),    display: str(pdem.TextoDiscapacidad)     || undefined } });
         if (str(pdem.CodigoIdentidadGenero) && pdem.IdIdentidadGenero && pdem.IdIdentidadGenero !== 0) patExt.push({ url: `${RDA_SD}/ExtensionPatientGenderIdentity`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity', code: str(pdem.CodigoIdentidadGenero), display: str(pdem.TextoIdentidadGenero) || undefined } });
@@ -1621,10 +1706,16 @@ router.post(
     const forceSandboxOnly = ['1', 'true', 'yes', 'on'].includes(
         String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
     );
+    const forceProdOnly = ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+    );
+    const strictRequiredFields = !['0', 'false', 'no', 'off'].includes(
+        String(process.env.RDA_STRICT_REQUIRED_FIELDS || 'true').trim().toLowerCase()
+    );
     const requestedAmb = (String(ambiente || 'sandbox').toLowerCase() === 'prod' || String(ambiente || '').toLowerCase() === 'produccion')
         ? 'prod'
         : 'sandbox';
-    const effectiveAmb = forceSandboxOnly ? 'sandbox' : requestedAmb;
+    const effectiveAmb = forceProdOnly ? 'prod' : (forceSandboxOnly ? 'sandbox' : requestedAmb);
     const envPrefix = effectiveAmb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
 
     const firstEnv = (...keys) => {
@@ -1880,6 +1971,7 @@ router.post(
             bundle.entry
                 .filter((e) => e && e.resource && e.resource.resourceType === 'Patient')
                 .forEach((e) => {
+                    sanitizeOptionalPatientFields(e.resource);
                     if (Array.isArray(e.resource.address)) {
                         e.resource.address.forEach((a) => {
                             if (a && Object.prototype.hasOwnProperty.call(a, 'line')) delete a.line;
@@ -1955,6 +2047,14 @@ router.post(
             || /PayloadParaIHCE/i.test(req.path);
         if (isBundlePayloadPreview) {
             return res.type('application/fhir+json').json(bundle);
+        }
+        const requiredErr = validateRequiredForIhceCeBundle(bundle);
+        if (strictRequiredFields && requiredErr) {
+            return res.status(400).json({
+                ok: false,
+                code: 'RDACE_VALIDACION_OBLIGATORIOS',
+                error: `No se puede enviar a IHCE: ${requiredErr}`,
+            });
         }
 
         // 4) Obtener token Entra (client_credentials)

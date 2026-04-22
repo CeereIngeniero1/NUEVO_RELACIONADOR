@@ -10,6 +10,14 @@ const router = express.Router();
 const recursosAcumulados = new Map();
 
 function normalizeAmbiente(body, query) {
+    const forceProdOnly = ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+    );
+    if (forceProdOnly) return 'prod';
+    const forceSandboxOnly = ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
+    );
+    if (forceSandboxOnly) return 'sandbox';
     const a = (body && body.ambiente) || (query && query.ambiente) || 'sandbox';
     return String(a).toLowerCase() === 'prod' || String(a).toLowerCase() === 'produccion' ? 'prod' : 'sandbox';
 }

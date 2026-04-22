@@ -1,0 +1,40 @@
+/**
+ * @param {string} prefix "RDA_" o "RDACE_"
+ */
+export function wireRdaFechaAtencionGlobal() {
+    const g = window;
+    g.rdaParseFechaHorasAtencion = function (prefix) {
+        function normTime(t) {
+            if (!t) return '';
+            const s = String(t).trim();
+            return s.length >= 5 ? s.slice(0, 5) : s;
+        }
+        const fecha = (document.getElementById(prefix + 'FechaAtencion') || {}).value;
+        let hi = (document.getElementById(prefix + 'HoraInicioAtencion') || {}).value;
+        let hf = (document.getElementById(prefix + 'HoraFinAtencion') || {}).value;
+        const f = fecha ? String(fecha).trim() : '';
+        hi = hi ? String(hi).trim() : '';
+        hf = hf ? String(hf).trim() : '';
+        const parts = (f ? 1 : 0) + (hi ? 1 : 0) + (hf ? 1 : 0);
+        if (parts === 0) return { ok: true, inicio: null, fin: null };
+        if (parts < 3) {
+            return {
+                ok: false,
+                error: 'Indique la fecha de atención, hora de inicio y hora de fin, o deje los tres campos vacíos.',
+            };
+        }
+        const t1 = normTime(hi);
+        const t2 = normTime(hf);
+        const inicioStr = f + 'T' + t1;
+        const finStr = f + 'T' + t2;
+        const d1 = new Date(inicioStr);
+        const d2 = new Date(finStr);
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+            return { ok: false, error: 'Fecha u hora no válida.' };
+        }
+        if (d2 <= d1) {
+            return { ok: false, error: 'La hora de fin debe ser posterior a la hora de inicio.' };
+        }
+        return { ok: true, inicio: inicioStr, fin: finStr };
+    };
+}

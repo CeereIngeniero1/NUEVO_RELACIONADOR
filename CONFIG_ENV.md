@@ -21,6 +21,10 @@
    - Si `API_BASE_URL` está en `.env`, se usa tal cual (URL base del backend).
    - Si no, se construye como `{protocolo}://{hostname del request}:{BACK_PORT}` (útil en LAN).
 4. Los scripts estáticos usan `getApiBaseUrl()` ([`public/apiConfig.js`](front_relacionador/public/apiConfig.js)) o el módulo [`public/rda/api/apiBaseUrl.js`](front_relacionador/public/rda/api/apiBaseUrl.js).
+5. Restricción de ambiente IHCE:
+   - `IHCE_FORCE_SANDBOX_ONLY=true` fuerza solo sandbox.
+   - `IHCE_FORCE_PROD_ONLY=true` fuerza solo producción.
+   - Si ambas están en `true`, prevalece `IHCE_FORCE_PROD_ONLY`.
 
 ## Comprobaciones rápidas
 

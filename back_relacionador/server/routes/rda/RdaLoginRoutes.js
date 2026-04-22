@@ -3,6 +3,7 @@
 const express = require('express');
 const {
     isForceSandboxOnly,
+    isForceProdOnly,
     solicitarTokenIhceShared,
     ihceConsultarProfesionalSaludShared,
     ihceConsultarOrganizacionShared,
@@ -12,6 +13,13 @@ const router = express.Router();
 
 router.post('/RdaLogin/IhceToken/sandbox', async (req, res) => {
     try {
+        if (isForceProdOnly()) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'Sandbox deshabilitado por seguridad (IHCE_FORCE_PROD_ONLY=true).',
+            });
+        }
         const out = await solicitarTokenIhceShared('sandbox');
         return res.json({ ok: true, ...out });
     } catch (e) {
@@ -37,6 +45,13 @@ router.post('/RdaLogin/IhceToken/produccion', async (req, res) => {
 
 router.post('/RdaLogin/IhceConsultarProfesional/sandbox', async (req, res) => {
     try {
+        if (isForceProdOnly()) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'Sandbox deshabilitado por seguridad (IHCE_FORCE_PROD_ONLY=true).',
+            });
+        }
         const out = await ihceConsultarProfesionalSaludShared('sandbox', req.body || {});
         return res.status(out.status >= 200 && out.status < 300 ? 200 : out.status).json(out);
     } catch (e) {
@@ -62,6 +77,13 @@ router.post('/RdaLogin/IhceConsultarProfesional/produccion', async (req, res) =>
 
 router.post('/RdaLogin/IhceConsultarOrganizacion/sandbox', async (req, res) => {
     try {
+        if (isForceProdOnly()) {
+            return res.status(403).json({
+                ok: false,
+                code: 'IHCE_FORCE_PROD_ONLY',
+                error: 'Sandbox deshabilitado por seguridad (IHCE_FORCE_PROD_ONLY=true).',
+            });
+        }
         const out = await ihceConsultarOrganizacionShared('sandbox');
         return res.status(out.status >= 200 && out.status < 300 ? 200 : out.status).json(out);
     } catch (e) {

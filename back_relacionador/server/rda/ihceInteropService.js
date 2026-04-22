@@ -18,6 +18,11 @@ function isForceSandboxOnly() {
         String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
     );
 }
+function isForceProdOnly() {
+    return ['1', 'true', 'yes', 'on'].includes(
+        String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
+    );
+}
 
 function firstEnvKey(...keys) {
     for (let i = 0; i < keys.length; i += 1) {
@@ -273,6 +278,7 @@ async function ihceConsultarOrganizacionShared(ambiente) {
 
 module.exports = {
     isForceSandboxOnly,
+    isForceProdOnly,
     solicitarTokenIhceShared,
     ihceConsultarProfesionalSaludShared,
     ihceConsultarOrganizacionShared,
