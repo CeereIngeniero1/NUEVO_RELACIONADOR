@@ -1611,6 +1611,14 @@ IF NOT EXISTS (
     ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado pruebas] INT NOT NULL CONSTRAINT [DF_EERDACE_EnviadoPruebas] DEFAULT (0);
 GO
 
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U')
+      AND name = N'Contenido Documento PDF Base64'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Contenido Documento PDF Base64] NVARCHAR(MAX) NULL;
+GO
+
 CREATE TABLE [Factor De Riesgo 1888]
 (
 [Id Factor De Riesgo 1888] INT IDENTITY (1,1) PRIMARY KEY,

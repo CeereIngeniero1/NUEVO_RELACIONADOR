@@ -2793,6 +2793,9 @@ router.get('/Cups1888/:Cups', async (req, res) => {
 
 // --- RDA Paciente — rutas en archivo separado (rda/RdaPacienteRoutes.js) ---
 router.use(require('./rda/RdaPacienteRoutes'));
+router.use(require('./rda/RdaPacienteRoutesV2'));
+// --- RDA Login compartido (token + consultas de profesional/organización) ---
+router.use(require('./rda/RdaLoginRoutes'));
 // --- RDA Consulta Externa — rutas en archivo separado (rda/RdaConsultaExternaRoutes.js) ---
 router.use(require('./rda/RdaConsultaExternaRoutes'));
 router.use(require('./rda/RdaConsultaExternaRoutesv2'));

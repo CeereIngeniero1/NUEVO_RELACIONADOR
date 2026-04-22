@@ -19,6 +19,7 @@
 
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
+const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
 
 /** Catálogo Res. 1888: código "7" = Sin Asignar — no enviar ExtensionPatientEthnicity a IHCE. */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
@@ -1826,27 +1827,11 @@ router.post(
             return res.json(bundle);
         }
 
-        // 2) Obtener token Entra (client_credentials)
-        const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-        const tokenBody = new URLSearchParams({
-            grant_type: 'client_credentials',
-            client_id: clientId,
-            client_secret: clientSecret,
-            scope,
-        }).toString();
-
-        const tokenResp = await httpJson(tokenUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(tokenBody) },
-            body: tokenBody,
-        });
-        if (tokenResp.status !== 200) {
-            return res.status(502).json({ ok: false, error: `Token IHCE falló (status ${tokenResp.status})`, details: tokenResp.body });
-        }
-        const tokenJson = JSON.parse(tokenResp.body);
-        const accessToken = tokenJson.access_token;
+        // 2) Obtener token Entra (client_credentials) desde servicio compartido IHCE
+        const tokenOut = await solicitarTokenIhceShared(ambiente === 'prod' ? 'prod' : 'sandbox');
+        const accessToken = tokenOut.access_token;
         if (!accessToken) {
-            return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenJson });
+            return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenOut });
         }
 
         // 3) Enviar a IHCE
