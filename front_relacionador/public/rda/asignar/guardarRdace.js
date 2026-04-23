@@ -272,19 +272,22 @@ export async function guardarRDACE() {
             fnEl.value = 'RDA_CE_' + slug + '_' + idCE + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
         }
 
-        const pdfUrlAuto = urlResumenClinicoPdf(idCE);
-        try {
-            const blob = await fetchBlobAuthenticated(pdfUrlAuto);
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            const rawName = (fnEl && fnEl.value) ? fnEl.value : ('RDA_CE_' + idCE + '.pdf');
-            a.download = String(rawName).replace(/[^\w.\-]+/g, '_');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-        } catch (ePdf) {
-            console.warn('[RDACE] Descarga automática PDF:', ePdf);
+        const autoPdf = document.getElementById('RDACE_AutoDescargarPdf');
+        if (autoPdf && autoPdf.checked) {
+            const pdfUrlAuto = urlResumenClinicoPdf(idCE);
+            try {
+                const blob = await fetchBlobAuthenticated(pdfUrlAuto);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                const rawName = (fnEl && fnEl.value) ? fnEl.value : ('RDA_CE_' + idCE + '.pdf');
+                a.download = String(rawName).replace(/[^\w.\-]+/g, '_');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (ePdf) {
+                console.warn('[RDACE] Descarga automática PDF:', ePdf);
+            }
         }
 
         const resumenCe =

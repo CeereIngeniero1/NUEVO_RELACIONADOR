@@ -16,6 +16,8 @@ Este documento resume el criterio operativo implementado en backend para:
 
 - `RDA_STRICT_REQUIRED_FIELDS=true` (default): bloquea envio real cuando faltan obligatorios.
 - `RDA_STRICT_REQUIRED_FIELDS=false`: no bloquea por obligatorios (se recomienda solo en QA/interno).
+- `RDACE_STRUCTURAL_FALLBACK=true` (temporal QA): en CE completa mínimos técnicos de cardinalidad
+  (`Condition` principal fallback, `Encounter.type` modalidad/entorno fallback) para probar estructura.
 
 ## RDA Paciente
 

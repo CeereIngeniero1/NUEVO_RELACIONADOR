@@ -866,6 +866,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const medPrescripciones = aggregate.medPrescripciones;
         const procPrescripciones = aggregate.procPrescripciones;
         const otrasTecnologias = aggregate.otrasTecnologias;
+        const allowStructuralFallback = ['1', 'true', 'yes', 'on'].includes(
+            String(process.env.RDACE_STRUCTURAL_FALLBACK || 'false').trim().toLowerCase()
+        );
 
         const codPrest = str(head.CodigoPrestador);
         const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS)
@@ -1087,7 +1090,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         // Condition principal + relacionadas.
         // Perfil: ConditionRDA (RDA Consulta). Id patrón Condition-<n> (BUNDLE-005).
         let conditionSeq = 0;
-        const condPrincipalEntry = (str(head.DiagPrincipalCIE10Codigo) || str(head.DiagnosticoIngresoCIE11Codigo)) ? makeEntry({
+        let condPrincipalEntry = (str(head.DiagPrincipalCIE10Codigo) || str(head.DiagnosticoIngresoCIE11Codigo)) ? makeEntry({
             resourceType: 'Condition',
             id: `Condition-${conditionSeq++}`,
             meta: { profile: [`${RDA_SD}/ConditionRDA`] },
@@ -1101,6 +1104,20 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 text: str(head.DiagPrincipalCIE10Nombre) || str(head.DiagnosticoIngresoCIE11Termino) || str(head.DiagPrincipalCIE10Codigo) || undefined,
             },
         }) : null;
+        if (!condPrincipalEntry && allowStructuralFallback) {
+            // Fallback técnico temporal para pruebas de cardinalidad IG (sin diagnóstico clínico específico ingresado).
+            condPrincipalEntry = makeEntry({
+                resourceType: 'Condition',
+                id: `Condition-${conditionSeq++}`,
+                meta: { profile: [`${RDA_SD}/ConditionRDA`] },
+                ...CONDITION_RDA_BASE,
+                subject: { reference: refOf(patientEntry) },
+                code: {
+                    coding: [{ system: ICD10_SYSTEM, code: 'R69', display: 'Unknown and unspecified causes of morbidity' }],
+                    text: 'Diagnóstico principal no especificado (fallback técnico)',
+                },
+            });
+        }
 
         // Diagnósticos relacionados
         const condRelacionadasEntries = diagRelacionados.map((r) => {
@@ -1403,11 +1420,15 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const encounterTypes = [];
         if (str(head.CodigoModalidadAtencion)) {
             encounterTypes.push({ coding: [{ system: CS_MODALITY, code: str(head.CodigoModalidadAtencion), display: str(head.NombreModalidadAtencion) || undefined }] });
+        } else if (allowStructuralFallback) {
+            encounterTypes.push({ coding: [{ system: CS_MODALITY, code: '01', display: 'Intramural' }] });
         }
         encounterTypes.push({ coding: [{ system: CS_GRUPO_SVC, code: '01', display: 'Consulta externa' }] });
         const entorno = str(head.EntornoAtencion);
         if (entorno) {
             encounterTypes.push({ coding: [{ system: CS_ENTORNO, code: entorno, display: entornoAtencionDisplay(entorno) || entorno }] });
+        } else if (allowStructuralFallback) {
+            encounterTypes.push({ coding: [{ system: CS_ENTORNO, code: '01', display: entornoAtencionDisplay('01') || 'Unidad de atención en salud propia' }] });
         }
         // serviceType 1..1: CUPS de consulta (ValueSet CUPSConsultationCodes), no GrupoServicios
         const cupsSvcCode = str(procPrescripciones[0] && procPrescripciones[0].CodigoProcedimiento) || '890101';
@@ -1445,6 +1466,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     const cm = str(head.CodigoCausaMotivo);
                     if (cm === '21') return 'ACCIDENTE DE TRABAJO';
                     if (cm === '42') return 'ATENCION DE POBLACION MATERNO PERINATAL';
+                    if (cm === '38') return 'ENFERMEDAD GENERAL';
                     return str(head.NombreCausaMotivo) || undefined;
                 })(),
             }] }] } : {}),

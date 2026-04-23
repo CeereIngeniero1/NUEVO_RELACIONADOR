@@ -65,6 +65,32 @@
         .rdace-pres-proc-card .select2-container {
             max-width: 100%;
         }
+        /* Módulos desplegables RDA/RDACE */
+        .rda-module-card .rda-module-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 0.5rem;
+        }
+        .rda-module-card .rda-module-toggle-icon {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            transition: transform 0.2s ease;
+        }
+        .rda-module-card.rda-module-collapsed .rda-module-toggle-icon {
+            transform: rotate(-90deg);
+        }
+        .rda-module-card.rda-module-collapsed > :not(.rda-module-title) {
+            display: none !important;
+        }
+        .rda-required-module-star {
+            color: #dc3545;
+            margin-left: 0.25rem;
+            font-weight: 700;
+        }
     </style>
 
     <!-- ICONO -->
@@ -427,7 +453,7 @@
 
                                     <!-- Fila 4: Extra Social y Alergias -->
                                     <div class="col-md-3">
-                                        <label>Etnia:</label>
+                                        <label>Etnia<span class="text-danger" aria-hidden="true">*</span>:</label>
 
 
                                         <select disabled class="form-select-sm border border-secondary w-100 mb-2"
@@ -1330,7 +1356,7 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes Familiares</h6>
+                                                <h6 class="text-muted">Antecedentes Familiares <span class="text-danger" aria-hidden="true">*</span></h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-3">
                                                         <label>Parentesco:</label>
@@ -1425,6 +1451,12 @@
                                     <h6 class="text-primary mb-3"><b>RDA Consulta Externa — Campos
                                             Resolución 1888</b>
                                     </h6>
+                                    <div class="alert alert-warning py-2 mb-2" role="alert">
+                                        <small>
+                                            Para envío IHCE en CE, complete los campos con <span class="text-danger">*</span>
+                                            y agregue al menos 1 antecedente familiar.
+                                        </small>
+                                    </div>
 
                                     <div class="row g-2">
                                         <!-- Código Prestador y Administrador Plan Beneficios -->
@@ -1493,25 +1525,25 @@
 
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Modalidad tecnología salud (RDA / RIPS):</label>
+                                            <label class="fw-bold">Modalidad tecnología salud (RDA / RIPS)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_IdModalidadAtencion">
                                                 <option value="">Seleccionar</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Grupo servicios (RDA / RIPS):</label>
+                                            <label class="fw-bold">Grupo servicios (RDA / RIPS)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_IdGrupoServicios">
                                                 <option value="">Seleccionar</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Vía ingreso usuario (RIPS):</label>
+                                            <label class="fw-bold">Vía ingreso usuario (RIPS)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_IdViaIngresoUsuario">
                                                 <option value="">Seleccionar</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Causa motivo atención (RIPS):</label>
+                                            <label class="fw-bold">Causa motivo atención (RIPS)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDACE_IdCausaMotivoAtencion">
                                                 <option value="">Seleccionar</option>
                                             </select>
@@ -1600,14 +1632,14 @@
                                                 <h6 class="text-muted">Antecedentes Familiares</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-3">
-                                                        <label>Parentesco:</label>
+                                                        <label>Parentesco<span class="text-danger" aria-hidden="true">*</span>:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_ParentescoFamiliar">
                                                             <option value="">Buscar parentesco...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
-                                                        <label>Condición salud (CIE-10):</label>
+                                                        <label>Condición salud (CIE-10)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_AntecedenteFamiliarCIE10">
                                                             <option value="">Seleccione o busque un diagnóstico...</option>
@@ -1629,6 +1661,7 @@
                                                             Agregar</button>
                                                     </div>
                                                 </div>
+                                                <small class="text-muted d-block mt-1">Debe agregar al menos un antecedente familiar para envío IHCE CE.</small>
                                                 <div id="RDACE_ListaAntecedentesFamiliares" class="mt-2"></div>
                                             </div>
                                         </div>
@@ -1680,7 +1713,7 @@
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-4">
                                                         <label>Entorno donde se realizó la
-                                                            atención:</label>
+                                                            atención<span class="text-danger" aria-hidden="true">*</span>:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_EntornoAtencion">
                                                             <option value="">Buscar entorno de atención...</option>
@@ -1693,7 +1726,7 @@
                                                             <option value="">Buscar tipo de factor de riesgo...</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-4">
+                                                    <div class="col-md-4 d-none">
                                                         <label>Nombre del factor de riesgo:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
@@ -1714,7 +1747,7 @@
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-4">
                                                         <label>Código diagnóstico principal
-                                                            CIE-10:</label>
+                                                            CIE-10<span class="text-danger" aria-hidden="true">*</span>:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_DiagPrincipalCIE10Codigo">
                                                             <option value="">Buscar CIE-10...</option>
@@ -1729,7 +1762,7 @@
                                                             placeholder="Nombre del diagnóstico" readonly>
                                                     </div>
                                                     <div class="col-md-3">
-                                                        <label>Tipo diagnóstico principal:</label>
+                                                        <label>Tipo diagnóstico principal<span class="text-danger" aria-hidden="true">*</span>:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoDiagPrincipalCIE10">
                                                             <option value="">Buscar tipo de diagnóstico...</option>
@@ -1835,13 +1868,13 @@
                                                             <option value="">Seleccionar DCI</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-3 d-none">
                                                         <label>Código medicamento:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_CodigoMedicamento" placeholder="Código ATC / CUM">
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-3 d-none">
                                                         <label>Nombre medicamento:</label>
                                                         <input type="text"
                                                             class="form-control-sm border border-secondary w-100"
@@ -2100,6 +2133,12 @@
                                                         <input type="hidden" id="RDACE_IdEvaluacionActual" value="">
                                                     </div>
                                                     <div class="col-md-12 mt-2">
+                                                        <div class="form-check mb-2">
+                                                            <input class="form-check-input" type="checkbox" id="RDACE_AutoDescargarPdf">
+                                                            <label class="form-check-label" for="RDACE_AutoDescargarPdf">
+                                                                Descargar PDF automáticamente al guardar
+                                                            </label>
+                                                        </div>
                                                         <button type="button" class="btn btn-outline-secondary btn-sm"
                                                             id="RDACE_BtnDescargarPdf" title="Requiere haber guardado el RDA al menos una vez en esta sesión">
                                                             <i class="fa-solid fa-file-pdf me-1"></i> Descargar resumen clínico (PDF)
@@ -2286,6 +2325,51 @@
                 else window.location.href = 'index.html';
             });
         }
+
+        /* ── Módulos RDA internos desplegables ─────── */
+        function initRdaModuleCards() {
+            const moduleCards = document.querySelectorAll(
+                '#SeccionRDAPaciente .card, #SeccionRDAConsultaExterna .card'
+            );
+
+            moduleCards.forEach((card) => {
+                const title = card.querySelector('h6');
+                if (!title || title.classList.contains('rda-module-title')) return;
+
+                card.classList.add('rda-module-card');
+                title.classList.add('rda-module-title');
+
+                const hasRequiredInside = !!card.querySelector('label .text-danger');
+                const hasRequiredInTitle = !!title.querySelector('.text-danger, .rda-required-module-star');
+                if (hasRequiredInside && !hasRequiredInTitle) {
+                    const star = document.createElement('span');
+                    star.className = 'rda-required-module-star';
+                    star.setAttribute('aria-hidden', 'true');
+                    star.textContent = '*';
+                    title.appendChild(star);
+                }
+
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'rda-module-toggle-icon';
+                toggleIcon.setAttribute('aria-hidden', 'true');
+                toggleIcon.textContent = '▼';
+                title.appendChild(toggleIcon);
+
+                // Estado inicial: colapsado por defecto; abierto si el módulo tiene obligatorios.
+                if (!hasRequiredInside) {
+                    card.classList.add('rda-module-collapsed');
+                } else {
+                    card.classList.remove('rda-module-collapsed');
+                }
+
+                title.title = 'Clic para desplegar/ocultar';
+                title.addEventListener('click', () => {
+                    card.classList.toggle('rda-module-collapsed');
+                });
+            });
+        }
+
+        initRdaModuleCards();
     })();
 </script>
 

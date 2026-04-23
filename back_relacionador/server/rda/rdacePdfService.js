@@ -8,16 +8,44 @@ const str = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : nu
  * Persiste el PDF binario y la fecha de generación en la cabecera RDACE.
  */
 async function persistRdacePdf(pool, sql, id, buffer) {
-    await pool.request()
+    const cols = await pool.request().query(`
+        SELECT
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasPdfBin,
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Fecha Generacion Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasPdfDate,
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF Base64') IS NULL THEN 0 ELSE 1 END AS HasPdfBase64
+    `);
+    const colInfo = (cols.recordset && cols.recordset[0]) || {};
+    const hasPdfBin = Number(colInfo.HasPdfBin) === 1;
+    const hasPdfDate = Number(colInfo.HasPdfDate) === 1;
+    const hasPdfBase64 = Number(colInfo.HasPdfBase64) === 1;
+
+    if (!hasPdfBin && !hasPdfBase64) {
+        throw new Error(
+            'No existe columna para persistir PDF en [Evaluacion Entidad RDA Consulta Externa]. ' +
+            'Ejecute SQL/1888/ALTER_RDACE_ContenidoDocumentoPdf.sql o el patch equivalente.'
+        );
+    }
+
+    const sets = [];
+    const req = pool.request()
         .input('Id', sql.Int, id)
-        .input('Pdf', sql.VarBinary(sql.MAX), buffer)
-        .input('Fecha', sql.DateTime2, new Date())
-        .query(`
-            UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
-            SET [Contenido Documento PDF] = @Pdf,
-                [Fecha Generacion Documento PDF] = @Fecha
-            WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id
-        `);
+        .input('Fecha', sql.DateTime2, new Date());
+
+    if (hasPdfBin) {
+        req.input('PdfBin', sql.VarBinary(sql.MAX), buffer);
+        sets.push('[Contenido Documento PDF] = @PdfBin');
+        if (hasPdfDate) sets.push('[Fecha Generacion Documento PDF] = @Fecha');
+    }
+    if (hasPdfBase64) {
+        req.input('PdfBase64', sql.NVarChar(sql.MAX), buffer.toString('base64'));
+        sets.push('[Contenido Documento PDF Base64] = @PdfBase64');
+    }
+
+    await req.query(`
+        UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
+        SET ${sets.join(',\n            ')}
+        WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id
+    `);
 }
 
 /**

@@ -12,6 +12,27 @@
 async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
     const str = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
 
+    const cols = await pool.request().query(`
+        SELECT
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBin,
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Fecha Generacion Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasFechaGeneracionDocumentoPdf,
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF Base64') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBase64
+    `);
+    const colInfo = (cols.recordset && cols.recordset[0]) || {};
+    const hasPdfBin = Number(colInfo.HasContenidoDocumentoPdfBin) === 1;
+    const hasPdfDate = Number(colInfo.HasFechaGeneracionDocumentoPdf) === 1;
+    const hasPdfBase64 = Number(colInfo.HasContenidoDocumentoPdfBase64) === 1;
+
+    const selectPdfBin = hasPdfBin
+        ? 'ce.[Contenido Documento PDF]         AS ContenidoDocumentoPdfBin,'
+        : 'CAST(NULL AS VARBINARY(MAX))         AS ContenidoDocumentoPdfBin,';
+    const selectPdfDate = hasPdfDate
+        ? 'ce.[Fecha Generacion Documento PDF]   AS FechaGeneracionDocumentoPdf,'
+        : 'CAST(NULL AS DATETIME2(7))            AS FechaGeneracionDocumentoPdf,';
+    const selectPdfBase64 = hasPdfBase64
+        ? 'ce.[Contenido Documento PDF Base64]   AS ContenidoDocumentoPdfBase64,'
+        : 'CAST(NULL AS NVARCHAR(MAX))           AS ContenidoDocumentoPdfBase64,';
+
     const mainResult = await pool.request()
         .input('Id', sql.Int, id)
         .query(`
@@ -44,8 +65,9 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ce.[Id Grupo Servicios]              AS IdGrupoServicios,
                 ce.[Id Via Ingreso Usuario]          AS IdViaIngresoUsuario,
                 ce.[Id Causa Motivo Atencion]        AS IdCausaMotivoAtencion,
-                ce.[Contenido Documento PDF]         AS ContenidoDocumentoPdfBin,
-                ce.[Fecha Generacion Documento PDF]   AS FechaGeneracionDocumentoPdf,
+                ${selectPdfBin}
+                ${selectPdfDate}
+                ${selectPdfBase64}
                 ma.[Codigo]                          AS CodigoModalidadAtencion,
                 ma.[NombreModalidadAtencion]         AS NombreModalidadAtencion,
                 gs.[Codigo]                          AS CodigoGrupoServicios,
@@ -73,14 +95,26 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
     }
 
     const row = mainResult.recordset[0];
-    const storedPdfBuffer = Buffer.isBuffer(row.ContenidoDocumentoPdfBin) && row.ContenidoDocumentoPdfBin.length
+    let storedPdfBuffer = Buffer.isBuffer(row.ContenidoDocumentoPdfBin) && row.ContenidoDocumentoPdfBin.length
         ? row.ContenidoDocumentoPdfBin
         : null;
+    if (!storedPdfBuffer && row.ContenidoDocumentoPdfBase64) {
+        try {
+            const b64 = String(row.ContenidoDocumentoPdfBase64).trim();
+            if (b64) {
+                const decoded = Buffer.from(b64, 'base64');
+                if (decoded && decoded.length) storedPdfBuffer = decoded;
+            }
+        } catch (_) {
+            /* noop: se continúa sin PDF almacenado */
+        }
+    }
     const fechaGeneracionPdf = row.FechaGeneracionDocumentoPdf || null;
 
     const head = { ...row };
     delete head.ContenidoDocumentoPdfBin;
     delete head.FechaGeneracionDocumentoPdf;
+    delete head.ContenidoDocumentoPdfBase64;
 
     if ((reqBody || {}).overrideCodigoPrestador != null && String((reqBody || {}).overrideCodigoPrestador).trim()) {
         head.CodigoPrestador = String((reqBody || {}).overrideCodigoPrestador).trim();

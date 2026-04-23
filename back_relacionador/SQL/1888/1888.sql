@@ -1165,13 +1165,13 @@ Descripcion varchar (50),
 
 
 INSERT INTO [Factor De Riesgo 1888] (Codigo, Descripcion)
-VALUES 
-('00', 'Sin factor'),
-('01', 'Biológico'),
-('02', 'Social'),
-('03', 'Ambiental'),
-('04', 'Comportamental'),
-('05', 'Económico');
+VALUES  
+('01', 'Químicos'),
+('02', 'Físicos'),
+('03', 'Biomecánicos'),
+('04', 'Psicosociales'),
+('05', 'Biológicos');
+('06', 'Otro');
 
 create view [dbo].[Cnsta Factor De Riesgo 1888]
 as
@@ -1288,7 +1288,6 @@ BEGIN
 END
 GO
 
-
 CREATE TABLE [Tipo de tecnología en salud 1888]
 (
 [Id Tipo de tecnología en salud 1888] INT IDENTITY (1,1) PRIMARY KEY,
@@ -1328,18 +1327,27 @@ CREATE TABLE [dbo].[Entorno de atencion 1888](
 GO
 IF NOT EXISTS (SELECT 1 FROM [Entorno de atencion 1888])
 INSERT INTO [Entorno de atencion 1888] (Codigo, Descripcion) VALUES
-('01', 'Unidad de atención en salud propia'),
-('02', 'Domiciliaria'),
-('03', 'Comunitaria'),
-('04', 'Escolar'),
-('05', 'Laboral'),
-('06', 'Institución de referencia u otra institución');
+('01', 'Hogar'),
+('02', 'Comunitario'),
+('03', 'Escolar'),
+('04', 'Laboral'),
+('05', 'Institucional')
 GO
 IF OBJECT_ID(N'[dbo].[Cnsta Entorno de atencion 1888]', N'V') IS NULL
 EXEC('CREATE VIEW [dbo].[Cnsta Entorno de atencion 1888] AS
 SELECT [Id Entorno de atencion 1888] AS IdEntornoAtencion1888, Codigo, Descripcion, [Id Estado] AS IdEstado
 FROM [dbo].[Entorno de atencion 1888] WHERE [Id Estado] = 7');
 GO
+
+UPDATE [dbo].[Entorno de atencion 1888]
+SET Descripcion = CASE Codigo
+    WHEN '01' THEN 'Hogar'
+    WHEN '02' THEN 'Comunitario'
+    WHEN '03' THEN 'Escolar'
+    WHEN '04' THEN 'Laboral'
+    WHEN '05' THEN 'Institucional'
+END
+WHERE Codigo IN ('01','02','03','04','05');
 
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tipo de alergia 1888')
 CREATE TABLE [dbo].[Tipo de alergia 1888](
@@ -1354,7 +1362,7 @@ INSERT INTO [Tipo de alergia 1888] (Codigo, Descripcion) VALUES
 ('01', 'Medicamento'),
 ('02', 'Alimento'),
 ('03', 'Sustancia del ambiente'),
-('04', 'Sustancia en contacto con la piel'),
+('04', 'Sustancia que entran en contacto con la piel'),
 ('05', 'Picadura de insectos'),
 ('06', 'Otra');
 GO
@@ -1363,6 +1371,14 @@ EXEC('CREATE VIEW [dbo].[Cnsta Tipo de alergia 1888] AS
 SELECT [Id Tipo de alergia 1888] AS IdTipoAlergia1888, Codigo, Descripcion, [Id Estado] AS IdEstado
 FROM [dbo].[Tipo de alergia 1888] WHERE [Id Estado] = 7');
 GO
+
+
+UPDATE [dbo].[Tipo de alergia 1888]
+SET Descripcion = CASE Codigo
+    
+    WHEN '04' THEN 'Sustancia que entran en contacto con la piel'
+END
+WHERE Codigo IN ('04');
 
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Parentesco familiar RDA 1888')
 CREATE TABLE [dbo].[Parentesco familiar RDA 1888](
@@ -1408,129 +1424,163 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad medida dosis 1888')
 CREATE TABLE [dbo].[Unidad medida dosis 1888](
     [Id Unidad medida dosis 1888] INT IDENTITY(1,1) PRIMARY KEY,
-    Codigo VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200) NOT NULL,
+    Codigo VARCHAR(100) NOT NULL,
+    Nombre VARCHAR(100) NULL,
+    Descripcion VARCHAR(300) NOT NULL,
     [Id Estado] INT NOT NULL DEFAULT 7
 );
-GO
-IF NOT EXISTS (SELECT 1 FROM [Unidad medida dosis 1888])
-INSERT INTO [Unidad medida dosis 1888] (Codigo, Descripcion) VALUES
-('mg', 'mg — Miligramos'),
-('ml', 'ml — Mililitros'),
-('g', 'g — Gramos'),
-('UI', 'UI — Unidades internacionales'),
-('mcg', 'mcg — Microgramos'),
-('gotas', 'Gotas');
-GO
-IF OBJECT_ID(N'[dbo].[Cnsta Unidad medida dosis 1888]', N'V') IS NULL
-EXEC('CREATE VIEW [dbo].[Cnsta Unidad medida dosis 1888] AS
-SELECT [Id Unidad medida dosis 1888] AS IdUnidadMedidaDosis1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-FROM [dbo].[Unidad medida dosis 1888] WHERE [Id Estado] = 7');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Via administracion medicamento 1888')
-CREATE TABLE [dbo].[Via administracion medicamento 1888](
-    [Id Via administracion medicamento 1888] INT IDENTITY(1,1) PRIMARY KEY,
-    Codigo VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200) NOT NULL,
-    [Id Estado] INT NOT NULL DEFAULT 7
-);
-GO
-IF NOT EXISTS (SELECT 1 FROM [Via administracion medicamento 1888])
-INSERT INTO [Via administracion medicamento 1888] (Codigo, Descripcion) VALUES
-('01', 'Oral'),
-('02', 'Intravenosa (IV)'),
-('03', 'Intramuscular (IM)'),
-('04', 'Subcutánea (SC)'),
-('05', 'Tópica'),
-('06', 'Inhalatoria'),
-('07', 'Rectal'),
-('08', 'Sublingual'),
-('09', 'Oftálmica'),
-('10', 'Otra');
-GO
-IF OBJECT_ID(N'[dbo].[Cnsta Via administracion medicamento 1888]', N'V') IS NULL
-EXEC('CREATE VIEW [dbo].[Cnsta Via administracion medicamento 1888] AS
-SELECT [Id Via administracion medicamento 1888] AS IdViaAdministracionMedicamento1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-FROM [dbo].[Via administracion medicamento 1888] WHERE [Id Estado] = 7');
+IF OBJECT_ID(N'[dbo].[Unidad medida dosis 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @UnidadMedidaDosis1888 TABLE (Codigo VARCHAR(100) NOT NULL PRIMARY KEY, Nombre VARCHAR(100) NULL, Descripcion VARCHAR(300) NOT NULL, IdEstado INT NOT NULL);
+
+    INSERT INTO @UnidadMedidaDosis1888 (Codigo, Nombre, Descripcion, IdEstado)
+    VALUES
+        ('1', 'EID50', 'dosis infecciosa de embrión 50', 7),
+        ('4', 'A', 'amperio', 7),
+        ('5', 'AgU', 'unidad(es) de antígeno', 7),
+        ('7', 'ATU', 'unidades de antitrombina', 7),
+        ('8', 'anti-Xa IU', 'unidades internacionales de actividad anti-Xa', 7),
+        ('10', 'Bq', 'bequerel(ios)', 7),
+        ('18', 'billon CFU', 'billon de unidades formadoras de colonia', 7),
+        ('21', 'billon de organismos', 'billon de organismos', 7),
+        ('25', 'cd', 'candela', 7),
+        ('26', 'CCID50', 'dosis infecciosa cultivo celular 50', 7),
+        ('28', '°C', 'temperatura en Celsius', 7),
+        ('31', 'Co', 'culombio', 7),
+        ('32', 'm3', 'metro cúbico', 7),
+        ('33', 'Ci', 'curio(s)', 7),
+        ('41', 'DAgU', 'unidad(es) de Antigeno D', 7),
+        ('43', 'd', 'dia', 7),
+        ('44', '°', 'grado', 7),
+        ('45', 'DF', 'forma de dosificación', 7),
+        ('46', 'Gtt', 'gota(s)', 7),
+        ('47', 'unidades ELISA', 'unidad de ensayo inmunoenzimático', 7),
+        ('50', 'F', 'faradio', 7),
+        ('51', 'FAI50', 'ensayo fluorescente dosis infecciosa 50', 7),
+        ('53', 'GBq', 'gigabecquerel(ios)', 7),
+        ('61', 'g (titre)', 'gramo (titre)', 7),
+        ('62', 'g', 'gramo(s)', 7),
+        ('67', 'Gy', 'gray', 7),
+        ('68', 'H', 'henrio', 7),
+        ('69', 'Hz', 'hertz', 7),
+        ('70', 'h', 'hora', 7),
+        ('71', 'IOU', 'unidad(es) internacional(es) de opacidad', 7),
+        ('72', 'UI', 'unidad(es) internacional(es)', 7),
+        ('78', 'J', 'julio', 7),
+        ('80', 'kat', 'katal', 7),
+        ('81', 'K', 'kelvin', 7),
+        ('82', 'kUI', 'unidad internacional de kilo', 7),
+        ('83', 'unidades Kusp', 'unidad de la Farmacopea de los Estados Unidos de kilo', 7),
+        ('84', 'unidades k', 'unidades kilo', 7),
+        ('85', 'kBq', 'kilobecquerel(ios)', 7),
+        ('93', 'kg', 'kilogramo(s)', 7),
+        ('97', 'LacU', 'unidades de lactasa', 7),
+        ('98', 'LfU', 'unidades de floculación (lime flocculation unit(s))', 7),
+        ('100', 'l', 'litro(s)', 7),
+        ('101', 'log10 EID50', 'log 10 50% dosis infecciosa de embrión', 7),
+        ('103', 'log10 CCID50', 'log10 dosis infecciosa cultivo celular 50', 7),
+        ('105', 'log10 unidades ELISA', 'log10 unidad de ensayo inmunoenzimático', 7),
+        ('107', 'log10 FAI50', 'log10 ensayo fluorescente dosis infecciosa del 50%', 7),
+        ('109', 'log10 PFU', 'log10 unidad(es) formadoras de placa', 7),
+        ('111', 'log10 TCID50', 'log10 dosis infecciosa de cultivo tisular 50%', 7),
+        ('114', 'LU', 'unidades de loomis', 7),
+        ('117', 'lm', 'lumen', 7),
+        ('118', 'lx', 'lux', 7),
+        ('119', 'unidades MUSP', '"""mega; unidad de la Farmacopea de los Estados Unidos"""', 7),
+        ('120', 'MBq', 'megabecquerel(ios)', 7),
+        ('128', 'm', 'metro', 7),
+        ('129', 'µCi', 'microcurio(s)', 7),
+        ('137', 'µg', 'microgramo(s)', 7),
+        ('144', 'µkat', 'microkatal', 7),
+        ('145', 'µkat', 'microkatales', 7),
+        ('146', 'µl', 'microlitro(s)', 7),
+        ('148', 'µmol', 'micromol(es)', 7),
+        ('151', 'mCi', 'milicurio(s)', 7),
+        ('159', 'mEq', 'miliequivalente(s)', 7),
+        ('167', 'mg (titer)', 'miligramo (titer)', 7),
+        ('168', 'mg', 'miligramo(s)', 7),
+        ('175', 'mkatal', 'milikatal', 7),
+        ('176', 'ml', 'mililitro(s)', 7),
+        ('178', 'mm', 'milimetro', 7),
+        ('179', 'mmol', 'milimol(es)', 7),
+        ('184', 'millon UFC', 'millones de unidades formadoras de colonias', 7),
+        ('187', 'millon UI', 'millones de unidadades internacionales', 7),
+        ('188', 'millon de organismos', 'millon de organismos', 7),
+        ('192', 'millon de unidades USP', 'millon de unidades de la Farmacopea de los Estados Unidos', 7),
+        ('193', 'millon de unidades', 'millon de unidades', 7),
+        ('195', 'min', 'minuto', 7),
+        ('196', 'mol', 'mol(es)', 7),
+        ('202', 'nCi', 'nanocurio(s)', 7),
+        ('203', 'ng', 'nanogramo(s)', 7),
+        ('204', 'nkat', 'nanokatal', 7),
+        ('205', 'nl', 'nanolitro(s)', 7),
+        ('206', 'nmol', 'nanomol(es)', 7),
+        ('208', 'N', 'newton', 7),
+        ('210', '?', 'ohmio', 7),
+        ('211', 'OZ', 'onza', 7),
+        ('212', 'PPM', 'parte por millon', 7),
+        ('213', 'PPM', 'pascal', 7),
+        ('214', '%', 'porcentaje', 7),
+        ('218', 'pg', 'picogramo(s)', 7),
+        ('219', 'pkat', 'picokatal', 7),
+        ('220', 'PFU', 'unidades formadoras de placa', 7),
+        ('221', 'PFU e. 1000 LD50 en ratón', 'unidad formadora de placa equivalente a 1000 DL50 en ratón', 7),
+        ('224', 'unidad formadora de viruela', 'unidad(es) formadoras de viruela', 7),
+        ('225', 'LB', 'libra', 7),
+        ('228', 'QS', 'cantidad suficiente', 7),
+        ('230', 's', 'segundos', 7),
+        ('231', 'S', 'siemens', 7),
+        ('232', 'Sv', 'sievert', 7),
+        ('233', 'cm2', 'centímetro cuadrado', 7),
+        ('234', 'm2', 'metro cuadrado', 7),
+        ('235', 'T', 'tesla', 7),
+        ('236', 'miles CFU', 'miles de unidades formadoras de colonia', 7),
+        ('239', 'miles de organismos', 'miles de organismos', 7),
+        ('243', 'titre', 'titre', 7),
+        ('244', 't', 'tonelada', 7),
+        ('245', 'unidad de tuberculina', 'unidad(es) de tuberculina', 7),
+        ('247', 'U', 'unidades', 7),
+        ('250', 'unidades USP', 'unidades de la Farmacopea de los Estados Unidos', 7),
+        ('251', 'V', 'voltio', 7),
+        ('252', 'W', 'vatio', 7),
+        ('253', 'Wb', 'weber', 7),
+        ('254', 'vp', 'Particulas Virales', 7),
+        ('255', 'DLmin', 'Dosis letal minima', 7),
+        ('256', 'DMN', 'Dosis minima necrotizante', 7),
+        ('257', 'vg', 'Genomas vectoriales', 7),
+        ('9000', 'Dosis', 'Dosis', 7),
+        ('9001', 'TPU', 'TPU', 7),
+        ('9002', 'TSU', 'TSU', 7),
+        ('9003', 'DBU', 'DBU', 7),
+        ('9004', 'SU', 'SU', 7),
+        ('9005', 'IR', 'IR', 7),
+        ('9006', 'DPP', 'DPP', 7),
+        ('9007', 'HEP', 'HEP', 7),
+        ('9008', 'UT', 'UT', 7),
+        ('9009', 'SQ', 'SQ', 7),
+        ('9010', 'UB', 'UB', 7),
+        ('9011', 'DL50', 'Dosis letal 50', 7),
+        ('9012', 'AU', 'Unidades de Alergia', 7),
+        ('9013', 'BAU', 'Bioequivalente Unidades de Alergia', 7),
+        ('9014', 'PNU', 'Unidades de nitrogeno proteico', 7),
+        ('9015', 'DPU', 'Unidades de diagnostico no estandarizadas biologicamente', 7);
+
+    MERGE [dbo].[Unidad medida dosis 1888] AS tgt
+    USING @UnidadMedidaDosis1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Nombre = src.Nombre,
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = src.IdEstado
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Nombre, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Nombre, src.Descripcion, src.IdEstado);
+END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo duracion 1888')
-CREATE TABLE [dbo].[Unidad tiempo duracion 1888](
-    [Id Unidad tiempo duracion 1888] INT IDENTITY(1,1) PRIMARY KEY,
-    Codigo VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200) NOT NULL,
-    [Id Estado] INT NOT NULL DEFAULT 7
-);
-GO
-IF NOT EXISTS (SELECT 1 FROM [Unidad tiempo duracion 1888])
-INSERT INTO [Unidad tiempo duracion 1888] (Codigo, Descripcion) VALUES
-('d', 'Días'),
-('s', 'Semanas'),
-('m', 'Meses');
-GO
-IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo duracion 1888]', N'V') IS NULL
-EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo duracion 1888] AS
-SELECT [Id Unidad tiempo duracion 1888] AS IdUnidadTiempoDuracion1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-FROM [dbo].[Unidad tiempo duracion 1888] WHERE [Id Estado] = 7');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo frecuencia 1888')
-CREATE TABLE [dbo].[Unidad tiempo frecuencia 1888](
-    [Id Unidad tiempo frecuencia 1888] INT IDENTITY(1,1) PRIMARY KEY,
-    Codigo VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200) NOT NULL,
-    [Id Estado] INT NOT NULL DEFAULT 7
-);
-GO
-IF NOT EXISTS (SELECT 1 FROM [Unidad tiempo frecuencia 1888])
-INSERT INTO [Unidad tiempo frecuencia 1888] (Codigo, Descripcion) VALUES
-('h', 'Horas'),
-('d', 'Días');
-GO
-IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo frecuencia 1888]', N'V') IS NULL
-EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo frecuencia 1888] AS
-SELECT [Id Unidad tiempo frecuencia 1888] AS IdUnidadTiempoFrecuencia1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-FROM [dbo].[Unidad tiempo frecuencia 1888] WHERE [Id Estado] = 7');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Finalidad tecnologia salud 1888')
-CREATE TABLE [dbo].[Finalidad tecnologia salud 1888](
-    [Id Finalidad tecnologia salud 1888] INT IDENTITY(1,1) PRIMARY KEY,
-    Codigo VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200) NOT NULL,
-    [Id Estado] INT NOT NULL DEFAULT 7
-);
-GO
-IF NOT EXISTS (SELECT 1 FROM [Finalidad tecnologia salud 1888])
-INSERT INTO [Finalidad tecnologia salud 1888] (Codigo, Descripcion) VALUES
-INSERT INTO [Finalidad tecnologia salud 1888] (Codigo, Descripcion) VALUES
-('11', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO'),
-('12', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL'),
-('13', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL'),
-('14', 'PROTECCION ESPECIFICA'),
-('15', 'DIAGNOSTICO'),
-('16', 'TRATAMIENTO'),
-('17', 'REHABILITACION'),
-('18', 'PALIACION'),
-('19', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION'),
-('20', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA'),
-('21', 'ATENCION BASICA DE ORIENTACION FAMILIAR'),
-('22', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL'),
-('23', 'ATENCION PARA EL CUIDADO PRENATAL'),
-('24', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO'),
-('25', 'ATENCION DEL PARTO Y PUERPERIO'),
-('26', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO'),
-('27', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO'),
-('28', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD'),
-('29', 'PROMOCION DE ACTIVIDAD FISICA'),
-('30', 'PROMOCION DE LA CESACION DEL TABAQUISMO');
-GO
-IF OBJECT_ID(N'[dbo].[Cnsta Finalidad tecnologia salud 1888]', N'V') IS NULL
-EXEC('CREATE VIEW [dbo].[Cnsta Finalidad tecnologia salud 1888] AS
-SELECT [Id Finalidad tecnologia salud 1888] AS IdFinalidadTecnologiaSalud1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-FROM [dbo].[Finalidad tecnologia salud 1888] WHERE [Id Estado] = 7');
-GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Otra tecnologia categoria 1888')
 CREATE TABLE [dbo].[Otra tecnologia categoria 1888](
@@ -1593,7 +1643,7 @@ GO
  CREATE TABLE [dbo].[Egreso y Remision 1888](
 	[Id Egreso y Remision 1888] [int] IDENTITY(1,1) NOT NULL,
 	[Codigo] [varchar](50) NULL,
-	[Descripcion] [varchar](50) NULL,
+	[Descripcion] [varchar](200) NULL,
 	[Id Estado] [int] NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -1607,15 +1657,14 @@ GO
 
 INSERT INTO [dbo].[Egreso y Remision 1888] ([Codigo], [Descripcion], [Id Estado])
 VALUES
-('01', 'Alta médica / domiciliario', 7),
-('02', 'Remisión a otra institución', 7),
-('03', 'Remisión a urgencias', 7),
-('04', 'Remisión a hospitalización', 7),
-('05', 'Alta voluntaria', 7),
-('06', 'Evasión', 7),
-('07', 'Muerte', 7);
-
-
+('01', 'PACIENTE CON DESTINO A SU DOMICILIO', 7),
+('02', 'PACIENTE MUERTO', 7),
+('03', 'PACIENTE DERIVADO A OTRO SERVICIO', 7),
+('04', 'REFERIDO A OTRA INSTITUCION', 7),
+('05', 'CONTRAREFERIDO A OTRA INSTITUCION', 7),
+('06', 'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIARIA', 7),
+('07', 'DERIVADO A SERVICIO SOCIAL', 7),
+('08', 'PACIENTE CONTINUA EN EL SERVICIO (CORTE FACTURACION)', 7);
 
 CREATE VIEW [dbo].[Cnsta Egreso y Remision 1888]
 AS
@@ -1727,38 +1776,103 @@ IF NOT EXISTS (
     ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Contenido Documento PDF Base64] NVARCHAR(MAX) NULL;
 GO
 
-CREATE TABLE [Factor De Riesgo 1888]
-(
-[Id Factor De Riesgo 1888] INT IDENTITY (1,1) PRIMARY KEY,
-Codigo varchar (50),
-Descripcion varchar (50),
-[Id Estado] int default 7
-)
-
-
-INSERT INTO [Factor De Riesgo 1888] (Codigo, Descripcion)
-VALUES 
-('00', 'Sin factor'),
-('01', 'Biológico'),
-('02', 'Social'),
-('03', 'Ambiental'),
-('04', 'Comportamental'),
-('05', 'Económico');
-
-create view [dbo].[Cnsta Factor De Riesgo 1888]
-as
-select [Id Factor De Riesgo 1888] AS IdFactorDeRiesgo1888, Codigo, Descripcion, [Id Estado] AS IdEstado
-from [Factor De Riesgo 1888]
-where [Id Estado] = 7
-go
-
 /* ---------------------------------------------------------------------------
-   Hotfix catálogo "Tipo de Documento" para RDA/IHCE (idempotente):
-   Normaliza códigos y asegura existencia de tipos conocidos.
+   Normalización consolidada de catálogos RDA 1888 (idempotente)
 --------------------------------------------------------------------------- */
+IF OBJECT_ID(N'[dbo].[Entorno de atencion 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @EntornoAtencion1888 TABLE
+    (
+        Codigo VARCHAR(50) NOT NULL PRIMARY KEY,
+        Descripcion VARCHAR(200) NOT NULL,
+        IdEstado INT NOT NULL
+    );
+
+    INSERT INTO @EntornoAtencion1888 (Codigo, Descripcion, IdEstado)
+    VALUES
+        ('01', 'Unidad de atención en salud propia', 7),
+        ('02', 'Domiciliaria', 7),
+        ('03', 'Comunitaria', 7),
+        ('04', 'Escolar', 7),
+        ('05', 'Institucional', 7),
+        ('06', 'Laboral', 7),
+        ('07', 'Institución de referencia u otra institución', 7);
+
+    MERGE [dbo].[Entorno de atencion 1888] AS tgt
+    USING @EntornoAtencion1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado)
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Descripcion, src.IdEstado);
+END
+GO
+
+IF OBJECT_ID(N'[dbo].[Tipo de alergia 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @TipoAlergia1888 TABLE
+    (
+        Codigo VARCHAR(50) NOT NULL PRIMARY KEY,
+        Descripcion VARCHAR(200) NOT NULL,
+        IdEstado INT NOT NULL
+    );
+
+    INSERT INTO @TipoAlergia1888 (Codigo, Descripcion, IdEstado)
+    VALUES
+        ('01', 'Medicamento', 7),
+        ('02', 'Alimento', 7),
+        ('03', 'Sustancia del ambiente', 7),
+        ('04', 'Sustancia en contacto con la piel', 7),
+        ('05', 'Picadura de insectos', 7),
+        ('06', 'Otra', 7);
+
+    MERGE [dbo].[Tipo de alergia 1888] AS tgt
+    USING @TipoAlergia1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado)
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Descripcion, src.IdEstado);
+END
+GO
+
+IF OBJECT_ID(N'[dbo].[Tipo diagnostico principal 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @TipoDxPrincipal1888 TABLE
+    (
+        Codigo VARCHAR(50) NOT NULL PRIMARY KEY,
+        Descripcion VARCHAR(200) NOT NULL,
+        IdEstado INT NOT NULL
+    );
+
+    INSERT INTO @TipoDxPrincipal1888 (Codigo, Descripcion, IdEstado)
+    VALUES
+        ('01', 'Impresión diagnóstica', 7),
+        ('02', 'Confirmado nuevo', 7),
+        ('03', 'Confirmado repetido', 7);
+
+    MERGE [dbo].[Tipo diagnostico principal 1888] AS tgt
+    USING @TipoDxPrincipal1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado)
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Descripcion, src.IdEstado);
+END
+GO
+
 IF OBJECT_ID(N'[dbo].[Tipo de Documento]', N'U') IS NOT NULL
 BEGIN
-    DECLARE @TiposDoc TABLE
+    DECLARE @TiposDoc1888 TABLE
     (
         TipoDoc VARCHAR(10) NOT NULL PRIMARY KEY,
         CodigoTipoDoc VARCHAR(10) NOT NULL,
@@ -1768,7 +1882,7 @@ BEGIN
         CodigoDian INT NULL
     );
 
-    INSERT INTO @TiposDoc (TipoDoc, CodigoTipoDoc, Descripcion, OrdenTipoDoc, IdEstado, CodigoDian)
+    INSERT INTO @TiposDoc1888 (TipoDoc, CodigoTipoDoc, Descripcion, OrdenTipoDoc, IdEstado, CodigoDian)
     VALUES
         ('CC', 'CC', 'Cédula ciudadanía', 1, 7, 13),
         ('CE', 'X',  'Cédula extranjería', 1, 7, 22),
@@ -1777,22 +1891,25 @@ BEGIN
         ('TI', 'TI', 'Tarjeta de identidad', 1, 7, 12),
         ('AS', 'AS', 'Adulto sin identificación', 1, 7, NULL),
         ('MS', 'MS', 'Menor sin identificación', 1, 7, NULL),
-        ('UN', 'UN', 'Número único de identificación personal', 1, 7, NULL),
+        ('CD', 'CD', 'Carné diplomático', 1, 7, NULL),
+        ('SC', 'SC', 'Salvoconducto de permanencia', 1, 7, NULL),
+        ('PE', 'PT', 'Permiso especial de permanencia', 1, 7, NULL),
+        ('PT', 'PT', 'Permiso por protección temporal', 1, 7, NULL),
+        ('CN', 'CN', 'Certificado de nacido vivo', 1, 7, NULL),
+        ('DE', 'DE', 'Documento extranjero', 1, 7, NULL),
+        ('SI', 'SI', 'Sin identificación', 1, 7, NULL),
+        ('NIT', 'NI', 'Número de identificación tributaria', 1, 7, 31),
         ('NI', 'NI', 'Número de identificación tributaria', 1, 7, 31),
+        ('UN', 'UN', 'Número único de identificación personal', 1, 7, NULL),
         ('NH', 'NH', 'Número de historia clínica', 1, 7, NULL);
 
     MERGE [dbo].[Tipo de Documento] AS tgt
-    USING @TiposDoc AS src
-       ON tgt.[Tipo de Documento] = src.TipoDoc
+    USING @TiposDoc1888 AS src
+      ON tgt.[Tipo de Documento] = src.TipoDoc
     WHEN MATCHED THEN
         UPDATE SET
             tgt.[Código Tipo de Documento] = src.CodigoTipoDoc,
-            tgt.[Descripción Tipo de Documento] =
-                CASE
-                    WHEN tgt.[Descripción Tipo de Documento] IS NULL OR LTRIM(RTRIM(tgt.[Descripción Tipo de Documento])) = ''
-                    THEN src.Descripcion
-                    ELSE tgt.[Descripción Tipo de Documento]
-                END,
+            tgt.[Descripción Tipo de Documento] = src.Descripcion,
             tgt.[Orden Tipo de Documento] = COALESCE(tgt.[Orden Tipo de Documento], src.OrdenTipoDoc),
             tgt.[Id Estado] = COALESCE(tgt.[Id Estado], src.IdEstado),
             tgt.codigoDian = COALESCE(tgt.codigoDian, src.CodigoDian)
@@ -1816,4 +1933,336 @@ BEGIN
             src.CodigoDian
         );
 END
+GO
+
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Via administracion medicamento 1888')
+CREATE TABLE [dbo].[Via administracion medicamento 1888](
+    [Id Via administracion medicamento 1888] [int] IDENTITY(1,1) NOT NULL,
+    [Codigo] [varchar](50) NOT NULL,
+    [Nombre] [varchar](150) NULL,
+    [Descripcion] [varchar](400) NOT NULL,
+    [Id Estado] [int] NOT NULL,
+PRIMARY KEY CLUSTERED
+(
+    [Id Via administracion medicamento 1888] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+IF COL_LENGTH(N'[dbo].[Via administracion medicamento 1888]', N'Nombre') IS NULL
+ALTER TABLE [dbo].[Via administracion medicamento 1888] ADD [Nombre] [varchar](150) NULL;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.default_constraints
+    WHERE parent_object_id = OBJECT_ID(N'[dbo].[Via administracion medicamento 1888]')
+      AND name = N'DF_ViaAdministracionMedicamento1888_IdEstado'
+)
+ALTER TABLE [dbo].[Via administracion medicamento 1888]
+ADD CONSTRAINT [DF_ViaAdministracionMedicamento1888_IdEstado] DEFAULT ((7)) FOR [Id Estado]
+GO
+
+IF OBJECT_ID(N'[dbo].[Via administracion medicamento 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @ViaAdministracionMedicamento1888 TABLE (Codigo VARCHAR(50) NOT NULL PRIMARY KEY, Nombre VARCHAR(150) NULL, Descripcion VARCHAR(400) NOT NULL, IdEstado INT NOT NULL);
+
+    INSERT INTO @ViaAdministracionMedicamento1888 (Codigo, Nombre, Descripcion, IdEstado)
+    VALUES
+        ('1', 'AURICULAR (OTICA)', 'Administración a través de la oreja', 7),
+        ('2', 'BUCAL', 'Administración dirigida al carrillo, generalmente desde dentro de la boca', 7),
+        ('3', 'CUTANEA', 'Administración en la piel', 7),
+        ('4', 'DENTAL', 'Administración para los dientes', 7),
+        ('5', 'ENDOCERVICAL', 'Administración dentro del canal del cuello uterino. Sinónimo del término Intracervical', 7),
+        ('6', 'ENDOSINUSIAL', 'Administración dentro de los senos nasales de la cabeza', 7),
+        ('7', 'ENDOTRAQUEAL', 'Administración directamente en la traquea', 7),
+        ('8', 'EPIDURAL', 'Administración sobre o a través de la duramadre', 7),
+        ('9', 'EXTRA-AMNIOTICO', 'Administración en el exterior de la membrana que envuelve el feto', 7),
+        ('10', 'VIA A TRAVES DE HEMODIALISIS', 'Administración a través del líquido para hemodiálisis', 7),
+        ('11', 'INTRA CORPUS CAVERNOSO', 'Administración dentro de los espacios dilatables de los cuerpos cavernosos del pene', 7),
+        ('12', 'INTRAAMNIOTICA', 'Administración dentro del saco amniótico', 7),
+        ('13', 'INTRAARTERIAL', 'Administración dentro de una arteria o arterias', 7),
+        ('14', 'INTRAARTICULAR', 'Administración dentro de una articulación', 7),
+        ('15', 'INTRAUTERINA', 'Administración dentro del útero', 7),
+        ('16', 'INTRACARDIACA', 'Administración en el corazón', 7),
+        ('17', 'INTRACAVERNOSA', 'Administración dentro de una cavidad patológica, tal como ocurre en el pulmón en tuberculosis', 7),
+        ('18', 'INTRACEREBRAL', 'Administración en el cerebro', 7),
+        ('19', 'INTRACERVICAL', 'Administración  dentro del canal del cuello uterino', 7),
+        ('20', 'INTRACISTERNAL (CEREBELOMEDULAR)', 'Administración dentro de la cisterna magna cerebellomedular', 7),
+        ('21', 'INTRACORNEAL', 'Administración dentro de la cornea (La estructura Transparente que forma la parte anterior  de la túnica fibrosa del ojo)', 7),
+        ('22', 'INTRACORONARIA', 'Administración dentro de las arterias coronarias', 7),
+        ('23', 'INTRADERMICA', 'Administración dentro de la dermis', 7),
+        ('24', 'INTRADISCAL', 'Administración a dentro de un disco', 7),
+        ('25', 'INTRAHEPATICA', 'Administración dentro del hígado, a través de la vena hepática o arteria', 7),
+        ('26', 'USO INTRALESIONAL', 'Administración dentro de una lesión localizada', 7),
+        ('27', 'USO INTRALINFATICO', 'Administración dentro del líquido linfático', 7),
+        ('28', 'INTRAMEDULAR', 'Administración dentro de la cavidad de la médula ósea de un hueso', 7),
+        ('29', 'INTRAMENINGEA', 'Administración dentro de las meninges (las tres membranas que envuelven el cerebro y la médula espinal', 7),
+        ('30', 'INTRAMUSCULAR', 'Administración dentro del músculo', 7),
+        ('31', 'INTRAOCULAR', 'Administración dentro del ojo', 7),
+        ('32', 'INTRAPERICARDIAL', 'Administración dentro del pericardio', 7),
+        ('33', 'INTRAPERITONEAL', 'Administración dentro de la cavidad peritoneal', 7),
+        ('34', 'INTRAPLEURAL', 'Administración dentro de la pleura', 7),
+        ('35', 'INTRASINOVIAL', 'Administración dentro de la cavidad sinovial de una articulación', 7),
+        ('36', 'INTRATECAL', 'Administración en el líquido cefalorraquideo en cualquier nivel de medular, incluyendo inyección en los ventriculos cerebrales', 7),
+        ('37', 'INTRATORAXICA', '"Administración en el torax (interno a la costillas); sinónimo de  endotorácico"', 7),
+        ('39', 'INTRATUMORAL', 'Administración dentro de un tumor', 7),
+        ('40', 'BOLO INTRAVENOSO', 'Administración dentro o en una vena o venas en un solo momento', 7),
+        ('41', 'GOTEO INTRAVENOSO', 'Administración en una vena o varias venas durante un periodo continuo de tiempo', 7),
+        ('42', 'INTRAVENOSA', 'Administración dentro o en una vena o venas', 7),
+        ('43', 'INTRAVESICAL', 'Administración dentro de la vejiga', 7),
+        ('44', 'IONTOFORESIS', 'Administración mediante una corriente eléctrica donde migran iones de sales solubles en los tejidos del cuerpo', 7),
+        ('45', 'NASAL', '"Administración a la nariz; administrado por medio de la nariz"', 7),
+        ('46', 'TECNICA DE VENDAJE OCLUSIVO', 'Administración por vía tópica con un vendaje que ocluye el área', 7),
+        ('47', 'OFTALMICA', 'Administración para la zona externa del ojo', 7),
+        ('48', 'ORAL', 'Administración en o a través de la boca', 7),
+        ('50', 'OTRA', 'Administración es diferente de otros contemplados en ésta lista', 7),
+        ('52', 'PERIARTICULAR', 'Administración alrededor de una articulación', 7),
+        ('53', 'PERINEURAL', 'Administracion alrededor de un nervio o nervios', 7),
+        ('54', 'RECTAL', 'Administración directa en el recto', 7),
+        ('56', 'RETROBULBAL', 'Administración en la zona posterior del globo ocular o del puente de Varolio.', 7),
+        ('57', 'SUBCONJUNTIVAL', 'Administración por debajo bajo de la conjuntiva', 7),
+        ('58', 'SUBCUTANEA', 'Administración por debajo de la piel: hipodérmica. Sinónimo con el término Subdermal', 7),
+        ('60', 'SUBLINGUAL', 'Administracíon debajo de la lengua', 7),
+        ('61', 'TOPICA', 'Administración en un punto particular de la superficie externa del cuerpo.', 7),
+        ('62', 'TRANSDERMICA', 'Administración a través de la capa dérmica de la piel que desemboca a la circulación sistémica por difusión', 7),
+        ('63', 'TRANSMAMARIA', 'Administración en el cuerpo a través del calostro o leche', 7),
+        ('64', 'TRANSPLACENTARIA', 'Administración a través de la placenta', 7),
+        ('66', 'URETRAL', 'Administración a través de la uretra', 7),
+        ('67', 'VAGINAL', 'Administración dentro de la vagina', 7),
+        ('68', 'CONJUNTIVAL', 'Administración a través de la conjuntiva, es decir, la delicada membra que recubre los párpados y la superficie del globo ocular', 7),
+        ('69', 'ELECTRO-OSMOSIS', 'Administración por medio de la difusión de una sustancia a través de una membrana en un campo eléctrico', 7),
+        ('70', 'ENTERAL', 'Administración directamente en el tubo digestivo', 7),
+        ('71', 'GASTROENTERAL', 'Administracion en tracto gastroenteral', 7),
+        ('72', 'INTRAGINGIVAL', 'Administración dentro de la encía', 7),
+        ('75', 'IN VITRO', 'Administración  en un entorno artificial fuera de un organismo vivo.', 7),
+        ('76', 'INFILTRACION', 'Administración que tiene como resultado  sustancias que pasan  a los tejidos o espacio intercelular.', 7),
+        ('77', 'INTERSTICIAL', 'Administración hacia o en los intersticios de un tejido', 7),
+        ('78', 'INTRABDOMINAL', 'Administración dentro del abdomen', 7),
+        ('79', 'INTRABILIAR', 'Administración dentro de la bilis, los conductos biliares o la vesícula biliar', 7),
+        ('80', 'INTRABRONQUIAL', 'Administración dentro de un bronquio', 7),
+        ('81', 'INTRABURSAL', 'Administración dentro de la bolsa sinovial', 7),
+        ('82', 'INTRACARTILAGINOSO', '"Administración dentro de un cartílago; se usa como un sinónimo de endocondral"', 7),
+        ('83', 'INTRACAUDAL', 'Administración dentro de la cauda equina', 7),
+        ('84', 'INTRACAVITARIA', 'Administración dentro de una cavidad no patológica, como el del cuello uterino, útero o el pene, o como el que se forma como resultado de una herida', 7),
+        ('85', 'INTRACORONARIO, DENTAL', 'Administración de un fármaco en una parte de un diente que está cubierta por esmalte y que está separada de las raices por una región ligeramente estrecha conocida como cuello.', 7),
+        ('86', 'INTRADUCTAL', 'Administración dentro del conducto de alguna glándula', 7),
+        ('87', 'INTRADUODENAL', 'Administración dentro del duodeno', 7),
+        ('88', 'INTRADURAL', 'Administración dentro o debajo de la duramadre', 7),
+        ('89', 'INTRAEPIDERMAL', 'Administración dentro de la epidermis', 7),
+        ('90', 'INTRAESOFAGICA', 'Administración dentro del esófago', 7),
+        ('91', 'INTRAGASTRICA', 'Administración dentro del estómago', 7),
+        ('92', 'INTRAILEAL', 'Administración dentro de la porción distal del intestino delgado el íleo, es decir desde el yeyuno hasta el ciego.', 7),
+        ('93', 'INTRAOVARICA', 'Administración dentro del ovario', 7),
+        ('94', 'INTRAPROSTATICA', 'Administración dentro de la próstata', 7),
+        ('95', 'INTRAPULMONAR', 'Administración dentro de los pulmones o sus bronquios', 7),
+        ('96', 'INTRASINUSAL (SENOSPARANASALES)', 'Administración dentro de los seno nasales o periorbitarios', 7),
+        ('97', 'INTRAESTERNAL', 'Administración dentro de la médula ósea del esternón', 7),
+        ('98', 'INTRATENDINOSA', 'Administración dentro de un tendón', 7),
+        ('99', 'INTRATESTICULAR', 'Administración en el testículo', 7),
+        ('100', 'INTRATUBULAR', 'Administración dentro de los túbulos de algún órgano', 7),
+        ('101', 'INTRATIMPANICA', 'Administración dentro del oído medio', 7),
+        ('102', 'INTRAVASCULAR', 'Administración dentro de un vaso o vasos', 7),
+        ('103', 'INTRAVENTRICULAR', 'Administración dentro de un ventrículo', 7),
+        ('104', 'INTRAVITREA', 'Administracion en el cuerpo vítreo del ojo', 7),
+        ('105', 'IRRIGACION', 'Administración para bañarse o lavar las heridas abiertas o cavidades corporales', 7),
+        ('106', 'LARINGEO', 'Administración directamente sobre la larínge', 7),
+        ('107', 'LARINGOFARINGEAL', 'Administracion directamente sobre la porción más baja de la faringe, laringofaringe', 7),
+        ('108', 'SONDA NASOGASTRICA', 'Administración desde la nariz hasta el estómago, generalmente por medio de un tubo', 7),
+        ('110', 'USO OROMUCOSA', 'Administración a través de la mucosa de la cavidad oral', 7),
+        ('111', 'PERCUTANEA', 'Administración a través de la piel', 7),
+        ('112', 'PERIDURAL', 'Administración en el exterior de la duramadre de la médula espinal', 7),
+        ('113', 'PERIODONTAL', 'Administración alrededor de un diente', 7),
+        ('114', 'TEJIDO BLANDO', 'Administración en cualquier tejido blando', 7),
+        ('115', 'SUBARACNOIDEA', 'Administración por debajo bajo de la aracnoides', 7),
+        ('116', 'SUBMUCOSA', 'Administración debajo de la membrana de la mucosa', 7),
+        ('117', 'TRANSMUCOSA', 'Administración a través de la mucosa', 7),
+        ('118', 'TRANSTRAQUEAL', 'Administración a través de la pared de la traquea', 7),
+        ('119', 'TRANSTIMPANICA', 'Administración a través de la cavidad timpánica', 7),
+        ('120', 'URETERAL', 'Administración a través del uréter', 7),
+        ('500', 'INTRADETRUSOR', 'Administración en el músculo destrusor', 7),
+        ('501', 'USO EPILESIONAL', 'Administracion sobre la lesión, o en lechos sangrantes', 7),
+        ('502', 'INHALATORIA NASAL', 'Administración dentro de las vías respiratorias por inhalación nasal con efecto local o sistémico', 7),
+        ('503', 'INHALATORIA BUCAL', 'Administración dentro de las vías respiratorias por inhalación bucal con efecto local o sistémico', 7),
+        ('504', 'BUCOFARINGEA', 'Administración directamente a la boca y la faringe.', 7),
+        ('505', 'IMPLANTACION', 'Administración de un medicamento por insercción debajo de la piel', 7),
+        ('506', 'NEBULIZACION', 'Administración de un medicamento por inhalación en el tracto respiratorio a través de la nariz y boca', 7),
+        ('507', 'INTRACEREBROVENTRICULAR', 'Administración por una técnica de inyección invasiva de sustancias directamente en el líquido cefalorraquídeo de los ventrículos cerebrales para evitar la barrera hematoencefálica', 7);
+
+    MERGE [dbo].[Via administracion medicamento 1888] AS tgt
+    USING @ViaAdministracionMedicamento1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Nombre = src.Nombre,
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = src.IdEstado
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Nombre, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Nombre, src.Descripcion, src.IdEstado);
+END
+GO
+
+IF OBJECT_ID(N'[dbo].[Cnsta Via administracion medicamento 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Via administracion medicamento 1888] AS
+SELECT [Id Via administracion medicamento 1888] AS IdViaAdministracionMedicamento1888, Codigo, Nombre, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Via administracion medicamento 1888]
+WHERE [Id Estado] = 7');
+GO
+
+
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo duracion 1888')
+CREATE TABLE [dbo].[Unidad tiempo duracion 1888](
+    [Id Unidad tiempo duracion 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Unidad tiempo duracion 1888])
+INSERT INTO [dbo].[Unidad tiempo duracion 1888] (Codigo, Descripcion, [Id Estado])
+VALUES
+('1', 'Minutos', 7),
+('2', 'Horas', 7),
+('3', 'Día', 7),
+('4', 'Semanas', 7),
+('5', 'Mes', 7),
+('6', 'Año', 7),
+('7', 'Según respuesta al tratamiento', 7);
+GO
+
+IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo duracion 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo duracion 1888] AS
+SELECT
+    [Id Unidad tiempo duracion 1888] AS IdUnidadTiempoDuracion1888,
+    Codigo,
+    Descripcion,
+    [Id Estado] AS IdEstado
+FROM [dbo].[Unidad tiempo duracion 1888]
+WHERE [Id Estado] = 7');
+GO
+
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad tiempo frecuencia 1888')
+CREATE TABLE [dbo].[Unidad tiempo frecuencia 1888](
+    [Id Unidad tiempo frecuencia 1888] INT IDENTITY(1,1) PRIMARY KEY,
+    Codigo VARCHAR(50) NOT NULL,
+    Descripcion VARCHAR(200) NOT NULL,
+    [Id Estado] INT NOT NULL DEFAULT 7
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Unidad tiempo frecuencia 1888])
+INSERT INTO [dbo].[Unidad tiempo frecuencia 1888] (Codigo, Descripcion, [Id Estado])
+VALUES
+('1', 'Minutos', 7),
+('2', 'Horas', 7),
+('3', 'Día', 7),
+('4', 'Semanas', 7),
+('5', 'Mes', 7),
+('6', 'Año', 7),
+('7', 'Según respuesta al tratamiento', 7);
+GO
+
+IF OBJECT_ID(N'[dbo].[Cnsta Unidad tiempo frecuencia 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Unidad tiempo frecuencia 1888] AS
+SELECT
+    [Id Unidad tiempo frecuencia 1888] AS IdUnidadTiempoFrecuencia1888,
+    Codigo,
+    Descripcion,
+    [Id Estado] AS IdEstado
+FROM [dbo].[Unidad tiempo frecuencia 1888]
+WHERE [Id Estado] = 7');
+GO
+
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Finalidad tecnologia salud 1888')
+CREATE TABLE [dbo].[Finalidad tecnologia salud 1888](
+    [Id Finalidad tecnologia salud 1888] [int] IDENTITY(1,1) NOT NULL,
+    [Codigo] [varchar](50) NOT NULL,
+    [Nombre] [varchar](250) NULL,
+    [Descripcion] [varchar](250) NOT NULL,
+    [Id Estado] [int] NOT NULL,
+PRIMARY KEY CLUSTERED
+(
+    [Id Finalidad tecnologia salud 1888] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+IF COL_LENGTH(N'[dbo].[Finalidad tecnologia salud 1888]', N'Nombre') IS NULL
+ALTER TABLE [dbo].[Finalidad tecnologia salud 1888] ADD [Nombre] [varchar](250) NULL;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.default_constraints
+    WHERE parent_object_id = OBJECT_ID(N'[dbo].[Finalidad tecnologia salud 1888]')
+      AND name = N'DF_FinalidadTecnologiaSalud1888_IdEstado'
+)
+ALTER TABLE [dbo].[Finalidad tecnologia salud 1888]
+ADD CONSTRAINT [DF_FinalidadTecnologiaSalud1888_IdEstado] DEFAULT ((7)) FOR [Id Estado]
+GO
+
+IF OBJECT_ID(N'[dbo].[Finalidad tecnologia salud 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @FinalidadTecnologiaSalud1888 TABLE (Codigo VARCHAR(50) NOT NULL PRIMARY KEY, Nombre VARCHAR(250) NULL, Descripcion VARCHAR(250) NOT NULL, IdEstado INT NOT NULL);
+
+    INSERT INTO @FinalidadTecnologiaSalud1888 (Codigo, Nombre, Descripcion, IdEstado)
+    VALUES
+        ('11', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO', 7),
+        ('12', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL', 7),
+        ('13', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL', 7),
+        ('14', 'PROTECCION ESPECIFICA', 'PROTECCION ESPECIFICA', 7),
+        ('15', 'DIAGNOSTICO', 'DIAGNOSTICO', 7),
+        ('16', 'TRATAMIENTO', 'TRATAMIENTO', 7),
+        ('17', 'REHABILITACION', 'REHABILITACION', 7),
+        ('18', 'PALIACION', 'PALIACION', 7),
+        ('19', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION', 7),
+        ('20', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA', 7),
+        ('21', 'ATENCION BASICA DE ORIENTACION FAMILIAR', 'ATENCION BASICA DE ORIENTACION FAMILIAR', 7),
+        ('22', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL', 7),
+        ('23', 'ATENCION PARA EL CUIDADO PRENATAL', 'ATENCION PARA EL CUIDADO PRENATAL', 7),
+        ('24', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO', 7),
+        ('25', 'ATENCION DEL PARTO Y PUERPERIO', 'ATENCION DEL PARTO Y PUERPERIO', 7),
+        ('26', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO', 7),
+        ('27', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO', 7),
+        ('28', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD', 7),
+        ('29', 'PROMOCION DE ACTIVIDAD FISICA', 'PROMOCION DE ACTIVIDAD FISICA', 7),
+        ('30', 'PROMOCION DE LA CESACION DEL TABAQUISMO', 'PROMOCION DE LA CESACION DEL TABAQUISMO', 7),
+        ('31', 'PREVENCION DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', 'PREVENCION DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', 7),
+        ('32', 'PROMOCION DE LA ALIMENTACION SALUDABLE', 'PROMOCION DE LA ALIMENTACION SALUDABLE', 7),
+        ('33', 'PROMOCION PARA EL EJERCICIO DE LOS DERECHOS SEXUALES Y DERECHOS REPRODUCTIVOS', 'PROMOCION PARA EL EJERCICIO DE LOS DERECHOS SEXUALES Y DERECHOS REPRODUCTIVOS', 7),
+        ('34', 'PROMOCION PARA EL DESARROLLO DE HABILIDADES PARA LA VIDA', 'PROMOCION PARA EL DESARROLLO DE HABILIDADES PARA LA VIDA', 7),
+        ('35', 'PROMOCION PARA LA CONSTRUCCION DE ESTRATEGIAS DE AFRONTAMIENTO FRENTE A  SUCESOS VITALES', 'PROMOCION PARA LA CONSTRUCCION DE ESTRATEGIAS DE AFRONTAMIENTO FRENTE A  SUCESOS VITALES', 7),
+        ('36', 'PROMOCION DE LA SANA CONVIVENCIA Y EL TEJIDO  SOCIAL', 'PROMOCION DE LA SANA CONVIVENCIA Y EL TEJIDO  SOCIAL', 7),
+        ('37', 'PROMOCION DE UN AMBIENTE SEGURO Y DE CUIDADO Y PROTECCION DEL AMBIENTE', 'PROMOCION DE UN AMBIENTE SEGURO Y DE CUIDADO Y PROTECCION DEL AMBIENTE', 7),
+        ('38', 'PROMOCION DEL EMPODERAMIENTO PARA EL EJERCICIO DEL DERECHO A LA SALUD', 'PROMOCION DEL EMPODERAMIENTO PARA EL EJERCICIO DEL DERECHO A LA SALUD', 7),
+        ('39', 'PROMOCION PARA LA ADOPCION DE PRACTICAS DE CRIANZA Y CUIDADO PARA LA SALUD', 'PROMOCION PARA LA ADOPCION DE PRACTICAS DE CRIANZA Y CUIDADO PARA LA SALUD', 7),
+        ('40', 'PROMOCION DE LA CAPACIDAD DE LA AGENCIA Y CUIDADO DE LA SALUD', 'PROMOCION DE LA CAPACIDAD DE LA AGENCIA Y CUIDADO DE LA SALUD', 7),
+        ('41', 'DESARROLLO DE HABILIDADES COGNITIVAS', 'DESARROLLO DE HABILIDADES COGNITIVAS', 7),
+        ('42', 'INTERVENCION COLECTIVA', 'INTERVENCION COLECTIVA', 7),
+        ('43', 'MODIFICACION DE LA ESTETICA CORPORAL FINES ESTETICOS', 'MODIFICACION DE LA ESTETICA CORPORAL FINES ESTETICOS', 7),
+        ('44', 'OTRA', 'OTRA', 7);
+
+    MERGE [dbo].[Finalidad tecnologia salud 1888] AS tgt
+    USING @FinalidadTecnologiaSalud1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Nombre = src.Nombre,
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = src.IdEstado
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Nombre, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Nombre, src.Descripcion, src.IdEstado);
+END
+GO
+
+IF OBJECT_ID(N'[dbo].[Cnsta Finalidad tecnologia salud 1888]', N'V') IS NULL
+EXEC('CREATE VIEW [dbo].[Cnsta Finalidad tecnologia salud 1888] AS
+SELECT [Id Finalidad tecnologia salud 1888] AS IdFinalidadTecnologiaSalud1888, Codigo, Nombre, Descripcion, [Id Estado] AS IdEstado
+FROM [dbo].[Finalidad tecnologia salud 1888]
+WHERE [Id Estado] = 7');
 GO
