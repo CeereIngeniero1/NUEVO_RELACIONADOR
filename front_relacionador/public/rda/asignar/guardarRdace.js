@@ -33,6 +33,51 @@ function rdaceDigitsOnly(value) {
     return String(value).replace(/\D+/g, '');
 }
 
+function rdaceGetInputValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return '';
+    return String(el.value || '').trim();
+}
+
+function rdaceMarkFieldInvalid(id, invalid) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+        if (invalid) {
+            el.classList.add('is-invalid');
+            el.style.borderColor = '#dc3545';
+        } else {
+            el.classList.remove('is-invalid');
+            el.style.removeProperty('border-color');
+        }
+    } catch (e) { /* ignore */ }
+}
+
+function rdaceValidateRequiredForSave() {
+    const required = [
+        { id: 'RDACE_CodigoPrestador', label: 'Codigo Prestador', getValue: () => rdaceGetInputValue('RDACE_CodigoPrestador') },
+        { id: 'RDACE_CodigoAdminPlanBeneficios', label: 'Administrador Plan Beneficios', getValue: () => rdaceGetInputValue('RDACE_CodigoAdminPlanBeneficios') },
+        { id: 'RDACE_TipoDocProfesional', label: 'Tipo documento del profesional', getValue: () => rdaceGetInputValue('RDACE_TipoDocProfesional') },
+        { id: 'RDACE_NumDocProfesional', label: 'Numero documento del profesional', getValue: () => rdaceSelect2Value('RDACE_NumDocProfesional') || rdaceGetInputValue('RDACE_NumDocProfesional') },
+        { id: 'RDACE_IdModalidadAtencion', label: 'Modalidad tecnologia salud', getValue: () => rdaceGetInputValue('RDACE_IdModalidadAtencion') },
+        { id: 'RDACE_IdGrupoServicios', label: 'Grupo servicios', getValue: () => rdaceGetInputValue('RDACE_IdGrupoServicios') },
+        { id: 'RDACE_IdViaIngresoUsuario', label: 'Via ingreso usuario', getValue: () => rdaceGetInputValue('RDACE_IdViaIngresoUsuario') },
+        { id: 'RDACE_IdCausaMotivoAtencion', label: 'Causa motivo atencion', getValue: () => rdaceGetInputValue('RDACE_IdCausaMotivoAtencion') },
+        { id: 'RDACE_EntornoAtencion', label: 'Entorno de atencion', getValue: () => rdaceSelect2Value('RDACE_EntornoAtencion') || rdaceGetInputValue('RDACE_EntornoAtencion') },
+        { id: 'RDACE_DiagPrincipalCIE10Codigo', label: 'Diagnostico principal CIE-10', getValue: () => rdaceSelect2Value('RDACE_DiagPrincipalCIE10Codigo') || rdaceGetInputValue('RDACE_DiagPrincipalCIE10Codigo') },
+        { id: 'RDACE_TipoDiagPrincipalCIE10', label: 'Tipo diagnostico principal', getValue: () => rdaceSelect2Value('RDACE_TipoDiagPrincipalCIE10') || rdaceGetInputValue('RDACE_TipoDiagPrincipalCIE10') },
+    ];
+
+    const missing = [];
+    required.forEach((f) => {
+        const v = (typeof f.getValue === 'function') ? f.getValue() : rdaceGetInputValue(f.id);
+        const isMissing = !(v != null && String(v).trim() !== '');
+        rdaceMarkFieldInvalid(f.id, isMissing);
+        if (isMissing) missing.push(f.label);
+    });
+    return missing;
+}
+
 function rdaceAttachDigitsOnlyFilter(inputId) {
     const input = document.getElementById(inputId);
     if (!input || input.dataset?.digitsOnlyAttached === '1') return;
@@ -228,6 +273,17 @@ export async function guardarRDACE() {
     const fhRdace = window.rdaParseFechaHorasAtencion('RDACE_');
     if (!fhRdace.ok) {
         Swal.fire({ icon: 'warning', title: 'Fecha y horas de atención', text: fhRdace.error });
+        return;
+    }
+
+    const missingRequired = rdaceValidateRequiredForSave();
+    if (missingRequired.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos obligatorios pendientes',
+            html: 'Complete los campos marcados con asterisco antes de guardar.<br><br><b>Faltan:</b><br> - '
+                + missingRequired.join('<br> - '),
+        });
         return;
     }
 

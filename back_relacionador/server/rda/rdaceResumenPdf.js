@@ -1,6 +1,23 @@
 'use strict';
 
-const PDFDocument = require('pdfkit');
+let _pdfKitCtor = null;
+let _pdfKitLoadFailed = false;
+
+function getPdfKitCtor() {
+    if (_pdfKitCtor) return _pdfKitCtor;
+    if (_pdfKitLoadFailed) return null;
+    try {
+        // Carga perezosa: permite que el backend opere aunque falte la dependencia.
+        _pdfKitCtor = require('pdfkit');
+        return _pdfKitCtor;
+    } catch (e) {
+        if (e && e.code === 'MODULE_NOT_FOUND') {
+            _pdfKitLoadFailed = true;
+            return null;
+        }
+        throw e;
+    }
+}
 
 const str = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
 
@@ -41,6 +58,74 @@ function paragraph(doc, title, lines) {
     doc.moveDown(0.6);
 }
 
+function asciiSafe(v) {
+    return String(v == null ? '' : v)
+        .replace(/[\u0080-\uFFFF]/g, '?')
+        .replace(/\r?\n/g, ' ');
+}
+
+function pdfEscape(v) {
+    return asciiSafe(v).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+function fallbackPdfLines(aggregate, opts = {}) {
+    const { head = {}, pdem = {} } = aggregate || {};
+    const idEval = opts.idEvaluacion;
+    const lines = [
+        'Resumen clinico - Consulta externa (RDA)',
+        `Id RDACE: ${idEval != null ? idEval : '-'}`,
+        `Generado: ${fmtDateTime(new Date())}`,
+        '',
+        `Paciente: ${nombrePaciente(pdem)}`,
+        `Documento: ${str(pdem.TipoDocumentoBase) || '-'} ${str(head.DocumentoEntidad) || '-'}`,
+        `Nacimiento: ${fmtDate(pdem.FechaNacimiento)}`,
+        '',
+        `Prestador REPS: ${str(head.CodigoPrestador) || '-'}`,
+        `Administradora: ${str(head.NombreAdminPlanBeneficios) || '-'}`,
+        '',
+        'Nota: PDF generado en modo de compatibilidad (sin pdfkit).',
+        'Para formato enriquecido instale dependencias en back_relacionador.',
+    ];
+    return lines;
+}
+
+function buildFallbackPdfBuffer(aggregate, opts = {}) {
+    const lines = fallbackPdfLines(aggregate, opts);
+    const contentBody = [
+        'BT',
+        '/F1 11 Tf',
+        '14 TL',
+        '50 790 Td',
+        ...lines.map((line, idx) => `${idx === 0 ? '' : 'T* ' }(${pdfEscape(line)}) Tj`),
+        'ET',
+    ].join('\n');
+    const stream = Buffer.from(contentBody, 'ascii');
+
+    const objects = [
+        '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+        '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+        '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
+        '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+        `5 0 obj\n<< /Length ${stream.length} >>\nstream\n${contentBody}\nendstream\nendobj\n`,
+    ];
+
+    let out = '%PDF-1.4\n';
+    const offsets = [0];
+    for (let i = 0; i < objects.length; i += 1) {
+        offsets.push(Buffer.byteLength(out, 'ascii'));
+        out += objects[i];
+    }
+    const xrefStart = Buffer.byteLength(out, 'ascii');
+    out += `xref\n0 ${objects.length + 1}\n`;
+    out += '0000000000 65535 f \n';
+    for (let i = 1; i <= objects.length; i += 1) {
+        out += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
+    out += `startxref\n${xrefStart}\n%%EOF\n`;
+    return Buffer.from(out, 'ascii');
+}
+
 /**
  * Genera PDF del resumen clínico (sin contraseña ni cifrado).
  * @param {object} aggregate Resultado de loadRdaceAggregate + nombreIpsDisplay opcional
@@ -48,6 +133,10 @@ function paragraph(doc, title, lines) {
  * @returns {Promise<Buffer>}
  */
 function buildRdaceResumenClinicoPdfBuffer(aggregate, opts = {}) {
+    const PDFDocument = getPdfKitCtor();
+    if (!PDFDocument) {
+        return Promise.resolve(buildFallbackPdfBuffer(aggregate, opts));
+    }
     const {
         head,
         pdem,
