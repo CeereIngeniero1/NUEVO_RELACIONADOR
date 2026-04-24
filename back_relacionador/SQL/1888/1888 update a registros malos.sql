@@ -62,6 +62,28 @@ VALUES ('08', 'PACIENTE CONTINUA EN EL SERVICIO (CORTE FACTURACION)', 7);
 DELETE FROM [dbo].[Tipo de tecnología en salud 1888]
 WHERE Codigo IN ('01','M','P');
 
+ALTER TABLE [dbo].[Unidad medida dosis 1888]
+ADD Nombre VARCHAR(100) NULL;
+
+--OJO SOLO SI ESTAN LOS INCORRECTOS SI ESTAN LOS 273 NO SE NECESITA ELIMINAR
+-- DELETE FROM [dbo].[Unidad medida dosis 1888]
+
+IF COL_LENGTH(N'[dbo].[Via administracion medicamento 1888]', N'Nombre') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[Via administracion medicamento 1888]
+    ADD [Nombre] VARCHAR(150) NULL;
+END
+GO
 
 
 
+
+delete from [dbo].[Unidad tiempo frecuencia 1888]
+
+IF COL_LENGTH(N'[dbo].[Finalidad tecnologia salud 1888]', N'Nombre') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[Finalidad tecnologia salud 1888]
+    ADD [Nombre] VARCHAR(250) NULL;
+END
+GO
+delete from  [Finalidad tecnologia salud 1888]

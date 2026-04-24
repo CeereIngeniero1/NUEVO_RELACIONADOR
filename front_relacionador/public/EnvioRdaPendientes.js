@@ -8,6 +8,7 @@
  */
 (function () {
     'use strict';
+    const MAX_ENVIO_MASIVO = 50;
 
     const SWAL_PRE =
         'text-align:left;font-size:0.72rem;max-height:70vh;overflow:auto;white-space:pre-wrap;' +
@@ -474,10 +475,18 @@
     }
 
     async function enviarLote() {
-        const ids = seleccionados();
+        let ids = seleccionados();
         if (!ids.length) {
             Swal.fire({ icon: 'info', title: 'Selección', text: 'Marque al menos un registro.' });
             return;
+        }
+        if (ids.length > MAX_ENVIO_MASIVO) {
+            ids = ids.slice(0, MAX_ENVIO_MASIVO);
+            Swal.fire({
+                icon: 'info',
+                title: 'Límite de envío',
+                text: `Solo se pueden enviar ${MAX_ENVIO_MASIVO} registros por lote. Se enviarán los primeros ${MAX_ENVIO_MASIVO} seleccionados.`,
+            });
         }
         const ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
         state.ambiente = ambiente;
@@ -585,9 +594,17 @@
 
             el.chkTodos.addEventListener('change', () => {
                 const on = el.chkTodos.checked;
-                el.tbody.querySelectorAll('.chk-fila').forEach((c) => {
-                    c.checked = on;
+                const checks = Array.from(el.tbody.querySelectorAll('.chk-fila'));
+                checks.forEach((c, idx) => {
+                    c.checked = on ? idx < MAX_ENVIO_MASIVO : false;
                 });
+                if (on && checks.length > MAX_ENVIO_MASIVO) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Límite de selección',
+                        text: `Se seleccionaron ${MAX_ENVIO_MASIVO} registros (máximo permitido por envío).`,
+                    });
+                }
             });
         } catch (e) {
             console.error('[EnvioRdaPendientes] init:', e);
