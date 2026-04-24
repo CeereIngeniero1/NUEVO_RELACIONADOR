@@ -69,6 +69,7 @@
         tipo: 'paciente',
         ambiente: 'sandbox',
         filas: [],
+        sort: { key: 'id', dir: 'asc' },
         /** @type {Record<number, { ok: boolean, httpStatus: number, cuerpoTextoTruncado: string }>} */
         resultadosPorId: {},
         /** Última respuesta de envío masivo: metadatos de la petición OAuth del token (sin secretos). */
@@ -121,8 +122,93 @@
         return `${fmtFecha(a)} → ${fmtFecha(b)}`;
     }
 
+    function sortValueForRow(row, key) {
+        if (!row || !key) return '';
+        if (key === 'atencion') {
+            const t = row.fechaHoraInicioAtencion ? Date.parse(row.fechaHoraInicioAtencion) : NaN;
+            return Number.isNaN(t) ? 0 : t;
+        }
+        if (key === 'fechaRda') {
+            const t = row.fechaRda ? Date.parse(row.fechaRda) : NaN;
+            return Number.isNaN(t) ? 0 : t;
+        }
+        if (key === 'id') {
+            const n = Number(row.id);
+            return Number.isFinite(n) ? n : 0;
+        }
+        return String(row[key] == null ? '' : row[key]).toLocaleLowerCase('es-CO');
+    }
+
+    function sortFilasInPlace() {
+        const { key, dir } = state.sort || {};
+        if (!key) return;
+        const factor = dir === 'desc' ? -1 : 1;
+        state.filas.sort((a, b) => {
+            const av = sortValueForRow(a, key);
+            const bv = sortValueForRow(b, key);
+            if (av < bv) return -1 * factor;
+            if (av > bv) return 1 * factor;
+            const aid = Number(a && a.id);
+            const bid = Number(b && b.id);
+            return (aid - bid) * factor;
+        });
+    }
+
+    function sortArrow(key) {
+        if (!state.sort || state.sort.key !== key) return '';
+        return state.sort.dir === 'desc' ? ' ▼' : ' ▲';
+    }
+
+    function setSortFromHeader(key) {
+        if (!key) return;
+        if (state.sort && state.sort.key === key) {
+            state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            state.sort = { key, dir: 'asc' };
+        }
+        renderTabla();
+    }
+
+    function makeHeaderSortable(th, label, key) {
+        if (!th || !key) return;
+        th.style.cursor = 'pointer';
+        th.title = 'Ordenar';
+        th.innerHTML = `${escapeHtml(label)}<span class="ms-1 text-muted">${sortArrow(key)}</span>`;
+        th.onclick = () => setSortFromHeader(key);
+    }
+
+    function wireSortHeaders() {
+        const tr = state.tipo === 'ce' ? el.theadCe : el.theadPaciente;
+        if (!tr) return;
+        const ths = tr.querySelectorAll('th');
+        if (!ths || !ths.length) return;
+
+        if (state.tipo === 'paciente') {
+            makeHeaderSortable(ths[1], 'Id', 'id');
+            makeHeaderSortable(ths[2], 'Documento', 'documento');
+            makeHeaderSortable(ths[3], 'Nombre paciente', 'nombreCompleto');
+            makeHeaderSortable(ths[4], 'Fecha RDA', 'fechaRda');
+            makeHeaderSortable(ths[5], 'Cód. prestador', 'codigoPrestador');
+            makeHeaderSortable(ths[6], 'Plan beneficios', 'nombreAdminPlanBeneficios');
+            makeHeaderSortable(ths[7], 'Atención', 'atencion');
+        } else {
+            makeHeaderSortable(ths[1], 'Id', 'id');
+            makeHeaderSortable(ths[2], 'Documento', 'documento');
+            makeHeaderSortable(ths[3], 'Fecha RDA', 'fechaRda');
+            makeHeaderSortable(ths[4], 'Cód. prestador', 'codigoPrestador');
+            makeHeaderSortable(ths[5], 'Plan beneficios', 'nombreAdminPlanBeneficios');
+            makeHeaderSortable(ths[6], 'Atención', 'atencion');
+        }
+    }
+
     function renderTabla() {
         syncThead();
+        state.filas = (state.filas || []).map((f) => ({
+            ...f,
+            nombreCompleto: nombrePaciente(f),
+        }));
+        sortFilasInPlace();
+        wireSortHeaders();
         state.resultadosPorId = {};
         el.chkTodos.checked = false;
         if (!state.filas.length) {
@@ -583,6 +669,7 @@
                 state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
                 state.filas = [];
                 syncThead();
+                wireSortHeaders();
                 const colspan = state.tipo === 'ce' ? 8 : 9;
                 el.tbody.innerHTML =
                     `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td></tr>`;

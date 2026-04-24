@@ -1,4 +1,22 @@
 
+
+UPDATE [dbo].[Tipo de Documento]
+SET [Código Tipo de Documento] = CASE [Tipo de Documento]
+    WHEN 'CC' THEN 'CC'
+    WHEN 'CE' THEN 'CE'
+    WHEN 'PA' THEN 'PA'
+    WHEN 'RC' THEN 'RC'
+    WHEN 'TI' THEN 'TI'
+    WHEN 'AS' THEN 'AS'
+    WHEN 'MS' THEN 'MS'
+    WHEN 'UN' THEN 'UN'
+    WHEN 'NI' THEN 'NI'
+    WHEN 'NH' THEN 'NH'
+END
+WHERE [Tipo de Documento] IS NOT NULL;
+
+
+
 UPDATE [dbo].[Tipo de alergia 1888]
 SET Descripcion = CASE Codigo
     
@@ -87,3 +105,23 @@ BEGIN
 END
 GO
 delete from  [Finalidad tecnologia salud 1888]
+
+
+
+
+delete from [Unidad tiempo duracion 1888]
+
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Unidad tiempo duracion 1888])
+INSERT INTO [dbo].[Unidad tiempo duracion 1888] (Codigo, Descripcion, [Id Estado])
+VALUES
+('1', 'Minutos', 7),
+('2', 'Horas', 7),
+('3', 'Día', 7),
+('4', 'Semanas', 7),
+('5', 'Mes', 7),
+('6', 'Año', 7),
+('7', 'Según respuesta al tratamiento', 7);
+GO
+
+
+
