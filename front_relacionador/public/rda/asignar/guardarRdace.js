@@ -56,7 +56,6 @@ function rdaceMarkFieldInvalid(id, invalid) {
 function rdaceValidateRequiredForSave() {
     const required = [
         { id: 'RDACE_CodigoPrestador', label: 'Codigo Prestador', getValue: () => rdaceGetInputValue('RDACE_CodigoPrestador') },
-        { id: 'RDACE_CodigoAdminPlanBeneficios', label: 'Administrador Plan Beneficios', getValue: () => rdaceGetInputValue('RDACE_CodigoAdminPlanBeneficios') },
         { id: 'RDACE_TipoDocProfesional', label: 'Tipo documento del profesional', getValue: () => rdaceGetInputValue('RDACE_TipoDocProfesional') },
         { id: 'RDACE_NumDocProfesional', label: 'Numero documento del profesional', getValue: () => rdaceSelect2Value('RDACE_NumDocProfesional') || rdaceGetInputValue('RDACE_NumDocProfesional') },
         { id: 'RDACE_IdModalidadAtencion', label: 'Modalidad tecnologia salud', getValue: () => rdaceGetInputValue('RDACE_IdModalidadAtencion') },
