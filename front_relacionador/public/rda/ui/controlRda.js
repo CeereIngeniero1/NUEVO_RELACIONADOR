@@ -13,7 +13,7 @@ export function initControlRda() {
     const seccionPaciente = document.getElementById("SeccionRDAPaciente");
     const seccionConsultaExt = document.getElementById("SeccionRDAConsultaExterna");
 
-    let lastTipoRDA = "paciente";
+    let lastTipoRDA = "consultaExterna";
 
     function updateBtnGenerarLabel() {
         if (!btnGenerar || !checkGenerarRDA) return;

@@ -2,6 +2,7 @@
  * RDA Consulta Externa — guardar (antes inline en Asignar_RIPS V3.html).
  */
 import {
+    guardarEvaluacionPacientePrincipal,
     guardarEvaluacionCEPrincipal,
     postAntecedenteSaludCE,
     postAntecedenteFamCE,
@@ -70,6 +71,106 @@ function rdaceAttachDigitsOnlyFilter(inputId) {
         const next = rdaceDigitsOnly(input.value);
         if (next !== input.value) input.value = next;
     });
+}
+
+function rdaceExtractIhceMessage(data) {
+    if (!data) return '';
+    if (typeof data === 'string') return data;
+    if (typeof data.error === 'string' && data.error.trim()) return data.error.trim();
+    if (typeof data.message === 'string' && data.message.trim()) return data.message.trim();
+    if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue) && data.issue.length) {
+        const first = data.issue[0] || {};
+        return (
+            first.diagnostics ||
+            (first.details && first.details.text) ||
+            ''
+        );
+    }
+    return '';
+}
+
+function rdaceSummarizeSendOutcome(nombre, out) {
+    if (!out) return `<b>${nombre}:</b> no ejecutado`;
+    if (out.ok) {
+        return `<b>${nombre}:</b> enviado correctamente (HTTP ${out.status})`;
+    }
+    const detail = rdaceExtractIhceMessage(out.data);
+    return `<b>${nombre}:</b> error (HTTP ${out.status})${detail ? `<br><small>${detail}</small>` : ''}`;
+}
+
+async function rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace }) {
+    const selPrestador = document.getElementById('RDACE_CodigoPrestador');
+    let nitPrestadorIps = null;
+    let nombrePrestadorIps = null;
+    if (selPrestador && selPrestador.value) {
+        const optPrest = selPrestador.options[selPrestador.selectedIndex];
+        if (optPrest) {
+            const nitAttr = optPrest.getAttribute('data-nit');
+            const nomAttr = optPrest.getAttribute('data-nombre');
+            nitPrestadorIps = (nitAttr != null && String(nitAttr).trim()) ? String(nitAttr).trim() : String(selPrestador.value).trim() || null;
+            nombrePrestadorIps = (nomAttr != null && String(nomAttr).trim()) ? String(nomAttr).trim() : null;
+        }
+    }
+
+    const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let cie11Termino = null;
+    try {
+        const $ = window.jQuery;
+        if ($) {
+            const cie11Data = $('#RDACE_DiagnosticoIngresoCIE11Termino').select2('data');
+            cie11Termino = cie11Data?.length ? cie11Data[0].text : (document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null);
+        }
+    } catch (e) {
+        cie11Termino = document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null;
+    }
+
+    const payloadPaciente = {
+        DocumentoEntidad: documento,
+        FechaRDA: ahora,
+        IdTipoDocumento: document.getElementById('TipoDocumentoBase')?.value?.trim() || null,
+        PrimerApellidoEntidad: document.getElementById('PrimerApellidoBase')?.value || null,
+        SegundoApellidoEntidad: document.getElementById('SegundoApellidoBase')?.value || null,
+        PrimerNombreEntidad: document.getElementById('PrimerNombreBase')?.value || null,
+        SegundoNombreEntidad: document.getElementById('SegundoNombreBase')?.value || null,
+        FechaNacimiento: document.getElementById('FechaNacimientoBase')?.value || null,
+        Edad: document.getElementById('EdadPaciente')?.value || null,
+        IdUnidaddeMedidaEdad: null,
+        IdSexoBiologico: document.getElementById('SexoPaciente')?.value || null,
+        IdIdentidadGenero: document.getElementById('IdentidadGeneroBase')?.value || null,
+        IdPaisNacionalidad: document.getElementById('SelectNombrePaisNacionalidadBase')?.value || null,
+        Talla: document.getElementById('TallaPaciente')?.value || null,
+        Peso: document.getElementById('PesoPaciente')?.value || null,
+        IdPaisRecidencia: document.getElementById('SelectNombrePaisResidenciaBase')?.value || null,
+        IdMunicipioRecidencia: document.getElementById('SelectNombreMunicipioResidenciaBase')?.value || null,
+        IdZonaResidencia: document.getElementById('ListaZonaTerritorialBase')?.value || null,
+        Direccion: document.getElementById('DireccionPaciente')?.value || null,
+        IdEtnia: document.getElementById('EtniaBase')?.value || null,
+        ComunidadEtnica: document.getElementById('ComunidadEtnicaBase')?.value || null,
+        IdDiscapacidad: document.getElementById('DiscapacidadBase')?.value || null,
+        TelefonoCelular: document.getElementById('TelefonoPaciente')?.value || null,
+        Alergeno: document.getElementById('NombreAlergenoBase')?.value || null,
+        CodigoPrestador: document.getElementById('RDACE_CodigoPrestador')?.value || null,
+        CodigoAdminPlanBeneficios: document.getElementById('RDACE_CodigoAdminPlanBeneficios')?.value || null,
+        NombreAdminPlanBeneficios: document.getElementById('RDACE_NombreAdminPlanBeneficios')?.value || null,
+        FechaHoraInicioAtencion: fhRdace.inicio,
+        FechaHoraFinAtencion: fhRdace.fin,
+        TipoDocProfesional: document.getElementById('RDACE_TipoDocProfesional')?.value || null,
+        NumDocProfesional: rdaceSelect2Value('RDACE_NumDocProfesional') || document.getElementById('RDACE_NumDocProfesional')?.value || null,
+        DiagnosticoIngresoCIE11Codigo: document.getElementById('RDACE_DiagnosticoIngresoCIE11Codigo')?.value || null,
+        DiagnosticoIngresoCIE11Termino: cie11Termino || null,
+        TipoAlergia: rdaceSelect2Value('RDACE_TipoAlergia'),
+        IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
+        IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
+        NitPrestadorIPS: nitPrestadorIps,
+        NombrePrestadorIPS: nombrePrestadorIps,
+    };
+
+    const out = await guardarEvaluacionPacientePrincipal(payloadPaciente);
+    const id = out && out.IdEvaluacionEntidadRDA;
+    if (!id) {
+        throw new Error(out?.error || 'No se pudo guardar RDA Paciente para envío conjunto.');
+    }
+    return Number(id);
 }
 
 export function wireGuardarRdace() {
@@ -294,9 +395,54 @@ export async function guardarRDACE() {
             '<b>ID RDACE:</b> ' + idCE + '<br>' +
             'Ant. salud: ' + antSalud.length + ' | Familiares: ' + antFam.length + ' | Farmacológicos: ' + medic.length + '<br>' +
             'Diag. relacionados: ' + diags.length + ' | Prescr. med: ' + presMed.length + ' | Proc: ' + presProc.length + ' | Otras tec: ' + otras.length + '<br>';
-        await window.rdaOfrecerEnvioIhce('RDA Consulta Externa guardado', resumenCe, function (ambiente) {
-            return window.enviarIhceRdace(idCE, { ambiente: ambiente });
-        });
+
+        await window.rdaOfrecerEnvioIhce(
+            'RDA Consulta Externa guardado',
+            resumenCe +
+                '<hr class="my-2">' +
+                '<small class="text-muted">Si elige enviar, se intentará enviar <b>RDA Paciente</b> y <b>RDA Consulta Externa</b>.</small>',
+            async function (ambiente) {
+                let pacienteResult = null;
+                let rdaceResult = null;
+                let pacienteError = null;
+
+                try {
+                    const idPaciente = await rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace });
+                    pacienteResult = await window.enviarIhcePaciente(idPaciente, { ambiente: ambiente, showSwal: false });
+                } catch (ePac) {
+                    pacienteError = ePac;
+                }
+
+                try {
+                    rdaceResult = await window.enviarIhceRdace(idCE, { ambiente: ambiente, showSwal: false });
+                } catch (eCe) {
+                    rdaceResult = { ok: false, status: 0, data: { error: eCe?.message || String(eCe) } };
+                }
+
+                const pacienteOut = pacienteError
+                    ? { ok: false, status: 0, data: { error: pacienteError.message || String(pacienteError) } }
+                    : pacienteResult;
+                const ceOut = rdaceResult;
+
+                const okPac = !!(pacienteOut && pacienteOut.ok);
+                const okCe = !!(ceOut && ceOut.ok);
+                const icon = (okPac && okCe) ? 'success' : ((okPac || okCe) ? 'warning' : 'error');
+                const title = (okPac && okCe)
+                    ? 'Envio IHCE completado'
+                    : ((okPac || okCe) ? 'Envio IHCE parcial' : 'Envio IHCE con errores');
+
+                await Swal.fire({
+                    icon,
+                    title,
+                    html:
+                        '<div class="text-start">' +
+                        rdaceSummarizeSendOutcome('RDA Paciente', pacienteOut) + '<br><br>' +
+                        rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
+                        '</div>',
+                    confirmButtonText: 'Cerrar',
+                });
+            }
+        );
     } catch (error) {
         console.error('[RDACE] Error al guardar:', error);
         Swal.fire({ icon: 'error', title: 'Error al guardar', text: error.message || 'Ocurrió un error inesperado.' });

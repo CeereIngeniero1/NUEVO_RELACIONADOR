@@ -75,10 +75,17 @@
             user-select: none;
             margin-bottom: 0.5rem;
         }
+        .rda-module-card .rda-module-title-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            min-width: 0;
+        }
         .rda-module-card .rda-module-toggle-icon {
             font-size: 0.85rem;
             opacity: 0.75;
             transition: transform 0.2s ease;
+            margin-left: auto;
         }
         .rda-module-card.rda-module-collapsed .rda-module-toggle-icon {
             transform: rotate(-90deg);
@@ -90,6 +97,11 @@
             color: #dc3545;
             margin-left: 0.25rem;
             font-weight: 700;
+        }
+        [data-theme="dark"] .rda-required-module-star,
+        [data-theme="dark"] .cr-card .text-danger {
+            color: #ff5f7a !important;
+            text-shadow: 0 0 1px rgba(0, 0, 0, 0.35);
         }
     </style>
 
@@ -453,7 +465,7 @@
 
                                     <!-- Fila 4: Extra Social y Alergias -->
                                     <div class="col-md-3">
-                                        <label>Etnia<span class="text-danger" aria-hidden="true">*</span>:</label>
+                                        <label>Etnia:</label>
 
 
                                         <select disabled class="form-select-sm border border-secondary w-100 mb-2"
@@ -1209,19 +1221,19 @@
                                     <div class="row g-2 mt-2">
                                         <!-- Fecha de atención + horas inicio/fin (mismo día) -->
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Fecha de atención:</label>
+                                            <label class="fw-bold">Fecha de atención<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <input type="date"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDA_FechaAtencion">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="fw-bold">Hora inicio:</label>
+                                            <label class="fw-bold">Hora inicio<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDA_HoraInicioAtencion">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="fw-bold">Hora fin:</label>
+                                            <label class="fw-bold">Hora fin<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <input type="time"
                                                 class="form-control-sm border border-secondary w-100"
                                                 id="RDA_HoraFinAtencion">
@@ -1255,13 +1267,13 @@
 
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Modalidad atención (RDA / FHIR):</label>
+                                            <label class="fw-bold">Modalidad atención (RDA / FHIR)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDA_IdModalidadAtencion">
                                                 <option value="">Seleccionar</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="fw-bold">Grupo servicios (RDA / FHIR):</label>
+                                            <label class="fw-bold">Grupo servicios (RDA / FHIR)<span class="text-danger" aria-hidden="true">*</span>:</label>
                                             <select class="form-select-sm border border-secondary w-100" id="RDA_IdGrupoServicios">
                                                 <option value="">Seleccionar</option>
                                             </select>
@@ -1356,7 +1368,7 @@
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12">
                                             <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Antecedentes Familiares <span class="text-danger" aria-hidden="true">*</span></h6>
+                                                <h6 class="text-muted">Antecedentes Familiares</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-3">
                                                         <label>Parentesco:</label>
@@ -1453,8 +1465,7 @@
                                     </h6>
                                     <div class="alert alert-warning py-2 mb-2" role="alert">
                                         <small>
-                                            Para envío IHCE en CE, complete los campos con <span class="text-danger">*</span>
-                                            y agregue al menos 1 antecedente familiar.
+                                            Para envío IHCE en CE, complete los campos con <span class="text-danger">*</span>.
                                         </small>
                                     </div>
 
@@ -1632,14 +1643,14 @@
                                                 <h6 class="text-muted">Antecedentes Familiares</h6>
                                                 <div class="row g-2 align-items-end">
                                                     <div class="col-md-3">
-                                                        <label>Parentesco<span class="text-danger" aria-hidden="true">*</span>:</label>
+                                                        <label>Parentesco:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_ParentescoFamiliar">
                                                             <option value="">Buscar parentesco...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
-                                                        <label>Condición salud (CIE-10)<span class="text-danger" aria-hidden="true">*</span>:</label>
+                                                        <label>Condición salud (CIE-10):</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_AntecedenteFamiliarCIE10">
                                                             <option value="">Seleccione o busque un diagnóstico...</option>
@@ -1661,7 +1672,7 @@
                                                             Agregar</button>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted d-block mt-1">Debe agregar al menos un antecedente familiar para envío IHCE CE.</small>
+                                                <small class="text-muted d-block mt-1">Antecedentes familiares es opcional para envío IHCE CE.</small>
                                                 <div id="RDACE_ListaAntecedentesFamiliares" class="mt-2"></div>
                                             </div>
                                         </div>
@@ -2336,8 +2347,14 @@
                 const title = card.querySelector('h6');
                 if (!title || title.classList.contains('rda-module-title')) return;
 
+                const originalTitleText = title.textContent.trim();
                 card.classList.add('rda-module-card');
                 title.classList.add('rda-module-title');
+                title.textContent = '';
+                const titleText = document.createElement('span');
+                titleText.className = 'rda-module-title-text';
+                titleText.textContent = originalTitleText;
+                title.appendChild(titleText);
 
                 const hasRequiredInside = !!card.querySelector('label .text-danger');
                 const hasRequiredInTitle = !!title.querySelector('.text-danger, .rda-required-module-star');
@@ -2346,7 +2363,7 @@
                     star.className = 'rda-required-module-star';
                     star.setAttribute('aria-hidden', 'true');
                     star.textContent = '*';
-                    title.appendChild(star);
+                    titleText.appendChild(star);
                 }
 
                 const toggleIcon = document.createElement('span');
