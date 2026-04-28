@@ -62,6 +62,40 @@ class ICD11_API {
             console.error('Error en la búsqueda:', error);
         }
     }
+
+    async findByCode(code) {
+        const token = await this.getAccessToken();
+        const q = String(code || '').trim();
+        if (!q) return null;
+        try {
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Accept-Language': 'es',
+                'API-Version': 'v2'
+            };
+            const response = await fetch(`${this.baseUrl}/codeinfo/${encodeURIComponent(q)}`, { headers });
+            if (!response.ok) return null;
+            const info = await response.json();
+            const stemId = info && info.stemId ? String(info.stemId).trim() : '';
+            let title = '';
+            if (stemId) {
+                const stemResp = await fetch(stemId.replace('http://', 'https://'), { headers });
+                if (stemResp.ok) {
+                    const stem = await stemResp.json();
+                    const t = stem && stem.title;
+                    title = typeof t === 'string' ? t : (t && (t['@value'] || t.value) ? (t['@value'] || t.value) : '');
+                }
+            }
+            return {
+                theCode: (info && info.code ? String(info.code).trim() : q).toUpperCase(),
+                title: title || q
+            };
+        } catch (error) {
+            console.error('Error buscando CIE-11 por código:', error);
+            return null;
+        }
+    }
 }
 
 const icd11 = new ICD11_API(
@@ -79,6 +113,18 @@ const defaultCIE11 = [
 
 const router = Router();
 
+router.get('/icd11/code/:code', async (req, res) => {
+    try {
+        const code = req.params.code;
+        if (!code || !String(code).trim()) return res.json({ ok: false, item: null });
+        const item = await icd11.findByCode(String(code).trim());
+        return res.json({ ok: Boolean(item), item: item || null });
+    } catch (error) {
+        console.error('Error en ruta CIE-11 por código:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
 router.get('/icd11/search/:query?', async (req, res) => {
     try {
         const query = req.params.query;
@@ -86,7 +132,45 @@ router.get('/icd11/search/:query?', async (req, res) => {
             return res.json(defaultCIE11);
         }
         const results = await icd11.search(query);
-        res.json(results || []);
+        const arr = Array.isArray(results) ? results : [];
+        if (!arr.length && query) {
+            const direct = await icd11.findByCode(query);
+            if (direct) return res.json([direct]);
+        }
+        const needle = String(query || '').trim().toUpperCase();
+        const looksLikeCode = /^[A-Z0-9][A-Z0-9.\-]{1,15}$/i.test(needle);
+        if (needle) {
+            let ranked = arr
+                .map((x) => ({ item: x, code: String(x && x.theCode ? x.theCode : '').toUpperCase() }))
+                .sort((a, b) => {
+                    const aStarts = a.code.startsWith(needle) ? 1 : 0;
+                    const bStarts = b.code.startsWith(needle) ? 1 : 0;
+                    if (aStarts !== bStarts) return bStarts - aStarts;
+                    return a.code.localeCompare(b.code);
+                })
+                .map((x) => x.item);
+            if (looksLikeCode && ranked.length === 0) {
+                const probes = Array.from(new Set([
+                    needle.slice(0, 1).toLowerCase(),
+                    needle.slice(0, 2).toLowerCase(),
+                    needle.replace(/\./g, '').slice(0, 2).toLowerCase(),
+                ].filter(Boolean)));
+                for (const p of probes) {
+                    const bucket = await icd11.search(p);
+                    const list = Array.isArray(bucket) ? bucket : [];
+                    const filtered = list.filter((x) => {
+                        const c = String(x && x.theCode ? x.theCode : '').toUpperCase();
+                        return c.startsWith(needle) || c.startsWith(needle.replace(/\./g, ''));
+                    });
+                    if (filtered.length) {
+                        ranked = filtered;
+                        break;
+                    }
+                }
+            }
+            return res.json(ranked);
+        }
+        res.json(arr);
     } catch (error) {
         console.error('Error en ruta de búsqueda CIE-11:', error);
         res.status(500).send(error.message);

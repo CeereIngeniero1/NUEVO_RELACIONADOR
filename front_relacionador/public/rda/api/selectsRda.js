@@ -77,14 +77,40 @@ async function inicializarListaPrestadores() {
         const optionsHTML = ['<option value="">Seleccionar Prestador</option>'];
         empresas.forEach(emp => {
             const nombreMostrar = emp.NombreComercialEmpresa || emp.RazonSocialEmpresa || "";
+            const documentoEmpresa = (emp.DocumentoEmpresa != null ? String(emp.DocumentoEmpresa).trim() : "");
             optionsHTML.push(
-                `<option value="${emp.NroIDPrestador}">${emp.NroIDPrestador} - ${nombreMostrar}</option>`
+                `<option value="${emp.NroIDPrestador}" data-documento-empresa="${documentoEmpresa}">${emp.NroIDPrestador} - ${nombreMostrar}</option>`
             );
         });
 
         const html = optionsHTML.join("");
         if (selectPrestador) selectPrestador.innerHTML = html;
         if (selectPrestadorCE) selectPrestadorCE.innerHTML = html;
+
+        // Prefill con empresa elegida al iniciar sesión.
+        const empresaSesion = String(sessionStorage.getItem("empresaTrabajarExecuted") || "").trim();
+        const preselect = (sel) => {
+            if (!sel || !empresaSesion) return;
+            if (String(sel.value || "").trim()) return; // no pisar selección existente
+
+            // 1) intento directo por value (cuando empresaTrabajarExecuted coincide con NroIDPrestador)
+            sel.value = empresaSesion;
+            if (String(sel.value || "").trim() === empresaSesion) {
+                sel.dispatchEvent(new Event("change", { bubbles: true }));
+                return;
+            }
+
+            // 2) fallback por data-documento-empresa (cuando sesión guarda DocumentoEmpresa)
+            const opt = Array.from(sel.options).find(o =>
+                String(o.getAttribute("data-documento-empresa") || "").trim() === empresaSesion
+            );
+            if (opt && opt.value) {
+                sel.value = String(opt.value).trim();
+                sel.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        };
+        preselect(selectPrestador);
+        preselect(selectPrestadorCE);
     } catch (error) {
         console.error("[RDA V3] Error al cargar prestadores (Empresas):", error);
     }

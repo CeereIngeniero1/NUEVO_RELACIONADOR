@@ -173,6 +173,7 @@ export function initListasConsultaExterna() {
     const inputFamCIE10CE = document.getElementById("RDACE_AntecedenteFamiliarCIE10");
     const inputFamCIE11CE = document.getElementById("RDACE_AntecedenteFamiliarCIE11");
     const inputFamDescCE = document.getElementById("RDACE_AntecedenteFamiliarDescripcion");
+    const inputFamCIE11ManualCE = document.getElementById("RDACE_AntecedenteFamiliarCIE11CodigoManual");
     const contFamCE = document.getElementById("RDACE_ListaAntecedentesFamiliares");
 
     btnFamCE?.addEventListener("click", () => {
@@ -183,7 +184,7 @@ export function initListasConsultaExterna() {
         const codigo = inputFamCIE10CE?.value?.trim() || "";
         const descripcion = inputFamDescCE?.value || "";
 
-        let cie11Codigo = "";
+        let cie11Codigo = inputFamCIE11ManualCE?.value?.trim() || "";
         let cie11Termino = "";
         try {
             if (inputFamCIE11CE && typeof $ !== "undefined" && $(inputFamCIE11CE).data("select2")) {
@@ -215,6 +216,7 @@ export function initListasConsultaExterna() {
 
         clearSelect2("#RDACE_AntecedenteFamiliarCIE10");
         if (inputFamCIE11CE && typeof $ !== "undefined") $(inputFamCIE11CE).val(null).trigger("change");
+        if (inputFamCIE11ManualCE) inputFamCIE11ManualCE.value = "";
         if (selectParentescoCE && typeof $ !== "undefined" && $(selectParentescoCE).data("select2")) {
             $(selectParentescoCE).val(null).trigger("change");
         } else if (selectParentescoCE) {

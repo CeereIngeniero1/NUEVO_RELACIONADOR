@@ -43,4 +43,37 @@ connection.on('connect', (err) => {
     }
 });
 
+/**
+ * Tedious no permite ejecutar requests concurrentes sobre la misma conexión.
+ * Serializamos execSql para evitar:
+ * "Requests can only be made in the LoggedIn state, not the SentClientRequest state".
+ */
+const execSqlOriginal = connection.execSql.bind(connection);
+let tediousQueue = Promise.resolve();
+
+connection.execSql = function execSqlQueued(request) {
+    tediousQueue = tediousQueue
+        .catch(() => undefined)
+        .then(
+            () =>
+                new Promise((resolve) => {
+                    let settled = false;
+                    const done = () => {
+                        if (settled) return;
+                        settled = true;
+                        resolve();
+                    };
+                    request.once('requestCompleted', done);
+                    request.once('error', done);
+                    try {
+                        execSqlOriginal(request);
+                    } catch (e) {
+                        done();
+                        throw e;
+                    }
+                })
+        );
+    return tediousQueue;
+};
+
 module.exports = connection;

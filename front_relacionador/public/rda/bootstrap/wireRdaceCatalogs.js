@@ -218,6 +218,75 @@ function initProfesionalesSelect2(selector, tipoDocInputSelector) {
     }
 }
 
+async function prefillLoggedInProfessional(selector, tipoDocInputSelector) {
+    const docUser = String(sessionStorage.getItem("documentousuariologeado") || "").trim();
+    if (!docUser) return;
+
+    const $sel = $(selector);
+    if (!$sel.length) return;
+
+    // No pisar selección manual o datos ya cargados.
+    const currentVal = String($sel.val() || "").trim();
+    if (currentVal) return;
+
+    try {
+        const url = `${getApiBaseUrl()}/apiV3/Profesionales/${encodeURIComponent(docUser)}`;
+        const r = await fetch(url);
+        if (!r.ok) return;
+        const arr = await r.json();
+        if (!Array.isArray(arr) || !arr.length) return;
+
+        const row = arr.find((p) => String(p.Documento || "").trim() === docUser) || arr[0];
+        const doc = String(row.Documento || "").trim();
+        if (!doc) return;
+        const nombre = String(row.Nombres || "").trim();
+        const optionText = `${nombre || doc} (${doc})`;
+
+        // Insertar opción y seleccionarla en Select2.
+        const opt = new Option(optionText, doc, true, true);
+        $sel.append(opt).trigger("change");
+        $sel.trigger({
+            type: "select2:select",
+            params: {
+                data: {
+                    id: doc,
+                    text: optionText,
+                    tipoDocProfesional: row.TipoDocProfesional || row.TipoDocumento || "",
+                    codigoTipoDocProfesional: row.CodigoTipoDocProfesional || row.CodigoTipoDocumento || "",
+                },
+            },
+        });
+
+        if (tipoDocInputSelector) {
+            const $tipo = $(tipoDocInputSelector);
+            if ($tipo.length) {
+                const tipo = String(
+                    row.CodigoTipoDocProfesional || row.TipoDocProfesional || row.CodigoTipoDocumento || row.TipoDocumento || ""
+                ).trim();
+                if (tipo) {
+                    $tipo.val(tipo).trigger("change");
+                    if (String($tipo.val() || "").trim() !== tipo) {
+                        const needle = tipo.toLowerCase();
+                        let match = "";
+                        $tipo.find("option").each(function () {
+                            const ov = String($(this).attr("value") || "").trim();
+                            const ot = String($(this).text() || "").trim().toLowerCase();
+                            if (!ov) return;
+                            if (ov.toLowerCase() === needle || ot === needle || ot.includes(needle)) {
+                                match = ov;
+                                return false;
+                            }
+                        });
+                        $tipo.val(match || "").trigger("change");
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.warn("[RDA V3] No se pudo autoseleccionar profesional logueado:", err);
+    }
+}
+
 // ── Egreso y Remisión ─────────────────────────────────────────────────────
 
 function initEgresoRemisionSelect2(selector, placeholderText) {
@@ -395,6 +464,8 @@ export function wireRdaceCatalogs() {
     // Profesionales
     initProfesionalesSelect2("#RDA_NumDocProfesional", "#RDA_TipoDocProfesional");
     initProfesionalesSelect2("#RDACE_NumDocProfesional", "#RDACE_TipoDocProfesional");
+    prefillLoggedInProfessional("#RDA_NumDocProfesional", "#RDA_TipoDocProfesional");
+    prefillLoggedInProfessional("#RDACE_NumDocProfesional", "#RDACE_TipoDocProfesional");
 
     // Egreso y Remisión
     initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");

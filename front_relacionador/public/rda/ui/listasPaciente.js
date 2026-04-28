@@ -49,12 +49,25 @@ export function initListasPaciente() {
     const selectParentesco = document.getElementById("RDA_ParentescoFamiliar");
     const inputFamCIE10 = document.getElementById("RDA_AntecedenteFamiliarCIE10");
     const inputFamDesc = document.getElementById("RDA_AntecedenteFamiliarDescripcion");
+    const inputFamCIE11Manual = document.getElementById("RDA_AntecedenteFamiliarCIE11CodigoManual");
     const contenedorFam = document.getElementById("RDA_ListaAntecedentesFamiliares");
 
     btnFam?.addEventListener("click", () => {
         const parentesco = selectParentesco?.value;
-        const codigo = inputFamCIE10?.value?.trim();
-        if (!parentesco || !codigo) return;
+        const codigo = inputFamCIE10?.value?.trim() || "";
+        if (!parentesco) return;
+
+        let cie11Codigo = inputFamCIE11Manual?.value?.trim() || "";
+        let cie11Termino = "";
+        const inputFamCIE11 = document.getElementById("RDA_AntecedenteFamiliarCIE11");
+        if (inputFamCIE11 && typeof $ !== "undefined" && $(inputFamCIE11).data("select2")) {
+            const d11 = $(inputFamCIE11).select2("data")[0];
+            if (d11) {
+                cie11Codigo = cie11Codigo || (d11.id != null ? String(d11.id).trim() : "");
+                cie11Termino = d11.text || "";
+            }
+        }
+        if (!codigo && !cie11Codigo && !cie11Termino) return;
 
         const textoParentesco =
             selectParentesco?.options[selectParentesco.selectedIndex]?.text || "";
@@ -64,11 +77,15 @@ export function initListasPaciente() {
             textoParentesco,
             codigo,
             descripcion: inputFamDesc?.value || "",
+            cie11Codigo: cie11Codigo || undefined,
+            cie11Termino: cie11Termino || undefined,
         });
         rerender(contenedorFam, getAntecedentesFamiliares(), "familiar");
 
         if (selectParentesco) selectParentesco.value = "";
         if (inputFamCIE10) inputFamCIE10.value = "";
+        if (inputFamCIE11Manual) inputFamCIE11Manual.value = "";
+        if (inputFamCIE11 && typeof $ !== "undefined") $(inputFamCIE11).val(null).trigger("change");
         if (inputFamDesc) inputFamDesc.value = "";
     });
 
