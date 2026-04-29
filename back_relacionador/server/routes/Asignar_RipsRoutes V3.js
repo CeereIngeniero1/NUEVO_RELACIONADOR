@@ -418,7 +418,7 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
                     CodigoPaisNacionalidad, NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia,
                     IdMunicipioRecidencia, CodigoMunicipioRecidencia, NombreMunicipioRecidencia, IdZonaResidencia, DescripciónZonaResidencia,
                     CódigoZonaResidencia, ZonaResidencia, IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdDiscapacidad, Codigo, Discapacidad,
-                    DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación
+                    DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación, Alergias, Alergeno
                 FROM [dbo].[Cnsta Relacionador Usuarios Info]
                 WHERE LTRIM(RTRIM(DocumentoPaciente)) = LTRIM(RTRIM(@DocumentoPaciente))
             `;
@@ -564,6 +564,8 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
                             CódigoOcupación: '',
                             Ocupación: '',
                             DescripciónOcupación: '',
+                            Alergias: '',
+                            Alergeno: '',
                         }];
                     }
                 }
@@ -2675,7 +2677,9 @@ router.post('/ActualizarPaciente', async (req, res) => {
         ComunidadEtnica,
         IdDiscapacidad,
         Telefono,
-        IdOcupacion
+        IdOcupacion,
+        Alergias,
+        Alergeno
     } = req.body;
 
     console.log(req.body);
@@ -2758,7 +2762,8 @@ router.post('/ActualizarPaciente', async (req, res) => {
                     .input('IdNacionalidad', sql.Int, IdNacionalidad != null && String(IdNacionalidad).trim() !== '' ? parseInt(IdNacionalidad, 10) : null)
                     .input('IdResidencia', sql.Int, IdResidencia != null && String(IdResidencia).trim() !== '' ? parseInt(IdResidencia, 10) : null)
                     .input('IdMunicipio', sql.Int, IdMunicipio != null && String(IdMunicipio).trim() !== '' ? parseInt(IdMunicipio, 10) : null)
-                    .input('Alergeno', sql.VarChar(150), null)
+                    .input('Alergias', sql.VarChar(90), Alergias != null && String(Alergias).trim() !== '' ? String(Alergias).trim() : null)
+                    .input('Alergeno', sql.VarChar(150), Alergeno != null && String(Alergeno).trim() !== '' ? String(Alergeno).trim() : null)
                     .query(`
                         UPDATE [dbo].[EntidadIII]
                         SET [Fecha Nacimiento EntidadIII] = ISNULL(@FechaNacimiento, [Fecha Nacimiento EntidadIII]),
@@ -2777,7 +2782,8 @@ router.post('/ActualizarPaciente', async (req, res) => {
                                 [Id Pais Nacionalidad] = @IdNacionalidad,
                                 [Id Pais Recidencia] = @IdResidencia,
                                 [Id Municipio Recidencia] = @IdMunicipio,
-                                [Alergeno] = ISNULL([Alergeno], @Alergeno)
+                                [Alergias] = @Alergias,
+                                [Alergeno] = @Alergeno
                             WHERE [Documento Entidad] = @Documento
                         END
                         ELSE
@@ -2786,13 +2792,13 @@ router.post('/ActualizarPaciente', async (req, res) => {
                             (
                                 [Documento Entidad], [Id Identidad Genero], [Talla], [Peso], [Id Etnia],
                                 [Comunidad Etnica], [Id Discapacidad], [Id Pais Nacionalidad],
-                                [Id Pais Recidencia], [Id Municipio Recidencia], [Alergeno]
+                                [Id Pais Recidencia], [Id Municipio Recidencia], [Alergias], [Alergeno]
                             )
                             VALUES
                             (
                                 @Documento, @SexoIdenti, @Talla, @Peso, @IdEtnia,
                                 @ComunidadEtnica, @IdDiscapacidad, @IdNacionalidad,
-                                @IdResidencia, @IdMunicipio, @Alergeno
+                                @IdResidencia, @IdMunicipio, @Alergias, @Alergeno
                             )
                         END
                     `);

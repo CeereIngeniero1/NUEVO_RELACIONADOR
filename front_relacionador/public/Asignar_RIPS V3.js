@@ -552,6 +552,8 @@ SelectPacientes.addEventListener("change", async function (e) {
   const PesoPaciente = document.getElementById("PesoPaciente");
   const ComunidadEtnicaBase = document.getElementById("ComunidadEtnicaBase");
   const TelefonoPaciente = document.getElementById("TelefonoPaciente");
+  const TieneAlergiaBase = document.getElementById("TieneAlergiaBase");
+  const NombreAlergenoBase = document.getElementById("NombreAlergenoBase");
 
   if (this.value === "") {
     document.getElementById("BuscarPorFacturas").disabled = true;
@@ -638,6 +640,14 @@ SelectPacientes.addEventListener("change", async function (e) {
 
         TallaPaciente.value = CargarDatosPaciente[0].Talla;
         PesoPaciente.value = CargarDatosPaciente[0].Peso;
+        if (TieneAlergiaBase) {
+          const alergiasRaw = String(CargarDatosPaciente[0].Alergias ?? "").trim().toLowerCase();
+          const alergenoRaw = String(CargarDatosPaciente[0].Alergeno ?? "").trim();
+          const tieneAlergia = !!alergenoRaw || ["si", "sí", "true", "1", "alergias"].includes(alergiasRaw);
+          TieneAlergiaBase.checked = tieneAlergia;
+          TieneAlergiaBase.dispatchEvent(new Event("change"));
+          if (NombreAlergenoBase) NombreAlergenoBase.value = alergenoRaw;
+        }
 
 
         const IdZonaTerritorialBase = CargarDatosPaciente[0].IdZonaResidencia;
@@ -721,6 +731,8 @@ SelectPacientes.addEventListener("change", async function (e) {
     EdadPaciente.value = "";
     DireccionPaciente.value = "";
     TelefonoPaciente.value = "";
+    if (TieneAlergiaBase) TieneAlergiaBase.checked = false;
+    if (NombreAlergenoBase) NombreAlergenoBase.value = "";
     SelectHistoriasSinRIPS.innerHTML = "";
 
     PrimerApellidoBase.value = "";

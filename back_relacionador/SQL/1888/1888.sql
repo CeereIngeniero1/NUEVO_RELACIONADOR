@@ -380,7 +380,9 @@ SELECT
     o.[Id Ocupación] AS IdOcupación,
     o.[Código Ocupación] AS CódigoOcupación,
     o.[Ocupación] AS Ocupación,
-    o.[Descripción Ocupación] AS DescripciónOcupación
+    o.[Descripción Ocupación] AS DescripciónOcupación,
+    e1888.[Alergias] AS Alergias,
+    e1888.[Alergeno] AS Alergeno
 FROM dbo.Entidad e
 LEFT JOIN dbo.[Tipo de Documento] td
     ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
@@ -419,7 +421,7 @@ GO
 -- CREACION DEL PROCEDIMIENTO ALMACENADO PARA GUARDAR LOS DATOS DEL PACIENTE EN LA ENTIDAD1888
 -- Aun no esta temrinado se debe modular y se debe hacer un update  por cada dato nuevo ingresado la idea es solo un pa que sea secuencial y que vaya actualizando cada campo nuevo ingresado en la entidad1888
 
-CREATE PROCEDURE  sp_Paciente_Guardar
+CREATE OR ALTER PROCEDURE  sp_Paciente_Guardar
 	@IdTipoDocumento INT, -- Entidad
 	@Documento NVARCHAR(50) = NULL,
 	@PrimerApellido NVARCHAR(50) = NULL,	-- Entidad
@@ -441,7 +443,9 @@ CREATE PROCEDURE  sp_Paciente_Guardar
 	@ComunidadEtnica NVARCHAR(50) = NULL,	-- Entidad1888
 	@IdDiscapacidad INT,	-- Entidad1888
 	@Telefono NVARCHAR(50) = NULL,	-- EntidadII
-	@IdOcupacion INT	-- EntidadVI
+	@IdOcupacion INT,	-- EntidadVI
+	@Alergias NVARCHAR(90) = NULL,	-- Entidad1888
+	@Alergeno NVARCHAR(200) = NULL	-- Entidad1888
 
 
 AS
@@ -537,7 +541,9 @@ BEGIN
                E1888.[Id Municipio Recidencia] = @IdMunicipio,
                E1888.[Id Etnia] = @IdEtnia,
                E1888.[Comunidad Etnica] = @ComunidadEtnica,
-               E1888.[Id Discapacidad] = @IdDiscapacidad
+               E1888.[Id Discapacidad] = @IdDiscapacidad,
+               E1888.[Alergias] = @Alergias,
+               E1888.[Alergeno] = @Alergeno
         FROM Entidad1888 E1888
         WHERE E1888.[Documento Entidad] = @Documento;
 
