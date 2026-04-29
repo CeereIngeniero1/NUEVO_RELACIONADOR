@@ -165,18 +165,10 @@ function initActualizarPaciente() {
         "DiscapacidadBase",
         "TelefonoPaciente",
         "OcupacionBase",
-        "TieneAlergiaBase",
         "NombreAlergenoBase"
     ];
 
-    const chkTieneAlergia = document.getElementById("TieneAlergiaBase");
     const txtNombreAlergeno = document.getElementById("NombreAlergenoBase");
-
-    function syncEstadoAlergias() {
-        if (!chkTieneAlergia || !txtNombreAlergeno) return;
-        const debeHabilitarTexto = modoEdicionPaciente && chkTieneAlergia.checked;
-        txtNombreAlergeno.disabled = !debeHabilitarTexto;
-    }
 
     function setCamposPacienteDisabled(disabled) {
         camposPaciente.forEach(id => {
@@ -187,13 +179,12 @@ function initActualizarPaciente() {
         if (documento) documento.disabled = true;
         const edad = document.getElementById("EdadPaciente");
         if (edad) edad.disabled = true;
-        syncEstadoAlergias();
     }
 
     function obtenerPayloadPaciente() {
         recalcularEdadPaciente();
-        const tieneAlergia = !!(chkTieneAlergia && chkTieneAlergia.checked);
         const alergenoTexto = txtNombreAlergeno ? txtNombreAlergeno.value.trim() : "";
+        const tieneAlergia = alergenoTexto.length > 0;
         return {
             IdTipoDocumento: parseInt(document.getElementById("TipoDocumentoBase").value) || null,
             Documento: document.getElementById("DocumentoPaciente").value.trim(),
@@ -257,11 +248,6 @@ function initActualizarPaciente() {
     modoEdicionPaciente = false;
     $("#BtnActualizarPaciente").html('<span class="icon">⟳</span> Actualizar datos paciente');
 
-    if (chkTieneAlergia && !chkTieneAlergia.dataset.boundAlergiaToggle) {
-        chkTieneAlergia.addEventListener("change", syncEstadoAlergias);
-        chkTieneAlergia.dataset.boundAlergiaToggle = "1";
-    }
-
     $("#BtnActualizarPaciente").click(async function () {
         const documento = document.getElementById("DocumentoPaciente").value.trim();
 
@@ -273,7 +259,6 @@ function initActualizarPaciente() {
         if (!modoEdicionPaciente) {
             setCamposPacienteDisabled(false);
             modoEdicionPaciente = true;
-            syncEstadoAlergias();
             $(this).html('<span class="icon">💾</span> Guardar cambios');
         } else {
             await guardarPaciente();
