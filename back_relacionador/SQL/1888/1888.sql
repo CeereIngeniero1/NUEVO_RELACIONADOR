@@ -956,9 +956,9 @@ Create Table [Evaluacion Entidad RDA]
     [Id Municipio Recidencia]         INT          NULL,
     [Id Zona Residencia]              INT          NULL,
     [Dirección]                       NVARCHAR(255) NULL,
-    [Id Etnia]                        INT          NOT NULL DEFAULT 0,
+    [Id Etnia]                        INT          NULL,
     [Comunidad Etnica]                VARCHAR(50)  NOT NULL DEFAULT '',
-    [Id Discapacidad]                 INT          NOT NULL DEFAULT 0,
+    [Id Discapacidad]                 INT          NULL,
     [Teléfono Celular]                NVARCHAR(50) NULL,
     [Alergeno]                        VARCHAR(200) NULL,
     -- Campos RDA Paciente (Resolución 1888)
@@ -1003,8 +1003,8 @@ Create Table [Evaluacion Entidad RDA]
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [NIT Prestador IPS]             NVARCHAR(20) NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Prestador IPS]          NVARCHAR(200) NULL;
 
--- Si la tabla ya existe y fue creada con [Id Identidad Genero] NOT NULL/DEFAULT 0,
--- ejecutar este bloque para dejarla nullable (permite guardar sin forzar 0):
+-- Si la tabla ya existe y fue creada con columnas NOT NULL/DEFAULT 0,
+-- ejecutar este bloque para dejarlas nullable (permite guardar sin forzar 0):
 IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U') IS NOT NULL
 BEGIN
     DECLARE @dfIdentidadGenero SYSNAME;
@@ -1023,6 +1023,40 @@ BEGIN
 
     ALTER TABLE [dbo].[Evaluacion Entidad RDA]
     ALTER COLUMN [Id Identidad Genero] INT NULL;
+
+    DECLARE @dfIdEtnia SYSNAME;
+    SELECT @dfIdEtnia = dc.name
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND c.name = N'Id Etnia';
+
+    IF @dfIdEtnia IS NOT NULL
+    BEGIN
+        EXEC(N'ALTER TABLE [dbo].[Evaluacion Entidad RDA] DROP CONSTRAINT [' + @dfIdEtnia + N']');
+    END
+
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA]
+    ALTER COLUMN [Id Etnia] INT NULL;
+
+    DECLARE @dfIdDiscapacidad SYSNAME;
+    SELECT @dfIdDiscapacidad = dc.name
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND c.name = N'Id Discapacidad';
+
+    IF @dfIdDiscapacidad IS NOT NULL
+    BEGIN
+        EXEC(N'ALTER TABLE [dbo].[Evaluacion Entidad RDA] DROP CONSTRAINT [' + @dfIdDiscapacidad + N']');
+    END
+
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA]
+    ALTER COLUMN [Id Discapacidad] INT NULL;
 END
 GO
 
