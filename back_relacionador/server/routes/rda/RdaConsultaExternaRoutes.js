@@ -33,7 +33,7 @@
 'use strict';
 
 const Router      = require('express').Router;
-const { randomUUID } = require('crypto');
+const { randomUUID, createHash } = require('crypto');
 const { sql, poolPromise } = require('../../db2');
 const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
 
@@ -78,6 +78,66 @@ function resolveEthnicityForFhir(codigoEtnia, textoEtnia) {
     }
     if (!code) return null;
     return { code, display: display || undefined };
+}
+
+async function saveIhceTraceConsultaExterna({
+    idEvaluacionEntidadRDACE,
+    ambiente,
+    urlEnvio,
+    jsonEnviado,
+    httpStatus,
+    jsonRespuesta,
+    exitoso,
+    error,
+}) {
+    try {
+        const pool = await poolPromise;
+        const hash = jsonEnviado ? createHash('sha256').update(String(jsonEnviado)).digest('hex') : null;
+        await pool.request()
+            .input('TipoRda', sql.VarChar(20), 'ce')
+            .input('IdRDA', sql.Int, null)
+            .input('IdRDACE', sql.Int, idEvaluacionEntidadRDACE || null)
+            .input('Ambiente', sql.VarChar(20), ambiente || null)
+            .input('UrlEnvio', sql.NVarChar(sql.MAX), urlEnvio || null)
+            .input('JsonEnviado', sql.NVarChar(sql.MAX), jsonEnviado || null)
+            .input('HashJsonEnviado', sql.Char(64), hash || null)
+            .input('HttpStatus', sql.Int, Number.isFinite(httpStatus) ? httpStatus : null)
+            .input('JsonRespuesta', sql.NVarChar(sql.MAX), jsonRespuesta || null)
+            .input('Exitoso', sql.Bit, exitoso ? 1 : 0)
+            .input('ErrorTexto', sql.NVarChar(1000), error || null)
+            .query(`
+                INSERT INTO [dbo].[RDA IHCE Trazabilidad]
+                (
+                    [Tipo RDA],
+                    [Id Evaluacion Entidad RDA],
+                    [Id Evaluacion Entidad RDA Consulta Externa],
+                    [Ambiente],
+                    [URL Envio IHCE],
+                    [JSON Enviado],
+                    [Hash SHA256 JSON Enviado],
+                    [HTTP Status Respuesta],
+                    [JSON Respuesta],
+                    [Exitoso],
+                    [Error]
+                )
+                VALUES
+                (
+                    @TipoRda,
+                    @IdRDA,
+                    @IdRDACE,
+                    @Ambiente,
+                    @UrlEnvio,
+                    @JsonEnviado,
+                    @HashJsonEnviado,
+                    @HttpStatus,
+                    @JsonRespuesta,
+                    @Exitoso,
+                    @ErrorTexto
+                )
+            `);
+    } catch (traceErr) {
+        console.error('⚠️ [RDACE] No se pudo guardar trazabilidad IHCE:', traceErr && traceErr.message ? traceErr.message : traceErr);
+    }
 }
 
 function sanitizeOptionalPatientFields(patient) {
@@ -2135,6 +2195,16 @@ router.post(
         });
 
         const statusOk = sendResp.status >= 200 && sendResp.status < 300;
+        await saveIhceTraceConsultaExterna({
+            idEvaluacionEntidadRDACE: id,
+            ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
+            urlEnvio: sendUrl,
+            jsonEnviado: sendBody,
+            httpStatus: sendResp.status,
+            jsonRespuesta: sendResp.body || '',
+            exitoso: statusOk,
+            error: statusOk ? null : `HTTP ${sendResp.status}`,
+        });
         if (statusOk) {
             try {
                 const pool = await poolPromise;

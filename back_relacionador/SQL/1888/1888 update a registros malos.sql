@@ -150,6 +150,36 @@ IF OBJECT_ID(N'[dbo].[TR_Entidad_Insert]', N'TR') IS NOT NULL
     DROP TRIGGER [dbo].[TR_Entidad_Insert];
 GO
 
+/* ============================================================================
+   TRAZABILIDAD JSON ENVIADO A IHCE (RDA Paciente / CE)
+   ============================================================================ */
+IF OBJECT_ID(N'[dbo].[RDA IHCE Trazabilidad]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[RDA IHCE Trazabilidad]
+    (
+        [Id Trazabilidad IHCE] INT IDENTITY(1,1) PRIMARY KEY,
+        [Tipo RDA] VARCHAR(20) NOT NULL, -- paciente | ce
+        [Id Evaluacion Entidad RDA] INT NULL,
+        [Id Evaluacion Entidad RDA Consulta Externa] INT NULL,
+        [Ambiente] VARCHAR(20) NULL, -- sandbox | prod
+        [URL Envio IHCE] NVARCHAR(500) NULL,
+        [JSON Enviado] NVARCHAR(MAX) NULL,
+        [Hash SHA256 JSON Enviado] CHAR(64) NULL,
+        [HTTP Status Respuesta] INT NULL,
+        [JSON Respuesta] NVARCHAR(MAX) NULL,
+        [Exitoso] BIT NOT NULL CONSTRAINT [DF_RDA_IHCE_Trazabilidad_Exitoso] DEFAULT (0),
+        [Error] NVARCHAR(1000) NULL,
+        [Fecha Creacion] DATETIME2(0) NOT NULL CONSTRAINT [DF_RDA_IHCE_Trazabilidad_Fecha] DEFAULT (SYSDATETIME())
+    );
+
+    CREATE INDEX [IX_RDA_IHCE_Trazabilidad_Tipo_Fecha]
+        ON [dbo].[RDA IHCE Trazabilidad]([Tipo RDA], [Fecha Creacion] DESC);
+
+    CREATE INDEX [IX_RDA_IHCE_Trazabilidad_IdRDA]
+        ON [dbo].[RDA IHCE Trazabilidad]([Id Evaluacion Entidad RDA], [Id Evaluacion Entidad RDA Consulta Externa]);
+END
+GO
+
 IF OBJECT_ID(N'[dbo].[TR_Entidad_Update_Doc]', N'TR') IS NOT NULL
     DROP TRIGGER [dbo].[TR_Entidad_Update_Doc];
 GO

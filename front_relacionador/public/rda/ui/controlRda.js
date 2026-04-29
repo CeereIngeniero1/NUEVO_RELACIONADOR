@@ -12,6 +12,11 @@ export function initControlRda() {
     const contenidoRDA = document.getElementById("ContenidoRDA");
     const seccionPaciente = document.getElementById("SeccionRDAPaciente");
     const seccionConsultaExt = document.getElementById("SeccionRDAConsultaExterna");
+    const radioPaciente = document.getElementById("RDATipoPaciente");
+    const labelRadioPaciente = document.querySelector('label[for="RDATipoPaciente"]');
+
+    if (radioPaciente) radioPaciente.classList.add("d-none");
+    if (labelRadioPaciente) labelRadioPaciente.classList.add("d-none");
 
     let lastTipoRDA = "consultaExterna";
 
@@ -24,7 +29,8 @@ export function initControlRda() {
     }
 
     function onTipoRDAChange(e) {
-        const tipo = e.target.value;
+        let tipo = e.target.value;
+        if (tipo === "paciente") tipo = "consultaExterna";
         lastTipoRDA = tipo;
 
         contenidoRDA?.classList.remove("d-none");
