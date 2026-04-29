@@ -189,15 +189,17 @@
             makeHeaderSortable(ths[3], 'Nombre paciente', 'nombreCompleto');
             makeHeaderSortable(ths[4], 'Fecha RDA', 'fechaRda');
             makeHeaderSortable(ths[5], 'Cód. prestador', 'codigoPrestador');
-            makeHeaderSortable(ths[6], 'Plan beneficios', 'nombreAdminPlanBeneficios');
-            makeHeaderSortable(ths[7], 'Atención', 'atencion');
+            makeHeaderSortable(ths[6], 'Doc. profesional', 'numDocProfesional');
+            makeHeaderSortable(ths[7], 'Plan beneficios', 'nombreAdminPlanBeneficios');
+            makeHeaderSortable(ths[8], 'Atención', 'atencion');
         } else {
             makeHeaderSortable(ths[1], 'Id', 'id');
             makeHeaderSortable(ths[2], 'Documento', 'documento');
             makeHeaderSortable(ths[3], 'Fecha RDA', 'fechaRda');
             makeHeaderSortable(ths[4], 'Cód. prestador', 'codigoPrestador');
-            makeHeaderSortable(ths[5], 'Plan beneficios', 'nombreAdminPlanBeneficios');
-            makeHeaderSortable(ths[6], 'Atención', 'atencion');
+            makeHeaderSortable(ths[5], 'Doc. profesional', 'numDocProfesional');
+            makeHeaderSortable(ths[6], 'Plan beneficios', 'nombreAdminPlanBeneficios');
+            makeHeaderSortable(ths[7], 'Atención', 'atencion');
         }
     }
 
@@ -212,7 +214,7 @@
         state.resultadosPorId = {};
         el.chkTodos.checked = false;
         if (!state.filas.length) {
-            const colspan = state.tipo === 'ce' ? 8 : 9;
+            const colspan = 11;
             el.tbody.innerHTML =
                 `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">No hay registros pendientes en el rango.</td></tr>`;
             el.btnEnviar.disabled = true;
@@ -227,11 +229,13 @@
                        <td>${escapeHtml(nombrePaciente(f))}</td>
                        <td>${escapeHtml(fmtFecha(f.fechaRda))}</td>
                        <td>${escapeHtml(f.codigoPrestador || '—')}</td>
+                       <td>${escapeHtml(f.numDocProfesional || '—')}</td>
                        <td>${escapeHtml(f.nombreAdminPlanBeneficios || '—')}</td>
                        <td>${escapeHtml(ventanaAtencion(f))}</td>`
                     : `<td>${escapeHtml(f.documento)}</td>
                        <td>${escapeHtml(fmtFecha(f.fechaRda))}</td>
                        <td>${escapeHtml(f.codigoPrestador || '—')}</td>
+                       <td>${escapeHtml(f.numDocProfesional || '—')}</td>
                        <td>${escapeHtml(f.nombreAdminPlanBeneficios || '—')}</td>
                        <td>${escapeHtml(ventanaAtencion(f))}</td>`;
             return `<tr data-id="${id}">
@@ -239,6 +243,7 @@
                 <td>${id}</td>
                 ${baseCells}
                 <td class="celda-resultado text-muted">—</td>
+                <td class="celda-corregir text-muted">—</td>
             </tr>`;
         });
         el.tbody.innerHTML = rows.join('');
@@ -605,6 +610,7 @@
                 const row = el.tbody.querySelector(`tr[data-id="${r.id}"]`);
                 if (row) {
                     const cel = row.querySelector('.celda-resultado');
+                    const celCorregir = row.querySelector('.celda-corregir');
                     if (cel) {
                         if (r.ok) {
                             cel.innerHTML =
@@ -618,6 +624,18 @@
                         const btn = cel.querySelector('.btn-detalle');
                         if (btn) {
                             btn.addEventListener('click', () => mostrarDetalle(r));
+                        }
+                    }
+                    if (celCorregir) {
+                        const esProd = state.ambiente === 'prod';
+                        if (r.ok) {
+                            celCorregir.innerHTML = '<span class="text-muted">—</span>';
+                        } else if (!esProd) {
+                            celCorregir.innerHTML = '<span class="badge bg-secondary">Solo producción</span>';
+                        } else {
+                            const tipoParam = state.tipo === 'ce' ? 'ce' : 'paciente';
+                            celCorregir.innerHTML =
+                                `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
                         }
                     }
                 }
@@ -671,8 +689,9 @@
                 syncThead();
                 wireSortHeaders();
                 const colspan = state.tipo === 'ce' ? 8 : 9;
+                const colspanFix = 11;
                 el.tbody.innerHTML =
-                    `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td></tr>`;
+                    `<tr><td colspan="${colspanFix}" class="text-center py-4 text-muted">Pulse <strong>Buscar</strong> para cargar pendientes.</td></tr>`;
                 el.btnEnviar.disabled = true;
             });
 

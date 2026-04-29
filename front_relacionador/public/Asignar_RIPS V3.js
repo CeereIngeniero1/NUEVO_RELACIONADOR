@@ -5694,4 +5694,186 @@ async function AgregarOpcionPorDefecto(Select) {
 /* ========================================================================================================= */
 /* Delegada al módulo ES rda/index.js (biometria.js + controlRda.js)                                       */
 
+/* ========================================================================================================= */
+/* =============================== MODO CORRECCIÓN RDA (DESDE MASIVO) ===================================== */
+/* ========================================================================================================= */
+(function initModoCorreccionRdaDesdeMasivo() {
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    const modo = String(qs.get("modo") || "").toLowerCase();
+    if (modo !== "corregir-rda") return;
+
+    const tipo = String(qs.get("tipo") || "paciente").toLowerCase() === "ce" ? "ce" : "paciente";
+    const id = parseInt(qs.get("id") || "", 10);
+    const ambiente = String(qs.get("ambiente") || "").toLowerCase();
+    if (!Number.isFinite(id)) return;
+    if (ambiente && ambiente !== "prod") {
+      Swal.fire({ icon: "warning", title: "Corrección RDA", text: "Este flujo de corrección solo está habilitado para producción." });
+      return;
+    }
+
+    // En modo corrección no se requiere selección/búsqueda de paciente.
+    const ocultarEnModoCorreccion = () => {
+      const ids = ["cardSeleccionPaciente"];
+      ids.forEach((cardId) => {
+        const node = document.getElementById(cardId);
+        if (node) node.style.display = "none";
+      });
+    };
+    ocultarEnModoCorreccion();
+
+    const activarRdaPorDefectoSegunTipo = () => {
+      const checkRda = document.getElementById("GenerarRDABase");
+      const radioPaciente = document.getElementById("RDATipoPaciente");
+      const radioCe = document.getElementById("RDATipoConsultaExterna");
+      const contenidoRda = document.getElementById("ContenidoRDA");
+      const seccionPaciente = document.getElementById("SeccionRDAPaciente");
+      const seccionCe = document.getElementById("SeccionRDAConsultaExterna");
+      const cardRda = document.getElementById("cardRDA");
+
+      if (checkRda) {
+        checkRda.checked = true;
+        try { checkRda.dispatchEvent(new Event("change", { bubbles: true })); } catch (_) {}
+      }
+
+      if (radioPaciente) radioPaciente.disabled = false;
+      if (radioCe) radioCe.disabled = false;
+
+      if (tipo === "ce") {
+        if (radioCe) {
+          radioCe.checked = true;
+          try { radioCe.dispatchEvent(new Event("change", { bubbles: true })); } catch (_) {}
+        }
+        if (seccionCe) seccionCe.classList.remove("d-none");
+        if (seccionPaciente) seccionPaciente.classList.add("d-none");
+      } else {
+        if (radioPaciente) {
+          radioPaciente.checked = true;
+          try { radioPaciente.dispatchEvent(new Event("change", { bubbles: true })); } catch (_) {}
+        }
+        if (seccionPaciente) seccionPaciente.classList.remove("d-none");
+        if (seccionCe) seccionCe.classList.add("d-none");
+      }
+
+      if (contenidoRda) contenidoRda.classList.remove("d-none");
+      if (cardRda) cardRda.classList.remove("collapsed");
+    };
+
+    const descubrirModulosRda = () => {
+      const scope = tipo === "ce" ? "#SeccionRDAConsultaExterna" : "#SeccionRDAPaciente";
+      const cards = document.querySelectorAll(`${scope} .rda-module-card`);
+      cards.forEach((c) => c.classList.remove("rda-module-collapsed"));
+    };
+
+    activarRdaPorDefectoSegunTipo();
+    setTimeout(descubrirModulosRda, 300);
+    setTimeout(descubrirModulosRda, 1200);
+
+    const setInput = (idEl, value) => {
+      const el = document.getElementById(idEl);
+      if (!el) return;
+      el.value = value == null ? "" : String(value);
+      try { el.dispatchEvent(new Event("change")); } catch (_) {}
+    };
+    const setSelect2OrInput = (idEl, value, text) => {
+      const el = document.getElementById(idEl);
+      if (!el) return;
+      const v = value == null ? "" : String(value);
+      const t = text == null ? v : String(text);
+      try {
+        if (window.jQuery && window.jQuery(el).data("select2")) {
+          const opt = new Option(t, v, true, true);
+          window.jQuery(el).append(opt).trigger("change");
+          return;
+        }
+      } catch (_) {}
+      el.value = v;
+      try { el.dispatchEvent(new Event("change")); } catch (_) {}
+    };
+    const toDatetimeLocal = (v) => {
+      if (!v) return "";
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const cargar = async () => {
+      const resp = await fetch(`${getApiBaseUrl()}/apiV3/RdaEnvioMasivo/${tipo}/${id}`, { headers: { "Content-Type": "application/json" } });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        throw new Error(data.error || "No se pudo cargar el RDA a corregir.");
+      }
+      const pac = data.registroPaciente || null;
+      const ce = data.registroCe || null;
+
+      if (pac) {
+        setInput("DocumentoPaciente", pac["Documento Entidad"]);
+        setInput("TipoDocumentoBase", pac["Id Tipo Documento"]);
+        setInput("PrimerApellidoBase", pac["Primer Apellido Entidad"]);
+        setInput("SegundoApellidoBase", pac["Segundo Apellido Entidad"]);
+        setInput("PrimerNombreBase", pac["Primer Nombre Entidad"]);
+        setInput("SegundoNombreBase", pac["Segundo Nombre Entidad"]);
+        setInput("FechaNacimientoBase", toDatetimeLocal(pac["Fecha Nacimiento"]));
+        setInput("EdadPaciente", pac["Edad"]);
+        setInput("SexoPaciente", pac["Id Sexo Biologico"]);
+        setInput("IdentidadGeneroBase", pac["Id Identidad Genero"]);
+        setInput("SelectNombrePaisNacionalidadBase", pac["Id Pais Nacionalidad"]);
+        setInput("TallaPaciente", pac["Talla"]);
+        setInput("PesoPaciente", pac["Peso"]);
+        setInput("SelectNombrePaisResidenciaBase", pac["Id Pais Recidencia"]);
+        setInput("SelectNombreMunicipioResidenciaBase", pac["Id Municipio Recidencia"]);
+        setInput("ListaZonaTerritorialBase", pac["Id Zona Residencia"]);
+        setInput("DireccionPaciente", pac["Dirección"]);
+        setInput("EtniaBase", pac["Id Etnia"]);
+        setInput("ComunidadEtnicaBase", pac["Comunidad Etnica"]);
+        setInput("DiscapacidadBase", pac["Id Discapacidad"]);
+        setInput("TelefonoPaciente", pac["Teléfono Celular"]);
+        setInput("NombreAlergenoBase", pac["Alergeno"]);
+        setInput("RDA_CodigoPrestador", pac["Codigo Prestador"]);
+        setInput("RDA_CodigoAdminPlanBeneficios", pac["Codigo Admin Plan Beneficios"]);
+        setInput("RDA_NombreAdminPlanBeneficios", pac["Nombre Admin Plan Beneficios"]);
+        setInput("RDA_FechaAtencion", toDatetimeLocal(pac["Fecha Hora Inicio Atencion"]).slice(0, 10));
+        setInput("RDA_HoraInicioAtencion", toDatetimeLocal(pac["Fecha Hora Inicio Atencion"]).slice(11, 16));
+        setInput("RDA_HoraFinAtencion", toDatetimeLocal(pac["Fecha Hora Fin Atencion"]).slice(11, 16));
+        setInput("RDA_TipoDocProfesional", pac["Tipo Doc Profesional"]);
+        setSelect2OrInput("RDA_NumDocProfesional", pac["Num Doc Profesional"], pac["Num Doc Profesional"]);
+        setInput("RDA_DiagnosticoIngresoCIE11Codigo", pac["Diagnostico Ingreso CIE11 Codigo"]);
+        setSelect2OrInput("RDA_DiagnosticoIngresoCIE11Termino", pac["Diagnostico Ingreso CIE11 Termino"], pac["Diagnostico Ingreso CIE11 Termino"]);
+        setInput("RDA_IdModalidadAtencion", pac["Id Modalidad Atencion"]);
+        setInput("RDA_IdGrupoServicios", pac["Id Grupo Servicios"]);
+      }
+
+      if (ce) {
+        setInput("RDACE_IdEvaluacionActual", ce["Id Evaluacion Entidad RDA Consulta Externa"]);
+        setInput("RDACE_CodigoPrestador", ce["Codigo Prestador"]);
+        setInput("RDACE_CodigoAdminPlanBeneficios", ce["Codigo Admin Plan Beneficios"]);
+        setInput("RDACE_NombreAdminPlanBeneficios", ce["Nombre Admin Plan Beneficios"]);
+        setInput("RDACE_FechaAtencion", toDatetimeLocal(ce["Fecha Hora Inicio Atencion"]).slice(0, 10));
+        setInput("RDACE_HoraInicioAtencion", toDatetimeLocal(ce["Fecha Hora Inicio Atencion"]).slice(11, 16));
+        setInput("RDACE_HoraFinAtencion", toDatetimeLocal(ce["Fecha Hora Fin Atencion"]).slice(11, 16));
+        setInput("RDACE_TipoDocProfesional", ce["Tipo Doc Profesional"]);
+        setSelect2OrInput("RDACE_NumDocProfesional", ce["Num Doc Profesional"], ce["Num Doc Profesional"]);
+        setInput("RDACE_DiagnosticoIngresoCIE11Codigo", ce["Diagnostico Ingreso CIE11 Codigo"]);
+        setSelect2OrInput("RDACE_DiagnosticoIngresoCIE11Termino", ce["Diagnostico Ingreso CIE11 Termino"], ce["Diagnostico Ingreso CIE11 Termino"]);
+        setInput("RDACE_IdModalidadAtencion", ce["Id Modalidad Atencion"]);
+        setInput("RDACE_IdGrupoServicios", ce["Id Grupo Servicios"]);
+        setInput("RDACE_IdViaIngresoUsuario", ce["Id Via Ingreso Usuario"]);
+        setInput("RDACE_IdCausaMotivoAtencion", ce["Id Causa Motivo Atencion"]);
+      }
+
+      Swal.fire({
+        icon: "info",
+        title: "Modo corrección RDA",
+        text: "Se cargaron datos del registro seleccionado. Ajusta los campos necesarios y guarda desde el módulo correspondiente.",
+      });
+      descubrirModulosRda();
+    };
+
+    setTimeout(() => { cargar().catch((e) => Swal.fire({ icon: "error", title: "Corrección RDA", text: e.message || String(e) })); }, 800);
+  } catch (e) {
+    console.error("[ModoCorreccionRDA] Error:", e);
+  }
+})();
+
 
