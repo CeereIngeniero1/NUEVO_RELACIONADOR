@@ -176,7 +176,6 @@ function initActualizarPaciente() {
         if (!chkTieneAlergia || !txtNombreAlergeno) return;
         const debeHabilitarTexto = modoEdicionPaciente && chkTieneAlergia.checked;
         txtNombreAlergeno.disabled = !debeHabilitarTexto;
-        if (!chkTieneAlergia.checked) txtNombreAlergeno.value = "";
     }
 
     function setCamposPacienteDisabled(disabled) {
