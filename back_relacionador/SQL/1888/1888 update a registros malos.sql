@@ -156,3 +156,23 @@ GO
 
 
 
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @dfIdentidadGenero SYSNAME;
+    SELECT @dfIdentidadGenero = dc.name
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND c.name = N'Id Identidad Genero';
+
+    IF @dfIdentidadGenero IS NOT NULL
+    BEGIN
+        EXEC(N'ALTER TABLE [dbo].[Evaluacion Entidad RDA] DROP CONSTRAINT [' + @dfIdentidadGenero + N']');
+    END
+
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA]
+    ALTER COLUMN [Id Identidad Genero] INT NULL;
+END
+GO

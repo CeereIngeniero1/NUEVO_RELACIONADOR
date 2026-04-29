@@ -475,7 +475,8 @@ BEGIN
     -------------------------------------------------------------------
     BEGIN TRY
         UPDATE E
-           SET E.[Primer Apellido Entidad] = @PrimerApellido,
+           SET E.[Id Tipo de Documento] = ISNULL(@IdTipoDocumento, E.[Id Tipo de Documento]),
+               E.[Primer Apellido Entidad] = @PrimerApellido,
                E.[Segundo Apellido Entidad] = @SegundoApellido,
                E.[Primer Nombre Entidad] = @PrimerNombre,
                E.[Segundo Nombre Entidad] = @SegundoNombre
@@ -560,7 +561,7 @@ BEGIN
     -------------------------------------------------------------------
     BEGIN TRY
         UPDATE E6
-           SET E6.[Id Ocupación] = @IdOcupacion
+           SET E6.[Id Ocupación] = ISNULL(@IdOcupacion, E6.[Id Ocupación])
         FROM EntidadVI E6
         WHERE E6.[Documento Entidad] = @Documento;
 
@@ -947,7 +948,7 @@ Create Table [Evaluacion Entidad RDA]
     [Edad]                            FLOAT        NULL,
     [Id Unidad de Medida Edad]        INT          NULL,
     [Id Sexo Biologico]               INT          NULL,
-    [Id Identidad Genero]             INT          NOT NULL DEFAULT 0,
+    [Id Identidad Genero]             INT          NULL,
     [Id Pais Nacionalidad]            INT          NULL,
     [Talla]                           VARCHAR(10)  NOT NULL DEFAULT '0',
     [Peso]                            VARCHAR(10)  NOT NULL DEFAULT '0',
@@ -1001,6 +1002,29 @@ Create Table [Evaluacion Entidad RDA]
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Id Grupo Servicios]            INT          NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [NIT Prestador IPS]             NVARCHAR(20) NULL;
 -- ALTER TABLE [Evaluacion Entidad RDA] ADD [Nombre Prestador IPS]          NVARCHAR(200) NULL;
+
+-- Si la tabla ya existe y fue creada con [Id Identidad Genero] NOT NULL/DEFAULT 0,
+-- ejecutar este bloque para dejarla nullable (permite guardar sin forzar 0):
+IF OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @dfIdentidadGenero SYSNAME;
+    SELECT @dfIdentidadGenero = dc.name
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.object_id = dc.parent_object_id
+       AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA]', N'U')
+      AND c.name = N'Id Identidad Genero';
+
+    IF @dfIdentidadGenero IS NOT NULL
+    BEGIN
+        EXEC(N'ALTER TABLE [dbo].[Evaluacion Entidad RDA] DROP CONSTRAINT [' + @dfIdentidadGenero + N']');
+    END
+
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA]
+    ALTER COLUMN [Id Identidad Genero] INT NULL;
+END
+GO
 
 
 

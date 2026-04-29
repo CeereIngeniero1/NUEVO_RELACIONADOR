@@ -213,11 +213,51 @@ function initActualizarPaciente() {
         };
     }
 
+    function esValorVacio(v) {
+        if (v == null) return true;
+        const s = String(v).trim().toLowerCase();
+        return s === "" || s === "null" || s === "undefined";
+    }
+
+    function validarObligatoriosPaciente() {
+        const required = [
+            { id: "TipoDocumentoBase", label: "Tipo Documento" },
+            { id: "DocumentoPaciente", label: "Número Documento" },
+            { id: "PrimerApellidoBase", label: "Primer Apellido" },
+            { id: "PrimerNombreBase", label: "Primer Nombre" },
+            { id: "FechaNacimientoBase", label: "Fecha y Hora Nacimiento" },
+            { id: "SexoPaciente", label: "Sexo Biológico" },
+            { id: "SelectNombrePaisNacionalidadBase", label: "Nacionalidad (País)" },
+            { id: "SelectNombrePaisResidenciaBase", label: "País Residencia" },
+            { id: "SelectNombreMunicipioResidenciaBase", label: "Municipio Residencia" },
+            { id: "ListaZonaTerritorialBase", label: "Zona Territorial" },
+            { id: "EtniaBase", label: "Etnia" },
+            { id: "DiscapacidadBase", label: "Discapacidad" }
+        ];
+
+        const faltantes = [];
+        required.forEach(({ id, label }) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = (el.value ?? "").toString();
+            const invalido = esValorVacio(v);
+            el.classList.toggle("is-invalid", invalido);
+            if (invalido) faltantes.push(label);
+        });
+        return faltantes;
+    }
+
     async function guardarPaciente() {
         const payload = obtenerPayloadPaciente();
 
         if (!payload.Documento) {
             alert("Debe existir un documento antes de actualizar.");
+            return;
+        }
+
+        const faltantes = validarObligatoriosPaciente();
+        if (faltantes.length > 0) {
+            alert(`Completa los campos obligatorios antes de guardar:\n- ${faltantes.join("\n- ")}`);
             return;
         }
 

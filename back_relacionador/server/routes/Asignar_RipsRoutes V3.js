@@ -451,6 +451,118 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
             fila.Edad = edadCalculada;
         };
 
+        const normalizarUbicacionPorDefecto = async () => {
+            if (!Array.isArray(result.recordset) || result.recordset.length === 0) return;
+            const fila = result.recordset[0];
+            const sinPaisNacionalidad = !fila?.IdPaisNacionalidad;
+            const sinPaisResidencia = !fila?.IdPaisRecidencia;
+            const sinMunicipioResidencia = !fila?.IdMunicipioRecidencia;
+            if (!sinPaisNacionalidad && !sinPaisResidencia && !sinMunicipioResidencia) return;
+
+            try {
+                const defaultsRs = await pool.request().query(`
+                    SELECT
+                        (
+                            SELECT TOP (1) p.[Id Pais1888]
+                            FROM [dbo].[País1888] p
+                            WHERE p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia'
+                               OR p.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'%Colombia%'
+                            ORDER BY CASE WHEN p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia' THEN 0 ELSE 1 END, p.[Id Pais1888]
+                        ) AS IdPaisColombia,
+                        (
+                            SELECT TOP (1) p.[Codigo]
+                            FROM [dbo].[País1888] p
+                            WHERE p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia'
+                               OR p.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'%Colombia%'
+                            ORDER BY CASE WHEN p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia' THEN 0 ELSE 1 END, p.[Id Pais1888]
+                        ) AS CodigoPaisColombia,
+                        (
+                            SELECT TOP (1) p.[Nombre]
+                            FROM [dbo].[País1888] p
+                            WHERE p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia'
+                               OR p.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'%Colombia%'
+                            ORDER BY CASE WHEN p.[Nombre] COLLATE Latin1_General_CI_AI = N'Colombia' THEN 0 ELSE 1 END, p.[Id Pais1888]
+                        ) AS NombrePaisColombia,
+                        (
+                            SELECT TOP (1) c.[Id Ciudad1888]
+                            FROM [dbo].[Ciudad1888] c
+                            WHERE c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellin'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellín'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellin%'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellín%'
+                            ORDER BY CASE WHEN c.[Nombre] COLLATE Latin1_General_CI_AI IN (N'Medellin', N'Medellín') THEN 0 ELSE 1 END, c.[Id Ciudad1888]
+                        ) AS IdCiudadMedellin,
+                        (
+                            SELECT TOP (1) c.[Codigo]
+                            FROM [dbo].[Ciudad1888] c
+                            WHERE c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellin'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellín'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellin%'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellín%'
+                            ORDER BY CASE WHEN c.[Nombre] COLLATE Latin1_General_CI_AI IN (N'Medellin', N'Medellín') THEN 0 ELSE 1 END, c.[Id Ciudad1888]
+                        ) AS CodigoCiudadMedellin,
+                        (
+                            SELECT TOP (1) c.[Nombre]
+                            FROM [dbo].[Ciudad1888] c
+                            WHERE c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellin'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI = N'Medellín'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellin%'
+                               OR c.[Nombre] COLLATE Latin1_General_CI_AI LIKE N'Medellín%'
+                            ORDER BY CASE WHEN c.[Nombre] COLLATE Latin1_General_CI_AI IN (N'Medellin', N'Medellín') THEN 0 ELSE 1 END, c.[Id Ciudad1888]
+                        ) AS NombreCiudadMedellin
+                `);
+
+                const d = defaultsRs?.recordset?.[0];
+                if (!d) return;
+
+                const idPais = d.IdPaisColombia || null;
+                const idCiudad = d.IdCiudadMedellin || null;
+                if (!idPais && !idCiudad) return;
+
+                await pool.request()
+                    .input('DocumentoPaciente', sql.NVarChar(50), documentoPacienteLimpio)
+                    .input('IdPaisColombia', sql.Int, idPais)
+                    .input('IdCiudadMedellin', sql.Int, idCiudad)
+                    .query(`
+                        UPDATE [dbo].[Entidad1888]
+                        SET [Id Pais Nacionalidad] = CASE
+                                WHEN ([Id Pais Nacionalidad] IS NULL OR [Id Pais Nacionalidad] = 0) AND @IdPaisColombia IS NOT NULL
+                                    THEN @IdPaisColombia
+                                ELSE [Id Pais Nacionalidad]
+                            END,
+                            [Id Pais Recidencia] = CASE
+                                WHEN ([Id Pais Recidencia] IS NULL OR [Id Pais Recidencia] = 0) AND @IdPaisColombia IS NOT NULL
+                                    THEN @IdPaisColombia
+                                ELSE [Id Pais Recidencia]
+                            END,
+                            [Id Municipio Recidencia] = CASE
+                                WHEN ([Id Municipio Recidencia] IS NULL OR [Id Municipio Recidencia] = 0) AND @IdCiudadMedellin IS NOT NULL
+                                    THEN @IdCiudadMedellin
+                                ELSE [Id Municipio Recidencia]
+                            END
+                        WHERE LTRIM(RTRIM([Documento Entidad])) = @DocumentoPaciente
+                    `);
+
+                if (sinPaisNacionalidad && idPais) {
+                    fila.IdPaisNacionalidad = idPais;
+                    fila.CodigoPaisNacionalidad = d.CodigoPaisColombia || fila.CodigoPaisNacionalidad || '';
+                    fila.NombrePaisNACIONALIDAD = d.NombrePaisColombia || fila.NombrePaisNACIONALIDAD || 'COLOMBIA';
+                }
+                if (sinPaisResidencia && idPais) {
+                    fila.IdPaisRecidencia = idPais;
+                    fila.CodigoPaisRecidencia = d.CodigoPaisColombia || fila.CodigoPaisRecidencia || '';
+                    fila.NombrePaisRecidencia = d.NombrePaisColombia || fila.NombrePaisRecidencia || 'COLOMBIA';
+                }
+                if (sinMunicipioResidencia && idCiudad) {
+                    fila.IdMunicipioRecidencia = idCiudad;
+                    fila.CodigoMunicipioRecidencia = d.CodigoCiudadMedellin || fila.CodigoMunicipioRecidencia || '';
+                    fila.NombreMunicipioRecidencia = d.NombreCiudadMedellin || fila.NombreMunicipioRecidencia || 'MEDELLIN';
+                }
+            } catch (ubicacionErr) {
+                console.error('⚠️ No se pudo aplicar ubicación por defecto (Colombia/Medellín):', ubicacionErr);
+            }
+        };
+
         // Si no existe en el directorio de usuarios, validar si está en Entidad y crear fila base en Entidad1888.
         if (!Array.isArray(result.recordset) || result.recordset.length === 0) {
             const existsEntidad = await pool.request()
@@ -573,6 +685,7 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
         }
 
         await sincronizarEdadEntidadIII();
+        await normalizarUbicacionPorDefecto();
 
         res.json(result.recordset);
 
@@ -2682,6 +2795,12 @@ router.post('/ActualizarPaciente', async (req, res) => {
         Alergeno
     } = req.body;
 
+    const isEmptyRequired = (v) => {
+        if (v === null || v === undefined) return true;
+        const s = String(v).trim().toLowerCase();
+        return s === '' || s === 'null' || s === 'undefined';
+    };
+
     console.log(req.body);
     console.log(IdOcupacion);
     const fechaNacimientoValida = FechaNacimiento ? new Date(FechaNacimiento) : null;
@@ -2697,6 +2816,12 @@ router.post('/ActualizarPaciente', async (req, res) => {
     const edadParaGuardar = edadCalculada != null
         ? String(edadCalculada)
         : (Edad != null && String(Edad).trim() !== '' ? String(Edad).trim() : null);
+    const idTipoDocumentoSeguro = (IdTipoDocumento != null && String(IdTipoDocumento).trim() !== '' && !Number.isNaN(parseInt(String(IdTipoDocumento).trim(), 10)))
+        ? parseInt(String(IdTipoDocumento).trim(), 10)
+        : null;
+    const idOcupacionSeguro = (IdOcupacion != null && String(IdOcupacion).trim() !== '' && !Number.isNaN(parseInt(String(IdOcupacion).trim(), 10)))
+        ? parseInt(String(IdOcupacion).trim(), 10)
+        : null;
 
     if (FechaNacimiento && isNaN(fechaNacimientoValida.getTime())) {
         return res.status(400).json({
@@ -2710,6 +2835,27 @@ router.post('/ActualizarPaciente', async (req, res) => {
         return res.status(400).json({
             success: false,
             message: 'El campo Documento es obligatorio'
+        });
+    }
+
+    const requiredFields = [
+        { key: 'IdTipoDocumento', value: IdTipoDocumento, label: 'Tipo Documento' },
+        { key: 'PrimerApellido', value: PrimerApellido, label: 'Primer Apellido' },
+        { key: 'PrimerNombre', value: PrimerNombre, label: 'Primer Nombre' },
+        { key: 'FechaNacimiento', value: FechaNacimiento, label: 'Fecha y Hora Nacimiento' },
+        { key: 'SexoBio', value: SexoBio, label: 'Sexo Biológico' },
+        { key: 'IdNacionalidad', value: IdNacionalidad, label: 'Nacionalidad (País)' },
+        { key: 'IdResidencia', value: IdResidencia, label: 'País Residencia' },
+        { key: 'IdMunicipio', value: IdMunicipio, label: 'Municipio Residencia' },
+        { key: 'IdZonaTerritorial', value: IdZonaTerritorial, label: 'Zona Territorial' },
+        { key: 'IdEtnia', value: IdEtnia, label: 'Etnia' },
+        { key: 'IdDiscapacidad', value: IdDiscapacidad, label: 'Discapacidad' },
+    ];
+    const missing = requiredFields.filter(f => isEmptyRequired(f.value));
+    if (missing.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: `Faltan campos obligatorios: ${missing.map(m => m.label).join(', ')}`
         });
     }
 
@@ -2816,7 +2962,7 @@ router.post('/ActualizarPaciente', async (req, res) => {
         })();
     });
 
-    request.addParameter('IdTipoDocumento', TYPES.Int, IdTipoDocumento);
+    request.addParameter('IdTipoDocumento', TYPES.Int, idTipoDocumentoSeguro);
     request.addParameter('Documento', TYPES.NVarChar, Documento);
     request.addParameter('PrimerApellido', TYPES.NVarChar, PrimerApellido || null);
     request.addParameter('SegundoApellido', TYPES.NVarChar, SegundoApellido || null);
@@ -2837,7 +2983,7 @@ router.post('/ActualizarPaciente', async (req, res) => {
     request.addParameter('ComunidadEtnica', TYPES.NVarChar, ComunidadEtnica || null);
     request.addParameter('IdDiscapacidad', TYPES.Int, IdDiscapacidad);
     request.addParameter('Telefono', TYPES.NVarChar, Telefono || null);
-    request.addParameter('IdOcupacion', TYPES.Int, IdOcupacion);
+    request.addParameter('IdOcupacion', TYPES.Int, idOcupacionSeguro);
 
     request.on('row', columns => {
         const fila = {};

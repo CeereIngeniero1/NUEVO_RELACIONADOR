@@ -146,6 +146,14 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
         NitPrestadorIPS, NombrePrestadorIPS,
     } = req.body;
 
+    const parseIntNullable = (value) => {
+        if (value === null || value === undefined) return null;
+        const s = String(value).trim();
+        if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
+        const n = parseInt(s, 10);
+        return Number.isFinite(n) ? n : null;
+    };
+
     const codPrestTrim = CodigoPrestador != null ? String(CodigoPrestador).trim() : '';
     if (!codPrestTrim || codPrestTrim.toLowerCase() === 'null') {
         return res.status(400).json({
@@ -171,6 +179,45 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
 
     try {
         const pool = await poolPromise;
+        let idIdentidadGeneroSeguro = parseIntNullable(IdIdentidadGenero);
+
+        // Si no llega IdIdentidadGenero válido, usar automáticamente un valor seguro.
+        // Se intenta "Sin asignar/No aplica" del catálogo; fallback final: 6.
+        if (idIdentidadGeneroSeguro == null) {
+            const generoRs = await pool.request().query(`
+                SELECT TOP (1) g.[Id Sexo Identidad Genero] AS IdSexoIdentidadGenero
+                FROM [dbo].[Sexo Identidad Genero] g
+                WHERE g.[Identidad Genero] COLLATE Latin1_General_CI_AI LIKE N'%Sin asignar%'
+                   OR g.[Identidad Genero] COLLATE Latin1_General_CI_AI LIKE N'%No aplica%'
+                   OR g.[Identidad Genero] COLLATE Latin1_General_CI_AI LIKE N'%No informado%'
+                   OR g.[Identidad Genero] COLLATE Latin1_General_CI_AI LIKE N'%Indeterminado%'
+                ORDER BY g.[Id Sexo Identidad Genero]
+            `);
+            idIdentidadGeneroSeguro = generoRs?.recordset?.[0]?.IdSexoIdentidadGenero ?? 6;
+        }
+
+        let idDiscapacidadSeguro = parseIntNullable(IdDiscapacidad);
+
+        // Si no llega IdDiscapacidad válido, usar automáticamente "Sin discapacidad"
+        if (idDiscapacidadSeguro == null) {
+            const fallbackRs = await pool.request().query(`
+                SELECT TOP (1) d.[Id Discapacidad] AS IdDiscapacidad
+                FROM [dbo].[Discapacidad] d
+                WHERE d.[Discapacidad] COLLATE Latin1_General_CI_AI LIKE N'%Sin discapacidad%'
+                   OR d.[Descripcion Discapacidad] COLLATE Latin1_General_CI_AI LIKE N'%Sin discapacidad%'
+                   OR d.[Codigo] IN (N'09', N'9')
+                ORDER BY
+                    CASE
+                        WHEN d.[Discapacidad] COLLATE Latin1_General_CI_AI = N'Sin discapacidad' THEN 0
+                        WHEN d.[Descripcion Discapacidad] COLLATE Latin1_General_CI_AI = N'Sin discapacidad' THEN 1
+                        ELSE 2
+                    END,
+                    d.[Id Discapacidad]
+            `);
+
+            idDiscapacidadSeguro = fallbackRs?.recordset?.[0]?.IdDiscapacidad ?? 9;
+        }
+
         const result = await pool.request()
             .input('DocumentoEntidad',              sql.NVarChar,  DocumentoEntidad                 || null)
             .input('FechaRDA',                      sql.DateTime2, toDate(FechaRDA)                 || new Date())
@@ -183,7 +230,7 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('Edad',                          sql.Float,     Edad                             ? parseFloat(Edad) : null)
             .input('IdUnidaddeMedidaEdad',          sql.Int,       IdUnidaddeMedidaEdad             ? parseInt(IdUnidaddeMedidaEdad)    : null)
             .input('IdSexoBiologico',               sql.Int,       IdSexoBiologico                  ? parseInt(IdSexoBiologico)         : null)
-            .input('IdIdentidadGenero',             sql.Int,       IdIdentidadGenero                ? parseInt(IdIdentidadGenero)       : 0)
+            .input('IdIdentidadGenero',             sql.Int,       idIdentidadGeneroSeguro)
             .input('IdPaisNacionalidad',            sql.Int,       IdPaisNacionalidad               ? parseInt(IdPaisNacionalidad)      : null)
             .input('Talla',                         sql.NVarChar,  Talla                            || '0')
             .input('Peso',                          sql.NVarChar,  Peso                             || '0')
@@ -193,7 +240,7 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('Direccion',                     sql.NVarChar,  Direccion                        || null)
             .input('IdEtnia',                       sql.Int,       IdEtnia                          ? parseInt(IdEtnia)                 : 0)
             .input('ComunidadEtnica',               sql.NVarChar,  ComunidadEtnica                  || '')
-            .input('IdDiscapacidad',                sql.Int,       IdDiscapacidad                   ? parseInt(IdDiscapacidad)          : 0)
+            .input('IdDiscapacidad',                sql.Int,       idDiscapacidadSeguro)
             .input('TelefonoCelular',               sql.NVarChar,  TelefonoCelular                  || null)
             .input('Alergeno',                      sql.NVarChar,  Alergeno                         || null)
             // Campos RDA Paciente (Resolución 1888)

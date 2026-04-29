@@ -77,6 +77,37 @@ function rdaceValidateRequiredForSave() {
     return missing;
 }
 
+function rdaceIsMissingRequired(v) {
+    if (v == null) return true;
+    const s = String(v).trim().toLowerCase();
+    return s === '' || s === 'null' || s === 'undefined';
+}
+
+function rdaceValidatePacienteRequiredForSave() {
+    const requiredPaciente = [
+        { id: 'TipoDocumentoBase', label: 'Tipo Documento', getValue: () => rdaceGetInputValue('TipoDocumentoBase') },
+        { id: 'DocumentoPaciente', label: 'Número Documento', getValue: () => rdaceGetInputValue('DocumentoPaciente') },
+        { id: 'PrimerApellidoBase', label: 'Primer Apellido', getValue: () => rdaceGetInputValue('PrimerApellidoBase') },
+        { id: 'PrimerNombreBase', label: 'Primer Nombre', getValue: () => rdaceGetInputValue('PrimerNombreBase') },
+        { id: 'FechaNacimientoBase', label: 'Fecha y Hora Nacimiento', getValue: () => rdaceGetInputValue('FechaNacimientoBase') },
+        { id: 'SexoPaciente', label: 'Sexo Biológico', getValue: () => rdaceGetInputValue('SexoPaciente') },
+        { id: 'SelectNombrePaisNacionalidadBase', label: 'Nacionalidad (País)', getValue: () => rdaceGetInputValue('SelectNombrePaisNacionalidadBase') },
+        { id: 'SelectNombrePaisResidenciaBase', label: 'País Residencia', getValue: () => rdaceGetInputValue('SelectNombrePaisResidenciaBase') },
+        { id: 'SelectNombreMunicipioResidenciaBase', label: 'Municipio Residencia', getValue: () => rdaceGetInputValue('SelectNombreMunicipioResidenciaBase') },
+        { id: 'ListaZonaTerritorialBase', label: 'Zona Territorial', getValue: () => rdaceGetInputValue('ListaZonaTerritorialBase') },
+        { id: 'EtniaBase', label: 'Etnia', getValue: () => rdaceGetInputValue('EtniaBase') },
+        { id: 'DiscapacidadBase', label: 'Discapacidad', getValue: () => rdaceGetInputValue('DiscapacidadBase') },
+    ];
+    const missing = [];
+    requiredPaciente.forEach((f) => {
+        const v = f.getValue();
+        const isMissing = rdaceIsMissingRequired(v);
+        rdaceMarkFieldInvalid(f.id, isMissing);
+        if (isMissing) missing.push(f.label);
+    });
+    return missing;
+}
+
 function rdaceAttachDigitsOnlyFilter(inputId) {
     const input = document.getElementById(inputId);
     if (!input || input.dataset?.digitsOnlyAttached === '1') return;
@@ -168,6 +199,12 @@ async function rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace }) {
         cie11Termino = document.getElementById('RDACE_DiagnosticoIngresoCIE11Termino')?.value || null;
     }
 
+    const rawIdDiscapacidad = (document.getElementById('DiscapacidadBase')?.value || '').trim();
+    const idDiscapacidadSeguro =
+        !rawIdDiscapacidad || rawIdDiscapacidad.toLowerCase() === 'null' || rawIdDiscapacidad.toLowerCase() === 'undefined'
+            ? '9'
+            : rawIdDiscapacidad;
+
     const payloadPaciente = {
         DocumentoEntidad: documento,
         FechaRDA: ahora,
@@ -190,7 +227,7 @@ async function rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace }) {
         Direccion: document.getElementById('DireccionPaciente')?.value || null,
         IdEtnia: document.getElementById('EtniaBase')?.value || null,
         ComunidadEtnica: document.getElementById('ComunidadEtnicaBase')?.value || null,
-        IdDiscapacidad: document.getElementById('DiscapacidadBase')?.value || null,
+        IdDiscapacidad: idDiscapacidadSeguro,
         TelefonoCelular: document.getElementById('TelefonoPaciente')?.value || null,
         Alergeno: document.getElementById('NombreAlergenoBase')?.value || null,
         CodigoPrestador: document.getElementById('RDACE_CodigoPrestador')?.value || null,
@@ -254,6 +291,17 @@ export async function guardarRDACE() {
 
     if (!documento) {
         Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA Consulta Externa.' });
+        return;
+    }
+
+    const missingPaciente = rdaceValidatePacienteRequiredForSave();
+    if (missingPaciente.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos obligatorios del paciente pendientes',
+            html: 'Complete los campos del paciente marcados con asterisco antes de guardar.<br><br><b>Faltan:</b><br> - '
+                + missingPaciente.join('<br> - '),
+        });
         return;
     }
 
