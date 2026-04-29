@@ -176,3 +176,302 @@ BEGIN
     ALTER COLUMN [Id Identidad Genero] INT NULL;
 END
 GO
+
+
+
+
+
+
+-- CREACION DEL PROCEDIMIENTO ALMACENADO PARA GUARDAR LOS DATOS DEL PACIENTE EN LA ENTIDAD1888
+-- Aun no esta temrinado se debe modular y se debe hacer un update  por cada dato nuevo ingresado la idea es solo un pa que sea secuencial y que vaya actualizando cada campo nuevo ingresado en la entidad1888
+
+CREATE OR ALTER PROCEDURE  sp_Paciente_Guardar
+	@IdTipoDocumento INT, -- Entidad
+	@Documento NVARCHAR(50) = NULL,
+	@PrimerApellido NVARCHAR(50) = NULL,	-- Entidad
+	@SegundoApellido NVARCHAR(50) = NULL,	-- Entidad
+	@PrimerNombre NVARCHAR(50) = NULL,	-- Entidad
+	@SegundoNombre NVARCHAR(50) = NULL,	-- Entidad 
+	@FechaNacimiento DateTime,	-- EntidadIII
+	@Edad NVARCHAR(50) = NULL,	-- EntidadIII
+	@SexoBio INT,	-- EntidadIII
+	@SexoIdenti INT,	-- Entidad1888
+	@IdNacionalidad INT, -- Entidad1888
+	@Talla NVARCHAR(50) = NULL,	-- Entidad1888
+	@Peso NVARCHAR(50) = NULL,	-- Entidad1888
+	@IdResidencia INT,	-- Entidad1888
+	@IdMunicipio INT,	-- Entidad1888
+	@IdZonaTerritorial INT,	-- EntidadIII
+	@Direccion NVARCHAR(50) = NULL,	-- EntidadII
+	@IdEtnia INT,	-- Entidad1888
+	@ComunidadEtnica NVARCHAR(50) = NULL,	-- Entidad1888
+	@IdDiscapacidad INT,	-- Entidad1888
+	@Telefono NVARCHAR(50) = NULL,	-- EntidadII
+	@IdOcupacion INT,	-- EntidadVI
+	@Alergias NVARCHAR(90) = NULL,	-- Entidad1888
+	@Alergeno NVARCHAR(200) = NULL	-- Entidad1888
+
+
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Validación mínima
+    IF ISNULL(LTRIM(RTRIM(@Documento)), '') = ''
+    BEGIN
+        RAISERROR('El parámetro @Documento es obligatorio.', 16, 1);
+        RETURN;
+    END;
+
+    -------------------------------------------------------------------
+    -- Tabla de resultados por bloque
+    -------------------------------------------------------------------
+    DECLARE @Resultado TABLE
+    (
+        Paso NVARCHAR(50),
+        Estado NVARCHAR(20),
+        Mensaje NVARCHAR(4000),
+        FilasAfectadas INT
+    );
+
+    -------------------------------------------------------------------
+    -- 1. UPDATE ENTIDAD
+    -------------------------------------------------------------------
+    BEGIN TRY
+        UPDATE E
+           SET E.[Id Tipo de Documento] = ISNULL(@IdTipoDocumento, E.[Id Tipo de Documento]),
+               E.[Primer Apellido Entidad] = @PrimerApellido,
+               E.[Segundo Apellido Entidad] = @SegundoApellido,
+               E.[Primer Nombre Entidad] = @PrimerNombre,
+               E.[Segundo Nombre Entidad] = @SegundoNombre
+        FROM Entidad E
+        WHERE E.[Documento Entidad] = @Documento;
+
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('Entidad', 'OK', 'Actualización correcta', @@ROWCOUNT);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('Entidad', 'ERROR', ERROR_MESSAGE(), 0);
+    END CATCH;
+
+    -------------------------------------------------------------------
+    -- 2. UPDATE ENTIDADII
+    -------------------------------------------------------------------
+    BEGIN TRY
+        UPDATE E2
+           SET E2.[Dirección EntidadII] = @Direccion,
+               E2.[Teléfono Celular EntidadII] = @Telefono
+        FROM EntidadII E2
+        WHERE E2.[Documento Entidad] = @Documento;
+
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadII', 'OK', 'Actualización correcta', @@ROWCOUNT);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadII', 'ERROR', ERROR_MESSAGE(), 0);
+    END CATCH;
+
+    -------------------------------------------------------------------
+    -- 3. UPDATE ENTIDADIII
+    -------------------------------------------------------------------
+    BEGIN TRY
+        UPDATE E3
+           SET E3.[Fecha Nacimiento EntidadIII] = @FechaNacimiento,
+               E3.[Edad EntidadIII] = @Edad,
+               E3.[Id Sexo] = @SexoBio,
+               E3.[Id Zona Residencia] = @IdZonaTerritorial
+        FROM EntidadIII E3
+        WHERE E3.[Documento Entidad] = @Documento;
+
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadIII', 'OK', 'Actualización correcta', @@ROWCOUNT);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadIII', 'ERROR', ERROR_MESSAGE(), 0);
+    END CATCH;
+
+    -------------------------------------------------------------------
+    -- 4. UPDATE ENTIDAD1888
+    -------------------------------------------------------------------
+    BEGIN TRY
+        UPDATE E1888
+           SET E1888.[Id Identidad Genero] = @SexoIdenti,
+               E1888.[Id Pais Nacionalidad] = @IdNacionalidad,
+               E1888.[Talla] = @Talla,
+               E1888.[Peso] = @Peso,
+               E1888.[Id Pais Recidencia] = @IdResidencia,
+               E1888.[Id Municipio Recidencia] = @IdMunicipio,
+               E1888.[Id Etnia] = @IdEtnia,
+               E1888.[Comunidad Etnica] = @ComunidadEtnica,
+               E1888.[Id Discapacidad] = @IdDiscapacidad,
+               E1888.[Alergias] = @Alergias,
+               E1888.[Alergeno] = @Alergeno
+        FROM Entidad1888 E1888
+        WHERE E1888.[Documento Entidad] = @Documento;
+
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('Entidad1888', 'OK', 'Actualización correcta', @@ROWCOUNT);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('Entidad1888', 'ERROR', ERROR_MESSAGE(), 0);
+    END CATCH;
+
+    -------------------------------------------------------------------
+    -- 5. UPDATE ENTIDADVI
+    -------------------------------------------------------------------
+    BEGIN TRY
+        UPDATE E6
+           SET E6.[Id Ocupación] = ISNULL(@IdOcupacion, E6.[Id Ocupación])
+        FROM EntidadVI E6
+        WHERE E6.[Documento Entidad] = @Documento;
+
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadVI', 'OK', 'Actualización correcta', @@ROWCOUNT);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO @Resultado (Paso, Estado, Mensaje, FilasAfectadas)
+        VALUES ('EntidadVI', 'ERROR', ERROR_MESSAGE(), 0);
+    END CATCH;
+
+    -------------------------------------------------------------------
+    -- Resumen final
+    -------------------------------------------------------------------
+    SELECT 
+        Paso,
+        Estado,
+        Mensaje,
+        FilasAfectadas
+    FROM @Resultado;
+END;
+GO
+
+
+
+-- Garantiza creación automática en Entidad1888 cuando nace una Entidad nueva
+-- o cuando se actualiza/corrige el documento en Entidad.
+CREATE OR ALTER TRIGGER [dbo].[trg_Entidad_AfterInsert_EnsureEntidad1888]
+ON [dbo].[Entidad]
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO [dbo].[Entidad1888] ([Documento Entidad])
+    SELECT LTRIM(RTRIM(i.[Documento Entidad]))
+    FROM inserted i
+    WHERE i.[Documento Entidad] IS NOT NULL
+      AND LTRIM(RTRIM(i.[Documento Entidad])) <> ''
+      AND NOT EXISTS (
+          SELECT 1
+          FROM [dbo].[Entidad1888] e
+          WHERE LTRIM(RTRIM(e.[Documento Entidad])) = LTRIM(RTRIM(i.[Documento Entidad]))
+      );
+END;
+GO
+
+-- Evitar solapamiento con triggers legacy que pueden duplicar inserciones
+IF OBJECT_ID(N'[dbo].[TR_Entidad_Insert]', N'TR') IS NOT NULL
+    DROP TRIGGER [dbo].[TR_Entidad_Insert];
+GO
+
+IF OBJECT_ID(N'[dbo].[TR_Entidad_Update_Doc]', N'TR') IS NOT NULL
+    DROP TRIGGER [dbo].[TR_Entidad_Update_Doc];
+GO
+
+
+
+ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
+AS
+SELECT
+    e.[Id Tipo de Documento] AS IdTipodeDocumento,
+    td.[Descripción Tipo de Documento] AS DescripciTipoDocumento,
+    td.[Tipo de Documento] AS TipoDocumentoBase,
+    e.[Documento Entidad] AS DocumentoPaciente,
+    e.[Primer Apellido Entidad] AS PrimerApellidoBase,
+    e.[Segundo Apellido Entidad] AS SegundoApellidoBase,
+    e.[Primer Nombre Entidad] AS PrimerNombreBase,
+    e.[Segundo Nombre Entidad] AS SegundoNombreBase,
+    e.[Nombre Completo Entidad] AS NombreCompletoPaciente,
+    sx.[Sexo] AS SexoPaciente,
+    sx.[Descripción Sexo] AS Sexo,
+    sx.[Código Sexo] AS CódigoSexo,
+    sx.[Id Sexo] AS IdSexo,
+    e3.[Edad EntidadIII] AS Edad,
+    e2.[Dirección EntidadII] AS Direccion,
+    e2.[Teléfono Celular EntidadII] AS Tel,
+    ISNULL(td.[Tipo de Documento], '') + N' ' + e.[Documento Entidad] AS DocumentoTipoDOC,
+    e3.[Fecha Nacimiento EntidadIII] AS FechaNacimientoBase,
+    e3.[Id Sexo],
+    e1888.[Id Identidad Genero],
+    sig.[Id Sexo Identidad Genero] AS IdSexoIdentidadGenero,
+    sig.[Codigo] AS codigoIdentidadGeneroBase,
+    sig.[Identidad Genero] AS IdentidadGeneroBase,
+    e3.[Id Zona Residencia],
+    e1888.[Talla],
+    e1888.[Peso],
+    e1888.[Id Etnia],
+    e1888.[Comunidad Etnica] AS ComunidadEtnica,
+    e1888.[Id Discapacidad],
+    pn.[Id Pais1888] AS IdPaisNacionalidad,
+    pn.[Codigo] AS CodigoPaisNacionalidad,
+    pn.[Nombre] AS NombrePaisNACIONALIDAD,
+    pr.[Id Pais1888] AS IdPaisRecidencia,
+    pr.[Codigo] AS CodigoPaisRecidencia,
+    pr.[Nombre] AS NombrePaisRecidencia,
+    cr.[Id Ciudad1888] AS IdMunicipioRecidencia,
+    cr.[Codigo] AS CodigoMunicipioRecidencia,
+    cr.[Nombre] AS NombreMunicipioRecidencia,
+    zr.[Id Zona Residencia] AS IdZonaResidencia,
+    zr.[Descripción Zona Residencia] AS DescripciónZonaResidencia,
+    zr.[Código Zona Residencia] AS CódigoZonaResidencia,
+    zr.[Zona Residencia] AS ZonaResidencia,
+    et.[Id Etnia] AS IdEtnia,
+    et.[Código Etnia] AS CódigoEtnia,
+    et.[Etnia] AS Etnia,
+    et.[Descripción Etnia] AS DescripciónEtnia,
+    d.[Id Discapacidad] AS IdDiscapacidad,
+    d.[Codigo] AS Codigo,
+    d.[Discapacidad] AS Discapacidad,
+    d.[Descripcion Discapacidad] AS DescripcionDiscapacidad,
+    o.[Id Ocupación] AS IdOcupación,
+    o.[Código Ocupación] AS CódigoOcupación,
+    o.[Ocupación] AS Ocupación,
+    o.[Descripción Ocupación] AS DescripciónOcupación,
+    e1888.[Alergias] AS Alergias,
+    e1888.[Alergeno] AS Alergeno
+FROM dbo.Entidad e
+LEFT JOIN dbo.[Tipo de Documento] td
+    ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
+LEFT JOIN dbo.EntidadII e2
+    ON e2.[Documento Entidad] = e.[Documento Entidad]
+LEFT JOIN dbo.EntidadIII e3
+    ON e3.[Documento Entidad] = e.[Documento Entidad]
+LEFT JOIN dbo.Sexo sx
+    ON sx.[Id Sexo] = e3.[Id Sexo]
+LEFT JOIN dbo.Entidad1888 e1888
+    ON LTRIM(RTRIM(e1888.[Documento Entidad])) = LTRIM(RTRIM(e.[Documento Entidad]))
+LEFT JOIN dbo.[Sexo Identidad Genero] sig
+    ON sig.[Id Sexo Identidad Genero] = e1888.[Id Identidad Genero]
+LEFT JOIN dbo.País1888 pn
+    ON pn.[Id Pais1888] = e1888.[Id Pais Nacionalidad]
+LEFT JOIN dbo.País1888 pr
+    ON pr.[Id Pais1888] = e1888.[Id Pais Recidencia]
+LEFT JOIN dbo.Ciudad1888 cr
+    ON cr.[Id Ciudad1888] = e1888.[Id Municipio Recidencia]
+LEFT JOIN dbo.[Zona Residencia] zr
+    ON zr.[Id Zona Residencia] = e3.[Id Zona Residencia]
+LEFT JOIN dbo.Etnia et
+    ON et.[Id Etnia] = e1888.[Id Etnia]
+LEFT JOIN dbo.Discapacidad d
+    ON d.[Id Discapacidad] = e1888.[Id Discapacidad]
+LEFT JOIN dbo.EntidadVI e6
+    ON e6.[Documento Entidad] = e.[Documento Entidad]
+LEFT JOIN dbo.Ocupación o
+    ON o.[Id Ocupación] = e6.[Id Ocupación]
+GO
+
+
