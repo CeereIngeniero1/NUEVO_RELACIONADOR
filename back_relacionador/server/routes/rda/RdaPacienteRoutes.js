@@ -25,9 +25,20 @@ const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
     const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
-    if (c === '7') return true;
-    if (t && /sin\s*asignar/i.test(t)) return true;
+    const cNum = c && /^\d+$/.test(c) ? String(parseInt(c, 10)) : c;
+    if (cNum === '7') return true; // soporta 7, 07, 007
+    if (t && /(sin\s*asignar|sin\s*informaci[oó]n|no\s*aplica)/i.test(t)) return true;
     return false;
+}
+
+function resolveEthnicityForFhir(codigoEtnia, textoEtnia) {
+    const code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    const display = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    if (skipRdaEthnicityExtension(code, display)) {
+        return { code: 'Y', display: 'Y' };
+    }
+    if (!code) return null;
+    return { code, display: display || undefined };
 }
 
 function sanitizeOptionalPatientFields(patient) {
@@ -1149,13 +1160,14 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     },
                 });
             }
-            if (str(h.CodigoEtnia) && !skipRdaEthnicityExtension(h.CodigoEtnia, h.TextoEtnia)) {
+            const ethnicity = resolveEthnicityForFhir(h.CodigoEtnia, h.TextoEtnia);
+            if (ethnicity) {
                 patExt.push({
                     url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity',
                     valueCoding: {
                         system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
-                        code: str(h.CodigoEtnia),
-                        display: str(h.TextoEtnia) || undefined,
+                        code: ethnicity.code,
+                        display: ethnicity.display,
                     },
                 });
             }

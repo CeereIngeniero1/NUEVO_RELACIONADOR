@@ -394,21 +394,183 @@ router.get('/UsuariosHC/:DocumentoUsuario/:fechaInicio/:fechaFin', async (req, r
 router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
     try {
         const DocumentoPaciente = req.params.DocumentoPaciente;
+        const documentoPacienteLimpio = (DocumentoPaciente || '').trim();
+
+        const calcularEdadDesdeFecha = (valorFecha) => {
+            if (!valorFecha) return null;
+            const fecha = valorFecha instanceof Date ? valorFecha : new Date(valorFecha);
+            if (isNaN(fecha.getTime())) return null;
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - fecha.getFullYear();
+            const m = hoy.getMonth() - fecha.getMonth();
+            if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) edad--;
+            return edad < 0 ? 0 : edad;
+        };
 
         const pool = await poolPromise;
 
-        const result = await pool.request()
+        const queryUsuarioInfo = `
+                SELECT TOP (1)
+                    IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase,
+                    PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, SexoPaciente, Sexo, CódigoSexo, IdSexo, Edad, Direccion, Tel,
+                    DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], IdSexoIdentidadGenero, codigoIdentidadGeneroBase,
+                    IdentidadGeneroBase, [Id Zona Residencia], Talla, Peso, [Id Etnia], ComunidadEtnica, [Id Discapacidad], IdPaisNacionalidad,
+                    CodigoPaisNacionalidad, NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia,
+                    IdMunicipioRecidencia, CodigoMunicipioRecidencia, NombreMunicipioRecidencia, IdZonaResidencia, DescripciónZonaResidencia,
+                    CódigoZonaResidencia, ZonaResidencia, IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdDiscapacidad, Codigo, Discapacidad,
+                    DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación
+                FROM [dbo].[Cnsta Relacionador Usuarios Info]
+                WHERE LTRIM(RTRIM(DocumentoPaciente)) = LTRIM(RTRIM(@DocumentoPaciente))
+            `;
+
+        let result = await pool.request()
             .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente) // Usa el tipo y longitud adecuados
-            .query(`
-                SELECT 
-                 IdTipodeDocumento, DescripciTipoDocumento, TipoDocumentoBase, DocumentoPaciente, PrimerApellidoBase, SegundoApellidoBase, PrimerNombreBase, SegundoNombreBase, NombreCompletoPaciente, SexoPaciente, Sexo, 
-                  CódigoSexo, IdSexo, Edad, Direccion, Tel, DocumentoTipoDOC, FechaNacimientoBase, [Id Sexo], [Id Identidad Genero], IdSexoIdentidadGenero, codigoIdentidadGeneroBase, IdentidadGeneroBase, [Id Zona Residencia], Talla, Peso, 
-                  [Id Etnia], ComunidadEtnica, [Id Discapacidad], IdPaisNacionalidad, CodigoPaisNacionalidad, NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia, IdMunicipioRecidencia, 
-                  CodigoMunicipioRecidencia, NombreMunicipioRecidencia, IdZonaResidencia, DescripciónZonaResidencia, CódigoZonaResidencia, ZonaResidencia, IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdDiscapacidad, Codigo, Discapacidad, 
-                  DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación
-FROM     [Cnsta Relacionador Usuarios Info]
-                WHERE DocumentoPaciente = @DocumentoPaciente
-            `);
+            .query(queryUsuarioInfo);
+
+        const sincronizarEdadEntidadIII = async () => {
+            if (!Array.isArray(result.recordset) || result.recordset.length === 0) return;
+            const fila = result.recordset[0];
+            const edadCalculada = calcularEdadDesdeFecha(fila?.FechaNacimientoBase);
+            if (edadCalculada == null) return;
+
+            const edadActual = Number.parseInt(fila?.Edad, 10);
+            if (Number.isNaN(edadActual) || edadActual !== edadCalculada) {
+                try {
+                    await pool.request()
+                        .input('DocumentoPaciente', sql.NVarChar(50), documentoPacienteLimpio)
+                        .input('EdadCalculada', sql.Int, edadCalculada)
+                        .query(`
+                            UPDATE [dbo].[EntidadIII]
+                            SET [Edad EntidadIII] = @EdadCalculada
+                            WHERE LTRIM(RTRIM([Documento Entidad])) = @DocumentoPaciente
+                        `);
+                } catch (syncErr) {
+                    console.error('⚠️ No se pudo sincronizar Edad en EntidadIII:', syncErr);
+                }
+            }
+            fila.Edad = edadCalculada;
+        };
+
+        // Si no existe en el directorio de usuarios, validar si está en Entidad y crear fila base en Entidad1888.
+        if (!Array.isArray(result.recordset) || result.recordset.length === 0) {
+            const existsEntidad = await pool.request()
+                .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente)
+                .query(`
+                    SELECT TOP (1) [Documento Entidad] AS DocumentoEntidad
+                    FROM [dbo].[Entidad]
+                    WHERE [Documento Entidad] = @DocumentoPaciente
+                `);
+
+            if (existsEntidad.recordset && existsEntidad.recordset.length > 0) {
+                await pool.request()
+                    .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente)
+                    .query(`
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM [dbo].[Entidad1888]
+                            WHERE [Documento Entidad] = @DocumentoPaciente
+                        )
+                        BEGIN
+                            INSERT INTO [dbo].[Entidad1888] ([Documento Entidad])
+                            VALUES (@DocumentoPaciente)
+                        END
+                    `);
+
+                // Reintentar lectura desde la vista después de crear Entidad1888.
+                result = await pool.request()
+                    .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente)
+                    .query(queryUsuarioInfo);
+
+                // Fallback final: si la vista aún no devuelve fila, armar registro base desde Entidad.
+                if (!Array.isArray(result.recordset) || result.recordset.length === 0) {
+                    const baseRs = await pool.request()
+                        .input('DocumentoPaciente', sql.VarChar(50), DocumentoPaciente)
+                        .query(`
+                            SELECT TOP (1)
+                                e.[Id Tipo de Documento]                 AS IdTipodeDocumento,
+                                td.[Descripción Tipo de Documento]       AS DescripciTipoDocumento,
+                                td.[Tipo de Documento]                   AS TipoDocumentoBase,
+                                e.[Documento Entidad]                    AS DocumentoPaciente,
+                                e.[Primer Apellido Entidad]              AS PrimerApellidoBase,
+                                e.[Segundo Apellido Entidad]             AS SegundoApellidoBase,
+                                e.[Primer Nombre Entidad]                AS PrimerNombreBase,
+                                e.[Segundo Nombre Entidad]               AS SegundoNombreBase,
+                                e.[Nombre Completo Entidad]              AS NombreCompletoPaciente
+                            FROM [dbo].[Entidad] e
+                            LEFT JOIN [dbo].[Tipo de Documento] td
+                                ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
+                            WHERE e.[Documento Entidad] = @DocumentoPaciente
+                        `);
+
+                    const b = baseRs.recordset && baseRs.recordset[0] ? baseRs.recordset[0] : null;
+                    if (b) {
+                        result.recordset = [{
+                            IdTipodeDocumento: b.IdTipodeDocumento || null,
+                            DescripciTipoDocumento: b.DescripciTipoDocumento || '',
+                            TipoDocumentoBase: b.TipoDocumentoBase || '',
+                            DocumentoPaciente: b.DocumentoPaciente || DocumentoPaciente,
+                            PrimerApellidoBase: b.PrimerApellidoBase || '',
+                            SegundoApellidoBase: b.SegundoApellidoBase || '',
+                            PrimerNombreBase: b.PrimerNombreBase || '',
+                            SegundoNombreBase: b.SegundoNombreBase || '',
+                            NombreCompletoPaciente: b.NombreCompletoPaciente || [
+                                b.PrimerNombreBase || '',
+                                b.SegundoNombreBase || '',
+                                b.PrimerApellidoBase || '',
+                                b.SegundoApellidoBase || '',
+                            ].join(' ').replace(/\s+/g, ' ').trim(),
+                            SexoPaciente: '',
+                            Sexo: '',
+                            CódigoSexo: '',
+                            IdSexo: null,
+                            Edad: '',
+                            Direccion: '',
+                            Tel: '',
+                            DocumentoTipoDOC: `${b.TipoDocumentoBase || ''} ${b.DocumentoPaciente || DocumentoPaciente}`.trim(),
+                            FechaNacimientoBase: '',
+                            'Id Sexo': null,
+                            'Id Identidad Genero': null,
+                            IdSexoIdentidadGenero: null,
+                            codigoIdentidadGeneroBase: '',
+                            IdentidadGeneroBase: '',
+                            'Id Zona Residencia': null,
+                            Talla: '',
+                            Peso: '',
+                            'Id Etnia': null,
+                            ComunidadEtnica: '',
+                            'Id Discapacidad': null,
+                            IdPaisNacionalidad: null,
+                            CodigoPaisNacionalidad: '',
+                            NombrePaisNACIONALIDAD: '',
+                            IdPaisRecidencia: null,
+                            CodigoPaisRecidencia: '',
+                            NombrePaisRecidencia: '',
+                            IdMunicipioRecidencia: null,
+                            CodigoMunicipioRecidencia: '',
+                            NombreMunicipioRecidencia: '',
+                            IdZonaResidencia: null,
+                            DescripciónZonaResidencia: '',
+                            CódigoZonaResidencia: '',
+                            ZonaResidencia: '',
+                            IdEtnia: null,
+                            CódigoEtnia: '',
+                            Etnia: '',
+                            DescripciónEtnia: '',
+                            IdDiscapacidad: null,
+                            Codigo: '',
+                            Discapacidad: '',
+                            DescripcionDiscapacidad: '',
+                            IdOcupación: null,
+                            CódigoOcupación: '',
+                            Ocupación: '',
+                            DescripciónOcupación: '',
+                        }];
+                    }
+                }
+            }
+        }
+
+        await sincronizarEdadEntidadIII();
 
         res.json(result.recordset);
 
@@ -2519,6 +2681,18 @@ router.post('/ActualizarPaciente', async (req, res) => {
     console.log(req.body);
     console.log(IdOcupacion);
     const fechaNacimientoValida = FechaNacimiento ? new Date(FechaNacimiento) : null;
+    const calcularEdadDesdeFecha = (fecha) => {
+        if (!fecha || isNaN(fecha.getTime())) return null;
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - fecha.getFullYear();
+        const m = hoy.getMonth() - fecha.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) edad--;
+        return edad < 0 ? 0 : edad;
+    };
+    const edadCalculada = fechaNacimientoValida ? calcularEdadDesdeFecha(fechaNacimientoValida) : null;
+    const edadParaGuardar = edadCalculada != null
+        ? String(edadCalculada)
+        : (Edad != null && String(Edad).trim() !== '' ? String(Edad).trim() : null);
 
     if (FechaNacimiento && isNaN(fechaNacimientoValida.getTime())) {
         return res.status(400).json({
@@ -2535,6 +2709,27 @@ router.post('/ActualizarPaciente', async (req, res) => {
         });
     }
 
+    // Asegurar fila base para que el UPDATE de sp_Paciente_Guardar sí tenga a quién actualizar.
+    // Si no existe Entidad1888 para el documento, se crea con valores mínimos.
+    try {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('DocumentoPaciente', sql.NVarChar(50), Documento.trim())
+            .query(`
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM [dbo].[Entidad1888]
+                    WHERE [Documento Entidad] = @DocumentoPaciente
+                )
+                BEGIN
+                    INSERT INTO [dbo].[Entidad1888] ([Documento Entidad])
+                    VALUES (@DocumentoPaciente)
+                END
+            `);
+    } catch (ensureErr) {
+        console.error('❌ Error asegurando fila en Entidad1888 antes de actualizar:', ensureErr);
+    }
+
     const resultados = [];
 
     const request = new Request('sp_Paciente_Guardar', (err, rowCount) => {
@@ -2545,14 +2740,74 @@ router.post('/ActualizarPaciente', async (req, res) => {
                 error: 'Error al ejecutar el procedimiento almacenado'
             });
         }
+        (async () => {
+            try {
+                // Refuerzo: upsert explícito en Entidad1888 para evitar que quede en null
+                // cuando el SP no encuentra fila para UPDATE.
+                const pool = await poolPromise;
+                await pool.request()
+                    .input('Documento', sql.NVarChar(50), Documento ? String(Documento).trim() : null)
+                    .input('FechaNacimiento', sql.DateTime, fechaNacimientoValida)
+                    .input('EdadCalculada', sql.Int, edadCalculada)
+                    .input('SexoIdenti', sql.Int, SexoIdenti != null ? parseInt(SexoIdenti, 10) : null)
+                    .input('Talla', sql.VarChar(10), Talla != null && String(Talla).trim() !== '' ? String(Talla).trim() : null)
+                    .input('Peso', sql.VarChar(10), Peso != null && String(Peso).trim() !== '' ? String(Peso).trim() : null)
+                    .input('IdEtnia', sql.Int, IdEtnia != null && String(IdEtnia).trim() !== '' ? parseInt(IdEtnia, 10) : null)
+                    .input('ComunidadEtnica', sql.VarChar(50), ComunidadEtnica != null && String(ComunidadEtnica).trim() !== '' ? String(ComunidadEtnica).trim() : null)
+                    .input('IdDiscapacidad', sql.Int, IdDiscapacidad != null && String(IdDiscapacidad).trim() !== '' ? parseInt(IdDiscapacidad, 10) : null)
+                    .input('IdNacionalidad', sql.Int, IdNacionalidad != null && String(IdNacionalidad).trim() !== '' ? parseInt(IdNacionalidad, 10) : null)
+                    .input('IdResidencia', sql.Int, IdResidencia != null && String(IdResidencia).trim() !== '' ? parseInt(IdResidencia, 10) : null)
+                    .input('IdMunicipio', sql.Int, IdMunicipio != null && String(IdMunicipio).trim() !== '' ? parseInt(IdMunicipio, 10) : null)
+                    .input('Alergeno', sql.VarChar(150), null)
+                    .query(`
+                        UPDATE [dbo].[EntidadIII]
+                        SET [Fecha Nacimiento EntidadIII] = ISNULL(@FechaNacimiento, [Fecha Nacimiento EntidadIII]),
+                            [Edad EntidadIII] = ISNULL(@EdadCalculada, [Edad EntidadIII])
+                        WHERE [Documento Entidad] = @Documento;
 
-        console.log('Procedimiento ejecutado con éxito');
-        return res.json({
-            success: true,
-            message: 'Paciente guardado correctamente',
-            rowsAffected: rowCount,
-            data: resultados
-        });
+                        IF EXISTS (SELECT 1 FROM [dbo].[Entidad1888] WHERE [Documento Entidad] = @Documento)
+                        BEGIN
+                            UPDATE [dbo].[Entidad1888]
+                            SET [Id Identidad Genero] = @SexoIdenti,
+                                [Talla] = @Talla,
+                                [Peso] = @Peso,
+                                [Id Etnia] = @IdEtnia,
+                                [Comunidad Etnica] = @ComunidadEtnica,
+                                [Id Discapacidad] = @IdDiscapacidad,
+                                [Id Pais Nacionalidad] = @IdNacionalidad,
+                                [Id Pais Recidencia] = @IdResidencia,
+                                [Id Municipio Recidencia] = @IdMunicipio,
+                                [Alergeno] = ISNULL([Alergeno], @Alergeno)
+                            WHERE [Documento Entidad] = @Documento
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO [dbo].[Entidad1888]
+                            (
+                                [Documento Entidad], [Id Identidad Genero], [Talla], [Peso], [Id Etnia],
+                                [Comunidad Etnica], [Id Discapacidad], [Id Pais Nacionalidad],
+                                [Id Pais Recidencia], [Id Municipio Recidencia], [Alergeno]
+                            )
+                            VALUES
+                            (
+                                @Documento, @SexoIdenti, @Talla, @Peso, @IdEtnia,
+                                @ComunidadEtnica, @IdDiscapacidad, @IdNacionalidad,
+                                @IdResidencia, @IdMunicipio, @Alergeno
+                            )
+                        END
+                    `);
+            } catch (eUpsert1888) {
+                console.error('❌ Error en upsert de Entidad1888 (post-SP):', eUpsert1888);
+            }
+
+            console.log('Procedimiento ejecutado con éxito');
+            return res.json({
+                success: true,
+                message: 'Paciente guardado correctamente',
+                rowsAffected: rowCount,
+                data: resultados
+            });
+        })();
     });
 
     request.addParameter('IdTipoDocumento', TYPES.Int, IdTipoDocumento);
@@ -2562,7 +2817,7 @@ router.post('/ActualizarPaciente', async (req, res) => {
     request.addParameter('PrimerNombre', TYPES.NVarChar, PrimerNombre || null);
     request.addParameter('SegundoNombre', TYPES.NVarChar, SegundoNombre || null);
     request.addParameter('FechaNacimiento', TYPES.DateTime, fechaNacimientoValida);
-    request.addParameter('Edad', TYPES.NVarChar, Edad || null);
+    request.addParameter('Edad', TYPES.NVarChar, edadParaGuardar);
     request.addParameter('SexoBio', TYPES.Int, SexoBio);
     request.addParameter('SexoIdenti', TYPES.Int, SexoIdenti);
     request.addParameter('IdNacionalidad', TYPES.Int, IdNacionalidad);
@@ -2877,6 +3132,28 @@ router.get('/Cups1888/:Cups', async (req, res) => {
         res.json(result.recordset);
     } catch (error) {
         console.error('❌ Error al obtener Cups:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno del servidor');
+        }
+    }
+});
+
+
+
+router.get(['/compromisoVI/:Documentopaciente', '/compromisoVI/:Documentopaciente    '], async (req, res) => {
+    const Documentopaciente = req.params.Documentopaciente;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().input('Documentopaciente', sql.VarChar, Documentopaciente).query(`
+            SELECT TOP (200) 
+    Fechaini, Fechafin, Horaini, Horafin, Docpaciente, Estado, [Id CompromisoVI]
+FROM [Cnsta Compromiso VI 1888]
+WHERE Docpaciente = @Documentopaciente
+AND CAST(Fechaini AS DATE) = CAST(GETDATE() AS DATE)
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('❌ Error al obtener compromiso VI:', error);
         if (!res.headersSent) {
             res.status(500).send('Error interno del servidor');
         }

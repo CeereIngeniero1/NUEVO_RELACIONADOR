@@ -119,6 +119,30 @@ function initDemografiaSelectsFinos() {
 
 function initActualizarPaciente() {
     let modoEdicionPaciente = false;
+    const inputFechaNacimiento = document.getElementById("FechaNacimientoBase");
+    const inputEdadPaciente = document.getElementById("EdadPaciente");
+
+    const calcularEdadDesdeTextoFecha = (valor) => {
+        if (!valor) return "";
+        const fecha = new Date(valor);
+        if (isNaN(fecha.getTime())) return "";
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - fecha.getFullYear();
+        const m = hoy.getMonth() - fecha.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) edad--;
+        return String(edad < 0 ? 0 : edad);
+    };
+
+    const recalcularEdadPaciente = () => {
+        if (!inputFechaNacimiento || !inputEdadPaciente) return;
+        inputEdadPaciente.value = calcularEdadDesdeTextoFecha(inputFechaNacimiento.value);
+    };
+
+    if (inputFechaNacimiento && !inputFechaNacimiento.dataset.ageCalcBound) {
+        inputFechaNacimiento.addEventListener("change", recalcularEdadPaciente);
+        inputFechaNacimiento.addEventListener("input", recalcularEdadPaciente);
+        inputFechaNacimiento.dataset.ageCalcBound = "1";
+    }
 
     const camposPaciente = [
         "TipoDocumentoBase",
@@ -155,6 +179,7 @@ function initActualizarPaciente() {
     }
 
     function obtenerPayloadPaciente() {
+        recalcularEdadPaciente();
         return {
             IdTipoDocumento: parseInt(document.getElementById("TipoDocumentoBase").value) || null,
             Documento: document.getElementById("DocumentoPaciente").value.trim(),

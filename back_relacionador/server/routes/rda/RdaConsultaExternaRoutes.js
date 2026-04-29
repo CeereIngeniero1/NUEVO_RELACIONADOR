@@ -64,9 +64,20 @@ function rdacePdfService() {
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
     const c = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const t = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
-    if (c === '7') return true;
-    if (t && /sin\s*asignar/i.test(t)) return true;
+    const cNum = c && /^\d+$/.test(c) ? String(parseInt(c, 10)) : c;
+    if (cNum === '7') return true; // soporta 7, 07, 007
+    if (t && /(sin\s*asignar|sin\s*informaci[oó]n|no\s*aplica)/i.test(t)) return true;
     return false;
+}
+
+function resolveEthnicityForFhir(codigoEtnia, textoEtnia) {
+    const code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    const display = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    if (skipRdaEthnicityExtension(code, display)) {
+        return { code: 'Y', display: 'Y' };
+    }
+    if (!code) return null;
+    return { code, display: display || undefined };
 }
 
 function sanitizeOptionalPatientFields(patient) {
@@ -1003,7 +1014,19 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             const dispNat = cNat === '170' ? 'Colombia' : (dNat && dNat.toUpperCase() === 'COLOMBIA' ? 'Colombia' : dNat);
             patExt.push({ url: `${RDA_SD}/ExtensionPatientNationality`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661', code: cNat, display: dispNat || undefined } });
         }
-        if (str(pdem.CodigoEtnia) && !skipRdaEthnicityExtension(pdem.CodigoEtnia, pdem.TextoEtnia)) patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicity`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup', code: str(pdem.CodigoEtnia), display: str(pdem.TextoEtnia) || undefined } });
+        {
+            const ethnicity = resolveEthnicityForFhir(pdem.CodigoEtnia, pdem.TextoEtnia);
+            if (ethnicity) {
+                patExt.push({
+                    url: `${RDA_SD}/ExtensionPatientEthnicity`,
+                    valueCoding: {
+                        system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup',
+                        code: ethnicity.code,
+                        display: ethnicity.display,
+                    },
+                });
+            }
+        }
         if (str(pdem.ComunidadEtnica))        patExt.push({ url: `${RDA_SD}/ExtensionPatientEthnicCommunity`, valueString: str(pdem.ComunidadEtnica) });
         if (str(pdem.CodigoDiscapacidad))     patExt.push({ url: `${RDA_SD}/ExtensionPatientDisability`,    valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification', code: str(pdem.CodigoDiscapacidad),    display: str(pdem.TextoDiscapacidad)     || undefined } });
         if (str(pdem.CodigoIdentidadGenero) && pdem.IdIdentidadGenero && pdem.IdIdentidadGenero !== 0) patExt.push({ url: `${RDA_SD}/ExtensionPatientGenderIdentity`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity', code: str(pdem.CodigoIdentidadGenero), display: str(pdem.TextoIdentidadGenero) || undefined } });

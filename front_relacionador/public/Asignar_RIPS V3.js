@@ -51,6 +51,72 @@ VerificarLogin();
 const BotonConsultar = document.getElementById("BotonConsultar");
 const ModalConsultar = document.getElementById("ModalConsultar");
 
+function authHeadersJson() {
+  const token = localStorage.getItem("token");
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = token;
+  return h;
+}
+
+function fmtYmdFromAny(v) {
+  if (v == null || v === "") return "";
+  const raw = String(v).trim();
+  // Evitar desfase por zona horaria cuando SQL envía fecha/hora serializada.
+  const mRaw = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mRaw) return `${mRaw[1]}-${mRaw[2]}-${mRaw[3]}`;
+  const d = new Date(v);
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  return "";
+}
+
+function fmtHmFromAny(v) {
+  if (v == null || v === "") return "";
+  const raw = String(v).trim();
+  // Priorizar HH:mm crudo para no convertir hora por timezone.
+  const mRaw = raw.match(/(?:\b|T)(\d{2}):(\d{2})(?::\d{2})?/);
+  if (mRaw) return `${mRaw[1]}:${mRaw[2]}`;
+  const d = new Date(v);
+  if (!Number.isNaN(d.getTime())) {
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+  return "";
+}
+
+async function autocompletarAtencionRdaceDesdeCompromiso(documentoPaciente) {
+  if (!documentoPaciente) return;
+  try {
+    const resp = await fetch(
+      `${getApiBaseUrl()}/apiV3/compromisoVI/${encodeURIComponent(documentoPaciente)}`,
+      { headers: authHeadersJson() }
+    );
+    if (!resp.ok) return;
+    const citas = await resp.json();
+    if (!Array.isArray(citas) || citas.length === 0) return;
+
+    const cita = citas[0] || {};
+    const fecha = fmtYmdFromAny(cita.Fechaini);
+    const horaIni = fmtHmFromAny(cita.Horaini || cita.Fechaini);
+    const horaFin = fmtHmFromAny(cita.Horafin || cita.Fechafin);
+
+    const elFecha = document.getElementById("RDACE_FechaAtencion");
+    const elHi = document.getElementById("RDACE_HoraInicioAtencion");
+    const elHf = document.getElementById("RDACE_HoraFinAtencion");
+
+    if (elFecha && fecha) elFecha.value = fecha;
+    if (elHi && horaIni) elHi.value = horaIni;
+    if (elHf && horaFin) elHf.value = horaFin;
+  } catch (e) {
+    console.warn("[RDA] No se pudo autocompletar cita de compromiso VI:", e);
+  }
+}
+
 async function Esperar() {
   await new Promise((resolve) => setTimeout(resolve, 3000));
 }
@@ -637,6 +703,8 @@ SelectPacientes.addEventListener("change", async function (e) {
         PrimerNombreBase.value = CargarDatosPaciente[0].PrimerNombreBase;
         SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
         FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
+
+        await autocompletarAtencionRdaceDesdeCompromiso(CargarDatosPaciente[0].DocumentoPaciente);
       } catch (error) {
         console.error("Error al cargar los datos del paciente:", error);
 

@@ -123,5 +123,36 @@ VALUES
 ('7', 'Según respuesta al tratamiento', 7);
 GO
 
+-- Garantiza creación automática en Entidad1888 cuando nace una Entidad nueva
+-- o cuando se actualiza/corrige el documento en Entidad.
+CREATE OR ALTER TRIGGER [dbo].[trg_Entidad_AfterInsert_EnsureEntidad1888]
+ON [dbo].[Entidad]
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO [dbo].[Entidad1888] ([Documento Entidad])
+    SELECT LTRIM(RTRIM(i.[Documento Entidad]))
+    FROM inserted i
+    WHERE i.[Documento Entidad] IS NOT NULL
+      AND LTRIM(RTRIM(i.[Documento Entidad])) <> ''
+      AND NOT EXISTS (
+          SELECT 1
+          FROM [dbo].[Entidad1888] e
+          WHERE LTRIM(RTRIM(e.[Documento Entidad])) = LTRIM(RTRIM(i.[Documento Entidad]))
+      );
+END;
+GO
+
+-- Evitar solapamiento con triggers legacy que pueden duplicar inserciones
+IF OBJECT_ID(N'[dbo].[TR_Entidad_Insert]', N'TR') IS NOT NULL
+    DROP TRIGGER [dbo].[TR_Entidad_Insert];
+GO
+
+IF OBJECT_ID(N'[dbo].[TR_Entidad_Update_Doc]', N'TR') IS NOT NULL
+    DROP TRIGGER [dbo].[TR_Entidad_Update_Doc];
+GO
+
 
 
