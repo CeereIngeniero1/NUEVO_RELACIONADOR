@@ -4,19 +4,64 @@ const connection = require('../db');
 // const pool = require('../db2');
 // const { connectToDatabase, config } = require('../db2');
 const { sql, poolPromise } = require('../db2');
+const { loadDotEnvFromCandidates } = require('../config/envLoader');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
+loadDotEnvFromCandidates();
+
+const httpRaw = (url, { method = 'GET', headers = {}, body = null } = {}) =>
+    new Promise((resolve, reject) => {
+        try {
+            const u = new URL(url);
+            const opts = {
+                method,
+                hostname: u.hostname,
+                path: `${u.pathname}${u.search || ''}`,
+                headers,
+            };
+            const req = https.request(opts, (resp) => {
+                let data = '';
+                resp.on('data', (chunk) => { data += chunk; });
+                resp.on('end', () => {
+                    resolve({
+                        status: resp.statusCode || 0,
+                        headers: resp.headers || {},
+                        body: data || '',
+                    });
+                });
+            });
+            req.on('error', reject);
+            if (body) req.write(body);
+            req.end();
+        } catch (e) {
+            reject(e);
+        }
+    });
 
 class ICD11_API {
     constructor(clientId, clientSecret) {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        this.token = null;
-        this.tokenExpiry = null;
+        this.whoToken = null;
+        this.whoTokenExpiry = null;
         this.baseUrl = 'https://id.who.int/icd/release/11/2024-01/mms';
+        this.ihceCatalogCache = null;
+        this.ihceCatalogExpiry = 0;
+        this.ihceToken = null;
+        this.ihceTokenExpiry = 0;
+        this.lastIhceError = '';
+        this.localCatalogCache = null;
+        this.localCatalogExpiry = 0;
+        this.dbCatalogCache = null;
+        this.dbCatalogExpiry = 0;
+        this.dbTableEnsured = false;
     }
 
-    async getAccessToken() {
-        if (this.token && Date.now() < this.tokenExpiry) {
-            return this.token;
+    async getWhoAccessToken() {
+        if (this.whoToken && Date.now() < this.whoTokenExpiry) {
+            return this.whoToken;
         }
 
         const authUrl = 'https://icdaccessmanagement.who.int/connect/token';
@@ -36,19 +81,382 @@ class ICD11_API {
                 }
             });
             const data = await response.json();
-            this.token = data.access_token;
-            this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-            return this.token;
+            this.whoToken = data.access_token;
+            this.whoTokenExpiry = Date.now() + (data.expires_in * 1000);
+            return this.whoToken;
         } catch (error) {
             console.error('Error obteniendo el token:', error);
         }
     }
 
-    async search(query) {
-        const token = await this.getAccessToken();
+    resolveIhceConfig() {
+        const firstEnv = (...keys) => {
+            for (const k of keys) {
+                const v = process.env[k];
+                if (v != null && String(v).trim() !== '') return String(v).trim();
+            }
+            return '';
+        };
+        // CIE-11 catálogo: forzado a PRODUCCIÓN (sin fallback a sandbox).
+        const preferProd = true;
+        const prefix = 'IHCE_PROD_';
 
+        const baseUrl = firstEnv(`${prefix}BASE_URL`, 'IHCE_API_BASE_URL_PROD', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
+        const tenantId = firstEnv(`${prefix}TENANT_ID`, 'IHCE_TENANT_ID');
+        const clientId = firstEnv(`${prefix}CLIENT_ID`, 'IHCE_CLIENT_ID');
+        const clientSecret = firstEnv(`${prefix}CLIENT_SECRET`, 'IHCE_CLIENT_SECRET');
+        const scope = firstEnv(`${prefix}SCOPE`, 'IHCE_SCOPE');
+        const subscriptionKey = firstEnv(
+            `${prefix}SUBSCRIPTION_KEY`,
+            'IHCE_APIM_SUBSCRIPTION_KEY_PROD',
+            'IHCE_APIM_SUBSCRIPTION_KEY',
+            'IHCE_SUBSCRIPTION_KEY',
+            'OCP_APIM_SUBSCRIPTION_KEY'
+        );
+        const codeSystem = firstEnv('IHCE_ICD11_CODESYSTEM') || 'ICD11Codes';
+        return { baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey, codeSystem, preferProd };
+    }
+
+    async getIhceAccessToken() {
+        if (this.ihceToken && Date.now() < this.ihceTokenExpiry) return this.ihceToken;
+        const cfg = this.resolveIhceConfig();
+        if (!cfg.tenantId || !cfg.clientId || !cfg.clientSecret || !cfg.scope) {
+            this.lastIhceError = 'Faltan credenciales OAuth2 IHCE en variables de entorno.';
+            return null;
+        }
+        const authUrl = `https://login.microsoftonline.com/${cfg.tenantId}/oauth2/v2.0/token`;
+        const body = new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: cfg.clientId,
+            client_secret: cfg.clientSecret,
+            scope: cfg.scope,
+        }).toString();
+        const resp = await httpRaw(authUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) },
+            body,
+        });
+        if (resp.status !== 200) {
+            this.lastIhceError = `Token IHCE fallo (HTTP ${resp.status}).`;
+            return null;
+        }
+        const json = (() => {
+            try { return JSON.parse(resp.body || '{}'); } catch (_) { return null; }
+        })();
+        const token = json && json.access_token ? String(json.access_token) : '';
+        if (!token) {
+            this.lastIhceError = 'Token IHCE sin access_token.';
+            return null;
+        }
+        this.ihceToken = token;
+        this.ihceTokenExpiry = Date.now() + ((Number(json.expires_in) || 3000) * 1000);
+        return this.ihceToken;
+    }
+
+    flattenConcepts(concepts, out) {
+        const list = Array.isArray(concepts) ? concepts : [];
+        list.forEach((c) => {
+            const code = c && c.code != null ? String(c.code).trim() : '';
+            const display = c && c.display != null ? String(c.display).trim() : '';
+            if (code) out.push({ theCode: code, title: display || code });
+            if (c && Array.isArray(c.concept) && c.concept.length) this.flattenConcepts(c.concept, out);
+        });
+    }
+
+    flattenExpansionContains(contains, out) {
+        const list = Array.isArray(contains) ? contains : [];
+        list.forEach((c) => {
+            const code = c && c.code != null ? String(c.code).trim() : '';
+            const display = c && c.display != null ? String(c.display).trim() : '';
+            if (code) out.push({ theCode: code, title: display || code });
+            if (c && Array.isArray(c.contains) && c.contains.length) this.flattenExpansionContains(c.contains, out);
+        });
+    }
+
+    async getIhceCatalog(forceRefresh = false) {
+        const now = Date.now();
+        if (!forceRefresh && this.ihceCatalogCache && now < this.ihceCatalogExpiry) {
+            return this.ihceCatalogCache;
+        }
+        const cfg = this.resolveIhceConfig();
+        if (!cfg.baseUrl || !cfg.subscriptionKey) {
+            this.lastIhceError = 'Faltan BASE_URL o SUBSCRIPTION_KEY para IHCE.';
+            return null;
+        }
+        const token = await this.getIhceAccessToken();
+        if (!token) return null;
+        const base = cfg.baseUrl.replace(/\/$/, '');
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'Ocp-Apim-Subscription-Key': cfg.subscriptionKey,
+            Accept: 'application/fhir+json',
+        };
+
+        let flat = [];
+        let lastStatus = 0;
+
+        // 1) Intento por CodeSystem (algunos ambientes lo exponen así)
         try {
-            const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`, {
+            const urlCodeSystem = `${base}/CodeSystem/${encodeURIComponent(cfg.codeSystem)}`;
+            const resp = await httpRaw(urlCodeSystem, { headers });
+            lastStatus = resp.status || 0;
+            if (resp.status >= 200 && resp.status < 300) {
+                const json = (() => {
+                    try { return JSON.parse(resp.body || '{}'); } catch (_) { return null; }
+                })();
+                if (json) this.flattenConcepts(json.concept, flat);
+            }
+        } catch (_) {}
+
+        // 2) Fallback por ValueSet/$expand (más común para ICD11Codes en IHCE)
+        if (!flat.length) {
+            try {
+                const urlVsExpand = `${base}/ValueSet/${encodeURIComponent(cfg.codeSystem)}/$expand`;
+                const resp = await httpRaw(urlVsExpand, { headers });
+                lastStatus = resp.status || lastStatus;
+                if (resp.status >= 200 && resp.status < 300) {
+                    const json = (() => {
+                        try { return JSON.parse(resp.body || '{}'); } catch (_) { return null; }
+                    })();
+                    if (json && json.expansion) this.flattenExpansionContains(json.expansion.contains, flat);
+                }
+            } catch (_) {}
+        }
+
+        // 3) Fallback POST /ValueSet/$expand con Parameters(url)
+        if (!flat.length) {
+            try {
+                const urlVsExpandPost = `${base}/ValueSet/$expand`;
+                const body = JSON.stringify({
+                    resourceType: 'Parameters',
+                    parameter: [
+                        { name: 'url', valueUri: `https://fhir.minsalud.gov.co/rda/ValueSet/${cfg.codeSystem}` },
+                    ],
+                });
+                const resp = await httpRaw(urlVsExpandPost, {
+                    method: 'POST',
+                    headers: { ...headers, 'Content-Type': 'application/fhir+json', 'Content-Length': Buffer.byteLength(body) },
+                    body,
+                });
+                lastStatus = resp.status || lastStatus;
+                if (resp.status >= 200 && resp.status < 300) {
+                    const json = (() => {
+                        try { return JSON.parse(resp.body || '{}'); } catch (_) { return null; }
+                    })();
+                    if (json && json.expansion) this.flattenExpansionContains(json.expansion.contains, flat);
+                }
+            } catch (_) {}
+        }
+
+        if (!flat.length) {
+            this.lastIhceError = `Catalogo ICD11Codes fallo (HTTP ${lastStatus || 0}) en ${cfg.preferProd ? 'prod' : 'sandbox'}.`;
+            return null;
+        }
+
+        // deduplicar por código
+        const dedup = [];
+        const seen = new Set();
+        flat.forEach((x) => {
+            const k = String(x && x.theCode ? x.theCode : '').trim().toUpperCase();
+            if (!k || seen.has(k)) return;
+            seen.add(k);
+            dedup.push({ theCode: x.theCode, title: x.title || x.theCode });
+        });
+        flat = dedup;
+
+        this.lastIhceError = '';
+        this.ihceCatalogCache = flat;
+        this.ihceCatalogExpiry = now + (15 * 60 * 1000);
+        return flat;
+    }
+
+    resolveMappingCatalogPath() {
+        const candidates = [
+            process.env.ICD11_MAPPING_FILE,
+            path.resolve(__dirname, '..', '..', 'data', 'mapping-cie10-cie-11', '11To10MapToOneCategory.txt'),
+            path.resolve(__dirname, '..', '..', 'data', 'mapping-cie10-cie-11', '10To11MapToOneCategory.txt'),
+            'C:/Users/ceere/Downloads/mapping-cie10-cie-11/11To10MapToOneCategory.txt',
+            'C:/Users/ceere/Downloads/mapping-cie10-cie-11/10To11MapToOneCategory.txt',
+        ].filter(Boolean);
+        return candidates.find((p) => {
+            try { return fs.existsSync(p); } catch (_) { return false; }
+        }) || '';
+    }
+
+    loadLocalCatalogFromMapping(forceRefresh = false) {
+        const now = Date.now();
+        if (!forceRefresh && this.localCatalogCache && now < this.localCatalogExpiry) {
+            return this.localCatalogCache;
+        }
+        const filePath = this.resolveMappingCatalogPath();
+        if (!filePath) return null;
+        try {
+            const txt = fs.readFileSync(filePath, 'utf8');
+            const lines = txt.split(/\r?\n/).filter((x) => String(x || '').trim() !== '');
+            if (lines.length < 2) return null;
+            const header = lines[0].split('\t').map((x) => String(x || '').trim().toLowerCase());
+            const idxCode = header.findIndex((h) => h.includes('icd11code') || h === 'icd11code');
+            const idxTitle = header.findIndex((h) => h.includes('icd11title') || h === 'icd11title');
+            if (idxCode < 0 || idxTitle < 0) return null;
+            const out = [];
+            const seen = new Set();
+            for (let i = 1; i < lines.length; i += 1) {
+                const cols = lines[i].split('\t');
+                const code = String(cols[idxCode] || '').trim();
+                const title = String(cols[idxTitle] || '').trim();
+                if (!code) continue;
+                const key = code.toUpperCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push({ theCode: code, title: title || code });
+            }
+            if (!out.length) return null;
+            this.localCatalogCache = out;
+            this.localCatalogExpiry = now + (30 * 60 * 1000);
+            return out;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async ensureDbCatalogTable() {
+        if (this.dbTableEnsured) return;
+        const pool = await poolPromise;
+        await pool.request().query(`
+            IF OBJECT_ID('dbo.CIE11_Codigos', 'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.CIE11_Codigos
+                (
+                    IdCIE11 INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    Codigo NVARCHAR(50) NOT NULL,
+                    Nombre NVARCHAR(500) NOT NULL,
+                    DefinicionUrl NVARCHAR(1000) NULL,
+                    FechaCarga DATETIME2(0) NOT NULL CONSTRAINT DF_CIE11_Codigos_FechaCarga DEFAULT (SYSDATETIME())
+                );
+                CREATE UNIQUE INDEX UX_CIE11_Codigos_Codigo ON dbo.CIE11_Codigos(Codigo);
+                CREATE INDEX IX_CIE11_Codigos_Nombre ON dbo.CIE11_Codigos (Nombre);
+            END
+        `);
+        this.dbTableEnsured = true;
+    }
+
+    async loadCatalogFromDb(forceRefresh = false) {
+        const now = Date.now();
+        if (!forceRefresh && this.dbCatalogCache && now < this.dbCatalogExpiry) {
+            return this.dbCatalogCache;
+        }
+        await this.ensureDbCatalogTable();
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT Codigo, Nombre
+            FROM dbo.CIE11_Codigos WITH (NOLOCK)
+            ORDER BY Codigo
+        `);
+        const rows = Array.isArray(result.recordset) ? result.recordset : [];
+        if (!rows.length) return [];
+        const list = rows.map((r) => ({
+            theCode: String(r.Codigo || '').trim(),
+            title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
+        })).filter((x) => x.theCode);
+        this.dbCatalogCache = list;
+        this.dbCatalogExpiry = now + (20 * 60 * 1000);
+        return list;
+    }
+
+    async replaceCatalogInDb(list, source) {
+        const arr = Array.isArray(list) ? list : [];
+        if (!arr.length) return;
+        await this.ensureDbCatalogTable();
+        const pool = await poolPromise;
+        await pool.request().query(`TRUNCATE TABLE dbo.CIE11_Codigos;`);
+        const table = new sql.Table('dbo.CIE11_Codigos');
+        table.create = false;
+        table.columns.add('Codigo', sql.NVarChar(50), { nullable: false });
+        table.columns.add('Nombre', sql.NVarChar(500), { nullable: false });
+        table.columns.add('DefinicionUrl', sql.NVarChar(1000), { nullable: true });
+        table.columns.add('FechaCarga', sql.DateTime2(0), { nullable: false });
+        const now = new Date();
+        arr.forEach((x) => {
+            const code = String(x && x.theCode ? x.theCode : '').trim();
+            const title = String(x && x.title ? x.title : code).trim();
+            if (!code) return;
+            table.rows.add(code, title || code, null, now);
+        });
+        await pool.request().bulk(table);
+        this.dbCatalogCache = arr.map((x) => ({ theCode: x.theCode, title: x.title }));
+        this.dbCatalogExpiry = Date.now() + (20 * 60 * 1000);
+    }
+
+    async resolveCatalogForUse(forceRefresh = false) {
+        // 1) BD (fuente principal)
+        const dbList = await this.loadCatalogFromDb(forceRefresh);
+        if (Array.isArray(dbList) && dbList.length) {
+            return { list: dbList, source: 'db' };
+        }
+        // 2) IHCE prod (si disponible), y persistir a BD
+        const ihceList = await this.getIhceCatalog(forceRefresh);
+        if (Array.isArray(ihceList) && ihceList.length) {
+            await this.replaceCatalogInDb(ihceList, 'ihce-prod');
+            return { list: ihceList, source: 'ihce-prod' };
+        }
+        // 3) Mapping local como bootstrap de BD
+        const localList = this.loadLocalCatalogFromMapping(forceRefresh);
+        if (Array.isArray(localList) && localList.length) {
+            await this.replaceCatalogInDb(localList, 'mapping-local');
+            return { list: localList, source: 'mapping-local' };
+        }
+        return { list: [], source: 'none' };
+    }
+
+    async search(query) {
+        const q = String(query || '').trim();
+
+        // Fuente principal: tabla local 1888 (dbo.CIE11_Codigos).
+        try {
+            await this.ensureDbCatalogTable();
+            const pool = await poolPromise;
+            if (!q) {
+                const topRs = await pool.request().query(`
+                    SELECT TOP (50) Codigo, Nombre
+                    FROM dbo.CIE11_Codigos WITH (NOLOCK)
+                    ORDER BY Codigo
+                `);
+                const topRows = Array.isArray(topRs.recordset) ? topRs.recordset : [];
+                if (topRows.length) {
+                    return topRows.map((r) => ({
+                        theCode: String(r.Codigo || '').trim(),
+                        title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
+                    })).filter((x) => x.theCode);
+                }
+            } else {
+                const rs = await pool.request()
+                    .input('q', sql.NVarChar(200), `%${q}%`)
+                    .query(`
+                        SELECT TOP (120) Codigo, Nombre
+                        FROM dbo.CIE11_Codigos WITH (NOLOCK)
+                        WHERE Codigo LIKE @q
+                           OR Nombre LIKE @q
+                        ORDER BY
+                            CASE WHEN Codigo LIKE REPLACE(@q, '%', '') + '%' THEN 0 ELSE 1 END,
+                            Codigo
+                    `);
+                const rows = Array.isArray(rs.recordset) ? rs.recordset : [];
+                if (rows.length) {
+                    return rows.map((r) => ({
+                        theCode: String(r.Codigo || '').trim(),
+                        title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
+                    })).filter((x) => x.theCode);
+                }
+            }
+        } catch (dbErr) {
+            console.error('Error buscando CIE-11 en tabla dbo.CIE11_Codigos:', dbErr);
+        }
+
+        // Fallback: API OMS si la tabla no tiene datos.
+        const token = await this.getWhoAccessToken();
+        if (!token || !q) return [];
+        try {
+            const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(q)}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -56,17 +464,45 @@ class ICD11_API {
                     'API-Version': 'v2'
                 }
             });
+            if (!response.ok) return [];
             const data = await response.json();
-            return data.destinationEntities;
+            return Array.isArray(data && data.destinationEntities) ? data.destinationEntities : [];
         } catch (error) {
-            console.error('Error en la búsqueda:', error);
+            console.error('Error en la búsqueda CIE-11 (OMS):', error);
+            return [];
         }
     }
 
     async findByCode(code) {
-        const token = await this.getAccessToken();
         const q = String(code || '').trim();
         if (!q) return null;
+
+        // Fuente principal: tabla local 1888 (dbo.CIE11_Codigos).
+        try {
+            await this.ensureDbCatalogTable();
+            const pool = await poolPromise;
+            const local = await pool.request()
+                .input('code', sql.NVarChar(50), q)
+                .query(`
+                    SELECT TOP (1) Codigo, Nombre
+                    FROM dbo.CIE11_Codigos WITH (NOLOCK)
+                    WHERE UPPER(LTRIM(RTRIM(Codigo))) = UPPER(LTRIM(RTRIM(@code)))
+                `);
+            const row = local && Array.isArray(local.recordset) ? local.recordset[0] : null;
+            if (row && row.Codigo) {
+                const codeResolved = String(row.Codigo || '').trim().toUpperCase();
+                return {
+                    theCode: codeResolved,
+                    title: String(row.Nombre || '').trim() || codeResolved,
+                };
+            }
+        } catch (dbErr) {
+            console.error('Error validando CIE-11 en tabla dbo.CIE11_Codigos:', dbErr);
+        }
+
+        // Fallback: API OMS.
+        const token = await this.getWhoAccessToken();
+        if (!token) return null;
         try {
             const headers = {
                 'Authorization': `Bearer ${token}`,
@@ -95,7 +531,7 @@ class ICD11_API {
                 title: title || codeResolved
             };
         } catch (error) {
-            console.error('Error buscando CIE-11 por código:', error);
+            console.error('Error buscando CIE-11 por código (OMS):', error);
             return null;
         }
     }
@@ -130,20 +566,70 @@ router.get('/icd11/code/:code', async (req, res) => {
     }
 });
 
+router.get('/icd11/validate/:code', async (req, res) => {
+    try {
+        const code = String(req.params.code || '').trim();
+        if (!code) return res.json({ ok: false, valid: false, item: null });
+        const item = await icd11.findByCode(code);
+        return res.json({ ok: true, valid: Boolean(item), item: item || null });
+    } catch (error) {
+        console.error('Error validando CIE-11:', error);
+        return res.status(500).json({ ok: false, valid: false, error: error.message || String(error) });
+    }
+});
+
+router.get('/icd11/catalog', async (req, res) => {
+    try {
+        const forceRefresh = String(req.query.refresh || '').trim() === '1';
+        const resolved = await icd11.resolveCatalogForUse(forceRefresh);
+        const list = resolved.list;
+        const source = resolved.source;
+        if (!Array.isArray(list) || !list.length) {
+            return res.status(503).json({
+                ok: false,
+                error: 'No se pudo cargar el catálogo ICD11 Colombia desde BD, IHCE o mapping local.',
+                details: icd11.lastIhceError || undefined,
+            });
+        }
+        return res.json({ ok: true, source, total: list.length, items: list });
+    } catch (error) {
+        console.error('Error cargando catálogo CIE-11 Colombia:', error);
+        return res.status(500).json({ ok: false, error: error.message || String(error) });
+    }
+});
+
+router.get('/icd11/catalog.txt', async (req, res) => {
+    try {
+        const forceRefresh = String(req.query.refresh || '').trim() === '1';
+        const resolved = await icd11.resolveCatalogForUse(forceRefresh);
+        const list = Array.isArray(resolved.list) ? resolved.list : [];
+        if (!list.length) {
+            return res.status(503).send('No fue posible obtener catalogo ICD11 Colombia.');
+        }
+        const lines = ['Codigo\tTitulo'];
+        list.forEach((x) => {
+            const code = String(x && x.theCode ? x.theCode : '').trim();
+            const title = String(x && x.title ? x.title : '').replace(/\r?\n/g, ' ').trim();
+            if (!code) return;
+            lines.push(`${code}\t${title}`);
+        });
+        const content = lines.join('\n');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=\"cie11_colombia_catalogo.txt\"');
+        return res.status(200).send(content);
+    } catch (error) {
+        console.error('Error generando TXT de catalogo ICD-11:', error);
+        return res.status(500).send(error.message || String(error));
+    }
+});
+
 router.get('/icd11/search/:query?', async (req, res) => {
     try {
         const query = req.params.query;
         if (!query || query.trim() === "" || query === "undefined") {
-            if (Array.isArray(defaultCIE11) && defaultCIE11.length > 0) {
-                return res.json(defaultCIE11);
-            }
-            // No depender de defaults: obtener sugerencias iniciales desde API CIE-11.
-            const seedTerms = ['a', 'e', 's'];
-            for (const seed of seedTerms) {
-                const seedResults = await icd11.search(seed);
-                if (Array.isArray(seedResults) && seedResults.length > 0) {
-                    return res.json(seedResults.slice(0, 20));
-                }
+            const seedResults = await icd11.search('');
+            if (Array.isArray(seedResults) && seedResults.length > 0) {
+                return res.json(seedResults.slice(0, 20));
             }
             return res.json([]);
         }

@@ -225,6 +225,28 @@ function validateRequiredForIhceCeBundle(bundle) {
     return '';
 }
 
+function collectIcd11CodesFromBundle(bundle) {
+    if (!bundle || !Array.isArray(bundle.entry)) return [];
+    const out = [];
+    const seen = new Set();
+    bundle.entry.forEach((e) => {
+        const r = e && e.resource;
+        if (!r || r.resourceType !== 'Condition') return;
+        const codings = r.code && Array.isArray(r.code.coding) ? r.code.coding : [];
+        codings.forEach((c) => {
+            const system = String(c && c.system ? c.system : '').trim().toLowerCase();
+            if (system !== 'http://hl7.org/fhir/sid/icd-11') return;
+            const code = String(c && c.code ? c.code : '').trim();
+            if (!code) return;
+            const key = code.toUpperCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push(code);
+        });
+    });
+    return out;
+}
+
 const router = Router();
 
 // ---------------------------------------------------------------------------
@@ -808,7 +830,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             '02': 'Comunitario',
             '03': 'Comunitaria',
             '04': 'Laboral',
-            '05': 'Escolar',
+            '05': 'Institucional',
             '06': 'Institución de referencia u otra institución',
         };
         return map[c] || c;
@@ -2160,6 +2182,48 @@ router.post(
                 code: 'RDACE_VALIDACION_OBLIGATORIOS',
                 error: `No se puede enviar a IHCE: ${requiredErr}`,
             });
+        }
+
+        const icd11Codes = collectIcd11CodesFromBundle(bundle);
+        if (icd11Codes.length) {
+            const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
+            const invalids = [];
+            for (const c of icd11Codes) {
+                const vResp = await new Promise((resolve) => {
+                    const http = require('http');
+                    const req4 = http.request(
+                        `${localBase}/apiV3/icd11/validate/${encodeURIComponent(c)}`,
+                        { method: 'GET' },
+                        (resp) => {
+                            let data = '';
+                            resp.on('data', (chunk) => (data += chunk));
+                            resp.on('end', () => {
+                                try {
+                                    const parsed = JSON.parse(data || '{}');
+                                    resolve({ status: resp.statusCode || 0, body: parsed });
+                                } catch (_) {
+                                    resolve({ status: resp.statusCode || 0, body: null });
+                                }
+                            });
+                        }
+                    );
+                    req4.on('error', () => resolve({ status: 0, body: null }));
+                    req4.end();
+                });
+                const valid = Boolean(vResp && vResp.body && vResp.body.valid);
+                if (!valid) invalids.push(c);
+            }
+            if (invalids.length) {
+                return res.status(400).json({
+                    ok: false,
+                    code: 'RDACE_ICD11_NO_PERMITIDO_CO',
+                    error: `Códigos CIE-11 no permitidos para Colombia: ${invalids.join(', ')}`,
+                    details: {
+                        invalidCodes: invalids,
+                        hint: 'Actualice el diagnóstico con códigos válidos del catálogo ICD11 Colombia.',
+                    },
+                });
+            }
         }
 
         // 4) Obtener token Entra (client_credentials)

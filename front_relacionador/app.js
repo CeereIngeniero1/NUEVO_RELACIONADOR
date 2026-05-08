@@ -202,6 +202,25 @@ app.get('/Asignar_RIPS.html', (req, res) => {
 });
 
 const PORT = parseInt(process.env.FRONT_PORT || process.env.PORT || '3100', 10);
-app.listen(PORT, () => {
-    console.log(`Front escuchando en el puerto ${PORT} (config: FRONT_PORT / API_BASE_URL / BACK_PORT en .env)`);
-});
+let frontServer = null;
+
+function startFrontServer() {
+    if (frontServer && frontServer.listening) return;
+    frontServer = app.listen(PORT, () => {
+        console.log(`Front escuchando en el puerto ${PORT} (config: FRONT_PORT / API_BASE_URL / BACK_PORT en .env)`);
+    });
+
+    // Si algo externo cierra el socket, intentar levantar de nuevo.
+    frontServer.on('close', () => {
+        console.error('⚠️ Servidor front cerrado inesperadamente. Reintentando en 1s...');
+        setTimeout(() => {
+            startFrontServer();
+        }, 1000);
+    });
+
+    frontServer.on('error', (err) => {
+        console.error('❌ Error del servidor front:', err && err.message ? err.message : err);
+    });
+}
+
+startFrontServer();

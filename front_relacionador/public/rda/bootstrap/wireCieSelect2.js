@@ -16,6 +16,111 @@ function authHeaders() {
     return headers;
 }
 
+async function openCie11CatalogWindow() {
+    const popup = window.open("", "_blank", "width=1100,height=760,resizable=yes,scrollbars=yes");
+    if (!popup) {
+        alert("No se pudo abrir la ventana. Verifique que el navegador permita ventanas emergentes.");
+        return;
+    }
+
+    popup.document.write(`
+        <!doctype html>
+        <html lang="es">
+        <head>
+            <meta charset="utf-8" />
+            <title>Catalogo CIE-11</title>
+            <style>
+                html, body { height: 100%; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 12px; color: #1f2937; display: flex; flex-direction: column; box-sizing: border-box; }
+                h2 { margin: 0 0 8px; }
+                .nota { margin: 0 0 10px; color: #b91c1c; font-weight: 700; font-size: 13px; }
+                .nota-link { margin: 0 0 10px; font-size: 13px; }
+                .nota-link a { color: #0b57d0; text-decoration: underline; }
+                .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+                input { padding: 8px; min-width: 340px; }
+                .status { margin-left: auto; font-size: 12px; color: #6b7280; }
+                .table-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; font-size: 13px; }
+                th { background: #f3f4f6; position: sticky; top: 0; }
+                tbody tr:nth-child(even) { background: #fafafa; }
+            </style>
+        </head>
+        <body>
+            <h2>Catalogo completo CIE-11 (BD)</h2>
+            <p class="nota">Recuerde: hasta la fecha estos son los CIE11CO. Conforme vayan actualizando e ingresando mas, se incorporaran en su base de datos.</p>
+            <p class="nota-link">Esta es la pagina oficial del Ministerio para mas informacion o consultas de codigos: <a href="https://vulcano.ihcecol.gov.co/CodeSystem-ICD11CO" target="_blank" rel="noopener noreferrer">https://vulcano.ihcecol.gov.co/CodeSystem-ICD11CO</a></p>
+            <div class="toolbar">
+                <input id="filtro" type="text" placeholder="Filtrar por codigo o descripcion..." />
+                <span id="status" class="status">Cargando...</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th style="width:160px;">Codigo</th><th>Descripcion</th></tr></thead>
+                    <tbody id="rows"></tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+    `);
+    popup.document.close();
+
+    const statusEl = popup.document.getElementById("status");
+    const rowsEl = popup.document.getElementById("rows");
+    const filtroEl = popup.document.getElementById("filtro");
+
+    try {
+        const resp = await fetch(`${getApiBaseUrl()}/apiV3/icd11/catalog`, { headers: authHeaders() });
+        const data = await resp.json();
+        const items = Array.isArray(data && data.items) ? data.items : [];
+        let filtered = items.slice();
+
+        const render = () => {
+            const html = filtered.map((it) => {
+                const c = String(it && it.theCode ? it.theCode : "").trim();
+                const t = String(it && it.title ? it.title : "").trim();
+                return `<tr><td>${c}</td><td>${t}</td></tr>`;
+            }).join("");
+            rowsEl.innerHTML = html || `<tr><td colspan="2">Sin datos.</td></tr>`;
+            statusEl.textContent = `${filtered.length} de ${items.length} registros`;
+        };
+
+        filtroEl.addEventListener("input", () => {
+            const q = String(filtroEl.value || "").trim().toLowerCase();
+            if (!q) {
+                filtered = items.slice();
+            } else {
+                filtered = items.filter((it) => {
+                    const c = String(it && it.theCode ? it.theCode : "").toLowerCase();
+                    const t = String(it && it.title ? it.title : "").toLowerCase();
+                    return c.includes(q) || t.includes(q);
+                });
+            }
+            render();
+        });
+
+        render();
+    } catch (e) {
+        statusEl.textContent = "Error cargando catalogo";
+        rowsEl.innerHTML = `<tr><td colspan="2">No fue posible consultar el catalogo CIE-11.</td></tr>`;
+    }
+}
+
+function ensureCie11CatalogButton(selector) {
+    const target = document.querySelector(selector);
+    if (!target) return;
+    if (target.dataset.cie11CatalogBtn === "1") return;
+    target.dataset.cie11CatalogBtn = "1";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary btn-sm mt-1";
+    btn.textContent = "Ver todos los CIE11CO aqui";
+    btn.addEventListener("click", openCie11CatalogWindow);
+
+    target.insertAdjacentElement("afterend", btn);
+}
+
 function initCIE11Select2(selector, codeSelector, descSelector) {
     if ($(selector).data("select2")) return;
     $(selector).select2({
@@ -130,6 +235,8 @@ function initCIE11Select2(selector, codeSelector, descSelector) {
             $(descSelector).val(data.text).trigger('change');
         }
     });
+
+    ensureCie11CatalogButton(selector);
 }
 
 function normalizeCie11Code(v) {
