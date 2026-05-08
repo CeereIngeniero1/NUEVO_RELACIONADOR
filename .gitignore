@@ -35,6 +35,8 @@ bower_components/
 .env
 .env.test
 .env.local
+back_relacionador/.env cliniq
+back_relacionador/envcliniq.json
 
 # Build output
 dist/
