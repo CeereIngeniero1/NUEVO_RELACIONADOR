@@ -32,6 +32,28 @@ function ihceForceProdOnlyUi() {
     return cfg.IHCE_FORCE_PROD_ONLY === true;
 }
 
+function ihceEnableSandboxUi() {
+    const cfg = window.__APP_CONFIG__ || {};
+    return cfg.IHCE_ENABLE_SANDBOX !== false;
+}
+function ihceEnableProdUi() {
+    const cfg = window.__APP_CONFIG__ || {};
+    return cfg.IHCE_ENABLE_PROD !== false;
+}
+
+function ihceAllowedAmbientesUi() {
+    const forceSandboxUi = ihceForceSandboxOnlyUi();
+    const forceProdUi = ihceForceProdOnlyUi();
+    if (forceProdUi) return ['prod'];
+    if (forceSandboxUi) return ['sandbox'];
+
+    const allowed = [];
+    if (ihceEnableProdUi()) allowed.push('prod');
+    if (ihceEnableSandboxUi()) allowed.push('sandbox');
+    // Fallback defensivo: si ambas quedan deshabilitadas por error de config, mantener prod.
+    return allowed.length ? allowed : ['prod'];
+}
+
 function escapeHtml(s) {
     if (s == null) return '';
     return String(s)
@@ -379,14 +401,15 @@ export async function enviarIhcePaciente(id, opts) {
 }
 
 export function rdaOfrecerEnvioIhce(titulo, htmlResumen, enviarFn) {
-    const forceSandboxUi = ihceForceSandboxOnlyUi();
-    const forceProdUi = ihceForceProdOnlyUi();
-    const radiosHtml = forceProdUi
-        ? '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod" checked> Producción</label>'
-        : forceSandboxUi
-        ? '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="sandbox" checked> Sandbox (pruebas)</label>'
-        : '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="sandbox" checked> Sandbox (pruebas)</label>' +
-          '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="prod"> Producción</label>';
+    const allowed = ihceAllowedAmbientesUi();
+    const defaultAmb = allowed.includes('prod') ? 'prod' : 'sandbox';
+    const radiosHtml = allowed
+        .map((amb) => {
+            const checked = amb === defaultAmb ? ' checked' : '';
+            const label = amb === 'prod' ? 'Producción' : 'Sandbox (pruebas)';
+            return '<label class="d-block"><input type="radio" name="swalRdaAmbIhce" value="' + amb + '"' + checked + '> ' + label + '</label>';
+        })
+        .join('');
     return Swal.fire({
         icon: 'success',
         title: titulo,
@@ -402,7 +425,7 @@ export function rdaOfrecerEnvioIhce(titulo, htmlResumen, enviarFn) {
         confirmButtonText: 'Enviar a Ministerio (IHCE)',
         preConfirm: function () {
             const el = Swal.getPopup().querySelector('input[name="swalRdaAmbIhce"]:checked');
-            return el ? el.value : 'sandbox';
+            return el ? el.value : defaultAmb;
         },
     }).then(function (result) {
         if (result.isConfirmed) {

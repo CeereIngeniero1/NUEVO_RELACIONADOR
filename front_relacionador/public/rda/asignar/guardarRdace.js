@@ -164,6 +164,12 @@ function rdaceExtractIhceMessage(data) {
     return '';
 }
 
+/** true = al enviar desde RDACE se guarda y envía también RDA Paciente; false = solo RDACE. */
+function rdaceIhceUnifiedSendEnabled() {
+    const cfg = typeof window !== 'undefined' ? window.__APP_CONFIG__ || {} : {};
+    return cfg.RDA_IHCE_UNIFIED_SEND !== false;
+}
+
 function rdaceSummarizeSendOutcome(nombre, out) {
     if (!out) return `<b>${nombre}:</b> no ejecutado`;
     if (out.ok) {
@@ -499,21 +505,26 @@ export async function guardarRDACE() {
             'Ant. salud: ' + antSalud.length + ' | Familiares: ' + antFam.length + ' | Farmacológicos: ' + medic.length + '<br>' +
             'Diag. relacionados: ' + diags.length + ' | Prescr. med: ' + presMed.length + ' | Proc: ' + presProc.length + ' | Otras tec: ' + otras.length + '<br>';
 
+        const unifiedSend = rdaceIhceUnifiedSendEnabled();
+        const textoEnvioIhce = unifiedSend
+            ? '<small class="text-muted">Si elige enviar, se intentará enviar <b>RDA Paciente</b> y <b>RDA Consulta Externa</b>.</small>'
+            : '<small class="text-muted">Si elige enviar, solo se enviará <b>RDA Consulta Externa</b> (RDA Paciente por separado desde su botón de guardar).</small>';
+
         await window.rdaOfrecerEnvioIhce(
             'RDA Consulta Externa guardado',
-            resumenCe +
-                '<hr class="my-2">' +
-                '<small class="text-muted">Si elige enviar, se intentará enviar <b>RDA Paciente</b> y <b>RDA Consulta Externa</b>.</small>',
+            resumenCe + '<hr class="my-2">' + textoEnvioIhce,
             async function (ambiente) {
                 let pacienteResult = null;
                 let rdaceResult = null;
                 let pacienteError = null;
 
-                try {
-                    const idPaciente = await rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace });
-                    pacienteResult = await window.enviarIhcePaciente(idPaciente, { ambiente: ambiente, showSwal: false });
-                } catch (ePac) {
-                    pacienteError = ePac;
+                if (unifiedSend) {
+                    try {
+                        const idPaciente = await rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace });
+                        pacienteResult = await window.enviarIhcePaciente(idPaciente, { ambiente: ambiente, showSwal: false });
+                    } catch (ePac) {
+                        pacienteError = ePac;
+                    }
                 }
 
                 try {
@@ -522,26 +533,37 @@ export async function guardarRDACE() {
                     rdaceResult = { ok: false, status: 0, data: { error: eCe?.message || String(eCe) } };
                 }
 
-                const pacienteOut = pacienteError
-                    ? { ok: false, status: 0, data: { error: pacienteError.message || String(pacienteError) } }
-                    : pacienteResult;
+                const pacienteOut = unifiedSend
+                    ? (pacienteError
+                        ? { ok: false, status: 0, data: { error: pacienteError.message || String(pacienteError) } }
+                        : pacienteResult)
+                    : null;
                 const ceOut = rdaceResult;
 
-                const okPac = !!(pacienteOut && pacienteOut.ok);
+                const okPac = unifiedSend && !!(pacienteOut && pacienteOut.ok);
                 const okCe = !!(ceOut && ceOut.ok);
-                const icon = (okPac && okCe) ? 'success' : ((okPac || okCe) ? 'warning' : 'error');
-                const title = (okPac && okCe)
-                    ? 'Envio IHCE completado'
-                    : ((okPac || okCe) ? 'Envio IHCE parcial' : 'Envio IHCE con errores');
+                const icon = unifiedSend
+                    ? ((okPac && okCe) ? 'success' : ((okPac || okCe) ? 'warning' : 'error'))
+                    : (okCe ? 'success' : 'error');
+                const title = unifiedSend
+                    ? ((okPac && okCe)
+                        ? 'Envio IHCE completado'
+                        : ((okPac || okCe) ? 'Envio IHCE parcial' : 'Envio IHCE con errores'))
+                    : (okCe ? 'Envio IHCE completado' : 'Envio IHCE con errores');
+
+                const htmlResumen = unifiedSend
+                    ? '<div class="text-start">' +
+                        rdaceSummarizeSendOutcome('RDA Paciente', pacienteOut) + '<br><br>' +
+                        rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
+                        '</div>'
+                    : '<div class="text-start">' +
+                        rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
+                        '</div>';
 
                 await Swal.fire({
                     icon,
                     title,
-                    html:
-                        '<div class="text-start">' +
-                        rdaceSummarizeSendOutcome('RDA Paciente', pacienteOut) + '<br><br>' +
-                        rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
-                        '</div>',
+                    html: htmlResumen,
                     confirmButtonText: 'Cerrar',
                 });
             }

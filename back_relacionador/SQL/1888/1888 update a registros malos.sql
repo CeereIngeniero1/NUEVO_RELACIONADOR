@@ -505,3 +505,79 @@ LEFT JOIN dbo.Ocupación o
 GO
 
 
+-- aca porfa 
+
+/* ==========================================================================================================
+   CORRECCIÓN CATALOGO: [RIPS Causa Externa Version2]
+   - Actualiza nombres incorrectos en BD ya existentes.
+   - Inserta códigos faltantes (incluye 49).
+   - Mantiene [Id Estado] = 7.
+   ========================================================================================================== */
+IF OBJECT_ID(N'[dbo].[RIPS Causa Externa Version2]', N'U') IS NOT NULL
+BEGIN
+    ;WITH src AS (
+        SELECT *
+        FROM (VALUES
+            ('21', 'ACCIDENTE DE TRABAJO', 1, 7),
+            ('22', 'ACCIDENTE EN EL HOGAR', 1, 7),
+            ('23', 'ACCIDENTE DE TRANSITO DE ORIGEN COMUN', 1, 7),
+            ('24', 'ACCIDENTE DE TRANSITO DE ORIGEN LABORAL', 1, 7),
+            ('25', 'ACCIDENTE EN EL ENTORNO EDUCATIVO', 1, 7),
+            ('26', 'OTRO TIPO DE ACCIDENTE', 1, 7),
+            ('27', 'EVENTO CATASTROFICO DE ORIGEN NATURAL', 1, 7),
+            ('28', 'LESION POR AGRESION', 1, 7),
+            ('29', 'LESION AUTO INFLIGIDA', 1, 7),
+            ('30', 'SOSPECHA DE VIOLENCIA FISICA', 1, 7),
+            ('31', 'SOSPECHA DE VIOLENCIA PSICOLOGICA', 1, 7),
+            ('32', 'SOSPECHA DE VIOLENCIA SEXUAL', 1, 7),
+            ('33', 'SOSPECHA DE NEGLIGENCIA Y ABANDONO', 1, 7),
+            ('34', 'IVE RELACIONADO CON PELIGRO A LA SALUD O  VIDA DE LA MUJER', 1, 7),
+            ('35', 'IVE POR MALFORMACION CONGENITA  INCOMPATIBLE CON LA VIDA', 1, 7),
+            ('36', 'IVE POR VIOLENCIA SEXUAL, INCESTO O POR INSEMINACION ARTIFICIAL O  TRANSFERENCIA DE OVULO FECUNDADO NO CONSENTIDA', 1, 7),
+            ('37', 'EVENTO ADVERSO EN SALUD', 1, 7),
+            ('38', 'ENFERMEDAD GENERAL', 1, 7),
+            ('39', 'ENFERMEDAD LABORAL', 1, 7),
+            ('40', 'PROMOCION Y MANTENIMIENTO DE LA SALUD - INTERVENCIONES INDIVIDUALES', 1, 7),
+            ('41', 'INTERVENCION COLECTIVA', 1, 7),
+            ('42', 'ATENCION DE POBLACION MATERNO PERINATAL', 1, 7),
+            ('43', 'RIESGO AMBIENTAL', 1, 7),
+            ('44', 'OTROS EVENTOS CATASTROFICOS', 1, 7),
+            ('45', 'ACCIDENTE DE MINA ANTIPERSONAL - MAP', 1, 7),
+            ('46', 'ACCIDENTE DE ARTEFACTO EXPLOSIVO IMPROVISADO - AEI', 1, 7),
+            ('47', 'ACCIDENTE DE MUNICION SIN EXPLOTAR- MUSE', 1, 7),
+            ('48', 'OTRA VICTIMA DE CONFLICTO ARMADO COLOMBIANO', 1, 7),
+            ('49', 'IVE POR DECISION O MANIFESTACION DE VOLUNTAD DE LA PERSONA GESTANTE HASTA LA SEMANA 24 DE GESTACION', 1, 7)
+        ) AS v (Codigo, NombreOficial, OrdenOficial, IdEstadoOficial)
+    )
+    MERGE [dbo].[RIPS Causa Externa Version2] AS tgt
+    USING src
+        ON LTRIM(RTRIM(tgt.[Codigo])) = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.[Nombre RIPS Causa Externa Version2] = src.NombreOficial,
+            tgt.[Orden RIPS Causa Externa Version2] = src.OrdenOficial,
+            tgt.[Id Estado] = src.IdEstadoOficial
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (
+            [Codigo],
+            [Nombre RIPS Causa Externa Version2],
+            [Descripción RIPS Causa Externa Version2],
+            [Orden RIPS Causa Externa Version2],
+            [Id Estado]
+        )
+        VALUES (
+            src.Codigo,
+            src.NombreOficial,
+            NULL,
+            src.OrdenOficial,
+            src.IdEstadoOficial
+        );
+
+    PRINT 'OK: Catálogo [RIPS Causa Externa Version2] actualizado (21-49).';
+END
+ELSE
+BEGIN
+    PRINT 'AVISO: No existe la tabla [dbo].[RIPS Causa Externa Version2].';
+END
+GO
+

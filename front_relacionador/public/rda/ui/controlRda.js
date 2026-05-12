@@ -15,8 +15,17 @@ export function initControlRda() {
     const radioPaciente = document.getElementById("RDATipoPaciente");
     const labelRadioPaciente = document.querySelector('label[for="RDATipoPaciente"]');
 
-    if (radioPaciente) radioPaciente.classList.add("d-none");
-    if (labelRadioPaciente) labelRadioPaciente.classList.add("d-none");
+    /** true (default): solo flujo CE en pantalla; envío IHCE puede ir paciente+CE junto. false: muestra RDA Paciente y CE por separado. */
+    const cfg = typeof window !== "undefined" ? window.__APP_CONFIG__ || {} : {};
+    const ihceUnifiedSend = cfg.RDA_IHCE_UNIFIED_SEND !== false;
+
+    if (ihceUnifiedSend) {
+        if (radioPaciente) radioPaciente.classList.add("d-none");
+        if (labelRadioPaciente) labelRadioPaciente.classList.add("d-none");
+    } else {
+        if (radioPaciente) radioPaciente.classList.remove("d-none");
+        if (labelRadioPaciente) labelRadioPaciente.classList.remove("d-none");
+    }
 
     let lastTipoRDA = "consultaExterna";
 
@@ -30,7 +39,7 @@ export function initControlRda() {
 
     function onTipoRDAChange(e) {
         let tipo = e.target.value;
-        if (tipo === "paciente") tipo = "consultaExterna";
+        if (ihceUnifiedSend && tipo === "paciente") tipo = "consultaExterna";
         lastTipoRDA = tipo;
 
         contenidoRDA?.classList.remove("d-none");
@@ -69,7 +78,12 @@ export function initControlRda() {
             seccionConsultaExt?.classList.add("d-none");
         } else {
             const arr = Array.from(radiosTipoRDA);
-            const pick = arr.find((r) => r.value === lastTipoRDA) || arr[0];
+            const visible = arr.filter((r) => !r.classList.contains("d-none"));
+            const pool = visible.length ? visible : arr;
+            let pick = pool.find((r) => r.value === lastTipoRDA) || pool[0];
+            if (ihceUnifiedSend) {
+                pick = pool.find((r) => r.value === "consultaExterna") || pick;
+            }
             if (pick) {
                 pick.checked = true;
                 onTipoRDAChange({ target: pick });

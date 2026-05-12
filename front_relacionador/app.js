@@ -75,17 +75,29 @@ app.get('/config.js', (req, res) => {
         const host = req.hostname || 'localhost';
         apiBase = `${proto}://${host}:${backPort}`;
     }
+    const parseBool = (v, fallback) => {
+        const raw = String(v == null ? '' : v).trim().toLowerCase();
+        if (!raw) return fallback;
+        return ['1', 'true', 'yes', 'on'].includes(raw);
+    };
+    const forceSandboxOnly = parseBool(process.env.IHCE_FORCE_SANDBOX_ONLY, false);
+    const forceProdOnly = parseBool(process.env.IHCE_FORCE_PROD_ONLY, false);
+    // Banderas de habilitación por ambiente (similares a Visor): permiten ocultar opciones en UI.
+    const enableSandbox = forceProdOnly ? false : parseBool(process.env.IHCE_ENABLE_SANDBOX, true);
+    const enableProd = forceSandboxOnly ? false : parseBool(process.env.IHCE_ENABLE_PROD, true);
+    // RDA CE: al enviar a IHCE, ¿unificar con RDA Paciente (guardar + enviar ambos) o solo RDACE?
+    const rdaIhceUnifiedSend = parseBool(process.env.RDA_IHCE_UNIFIED_SEND, true);
+
     const body =
         'window.__APP_CONFIG__=' +
         JSON.stringify({
             API_BASE_URL: apiBase,
             BACK_PORT: String(backPort),
-            IHCE_FORCE_SANDBOX_ONLY: ['1', 'true', 'yes', 'on'].includes(
-                String(process.env.IHCE_FORCE_SANDBOX_ONLY || '').trim().toLowerCase()
-            ),
-            IHCE_FORCE_PROD_ONLY: ['1', 'true', 'yes', 'on'].includes(
-                String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
-            ),
+            IHCE_FORCE_SANDBOX_ONLY: forceSandboxOnly,
+            IHCE_FORCE_PROD_ONLY: forceProdOnly,
+            IHCE_ENABLE_SANDBOX: enableSandbox,
+            IHCE_ENABLE_PROD: enableProd,
+            RDA_IHCE_UNIFIED_SEND: rdaIhceUnifiedSend,
         }) +
         ';';
     res.send(body);
