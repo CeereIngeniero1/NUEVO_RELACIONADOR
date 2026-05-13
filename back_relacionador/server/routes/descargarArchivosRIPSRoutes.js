@@ -523,7 +523,8 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
             evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
-            evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            --evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
             Null  AS codDiagnosticoRelacionado1,
             NULL AS codDiagnosticoRelacionado2,
@@ -631,7 +632,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
     const request = new Request(
         `
         --ac correcto 
-          SELECT 
+         SELECT 
             EMP.[Código Empresa] AS codPrestador, 
             --EVA.[Fecha Evaluación Entidad] AS fechaInicioAtencion,
              --SUBSTRING(CONVERT(VARCHAR, FC.[Fecha Factura], 120), 1, 16) AS fechaInicioAtencion, 
@@ -646,7 +647,8 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
             evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
-            evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            --evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
             Null  AS codDiagnosticoRelacionado1,
             NULL AS codDiagnosticoRelacionado2,
@@ -677,7 +679,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
-                                
+                      
             WHERE evr.[Id Acto Quirúrgico] = 1 
             AND EVR.[Id Factura] = @IdFacrua
             --AND EVA.[Documento Entidad] = @numDocumentoIdentificacion
@@ -1137,7 +1139,8 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
             evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
-            evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            --evr.[Id Causa Externa]  AS causaMotivoAtencion,
+            Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
             Null  AS codDiagnosticoRelacionado1,
             NULL AS codDiagnosticoRelacionado2,
