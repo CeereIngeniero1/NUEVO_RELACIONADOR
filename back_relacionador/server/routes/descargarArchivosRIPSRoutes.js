@@ -646,7 +646,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             MODA.Codigo AS modalidadGrupoServicioTecSal, 
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
-            evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
+            FIN.Codigo AS finalidadTecnologiaSalud, 
             --evr.[Id Causa Externa]  AS causaMotivoAtencion,
             Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -679,6 +679,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+             LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
                       
             WHERE evr.[Id Acto Quirúrgico] = 1 
             AND EVR.[Id Factura] = @IdFacrua
