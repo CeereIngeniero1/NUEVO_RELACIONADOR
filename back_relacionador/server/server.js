@@ -21,6 +21,7 @@ const epsRoutesv2 = require('./routes/epsRoutes V2');
 const AsignarRips = require('./routes/Asignar_RipsRoutes');
 const AsignarRipsv2 = require('./routes/Asignar_RipsRoutes V2');
 const AsignarRipsv3 = require('./routes/Asignar_RipsRoutes V3');
+const HistoriasClinicasRoutes = require('./routes/historiasClinicasRoutes');
 const AsignarRipsv3Experimental = require('./routes/Asignar_RipsRoutes V3 experimental');
 const DesrelacionadorRoutes = require('./routes/desrelacionadorRoutes');
 const VisorIhceRoutes = require('./routes/VisorIhceRoutes');
@@ -126,6 +127,7 @@ app.use('/api', AsignarRips);
 
 app.use('/apiV2', AsignarRipsv2);
 app.use('/apiV3', AsignarRipsv3);
+app.use('/apiV3', HistoriasClinicasRoutes);
 app.use('/apiV3', DesrelacionadorRoutes);
 app.use('/apiV3', VisorIhceRoutes);
 app.use('/apiV3Experimental', AsignarRipsv3Experimental);

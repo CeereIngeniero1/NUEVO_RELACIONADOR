@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prueba campos T — Historia Clínica CEERE</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; margin: 0; padding: 16px; color: #222; background: #fff; width: 100%; box-sizing: border-box; }
+  h1 { font-size: 18px; text-align: center; color: #003366; margin: 0 0 8px; }
+  .nota { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { background: #003366; color: #fff; padding: 8px; text-align: left; font-size: 12px; }
+  td { border: 1px solid #ccc; padding: 6px 8px; vertical-align: middle; }
+  td.col-campo { width: 90px; font-weight: bold; color: #003366; white-space: nowrap; }
+  td.col-etiq { width: 38%; }
+  input[type="text"] { width: 100%; box-sizing: border-box; font-size: 12px; padding: 4px 6px; border: 1px solid #888; }
+  tr.vacio-esperado td.col-etiq { color: #999; font-style: italic; }
+  tr.rellena td.col-etiq { color: #000; }
+</style>
+</head>
+<body>
+
+<h1>Formato de prueba — Campos T (CeereSio)</h1>
+<p class="nota">Busque un paciente y seleccione este formato. Los inputs con <strong>name</strong> T1…T36 deben autollenarse.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Campo</th>
+      <th>Descripción (Campos Historia Clínica.txt)</th>
+      <th>Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="rellena"><td class="col-campo">T1</td><td class="col-etiq">Nombre Completo</td><td><input type="text" name="T1" size="60"></td></tr>
+    <tr class="rellena"><td class="col-campo">T2</td><td class="col-etiq">No Historia</td><td><input type="text" name="T2" size="40"></td></tr>
+    <tr class="rellena"><td class="col-campo">T3</td><td class="col-etiq">Edad</td><td><input type="text" name="T3" size="10"></td></tr>
+    <tr class="rellena"><td class="col-campo">T4</td><td class="col-etiq">Fecha de Historia</td><td><input type="text" name="T4" size="20"></td></tr>
+    <tr class="rellena"><td class="col-campo">T5</td><td class="col-etiq">Identificación</td><td><input type="text" name="T5" size="40"></td></tr>
+    <tr class="rellena"><td class="col-campo">T6</td><td class="col-etiq">Dir Domicilio</td><td><input type="text" name="T6" size="50"></td></tr>
+    <tr class="rellena"><td class="col-campo">T7</td><td class="col-etiq">Ciudad</td><td><input type="text" name="T7" size="40"></td></tr>
+    <tr class="rellena"><td class="col-campo">T8</td><td class="col-etiq">Tel Domicilio</td><td><input type="text" name="T8" size="30"></td></tr>
+    <tr class="rellena"><td class="col-campo">T9</td><td class="col-etiq">Fecha de Nacimiento</td><td><input type="text" name="T9" size="20"></td></tr>
+    <tr class="rellena"><td class="col-campo">T10</td><td class="col-etiq">Sexo</td><td><input type="text" name="T10" size="20"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T11</td><td class="col-etiq">Estado Civil (pendiente SQL)</td><td><input type="text" name="T11" size="30"></td></tr>
+    <tr class="rellena"><td class="col-campo">T12</td><td class="col-etiq">Ocupación</td><td><input type="text" name="T12" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T13</td><td class="col-etiq">Aseguradora (pendiente SQL)</td><td><input type="text" name="T13" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T14</td><td class="col-etiq">Tipo Vinculación (pendiente SQL)</td><td><input type="text" name="T14" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T15</td><td class="col-etiq">Acompañante (pendiente SQL)</td><td><input type="text" name="T15" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T16</td><td class="col-etiq">Parentesco Acompañante (pendiente SQL)</td><td><input type="text" name="T16" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T17</td><td class="col-etiq">Tel Acompañante (pendiente SQL)</td><td><input type="text" name="T17" size="30"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T18</td><td class="col-etiq">Responsable (pendiente SQL)</td><td><input type="text" name="T18" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T19</td><td class="col-etiq">Parentesco Responsable (pendiente SQL)</td><td><input type="text" name="T19" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T20</td><td class="col-etiq">Tel Responsable (pendiente SQL)</td><td><input type="text" name="T20" size="30"></td></tr>
+    <tr class="rellena"><td class="col-campo">T21</td><td class="col-etiq">Nombre de Usuario</td><td><input type="text" name="T21" size="50"></td></tr>
+    <tr class="rellena"><td class="col-campo">T22</td><td class="col-etiq">Hora de Historia</td><td><input type="text" name="T22" size="20"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T23</td><td class="col-etiq">Lugar Nacimiento Paciente (pendiente SQL)</td><td><input type="text" name="T23" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T24</td><td class="col-etiq">Barrio Paciente (pendiente SQL)</td><td><input type="text" name="T24" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T25</td><td class="col-etiq">Telefono 2 Paciente (pendiente SQL)</td><td><input type="text" name="T25" size="30"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T26</td><td class="col-etiq">Celular Paciente (pendiente SQL)</td><td><input type="text" name="T26" size="30"></td></tr>
+    <tr class="rellena"><td class="col-campo">T27</td><td class="col-etiq">Tipo Documento Paciente</td><td><input type="text" name="T27" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T28</td><td class="col-etiq">Tipo Usuario (pendiente SQL)</td><td><input type="text" name="T28" size="40"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T29</td><td class="col-etiq">Registro Medico (pendiente SQL)</td><td><input type="text" name="T29" size="30"></td></tr>
+    <tr class="rellena"><td class="col-campo">T30</td><td class="col-etiq">Fecha Historia Numerica (YYYYMMDD)</td><td><input type="text" name="T30" size="15"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T31</td><td class="col-etiq">Codigo Diagnostico Rips (pendiente SQL)</td><td><input type="text" name="T31" size="20"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T32</td><td class="col-etiq">Descripcion Diagnostico Rips (pendiente SQL)</td><td><input type="text" name="T32" size="60"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T33</td><td class="col-etiq">Codigo Diagnostico Rips2 (pendiente SQL)</td><td><input type="text" name="T33" size="20"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T34</td><td class="col-etiq">Edad Gestacional (pendiente SQL)</td><td><input type="text" name="T34" size="15"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">T36</td><td class="col-etiq">Correo electrónico (pendiente SQL)</td><td><input type="text" name="T36" size="50"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">RegistroMédico</td><td class="col-etiq">Registro Medico (alias T29)</td><td><input type="text" name="RegistroMédico" size="30"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">Entidad1</td><td class="col-etiq">Foto del paciente (imagen)</td><td><input type="text" name="Entidad1" size="40" placeholder="(imagen — no autollenado)"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">Entidad2</td><td class="col-etiq">Firma del paciente (imagen)</td><td><input type="text" name="Entidad2" size="40" placeholder="(imagen — no autollenado)"></td></tr>
+    <tr class="vacio-esperado"><td class="col-campo">Entidad3</td><td class="col-etiq">Firma Usuario (imagen)</td><td><input type="text" name="Entidad3" size="40" placeholder="(imagen — no autollenado)"></td></tr>
+  </tbody>
+</table>
+
+</body>
+</html>

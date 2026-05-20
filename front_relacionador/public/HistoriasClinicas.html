@@ -1,0 +1,1071 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Creación de historias clínicas — Sistema CEERE">
+    <title>Historias Clínicas — CEERE</title>
+
+    <!-- GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&family=Be+Vietnam+Pro:wght@500;700&family=Roboto&family=Roboto+Condensed:wght@500&display=swap"
+        rel="stylesheet">
+
+    <!-- SWEETALERT2 -->
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+
+    <!-- ALERTIFY -->
+    <link rel="stylesheet" href="node_modules/alertifyjs/build/css/alertify.min.css">
+    <link rel="stylesheet" href="node_modules/alertifyjs/build/css/themes/default.css">
+
+    <!-- BOOTSTRAP (se carga primero para que nuestro CSS lo sobreescriba) -->
+    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FONTAWESOME (ICONOS) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- SELECT2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- ESTILOS GLOBALES -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- ESTILOS ESPECÍFICOS DE ESTA PÁGINA (última prioridad = gana) -->
+    <link rel="stylesheet" href="Asignar_RIPS.css">
+
+    <style>
+        /* Select2: asegurar botón de limpiar visible (CIE-10). */
+        .select2-container--default .select2-selection--single {
+            position: relative;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            position: absolute;
+            right: 1.75rem; /* deja espacio para la flecha */
+            top: 50%;
+            transform: translateY(-50%);
+            margin: 0;
+            float: none;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            right: 0.25rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-right: 3rem; /* espacio para X + flecha */
+        }
+        /* Diagnósticos relacionados RDACE: el contenedor Select2 no debe desbordar la columna Bootstrap. */
+        .rdace-diag-rel-card .select2-container {
+            max-width: 100%;
+        }
+        /* Prescripción procedimientos RDACE: CUPS Select2 no debe invadir columnas vecinas. */
+        .rdace-pres-proc-card .select2-container {
+            max-width: 100%;
+        }
+        /* Módulos desplegables RDA/RDACE */
+        .rda-module-card .rda-module-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 0.5rem;
+        }
+        .rda-module-card .rda-module-title-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            min-width: 0;
+        }
+        .rda-module-card .rda-module-toggle-icon {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            transition: transform 0.2s ease;
+            margin-left: auto;
+        }
+        .rda-module-card.rda-module-collapsed .rda-module-toggle-icon {
+            transform: rotate(-90deg);
+        }
+        .rda-module-card.rda-module-collapsed > :not(.rda-module-title) {
+            display: none !important;
+        }
+        .rda-required-module-star {
+            color: #dc3545;
+            margin-left: 0.25rem;
+            font-weight: 700;
+        }
+        [data-theme="dark"] .rda-required-module-star,
+        [data-theme="dark"] .cr-card .text-danger {
+            color: #ff5f7a !important;
+            text-shadow: 0 0 1px rgba(0, 0, 0, 0.35);
+        }
+        /* Vista previa formato HC: se adapta al tamaño real del documento */
+        .preview-formato-hc-wrapper {
+            background: #f8f9fa;
+        }
+        [data-theme="dark"] .preview-formato-hc-wrapper {
+            background: #1a1d21;
+        }
+        .preview-formato-hc-container {
+            width: 100%;
+            overflow: visible;
+            background: #fff;
+        }
+        .preview-formato-hc-container iframe {
+            display: block;
+            width: 100%;
+            border: 0;
+            background: #fff;
+        }
+        .preview-formato-hc-wrapper.hc-preview-solo-lectura {
+            box-shadow: inset 0 0 0 2px rgba(253, 203, 110, 0.35);
+        }
+        /* Panel izquierdo — evoluciones previas */
+        .hc-formato-layout {
+            align-items: stretch;
+        }
+        @media (min-width: 992px) {
+            .hc-formato-layout {
+                display: grid;
+                grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+                transition: grid-template-columns 0.2s ease;
+            }
+            .hc-formato-layout.is-evoluciones-collapsed {
+                grid-template-columns: 52px minmax(0, 1fr);
+            }
+            .hc-formato-layout > .hc-formato-evoluciones-col,
+            .hc-formato-layout > .hc-formato-main-col {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        .hc-formato-main-col {
+            min-width: 0;
+        }
+        .hc-evoluciones-panel {
+            border-radius: 12px;
+            overflow: hidden;
+            background: #1e2228;
+            border: 1px solid #2d333b;
+            height: 100%;
+            min-height: 420px;
+            max-height: 720px;
+            display: flex;
+            flex-direction: column;
+        }
+        [data-theme="light"] .hc-evoluciones-panel {
+            background: #f4f6f8;
+            border-color: #dee2e6;
+        }
+        .hc-evoluciones-header {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: #fff;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .hc-evoluciones-header:hover {
+            filter: brightness(1.06);
+        }
+        .hc-evoluciones-header-text {
+            flex: 1;
+            min-width: 0;
+        }
+        .hc-evoluciones-toggle {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            transition: transform 0.2s ease;
+        }
+        .hc-evoluciones-panel.is-collapsed .hc-evoluciones-toggle {
+            transform: rotate(180deg);
+        }
+        .hc-evoluciones-panel.is-collapsed .hc-evoluciones-header {
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px 6px;
+            gap: 8px;
+        }
+        .hc-evoluciones-panel.is-collapsed .hc-evoluciones-header-text {
+            display: none;
+        }
+        .hc-evoluciones-panel.is-collapsed .hc-evoluciones-list {
+            display: none;
+        }
+        .hc-evoluciones-panel.is-collapsed {
+            min-height: auto;
+            max-height: none;
+        }
+        .hc-evoluciones-header-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        .hc-evoluciones-header-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .hc-evoluciones-header-sub {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        .hc-evoluciones-toolbar {
+            padding: 8px 10px 0;
+            flex-shrink: 0;
+        }
+        .hc-btn-nueva-evolucion {
+            width: 100%;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #74b9ff;
+            background: #252b33;
+            border: 1px solid #3d5a80;
+            border-radius: 8px;
+            padding: 8px 12px;
+        }
+        .hc-btn-nueva-evolucion:hover:not(:disabled) {
+            color: #a8d4ff;
+            background: #2d3642;
+            border-color: #5d8fd6;
+        }
+        .hc-btn-nueva-evolucion:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        [data-theme="light"] .hc-btn-nueva-evolucion {
+            color: #0d6efd;
+            background: #fff;
+            border-color: #adb5bd;
+        }
+        .hc-evoluciones-list {
+            overflow-y: auto;
+            padding: 10px;
+            flex: 1;
+        }
+        .hc-evolucion-item {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            padding: 10px 12px 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background: #2a3038;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        [data-theme="light"] .hc-evolucion-item {
+            background: #fff;
+            border-color: #e9ecef;
+        }
+        .hc-evolucion-item.sin-guardar {
+            border-color: #3498db;
+            background: #2a3340;
+        }
+        .hc-evolucion-item:hover,
+        .hc-evolucion-item.active {
+            border-color: #00cec9;
+            background: #323a45;
+        }
+        .hc-evolucion-item.sin-guardar:hover,
+        .hc-evolucion-item.sin-guardar.active {
+            border-color: #74b9ff;
+            background: #2f3d4d;
+        }
+        [data-theme="light"] .hc-evolucion-item:hover,
+        [data-theme="light"] .hc-evolucion-item.active {
+            background: #e8f8f5;
+            border-color: #00b894;
+        }
+        .hc-evolucion-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+        .hc-evolucion-fecha {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #f1f3f5;
+        }
+        [data-theme="light"] .hc-evolucion-fecha { color: #212529; }
+        .hc-evolucion-hora {
+            font-size: 0.8rem;
+            color: #adb5bd;
+        }
+        .hc-evolucion-formato {
+            font-size: 0.7rem;
+            color: #868e96;
+            margin-top: 2px;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .hc-evolucion-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            align-self: flex-start;
+            margin-top: 2px;
+            max-width: 100%;
+        }
+        .hc-evolucion-badge.abierto {
+            background: rgba(0, 184, 148, 0.25);
+            color: #55efc4;
+        }
+        [data-theme="light"] .hc-evolucion-badge.abierto {
+            background: #d4edda;
+            color: #0d6e3f;
+        }
+        .hc-evolucion-badge.cerrado {
+            background: rgba(253, 203, 110, 0.2);
+            color: #fdcb6e;
+        }
+        [data-theme="light"] .hc-evolucion-badge.cerrado {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .hc-evolucion-badge.otro {
+            background: rgba(108, 117, 125, 0.3);
+            color: #ced4da;
+        }
+        .hc-evolucion-badge.sin-guardar {
+            background: rgba(52, 152, 219, 0.35);
+            color: #74b9ff;
+        }
+        [data-theme="light"] .hc-evolucion-badge.sin-guardar {
+            background: #cfe2ff;
+            color: #084298;
+        }
+        .hc-evoluciones-empty {
+            padding: 20px 12px;
+            text-align: center;
+            color: #868e96;
+            font-size: 0.85rem;
+        }
+        .hc-rips-ancla {
+            min-height: 52px;
+            background: rgba(0, 0, 0, 0.15);
+        }
+        [data-theme="light"] .hc-rips-ancla {
+            background: #f8f9fa;
+        }
+        .hc-rips-estado {
+            color: #6c757d;
+        }
+        [data-theme="light"] .hc-rips-estado {
+            color: #6c757d;
+        }
+        #cardRipsHc.hc-rips-card-disabled .cr-card-body {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        #TipoAC, #TipoAP {
+            display: none;
+        }
+        #cardRipsHc .select2-container {
+            width: 100% !important;
+        }
+        #cardRipsHc .select2-container--default .select2-selection--single {
+            min-height: 31px;
+            border-radius: 4px;
+        }
+        #cardRipsHc .select2-search--dropdown .select2-search__field {
+            width: 100%;
+        }
+        /* Botón flotante RIPS */
+        .hc-rips-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 1045;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 3px solid #d4a853;
+            background: linear-gradient(145deg, #059669 0%, #047857 55%, #065f46 100%);
+            color: #fff;
+            font-size: 1.45rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(5, 150, 105, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hc-rips-fab:hover {
+            transform: scale(1.06);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), 0 0 0 6px rgba(5, 150, 105, 0.2);
+        }
+        .hc-rips-fab.is-open {
+            transform: scale(0.95);
+            opacity: 0.85;
+        }
+        .hc-rips-fab-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f59e0b;
+            border: 2px solid #fff;
+        }
+        .hc-rips-fab-badge.ok {
+            background: #22c55e;
+        }
+        .hc-rips-fab-badge.warn {
+            background: #ef4444;
+        }
+        /* Panel superpuesto RIPS */
+        .hc-rips-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1050;
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+            pointer-events: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.25s ease, visibility 0.25s;
+        }
+        .hc-rips-overlay.is-open {
+            pointer-events: auto;
+            visibility: visible;
+            opacity: 1;
+        }
+        .hc-rips-overlay-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(2px);
+        }
+        .hc-rips-overlay-panel {
+            position: relative;
+            z-index: 1;
+            width: min(960px, 96vw);
+            max-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-row, #0f172a);
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        .hc-rips-overlay.is-open .hc-rips-overlay-panel {
+            transform: translateX(0);
+        }
+        [data-theme="light"] .hc-rips-overlay-panel {
+            background: #fff;
+        }
+        .hc-rips-overlay-header {
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(30, 41, 59, 0.5);
+        }
+        [data-theme="light"] .hc-rips-overlay-header {
+            background: #f8f9fa;
+            border-bottom-color: #dee2e6;
+        }
+        .hc-rips-overlay-header-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .hc-rips-overlay-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .hc-rips-toggle-exigir {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--color-text-secondary, #94a3b8);
+        }
+        [data-theme="light"] .hc-rips-toggle-exigir {
+            color: #495057;
+        }
+        .hc-rips-toggle-exigir .form-check-input {
+            margin-top: 0;
+            cursor: pointer;
+        }
+        .hc-rips-overlay-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px 24px;
+        }
+        .hc-rips-overlay-body #cardRipsHc {
+            border: none;
+            box-shadow: none;
+        }
+        .hc-rips-overlay-body #cardRipsHc .cr-card-header {
+            cursor: default;
+        }
+        .hc-rips-overlay-body #cardRipsHc .cr-card-toggle {
+            display: none;
+        }
+        .hc-rips-overlay-body #cardRipsHc .cr-card-body {
+            display: block !important;
+        }
+        @media (max-width: 576px) {
+            .hc-rips-overlay-panel {
+                width: 100%;
+            }
+            .hc-rips-fab {
+                bottom: 18px;
+                right: 18px;
+            }
+        }
+    </style>
+
+    <!-- ICONO -->
+    <link rel="icon" href="images/Logo.png" type="image/x-icon">
+    <!-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
+
+</head>
+
+<body class="app-layout">
+
+    <!-- ═══════════════════════════════════════════
+     TOP NAVBAR
+     ═══════════════════════════════════════════ -->
+    <nav class="cr-topbar" id="crTopbar">
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
+            <img src="images/Ceere_logo.png" alt="Logo" class="cr-topbar-logo">
+            <span class="cr-topbar-title">Relacionador RIPS</span>
+            <span class="text-muted d-none d-sm-inline">|</span>
+            <nav class="d-flex align-items-center gap-2 flex-wrap" aria-label="Módulos">
+                <a href="RIPS.html" class="link-secondary text-decoration-none small fw-semibold">Inicio</a>
+                <span class="text-muted small">·</span>
+                <a href="Asignar_RIPS V3.html" class="link-secondary text-decoration-none small fw-semibold">Asignar RIPS &amp; RDA</a>
+                <span class="text-muted small">·</span>
+                <span class="small fw-semibold" style="color: var(--color-primary, #007E82);">Historias Clínicas</span>
+                <span class="text-muted small">·</span>
+                <a href="Desrelacionar.html" class="link-secondary text-decoration-none small fw-semibold">Desrelacionar</a>
+                <span class="text-muted small">·</span>
+                <a href="visor/visor.html" class="link-secondary text-decoration-none small fw-semibold">Visor IHCE</a>
+            </nav>
+        </div>
+        <div class="cr-topbar-right">
+            <div class="cr-topbar-user">
+                <div class="cr-topbar-user-icon">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span id="TopbarUserName">Usuario</span>
+            </div>
+            <button class="cr-topbar-logout" id="crBtnThemeToggle">
+                <i class="fa-solid fa-moon"></i>
+                <span>Tema Oscuro</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="cr-page-content">
+        <h1 class="cr-page-heading">Historias Clínicas</h1>
+
+        <div class="container" id="Contenido">
+
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index:200">
+                <button class="btn btn-success shadow-lg fw-bolder" id="RegresarAPrincipal">⬅ Regresar</button>
+            </div>
+
+            <!-- ╔══════════════════════════════════════════╗
+             ║  CARD 1 — Selección de paciente          ║
+             ╚══════════════════════════════════════════╝ -->
+            <div class="cr-card" id="cardSeleccionPaciente">
+                <div class="cr-card-header" onclick="crToggleCard('cardSeleccionPaciente')">
+                    <div class="cr-card-header-left">
+                        <i class="fa-solid fa-user-check cr-card-icon"></i>
+                        <span class="cr-card-title">Selección de paciente</span>
+                    </div>
+                    <button class="cr-card-toggle" tabindex="-1">▼</button>
+                </div>
+
+                <div class="cr-card-body">
+                    <div class="row align-items-start g-3">
+                        <div class="col-md-5 col-lg-4">
+                            <label for="inputBuscarDocumentoPaciente" class="mb-1 fw-semibold">Consultar paciente por
+                                documento</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control border-secondary"
+                                    id="inputBuscarDocumentoPaciente" placeholder="Número de documento"
+                                    autocomplete="off" spellcheck="false">
+                                <button class="btn btn-success fw-semibold" type="button"
+                                    id="btnBuscarPacientePorDocumento" title="Buscar en el directorio de usuarios">
+                                    Buscar
+                                </button>
+                            </div>
+                            <p class="small text-muted mb-0 mt-2 lh-sm">
+                                Consulta el directorio por documento. Facturas y presupuestos se cargan para el
+                                paciente encontrado.
+                            </p>
+                            <p id="pacienteConsultadoResumen" class="small mb-0 mt-2 text-muted fst-italic">
+                                Ningún paciente consultado.
+                            </p>
+                        </div>
+
+                        <div class="col-md-3 col-lg-3 flex-column" id="ContenedorDeCheckBox">
+                            <label class="mb-1">Buscar por:</label>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" value="" id="BuscarPorFacturas" disabled>
+                                <label class="form-check-label" for="BuscarPorFacturas" id="LabelFacturas">
+                                    Facturas (Particular)
+                                </label>
+                            </div>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" value="" id="BuscarPorPresupuestos"
+                                    disabled>
+                                <label class="form-check-label" for="BuscarPorPresupuestos" id="LabelPresupuestos">
+                                    Presupuestos (EPS)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 col-lg-5 flex-column" id="ContenedorDeSelects">
+                            <div class="Facturas mb-2" id="Facturas" style="display: none;">
+                                <label for="FacturaARelacionar" class="mb-1">Seleccionar factura</label>
+                                <select id="FacturaARelacionar" class="form-select-sm border-secondary w-100" disabled>
+                                    <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                </select>
+                            </div>
+                            <div class="Presupuestos" id="Presupuestos" style="display: none;">
+                                <label for="PresupuestoARelacionar" class="mb-1">Seleccionar presupuesto</label>
+                                <select id="PresupuestoARelacionar" class="form-select-sm border-secondary w-100"
+                                    disabled>
+                                    <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- /cr-card cardSeleccionPaciente -->
+
+            <!-- ╔══════════════════════════════════════════╗
+             ║  CARD 2 — Datos del paciente             ║
+             ╚══════════════════════════════════════════╝ -->
+            <div class="cr-card" id="cardDatosPaciente">
+                <div class="cr-card-header" onclick="crToggleCard('cardDatosPaciente')">
+                    <div class="cr-card-header-left">
+                        <i class="fa-regular fa-address-card cr-card-icon"></i>
+                        <span class="cr-card-title">Datos del paciente</span>
+                    </div>
+                    <button class="cr-card-toggle" tabindex="-1">▼</button>
+                </div>
+                <div class="cr-card-body">
+                    <div class="row">
+                        <div class="row">
+
+                            <div class="row mt-4">
+                                <div class="row">
+                                    <h5><b>Datos del paciente</b></h5>
+                                    <!-- Fila 1: Identificación y Nombres -->
+                                    <div class="col-md-2">
+                                        <label>Tipo Documento: <span class="text-danger" aria-hidden="true">*</span></label>
+
+
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="TipoDocumentoBase">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Número Documento: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="DocumentoPaciente">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Primer Apellido: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="PrimerApellidoBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Segundo Apellido:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="SegundoApellidoBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Primer Nombre: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="PrimerNombreBase">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Segundo Nombre:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="SegundoNombreBase">
+                                    </div>
+
+                                    <!-- Fila 2: Nacimiento, Género y Nacionalidad -->
+                                    <div class="col-md-3">
+                                        <label>Fecha y Hora Nacimiento: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <input type="datetime-local"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="FechaNacimientoBase">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label>Edad:</label>
+                                        <input type="text" class="form-control-sm border border-secondary w-100 mb-2"
+                                            readonly id="EdadPaciente">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Sexo Biológico: <span class="text-danger" aria-hidden="true">*</span></label>
+
+
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="SexoPaciente">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Identidad de Género:</label>
+
+
+                                        <select class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="IdentidadGeneroBase">
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Nacionalidad (País): <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <div class="input-group input-group-sm">
+                                            <!-- <input type="text" class="form-control border border-secondary" placeholder="Cod"
+                                id="CodPaisNacionalidadBase" style="max-width: 50px;"> -->
+                                            <!-- <input type="text" class="form-control border border-secondary" placeholder="Nombre País"
+                                id="NombrePaisNacionalidadBase"> -->
+
+                                            <select disabled id="SelectNombrePaisNacionalidadBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
+
+
+                                        </div>
+                                    </div>
+
+                                    <!-- Fila 3: Ubicación y Demografía Social -->
+                                    <!-- Fila 2.5: Datos Biométricos -->
+                                    <div class="col-md-2">
+                                        <label>Talla (cm):</label>
+                                        <input disabled type="number"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="TallaPaciente" placeholder="Ej: 170">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>Peso (kg):</label>
+                                        <input disabled type="number" step="0.1"
+                                            class="form-control-sm border border-secondary w-100 mb-2" id="PesoPaciente"
+                                            placeholder="Ej: 70.5">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>IMC:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2 bg-light fw-bold"
+                                            id="IMCPaciente" readonly placeholder="Auto">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label>País Residencia: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <div class="input-group input-group-sm mb-2">
+
+                                            <select disabled id="SelectNombrePaisResidenciaBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Municipio Residencia: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <div class="input-group input-group-sm mb-2">
+
+
+                                            <select disabled id="SelectNombreMunicipioResidenciaBase"
+                                                class="form-select-sm border border-secondary w-100">
+                                                <option value="Sin Seleccionar">Sin Seleccionar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Zona Territorial: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <!-- <select class="form-select-sm border border-secondary w-100 mb-2" id="ZonaTerritorialBase">
+                            <option value="">Seleccionar</option>
+                            <option value="01">Urbana</option>
+                            <option value="02">Rural</option>
+                        </select> -->
+
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="ListaZonaTerritorialBase">
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Dirección:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="DireccionPaciente">
+                                    </div>
+
+                                    <!-- Fila 4: Extra Social y Alergias -->
+                                    <div class="col-md-3">
+                                        <label>Etnia: <span class="text-danger" aria-hidden="true">*</span></label>
+
+
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="EtniaBase">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Comunidad Étnica:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="ComunidadEtnicaBase">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Discapacidad: <span class="text-danger" aria-hidden="true">*</span></label>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="DiscapacidadBase">
+
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Teléfono:</label>
+                                        <input disabled type="text"
+                                            class="form-control-sm border border-secondary w-100 mb-2"
+                                            id="TelefonoPaciente">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label>Ocupación:</label>
+                                        <select disabled class="form-select-sm border border-secondary w-100 mb-2"
+                                            id="OcupacionBase">
+
+                                        </select>
+                                    </div>
+
+                                    <!-- Fila 5: Alergias -->
+                                    <div class="col-md-12 mt-2">
+                                        <div class="card p-2 border-secondary">
+                                            <h6 class="text-muted">Alergias</h6>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-12">
+                                                    <label>Nombre del Alérgeno / Detalles:</label>
+                                                    <input type="text"
+                                                        class="form-control-sm border border-secondary w-100"
+                                                        id="NombreAlergenoBase"
+                                                        placeholder="Alergias registradas del paciente"
+                                                        disabled>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Input oculto para compatibilidad temporal con JS existente -->
+                                    <input type="hidden" id="NombrePaciente">
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cr-card" id="cardFormatoHC">
+                <div class="cr-card-header" onclick="crToggleCard('cardFormatoHC')">
+                    <div class="cr-card-header-left">
+                        <i class="fa-solid fa-file-lines cr-card-icon"></i>
+                        <span class="cr-card-title">Formato de historia clínica</span>
+                    </div>
+                    <button class="cr-card-toggle" tabindex="-1">▼</button>
+                </div>
+                <div class="cr-card-body">
+                    <div class="row g-3 hc-formato-layout">
+                        <div class="col-12 hc-formato-evoluciones-col">
+                            <aside class="hc-evoluciones-panel" id="panelEvolucionesHc" aria-label="Evoluciones previas">
+                                <div class="hc-evoluciones-header" id="hcEvolucionesHeaderToggle" role="button"
+                                    tabindex="0" aria-expanded="true" aria-controls="listaEvolucionesHc"
+                                    title="Ocultar evoluciones previas (clic para comprimir)">
+                                    <div class="hc-evoluciones-header-icon">
+                                        <i class="fa-solid fa-table-cells"></i>
+                                    </div>
+                                    <div class="hc-evoluciones-header-text">
+                                        <div class="hc-evoluciones-header-title">Evoluciones previas</div>
+                                        <div class="hc-evoluciones-header-sub" id="evolucionesHcContador">0 registro(s)</div>
+                                    </div>
+                                    <span class="hc-evoluciones-toggle" aria-hidden="true">
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </span>
+                                </div>
+                                <div class="hc-evoluciones-toolbar">
+                                    <button type="button" class="btn btn-sm hc-btn-nueva-evolucion" id="btnNuevaEvolucionHc"
+                                        disabled title="Consulte un paciente para crear una nueva evolución">
+                                        Nueva evolución
+                                    </button>
+                                </div>
+                                <div class="hc-evoluciones-list" id="listaEvolucionesHc">
+                                    <div class="hc-evoluciones-empty" id="evolucionesHcPlaceholder">
+                                        Consulte un paciente para ver sus historias guardadas.
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <div class="col-12 hc-formato-main-col">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="selectFormatoHC" class="mb-1 fw-semibold">Seleccionar formato</label>
+                                    <select id="selectFormatoHC" class="form-select-sm border-secondary w-100">
+                                        <option value="">Sin seleccionar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <p id="formatoHcRutaInfo" class="small text-muted mb-2 mb-md-0"></p>
+                                </div>
+                            </div>
+                            <p class="small text-muted mt-2 mb-0">
+                                Formatos desde <code>CEERE_FORMATOS_HC_PATH</code> (por defecto
+                                <code>C:\CeereSio\Formatos HC</code>).
+                            </p>
+
+                            <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                                <button type="button" class="btn btn-success btn-sm fw-semibold" id="btnGuardarHistoriaClinica"
+                                    title="Guardar en Evaluación Entidad (nueva evaluación)">
+                                    <i class="fa-solid fa-floppy-disk me-1"></i> Guardar historia clínica
+                                </button>
+                                <button type="button" class="btn btn-warning btn-sm fw-semibold" id="btnCerrarHistoriaClinica"
+                                    disabled title="Seleccione una evolución abierta guardada para cerrarla">
+                                    <i class="fa-solid fa-lock me-1"></i> Cerrar HC
+                                </button>
+                                <label class="hc-rips-toggle-exigir mb-0 ms-1"
+                                    title="Si está activo, no podrá guardar la HC sin RIPS completo, registrado o marcado sin RIPS">
+                                    <input type="checkbox" class="form-check-input" id="hcRipsExigirAntesGuardar">
+                                    <span class="small">Exigir RIPS antes de guardar HC</span>
+                                </label>
+                                <span id="guardarHcEstado" class="small text-muted"></span>
+                            </div>
+
+                            <div id="previewFormatoHCPlaceholder"
+                                class="mt-3 p-4 text-center text-muted border border-secondary border-dashed rounded">
+                                Seleccione un formato en la lista para ver la vista previa aquí.
+                            </div>
+
+                            <div id="previewFormatoHCWrapper" class="preview-formato-hc-wrapper mt-3 border border-secondary rounded d-none">
+                                <div class="px-3 py-2 border-bottom border-secondary small fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <span id="previewFormatoHCTitulo">Vista previa del formato</span>
+                                    <span class="text-muted fw-normal text-truncate" id="previewFormatoHCArchivo" style="max-width: 55%;"></span>
+                                </div>
+                                <div id="previewFormatoHCContainer" class="preview-formato-hc-container">
+                                    <iframe id="previewFormatoHCIframe" title="Vista previa formato HC"
+                                        sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                                </div>
+                            </div>
+
+                            <div id="informeCamposHC" class="mt-3 border border-secondary rounded d-none">
+                                <div class="px-3 py-2 border-bottom border-secondary small fw-semibold">
+                                    Informe de campos del formato
+                                </div>
+                                <div id="informeCamposHCBody" class="px-3 py-2 small"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RIPS: botón flotante + panel superpuesto (datos persisten al cerrar) -->
+    <button type="button" id="hcRipsFab" class="hc-rips-fab" title="Abrir asignación RIPS" aria-label="RIPS">
+        <i class="fa-solid fa-file-medical" aria-hidden="true"></i>
+        <span id="hcRipsFabBadge" class="hc-rips-fab-badge d-none" aria-hidden="true"></span>
+    </button>
+
+    <div id="hcRipsOverlay" class="hc-rips-overlay" aria-hidden="true" role="dialog" aria-labelledby="hcRipsOverlayTitulo">
+        <div class="hc-rips-overlay-backdrop" id="hcRipsOverlayBackdrop"></div>
+        <div class="hc-rips-overlay-panel">
+            <div class="hc-rips-overlay-header">
+                <div class="hc-rips-overlay-header-main">
+                    <i class="fa-solid fa-file-medical text-success"></i>
+                    <h5 class="mb-0" id="hcRipsOverlayTitulo">RIPS — Historia clínica</h5>
+                </div>
+                <div class="hc-rips-overlay-header-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="hcRipsOverlayCerrar"
+                        aria-label="Cerrar panel RIPS">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="hcRipsPanelMount" class="hc-rips-overlay-body"></div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="/config.js"></script>
+<script src="/apiConfig.js"></script>
+<script src="/NombreEquipoServidor.js"></script>
+<script src="shared/aplicarDatosPacienteV3.js"></script>
+<script src="shared/pacienteSeleccionV3.js"></script>
+<script src="historiasClinicas/camposHistoriaClinica.js"></script>
+<script src="historiasClinicas/serializarFormatoHc.js"></script>
+<script src="historiasClinicas/evolucionesPacienteHc.js"></script>
+<script src="shared/rips/ripsApi.js"></script>
+<script src="shared/rips/ripsSelect2.js"></script>
+<script src="shared/rips/ripsCatalogos.js"></script>
+<script src="shared/rips/ripsAsignar.js"></script>
+<script src="shared/rips/ripsPorDefecto.js"></script>
+<script src="historiasClinicas/HistoriasClinicas.js"></script>
+<script src="historiasClinicas/ripsHc.js"></script>
+<script>
+  fetch("historiasClinicas/ripsHcCard.fragment.html")
+    .then((r) => r.text())
+    .then((html) => {
+      const mount = document.getElementById("hcRipsPanelMount");
+      if (mount) mount.innerHTML = html;
+      if (typeof initRipsHc === "function") initRipsHc();
+    })
+    .catch((err) => console.error("[HistoriasClinicas] panel RIPS:", err));
+</script>
+<script type="module">
+  import { wireDemografiaPaciente } from "./rda/bootstrap/wireDemografiaPaciente.js";
+  import { initThemeToggle, syncTopbarUserName } from "./shared/shell.js";
+  wireDemografiaPaciente({ enableUpdate: false });
+  initThemeToggle();
+  syncTopbarUserName();
+</script>
+</body>
+</html>

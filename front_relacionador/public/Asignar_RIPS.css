@@ -733,3 +733,35 @@ body.app-layout .container {
     background-color: var(--color-primary) !important;
     color: white !important;
 }
+
+/* ── RIPS (Historias Clínicas y Asignar V3): contraste en modo oscuro ── */
+[data-theme="dark"] #cardRipsHc .text-muted,
+[data-theme="dark"] #cardRipsHc .hc-rips-ancla .text-muted {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] #cardRipsHc .hc-rips-estado {
+    color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] #cardRipsHc .hc-rips-estado.text-warning {
+    color: #fbbf24 !important;
+}
+
+[data-theme="dark"] #cardRipsHc .hc-rips-estado.text-info {
+    color: #38bdf8 !important;
+}
+
+[data-theme="dark"] #cardRipsHc .hc-rips-ancla {
+    color: #e2e8f0;
+    border-color: #475569 !important;
+}
+
+[data-theme="dark"] #cardRipsHc .hc-rips-ancla .fw-semibold {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .cr-card select option {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}

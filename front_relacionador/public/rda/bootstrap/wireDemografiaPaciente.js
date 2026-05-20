@@ -117,7 +117,8 @@ function initDemografiaSelectsFinos() {
 
 // ── Actualizar Paciente ───────────────────────────────────────────────────
 
-function initActualizarPaciente() {
+function initActualizarPaciente(options = {}) {
+    const { enableUpdate = true } = options;
     let modoEdicionPaciente = false;
     const inputFechaNacimiento = document.getElementById("FechaNacimientoBase");
     const inputEdadPaciente = document.getElementById("EdadPaciente");
@@ -286,6 +287,12 @@ function initActualizarPaciente() {
 
     setCamposPacienteDisabled(true);
     modoEdicionPaciente = false;
+
+    const btnActualizar = document.getElementById("BtnActualizarPaciente");
+    if (!enableUpdate || !btnActualizar) {
+        return;
+    }
+
     $("#BtnActualizarPaciente").html('<span class="icon">⟳</span> Actualizar datos paciente');
 
     $("#BtnActualizarPaciente").click(async function () {
@@ -308,8 +315,9 @@ function initActualizarPaciente() {
 
 // ── Exportación ───────────────────────────────────────────────────────────
 
-export function wireDemografiaPaciente() {
+export function wireDemografiaPaciente(options = {}) {
+    const { enableUpdate = true } = options;
     initGeografiaSelects();
     initDemografiaSelectsFinos();
-    initActualizarPaciente();
+    initActualizarPaciente({ enableUpdate });
 }

@@ -213,6 +213,10 @@ app.get('/Asignar_RIPS.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'Asignar_RIPS V3.html'))
 });
 
+app.get('/HistoriasClinicas', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'HistoriasClinicas.html'));
+});
+
 const PORT = parseInt(process.env.FRONT_PORT || process.env.PORT || '3100', 10);
 let frontServer = null;
 

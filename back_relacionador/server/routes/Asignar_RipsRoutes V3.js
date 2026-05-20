@@ -904,7 +904,8 @@ router.get('/DatosdeUsuarioHC/:DocumentoPaciente', async (req, res) => {
                     CodigoPaisNacionalidad, NombrePaisNACIONALIDAD, IdPaisRecidencia, CodigoPaisRecidencia, NombrePaisRecidencia,
                     IdMunicipioRecidencia, CodigoMunicipioRecidencia, NombreMunicipioRecidencia, IdZonaResidencia, DescripciónZonaResidencia,
                     CódigoZonaResidencia, ZonaResidencia, IdEtnia, CódigoEtnia, Etnia, DescripciónEtnia, IdDiscapacidad, Codigo, Discapacidad,
-                    DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación, Alergias, Alergeno
+                    DescripcionDiscapacidad, IdOcupación, CódigoOcupación, Ocupación, DescripciónOcupación, Alergias, Alergeno,
+                    EstadoCivil, NombreResponsable, ParentescoResponsable
                 FROM [dbo].[Cnsta Relacionador Usuarios Info]
                 WHERE LTRIM(RTRIM(DocumentoPaciente)) = LTRIM(RTRIM(@DocumentoPaciente))
             `;
@@ -1937,6 +1938,48 @@ router.get('/ViaIngresoUsuario', async (req, res) => {
 
 //     }
 // });
+/** TOP inicial para Select2 (Historias Clínicas / búsqueda comprimida) */
+router.get('/Cups/:Tipo/inicio', async (req, res) => {
+    try {
+        const Tipo = req.params.Tipo;
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('Tipo', sql.VarChar, Tipo)
+            .query(`
+                SELECT TOP (50) Codigo, Descripcion, Nombre, Tipo
+                FROM [Cnsta Relacionador Cups]
+                WHERE Tipo = @Tipo
+                ORDER BY Nombre
+            `);
+        res.json(result.recordset || []);
+    } catch (error) {
+        console.error('Error Cups inicio:', error);
+        res.status(500).json({ error: 'Error al obtener Cups inicio' });
+    }
+});
+
+router.get('/Cups/:Tipo/buscar/:Busqueda', async (req, res) => {
+    try {
+        const Tipo = req.params.Tipo;
+        const Busqueda = String(req.params.Busqueda || '').trim();
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('Tipo', sql.VarChar, Tipo)
+            .input('Busqueda', sql.VarChar, `%${Busqueda}%`)
+            .query(`
+                SELECT TOP (100) Codigo, Descripcion, Nombre, Tipo
+                FROM [Cnsta Relacionador Cups]
+                WHERE Tipo = @Tipo
+                  AND (Codigo LIKE @Busqueda OR Nombre LIKE @Busqueda OR Descripcion LIKE @Busqueda)
+                ORDER BY Nombre
+            `);
+        res.json(result.recordset || []);
+    } catch (error) {
+        console.error('Error Cups buscar:', error);
+        res.status(500).json({ error: 'Error al buscar Cups' });
+    }
+});
+
 router.get('/Cups/:Tipo', async (req, res) => {
     try {
         const Tipo = req.params.Tipo;
@@ -1960,6 +2003,21 @@ router.get('/Cups/:Tipo', async (req, res) => {
     } catch (error) {
         console.error('Error al consultar los datos de Cups:', error);
         res.status(500).json({ error: 'Error al obtener los datos de Cups' });
+    }
+});
+
+router.get('/Cie/inicio', async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT TOP (50) Codigo, Nombre, Descripcion
+            FROM [Cnsta Relacionador Cie10]
+            ORDER BY Codigo
+        `);
+        res.json(result.recordset || []);
+    } catch (error) {
+        console.error('Error CIE inicio:', error);
+        res.status(500).json({ error: 'Error al obtener CIE inicio' });
     }
 });
 
@@ -1998,6 +2056,7 @@ router.get('/Cie/:Busqueda', async (req, res) => {
         res.status(500).json({ error: 'Error al buscar CIE' });
     }
 });
+
 router.post('/RegistrarRips/:IdEvaluacion/:TipoUsuario/:Entidad/:ModalidadGrupoServicioTecSal/:GrupoServicios/:CodServicio/:FinalidadTecnologiaSalud/:CausaMotivoAtencion/:TipoDiagnosticoPrincipal/:ViaIngresoServicioSalud/:Cups1/:Cups2/:Cie1/:Cie2/:TipoRips/:Idfactura/:Idpresupuesto/:DocumentoEntidad', (req, res) => {
 
 
