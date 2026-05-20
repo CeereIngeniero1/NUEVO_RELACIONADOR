@@ -324,8 +324,12 @@ ALTER COLUMN [Ocupación] NVARCHAR(200) NULL;
 
 
 
+
+
+
 ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
 AS
+
 SELECT
     e.[Id Tipo de Documento] AS IdTipodeDocumento,
     td.[Descripción Tipo de Documento] AS DescripciTipoDocumento,
@@ -382,7 +386,10 @@ SELECT
     o.[Ocupación] AS Ocupación,
     o.[Descripción Ocupación] AS DescripciónOcupación,
     e1888.[Alergias] AS Alergias,
-    e1888.[Alergeno] AS Alergeno
+    e1888.[Alergeno] AS Alergeno,
+    ec.[Estado Civil] AS EstadoCivil,
+    respon.[Nombre Completo Entidad] AS NombreResponsable,
+    ParRespo.Parentesco AS ParentescoResponsable
 FROM dbo.Entidad e
 LEFT JOIN dbo.[Tipo de Documento] td
     ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
@@ -412,7 +419,15 @@ LEFT JOIN dbo.EntidadVI e6
     ON e6.[Documento Entidad] = e.[Documento Entidad]
 LEFT JOIN dbo.Ocupación o
     ON o.[Id Ocupación] = e6.[Id Ocupación]
+LEFT JOIN dbo.[Estado Civil] EC 
+    ON EC.[Id Estado Civil] = E3.[Id Estado Civil]
+LEFT JOIN Entidad Respon 
+    ON respon.[Documento Entidad] = e3.[Documento Responsable]
+LEFT JOIN dbo.Parentesco ParRespo 
+    ON ParRespo.[Id Parentesco] = E3.[Id Parentesco]
 GO
+
+
 
 
 
