@@ -1,0 +1,909 @@
+{
+  "resourceType": "Bundle",
+  "type": "document",
+  "timestamp": "2026-05-29T21:34:08.000Z",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Composition",
+        "id": "Composition-0",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/CompositionAmbulatoryRDA"
+          ]
+        },
+        "status": "final",
+        "type": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "51845-6",
+              "display": "Outpatient Consult note"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "#CC-43722664"
+        },
+        "encounter": {
+          "reference": "#Encounter-0"
+        },
+        "date": "2026-05-29T21:34:08.000Z",
+        "author": [
+          {
+            "reference": "#CC-71733864"
+          }
+        ],
+        "title": "Resumen Digital de Atención en Salud - RDA de consulta externa",
+        "confidentiality": "N",
+        "attester": [
+          {
+            "mode": "legal",
+            "party": {
+              "reference": "#CC-71733864"
+            }
+          }
+        ],
+        "custodian": {
+          "reference": "#0500112124"
+        },
+        "event": [
+          {
+            "period": {
+              "start": "2026-05-29T15:00:00.000Z",
+              "end": "2026-05-29T16:00:00.000Z"
+            }
+          }
+        ],
+        "section": [
+          {
+            "title": "Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "48768-6",
+                  "display": "Payment sources Document"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "#EPS010"
+              }
+            ]
+          },
+          {
+            "title": "Otros datos demográficos",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "74208-0",
+                  "display": "Demographic information + History of occupation Document"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "105583-9",
+                  "display": "Worker Sick leave form"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Historial de diagnósticos de problemas de salud",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "11450-4",
+                  "display": "Problem list - Reported"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "#Condition-0"
+              }
+            ]
+          },
+          {
+            "title": "Historial de alergias, intolerancias y reacciones adversas",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "48765-2",
+                  "display": "Allergies and adverse reactions Document"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Factores de riesgo",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "75492-9",
+                  "display": "Risk assessment and screening note"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Historial de medicamentos",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "10160-0",
+                  "display": "History of Medication use Narrative"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Órdenes, prescripciones o solicitudes de servicio",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "61146-1",
+                  "display": "Orders for services Document"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Sin información registrada</div>"
+            },
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown",
+                  "display": "Nil Known"
+                }
+              ],
+              "text": "Sin información registrada"
+            }
+          },
+          {
+            "title": "Documentos de soporte",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "55107-7",
+                  "display": "Addendum Document"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">RDA_CE_43722664_62_2026-05-29.pdf</div>"
+            },
+            "entry": [
+              {
+                "reference": "#DocumentReference-0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "CC-43722664",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/PatientRDA"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientNationality",
+            "valueCoding": {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661",
+              "code": "214",
+              "display": "Dominican Republic"
+            }
+          },
+          {
+            "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicity",
+            "valueCoding": {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianEthnicGroup",
+              "code": "2",
+              "display": "ROM (Gitano)"
+            }
+          },
+          {
+            "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientEthnicCommunity",
+            "valueString": "Sin comunidad"
+          },
+          {
+            "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientDisability",
+            "valueCoding": {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDisabilityClassification",
+              "code": "08",
+              "display": "Sin discapacidad"
+            }
+          },
+          {
+            "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionPatientGenderIdentity",
+            "valueCoding": {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderIdentity",
+              "code": "03",
+              "display": "Transgénero"
+            }
+          }
+        ],
+        "identifier": [
+          {
+            "id": "NationalPersonIdentifier-0",
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PN",
+                  "display": "Person number"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier",
+                  "code": "CC"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC",
+            "value": "43722664"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "use": "official",
+            "family": "Ramirez",
+            "_family": {
+              "extension": [
+                {
+                  "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionFathersFamilyName",
+                  "valueString": "Ramirez"
+                },
+                {
+                  "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionMothersFamilyName",
+                  "valueString": "Gallo"
+                }
+              ]
+            },
+            "given": [
+              "Debora",
+              "Del Socorro"
+            ]
+          }
+        ],
+        "gender": "female",
+        "_gender": {
+          "extension": [
+            {
+              "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBiologicalGender",
+              "valueCoding": {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup",
+                "code": "02",
+                "display": "Mujer"
+              }
+            }
+          ]
+        },
+        "birthDate": "1969-11-06",
+        "_birthDate": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/patient-birthTime",
+              "valueDateTime": "1969-11-06T01:00:00.000Z"
+            }
+          ]
+        },
+        "deceasedBoolean": false,
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "3136830185"
+          }
+        ],
+        "address": [
+          {
+            "id": "HomeAddress-0",
+            "use": "home",
+            "type": "physical",
+            "extension": [
+              {
+                "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionResidenceZone",
+                "valueCoding": {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianResidenceZone",
+                  "code": "02",
+                  "display": "Rural"
+                }
+              }
+            ],
+            "city": "MEDELLÍN",
+            "country": "Colombia",
+            "_country": {
+              "extension": [
+                {
+                  "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionCountryCode",
+                  "valueCoding": {
+                    "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ISO31661",
+                    "code": "170"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "managingOrganization": {
+          "reference": "#EPS010",
+          "display": "EPS SURAMERICANA S.A."
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "Encounter-0",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/EncounterAmbulatoryRDA"
+          ]
+        },
+        "identifier": [
+          {
+            "id": "EncounterIdentifier",
+            "use": "usual",
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/Encounters",
+            "value": "RDACE-73"
+          }
+        ],
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "ambulatory"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality",
+                "code": "03",
+                "display": "Extramural domiciliaria"
+              }
+            ]
+          },
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios",
+                "code": "01",
+                "display": "Consulta externa"
+              }
+            ]
+          },
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/EntornoAtencion",
+                "code": "02",
+                "display": "Comunitario"
+              }
+            ]
+          }
+        ],
+        "serviceType": {
+          "coding": [
+            {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios",
+              "code": "02",
+              "display": "Apoyo diagnóstico y complementación terapéutica"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "#CC-43722664"
+        },
+        "participant": [
+          {
+            "id": "AttenderPhysician",
+            "type": [
+              {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                    "code": "ATND",
+                    "display": "attender"
+                  }
+                ]
+              }
+            ],
+            "individual": {
+              "reference": "#CC-71733864"
+            }
+          }
+        ],
+        "period": {
+          "start": "2026-05-29T15:00:00.000Z",
+          "end": "2026-05-29T16:00:00.000Z"
+        },
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSCausaExternaVersion2",
+                "code": "46",
+                "display": "Accidente de Artefacto Explosivo Improvisado - AEI"
+              }
+            ]
+          }
+        ],
+        "diagnosis": [
+          {
+            "id": "MainDiagnosis",
+            "extension": [
+              {
+                "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDiagnosisType",
+                "valueCoding": {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSTipoDiagnosticoPrincipalVersion2",
+                  "code": "02",
+                  "display": "Confirmado Nuevo"
+                }
+              }
+            ],
+            "condition": {
+              "reference": "#Condition-0"
+            },
+            "use": {
+              "coding": [
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDiagnosisRole",
+                  "code": "8319008",
+                  "display": "diagnóstico primario"
+                }
+              ]
+            },
+            "rank": 1
+          }
+        ],
+        "serviceProvider": {
+          "reference": "#0500112124"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "CC-71733864",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/PractitionerRDA"
+          ]
+        },
+        "identifier": [
+          {
+            "id": "NationalPersonIdentifier-0",
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PN",
+                  "display": "Person number"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier",
+                  "code": "CC"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC",
+            "value": "71733864"
+          }
+        ],
+        "active": true
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Organization",
+        "id": "0500112124",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA"
+          ]
+        },
+        "active": true,
+        "name": "Grupo Medico Especializado Medellin S.A.S",
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianProviderClass",
+                "code": "IPS",
+                "display": "Institución Prestadora de Servicios de Salud"
+              }
+            ]
+          },
+          {
+            "coding": [
+              {
+                "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLegalNatureType",
+                "code": "PRIV",
+                "display": "Privada"
+              }
+            ]
+          }
+        ],
+        "identifier": [
+          {
+            "id": "TaxIdentifier",
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "TAX",
+                  "display": "Tax ID number"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers",
+                  "code": "NIT",
+                  "display": "Número de Identificación Tributaria"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN",
+            "value": "900479959"
+          },
+          {
+            "id": "HealthcareProviderIdentifier",
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PRN",
+                  "display": "Provider number"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers",
+                  "code": "CodigoPrestador",
+                  "display": "Código de habilitación de prestador de servicios de salud"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/REPS",
+            "value": "0500112124"
+          }
+        ],
+        "address": [
+          {
+            "use": "work",
+            "type": "physical",
+            "text": "Sin informacion",
+            "city": "MEDELLÍN",
+            "_city": {
+              "extension": [
+                {
+                  "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaMunicipality",
+                  "valueCoding": {
+                    "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA",
+                    "code": "05001"
+                  }
+                }
+              ]
+            },
+            "state": "ANTIOQUIA",
+            "_state": {
+              "extension": [
+                {
+                  "url": "https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaDepartment",
+                  "valueCoding": {
+                    "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA",
+                    "code": "05"
+                  }
+                }
+              ]
+            },
+            "country": "CO"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Organization",
+        "id": "EPS010",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/HealthBenefitPlanAdminOrganizationRDA"
+          ]
+        },
+        "identifier": [
+          {
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "NIIP",
+                  "display": "National Insurance Payor Identifier"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers",
+                  "code": "EAPB",
+                  "display": "Entidad Administradora de Planes de Beneficios"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/EAPB",
+            "value": "EPS010"
+          }
+        ],
+        "active": true,
+        "name": "EPS SURAMERICANA S.A."
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "Condition-0",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/ConditionRDA"
+          ]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "encounter-diagnosis",
+                "display": "Encounter Diagnosis"
+              }
+            ]
+          }
+        ],
+        "subject": {
+          "reference": "#CC-43722664"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://hl7.org/fhir/sid/icd-10",
+              "code": "A040",
+              "display": "INFECCION DEBIDA A ESCHERICHIA COLI ENTEROPATOGENA"
+            }
+          ],
+          "text": "INFECCION DEBIDA A ESCHERICHIA COLI ENTEROPATOGENA"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "DocumentReference",
+        "id": "DocumentReference-0",
+        "meta": {
+          "profile": [
+            "https://fhir.minsalud.gov.co/rda/StructureDefinition/DocumentReferenceEPIRDA"
+          ]
+        },
+        "status": "current",
+        "type": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "18842-5",
+              "display": "Discharge summary"
+            },
+            {
+              "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDocumentTypes",
+              "code": "EPI",
+              "display": "Epicrisis"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "55108-5",
+                "display": "Clinical presentation Document"
+              }
+            ]
+          }
+        ],
+        "subject": {
+          "reference": "#CC-43722664"
+        },
+        "date": "2026-05-29T21:34:08.000Z",
+        "author": [
+          {
+            "identifier": {
+              "use": "official",
+              "type": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                    "code": "PRN",
+                    "display": "Provider number"
+                  },
+                  {
+                    "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers",
+                    "code": "CodigoPrestador",
+                    "display": "Código de habilitación de prestador de servicios de salud"
+                  }
+                ]
+              },
+              "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/REPS",
+              "value": "0500112124"
+            },
+            "display": "Grupo Medico Especializado Medellin S.A.S"
+          }
+        ],
+        "custodian": {
+          "identifier": {
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PRN",
+                  "display": "Provider number"
+                },
+                {
+                  "system": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers",
+                  "code": "CodigoPrestador",
+                  "display": "Código de habilitación de prestador de servicios de salud"
+                }
+              ]
+            },
+            "system": "https://fhir.minsalud.gov.co/rda/NamingSystem/REPS",
+            "value": "0500112124"
+          },
+          "display": "Grupo Medico Especializado Medellin S.A.S"
+        },
+        "description": "Epicrisis del encuentro de atención en salud - RDA",
+        "securityLabel": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality",
+                "code": "R",
+                "display": "restricted"
+              }
+            ]
+          }
+        ],
+        "context": {
+          "encounter": [
+            {
+              "reference": "#Encounter-0"
+            }
+          ]
+        },
+        "content": [
+          {
+            "attachment": {
+              "language": "es-CO",
+              "data": "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6P0CSBTu5wplbmRzdHJlYW0KZW5kb2JqCjEzIDAgb2JqCihQREZLaXQpCmVuZG9iagoxNCAwIG9iagooUERGS2l0KQplbmRvYmoKMTUgMCBvYmoKKEQ6MjAyNjA1MjkxNjM0MTNaKQplbmRvYmoKMTYgMCBvYmoKKP7/AFIAZQBzAHUAbQBlAG4AIABjAGwA7QBuAGkAYwBvACAgFAAgAEMAbwBuAHMAdQBsAHQAYQAgAGUAeAB0AGUAcgBuAGEAIABcKABSAEQAQQBcKSkKZW5kb2JqCjE3IDAgb2JqCihHcnVwbyBNZWRpY28gRXNwZWNpYWxpemFkbyBNZWRlbGxpbiBTLkEuUykKZW5kb2JqCjE4IDAgb2JqCij+/wBSAGUAcwB1AG0AZQBuACAAYwBsAO0AbgBpAGMAbwAgAGEAdABlAG4AYwBpAPMAbgAgAGMAbwBuAHMAdQBsAHQAYQAgAGUAeAB0AGUAcgBuAGEpCmVuZG9iagoxMiAwIG9iago8PAovUHJvZHVjZXIgMTMgMCBSCi9DcmVhdG9yIDE0IDAgUgovQ3JlYXRpb25EYXRlIDE1IDAgUgovVGl0bGUgMTYgMCBSCi9BdXRob3IgMTcgMCBSCi9TdWJqZWN0IDE4IDAgUgo+PgplbmRvYmoKOCAwIG9iago8PAovVHlwZSAvRm9udAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKPj4KZW5kb2JqCjQgMCBvYmoKPDwKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDEgMCBSCi9OYW1lcyAyIDAgUgo+PgplbmRvYmoKMSAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDIKL0tpZHMgWzcgMCBSIDExIDAgUl0KPj4KZW5kb2JqCjIgMCBvYmoKPDwKL0Rlc3RzIDw8CiAgL05hbWVzIFsKXQo+Pgo+PgplbmRvYmoKeHJlZgowIDE5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwNDI3OCAwMDAwMCBuIAowMDAwMDA0MzQyIDAwMDAwIG4gCjAwMDAwMDQyMTYgMDAwMDAgbiAKMDAwMDAwNDE5NSAwMDAwMCBuIAowMDAwMDAwMjE0IDAwMDAwIG4gCjAwMDAwMDAxMjUgMDAwMDAgbiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDA0MDk4IDAwMDAwIG4gCjAwMDAwMDI5MjkgMDAwMDAgbiAKMDAwMDAwMjgzOSAwMDAwMCBuIAowMDAwMDAyNzI3IDAwMDAwIG4gCjAwMDAwMDM5NzcgMDAwMDAgbiAKMDAwMDAwMzYyNSAwMDAwMCBuIAowMDAwMDAzNjUwIDAwMDAwIG4gCjAwMDAwMDM2NzUgMDAwMDAgbiAKMDAwMDAwMzcxMSAwMDAwMCBuIAowMDAwMDAzODE0IDAwMDAwIG4gCjAwMDAwMDM4NzQgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSAxOQovUm9vdCAzIDAgUgovSW5mbyAxMiAwIFIKL0lEIFs8ZmI5YjMwYWE1MWY5NmRlYWRlOWEwY2MzYTYxZjdmMDA+IDxmYjliMzBhYTUxZjk2ZGVhZGU5YTBjYzNhNjFmN2YwMD5dCj4+CnN0YXJ0eHJlZgo0Mzg5CiUlRU9GCg==",
+              "title": "RDA_CE_43722664_62_2026-05-29.pdf",
+              "creation": "2026-05-29T21:34:08.000Z"
+            },
+            "format": {
+              "system": "urn:ietf:bcp:13",
+              "code": "application/pdf",
+              "display": "PDF"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

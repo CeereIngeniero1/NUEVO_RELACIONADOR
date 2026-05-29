@@ -160,9 +160,9 @@ INSERT INTO [dbo].[Etnia]
            1,
            '7')
            ,
-           ('7',
-           'Sin Asignar',
-           'Sin Asignar',
+           ('99',
+           'Ninguna de las anteriores',
+           'Ninguna de las anteriores',
            1,
            '7')
 GO
@@ -284,6 +284,19 @@ SELECT [Id Sexo Identidad Genero] AS IdSexoIdentidadGenero, Codigo, [Identidad G
 FROM     dbo.[Sexo Identidad Genero]
 GO
 
+UPDATE [Zona Residencia]
+SET 
+    [Código Zona Residencia] = '01',
+    [Zona Residencia] = 'U'
+WHERE [Descripción Zona Residencia] = 'Urbana';
+GO
+
+UPDATE [Zona Residencia]
+SET 
+    [Código Zona Residencia] = '02',
+    [Zona Residencia] = 'R'
+WHERE [Descripción Zona Residencia] = 'Rural';
+GO
 
 CREATE VIEW [dbo].[Cnsta ZonaResidencia 1888]
 AS
@@ -327,6 +340,7 @@ ALTER COLUMN [Ocupación] NVARCHAR(200) NULL;
 
 
 
+
 ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
 AS
 
@@ -341,8 +355,9 @@ SELECT
     e.[Segundo Nombre Entidad] AS SegundoNombreBase,
     e.[Nombre Completo Entidad] AS NombreCompletoPaciente,
     sx.[Sexo] AS SexoPaciente,
+    sx.[Código Sexo] as CódigoSexo,
+   
     sx.[Descripción Sexo] AS Sexo,
-    sx.[Código Sexo] AS CódigoSexo,
     sx.[Id Sexo] AS IdSexo,
     e3.[Edad EntidadIII] AS Edad,
     e2.[Dirección EntidadII] AS Direccion,
@@ -355,6 +370,7 @@ SELECT
     sig.[Codigo] AS codigoIdentidadGeneroBase,
     sig.[Identidad Genero] AS IdentidadGeneroBase,
     e3.[Id Zona Residencia],
+    
     e1888.[Talla],
     e1888.[Peso],
     e1888.[Id Etnia],
@@ -409,8 +425,15 @@ LEFT JOIN dbo.País1888 pr
     ON pr.[Id Pais1888] = e1888.[Id Pais Recidencia]
 LEFT JOIN dbo.Ciudad1888 cr
     ON cr.[Id Ciudad1888] = e1888.[Id Municipio Recidencia]
+-- EntidadIII.[Id Zona Residencia] guarda el código RIPS (1→01 Urbana, 2→02 Rural), no el PK [Id Zona Residencia] del catálogo.
+
+
+
 LEFT JOIN dbo.[Zona Residencia] zr
-    ON zr.[Id Zona Residencia] = e3.[Id Zona Residencia]
+    ON e3.[Id Zona Residencia] = zr.[Id Zona Residencia]
+
+
+
 LEFT JOIN dbo.Etnia et
     ON et.[Id Etnia] = e1888.[Id Etnia]
 LEFT JOIN dbo.Discapacidad d
@@ -426,8 +449,6 @@ LEFT JOIN Entidad Respon
 LEFT JOIN dbo.Parentesco ParRespo 
     ON ParRespo.[Id Parentesco] = E3.[Id Parentesco]
 GO
-
-
 
 
 
@@ -1545,14 +1566,24 @@ CREATE TABLE [dbo].[Tipo diagnostico principal 1888](
 GO
 IF NOT EXISTS (SELECT 1 FROM [Tipo diagnostico principal 1888])
 INSERT INTO [Tipo diagnostico principal 1888] (Codigo, Descripcion) VALUES
-('01', 'Impresión diagnóstica'),
-('02', 'Confirmado nuevo'),
-('03', 'Confirmado repetido');
+('01', 'Impresión Diagnóstica'),
+('02', 'Confirmado Nuevo'),
+('03', 'Confirmado Repetido');
 GO
 IF OBJECT_ID(N'[dbo].[Cnsta Tipo diagnostico principal 1888]', N'V') IS NULL
 EXEC('CREATE VIEW [dbo].[Cnsta Tipo diagnostico principal 1888] AS
 SELECT [Id Tipo diagnostico principal 1888] AS IdTipoDiagnosticoPrincipal1888, Codigo, Descripcion, [Id Estado] AS IdEstado
 FROM [dbo].[Tipo diagnostico principal 1888] WHERE [Id Estado] = 7');
+GO
+
+UPDATE [Tipo diagnostico principal 1888]
+SET Descripcion = CASE Codigo
+    WHEN '01' THEN 'Impresión Diagnóstica'
+    WHEN '02' THEN 'Confirmado Nuevo'
+    WHEN '03' THEN 'Confirmado Repetido'
+END
+WHERE Codigo IN ('01', '02', '03');
+
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Unidad medida dosis 1888')
@@ -1924,13 +1955,11 @@ BEGIN
 
     INSERT INTO @EntornoAtencion1888 (Codigo, Descripcion, IdEstado)
     VALUES
-        ('01', 'Unidad de atención en salud propia', 7),
-        ('02', 'Domiciliaria', 7),
-        ('03', 'Comunitaria', 7),
-        ('04', 'Escolar', 7),
-        ('05', 'Institucional', 7),
-        ('06', 'Laboral', 7),
-        ('07', 'Institución de referencia u otra institución', 7);
+        ('01', 'Hogar', 7),
+        ('02', 'Comunitario', 7),
+        ('03', 'Escolar', 7),
+        ('04', 'Laboral', 7),
+        ('05', 'Institucional', 7)
 
     MERGE [dbo].[Entorno de atencion 1888] AS tgt
     USING @EntornoAtencion1888 AS src

@@ -492,8 +492,9 @@ LEFT JOIN dbo.País1888 pr
     ON pr.[Id Pais1888] = e1888.[Id Pais Recidencia]
 LEFT JOIN dbo.Ciudad1888 cr
     ON cr.[Id Ciudad1888] = e1888.[Id Municipio Recidencia]
+-- EntidadIII.[Id Zona Residencia] guarda el código RIPS (1→01 Urbana, 2→02 Rural), no el PK del catálogo.
 LEFT JOIN dbo.[Zona Residencia] zr
-    ON zr.[Id Zona Residencia] = e3.[Id Zona Residencia]
+    ON LTRIM(RTRIM(zr.[Código Zona Residencia])) = RIGHT('0' + CAST(e3.[Id Zona Residencia] AS VARCHAR(2)), 2)
 LEFT JOIN dbo.Etnia et
     ON et.[Id Etnia] = e1888.[Id Etnia]
 LEFT JOIN dbo.Discapacidad d

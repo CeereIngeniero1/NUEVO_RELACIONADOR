@@ -72,10 +72,18 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ma.[NombreModalidadAtencion]         AS NombreModalidadAtencion,
                 gs.[Codigo]                          AS CodigoGrupoServicios,
                 gs.[NombreGrupoServicios]            AS NombreGrupoServicios,
+                (SELECT TOP 1 gsce.[NombreGrupoServicios]
+                 FROM [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gsce
+                 WHERE LTRIM(RTRIM(gsce.[Codigo])) = '01') AS NombreGrupoServiciosPerfilCE,
                 via.[Codigo]                         AS CodigoViaIngreso,
                 via.[NombreViaIngresoUsuario]        AS NombreViaIngreso,
                 causa.[Codigo]                       AS CodigoCausaMotivo,
-                causa.[NombreRIPSCausaExternaVersion2] AS NombreCausaMotivo
+                causa.[NombreRIPSCausaExternaVersion2] AS NombreCausaMotivo,
+                ent.[Descripcion]                    AS NombreEntornoAtencion,
+                eg.[Descripcion]                     AS NombreCondicionDestinoEgreso,
+                alc.[Descripcion]                    AS NombreAlcanceIncapacidad,
+                tal.[Descripcion]                    AS NombreTipoAlergia,
+                tdiag.[Descripcion]                  AS NombreTipoDiagnosticoPrincipal
             FROM [dbo].[Evaluacion Entidad RDA Consulta Externa] ce
             LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
                 ON ma.[IdModalidadAtencion] = ce.[Id Modalidad Atencion]
@@ -85,6 +93,16 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ON via.[IdViaIngresoUsuario] = ce.[Id Via Ingreso Usuario]
             LEFT JOIN [dbo].[Cnsta Relacionador Causa Externa] causa
                 ON causa.[Id RIPS Causa Externa Version2] = ce.[Id Causa Motivo Atencion]
+            LEFT JOIN [dbo].[Cnsta Entorno de atencion 1888] ent
+                ON LTRIM(RTRIM(ent.Codigo)) = LTRIM(RTRIM(ce.[Entorno Atencion]))
+            LEFT JOIN [dbo].[Cnsta Egreso y Remision 1888] eg
+                ON LTRIM(RTRIM(eg.Codigo)) = LTRIM(RTRIM(ce.[Condicion Destino Egreso]))
+            LEFT JOIN [dbo].[Cnsta Alcance incapacidad 1888] alc
+                ON LTRIM(RTRIM(alc.Codigo)) = LTRIM(RTRIM(ce.[Alcance Incapacidad]))
+            LEFT JOIN [dbo].[Cnsta Tipo de alergia 1888] tal
+                ON LTRIM(RTRIM(tal.Codigo)) = LTRIM(RTRIM(LEFT(LTRIM(RTRIM(ce.[Tipo Alergia])), 2)))
+            LEFT JOIN [dbo].[Cnsta Tipo diagnostico principal 1888] tdiag
+                ON LTRIM(RTRIM(tdiag.Codigo)) = LTRIM(RTRIM(ce.[Tipo Diagnostico Principal]))
             WHERE ce.[Id Evaluacion Entidad RDA Consulta Externa] = @Id
         `);
 
@@ -131,12 +149,15 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                     PrimerApellidoBase, SegundoApellidoBase,
                     PrimerNombreBase, SegundoNombreBase,
                     [CódigoSexo]              AS CodigoSexo,
+                    SexoPaciente,
                     Sexo,
+                    IdSexo,
                     FechaNacimientoBase        AS FechaNacimiento,
                     codigoIdentidadGeneroBase  AS CodigoIdentidadGenero,
                     IdentidadGeneroBase        AS TextoIdentidadGenero,
                     IdSexoIdentidadGenero      AS IdIdentidadGenero,
                     [CódigoZonaResidencia]     AS CodigoZonaResidencia,
+                    [DescripciónZonaResidencia] AS DescripcionZonaResidencia,
                     ZonaResidencia,
                     [CódigoEtnia]              AS CodigoEtnia,
                     Etnia                      AS TextoEtnia,
@@ -173,28 +194,52 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
             WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
         `),
         pool.request().input('Id', sql.Int, id).query(`
-            SELECT [Codigo Medicamento] AS CodigoMedicamento, [Nombre Medicamento] AS NombreMedicamento,
-                   [Descripcion Comun DCI] AS DCI, [Fecha Prescripcion] AS FechaPrescripcion,
-                   [Dosis Ordenada] AS DosisOrdenada, [Unidad Medida Dosis] AS UnidadDosis,
-                   [Via Administracion] AS ViaAdministracion,
-                   [Duracion Cantidad] AS DuracionCantidad, [Duracion Unidad Tiempo] AS DuracionUnidad,
-                   [Frecuencia Cantidad] AS FrecuenciaCantidad, [Frecuencia Unidad Tiempo] AS FrecuenciaUnidad,
-                   [Finalidad Tec Salud] AS Finalidad
-            FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos]
-            WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
+            SELECT pm.[Codigo Medicamento] AS CodigoMedicamento, pm.[Nombre Medicamento] AS NombreMedicamento,
+                   pm.[Descripcion Comun DCI] AS DCI, pm.[Fecha Prescripcion] AS FechaPrescripcion,
+                   pm.[Dosis Ordenada] AS DosisOrdenada, pm.[Unidad Medida Dosis] AS UnidadDosis,
+                   pm.[Via Administracion] AS ViaAdministracion,
+                   pm.[Duracion Cantidad] AS DuracionCantidad, pm.[Duracion Unidad Tiempo] AS DuracionUnidad,
+                   pm.[Frecuencia Cantidad] AS FrecuenciaCantidad, pm.[Frecuencia Unidad Tiempo] AS FrecuenciaUnidad,
+                   pm.[Finalidad Tec Salud] AS Finalidad,
+                   fin.Codigo AS FinalidadCodigo, fin.Descripcion AS FinalidadDescripcion,
+                   umm.Codigo AS UnidadDosisCodigo, umm.Descripcion AS UnidadDosisDescripcion,
+                   dur.Codigo AS DuracionUnidadCodigo, dur.Descripcion AS DuracionUnidadDescripcion,
+                   freq.Codigo AS FrecuenciaUnidadCodigo, freq.Descripcion AS FrecuenciaUnidadDescripcion
+            FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos] pm
+            LEFT JOIN [dbo].[Cnsta Finalidad tecnologia salud 1888] fin
+                ON LTRIM(RTRIM(fin.Codigo)) = LTRIM(RTRIM(pm.[Finalidad Tec Salud]))
+            LEFT JOIN [dbo].[Cnsta Unidad medida dosis 1888] umm
+                ON LTRIM(RTRIM(umm.Codigo)) = LTRIM(RTRIM(pm.[Unidad Medida Dosis]))
+                OR LTRIM(RTRIM(umm.Descripcion)) = LTRIM(RTRIM(pm.[Unidad Medida Dosis]))
+            LEFT JOIN [dbo].[Cnsta Unidad tiempo duracion 1888] dur
+                ON LTRIM(RTRIM(dur.Codigo)) = LTRIM(RTRIM(pm.[Duracion Unidad Tiempo]))
+                OR LTRIM(RTRIM(dur.Descripcion)) = LTRIM(RTRIM(pm.[Duracion Unidad Tiempo]))
+            LEFT JOIN [dbo].[Cnsta Unidad tiempo frecuencia 1888] freq
+                ON LTRIM(RTRIM(freq.Codigo)) = LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo]))
+                OR LTRIM(RTRIM(freq.Descripcion)) = LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo]))
+            WHERE pm.[Id Evaluacion Entidad RDA Consulta Externa] = @Id AND pm.[Id Estado] = 1
         `),
         pool.request().input('Id', sql.Int, id).query(`
-            SELECT [Codigo Procedimiento] AS CodigoProcedimiento,
-                   [Nombre Procedimiento] AS NombreProcedimiento,
-                   [Finalidad Tec Salud] AS Finalidad, [Fecha Prescripcion] AS FechaPrescripcion
-            FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos]
-            WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
+            SELECT pp.[Codigo Procedimiento] AS CodigoProcedimiento,
+                   pp.[Nombre Procedimiento] AS NombreProcedimiento,
+                   pp.[Finalidad Tec Salud] AS Finalidad,
+                   fin.Codigo AS FinalidadCodigo, fin.Descripcion AS FinalidadDescripcion,
+                   pp.[Fecha Prescripcion] AS FechaPrescripcion
+            FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Procedimientos] pp
+            LEFT JOIN [dbo].[Cnsta Finalidad tecnologia salud 1888] fin
+                ON LTRIM(RTRIM(fin.Codigo)) = LTRIM(RTRIM(pp.[Finalidad Tec Salud]))
+                OR LTRIM(RTRIM(fin.Descripcion)) = LTRIM(RTRIM(pp.[Finalidad Tec Salud]))
+                OR LTRIM(RTRIM(fin.Codigo)) = LEFT(LTRIM(RTRIM(pp.[Finalidad Tec Salud])), 2)
+            WHERE pp.[Id Evaluacion Entidad RDA Consulta Externa] = @Id AND pp.[Id Estado] = 1
         `),
         pool.request().input('Id', sql.Int, id).query(`
-            SELECT [Codigo] AS Codigo, [Nombre] AS Nombre,
-                   [Fecha Prescripcion] AS FechaPrescripcion, [Finalidad Tec Salud] AS Finalidad
-            FROM [dbo].[Evaluacion Entidad RDA CE Otras Tecnologias]
-            WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @Id AND [Id Estado] = 1
+            SELECT ot.[Codigo] AS Codigo, ot.[Nombre] AS Nombre,
+                   ot.[Fecha Prescripcion] AS FechaPrescripcion, ot.[Finalidad Tec Salud] AS Finalidad,
+                   fin.Codigo AS FinalidadCodigo, fin.Descripcion AS FinalidadDescripcion
+            FROM [dbo].[Evaluacion Entidad RDA CE Otras Tecnologias] ot
+            LEFT JOIN [dbo].[Cnsta Finalidad tecnologia salud 1888] fin
+                ON LTRIM(RTRIM(fin.Codigo)) = LTRIM(RTRIM(ot.[Finalidad Tec Salud]))
+            WHERE ot.[Id Evaluacion Entidad RDA Consulta Externa] = @Id AND ot.[Id Estado] = 1
         `),
         pool.request().input('Id', sql.Int, id).query(`
             SELECT [Descripcion] AS Descripcion
@@ -213,6 +258,38 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
         `),
     ]);
 
+    let cupsFromRips = null;
+    const docPaciente = String(head.DocumentoEntidad || '').trim();
+    if (docPaciente) {
+        const cupsRipsRes = await pool.request()
+            .input('DocumentoPaciente', sql.VarChar(50), docPaciente)
+            .input('FechaAtencion', sql.DateTime2, head.FechaHoraInicioAtencion || head.FechaRDA || null)
+            .query(`
+                SELECT TOP 1
+                    LTRIM(RTRIM(er.[Codigo Rips])) AS CodigoCups,
+                    COALESCE(c1888.Nombre, c1888.Descripcion, cr.Nombre, cr.Descripcion) AS NombreCups
+                FROM [dbo].[Evaluación Entidad Rips] er
+                INNER JOIN [dbo].[Evaluación Entidad] ee
+                    ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+                LEFT JOIN [dbo].[Cnsta Cups 1888] c1888
+                    ON LTRIM(RTRIM(c1888.Codigo)) = LTRIM(RTRIM(er.[Codigo Rips]))
+                LEFT JOIN [dbo].[Cnsta Relacionador Cups] cr
+                    ON LTRIM(RTRIM(cr.Codigo)) = LTRIM(RTRIM(er.[Codigo Rips]))
+                WHERE LTRIM(RTRIM(ee.[Documento Entidad])) = LTRIM(RTRIM(@DocumentoPaciente))
+                  AND er.[Codigo Rips] IS NOT NULL
+                  AND LTRIM(RTRIM(er.[Codigo Rips])) NOT IN ('', '0')
+                ORDER BY
+                    CASE WHEN @FechaAtencion IS NOT NULL
+                         AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) = CAST(@FechaAtencion AS DATE)
+                         THEN 0 ELSE 1 END,
+                    CASE WHEN @FechaAtencion IS NOT NULL
+                         THEN ABS(DATEDIFF(MINUTE, ee.[Fecha Evaluación Entidad], @FechaAtencion))
+                         ELSE 999999 END,
+                    ee.[Fecha Evaluación Entidad] DESC
+            `);
+        cupsFromRips = (cupsRipsRes.recordset && cupsRipsRes.recordset[0]) || null;
+    }
+
     return {
         head,
         pdem,
@@ -223,6 +300,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
         antecedentesSalud: antSaludRes.recordset || [],
         antecedentesFamiliares: antFamRes.recordset || [],
         antecedentesFarmacologicos: antFarmRes.recordset || [],
+        cupsFromRips,
         storedPdfBuffer,
         fechaGeneracionPdf,
     };

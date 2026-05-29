@@ -14,6 +14,7 @@ import {
     urlResumenClinicoPdf,
     fetchBlobAuthenticated,
 } from '../api/entidad1888.js';
+import { openIhceBundlePreview, extractIhceMessage, showIhceApiResponse } from './ihceAsignar.js';
 
 function rdaceSelect2Value(selectId) {
     const el = document.getElementById(selectId);
@@ -31,6 +32,38 @@ function rdaceSelect2Value(selectId) {
 function rdaceDigitsOnly(value) {
     if (value == null) return '';
     return String(value).replace(/\D+/g, '');
+}
+
+/** Prescripción procedimientos CE: lista en memoria, o CUPS del formulario RDACE / RIPS si aún no se agregó a la lista. */
+function resolvePrescripcionProcedimientosCE() {
+    const lista = (window.RDA?.getPrescripcionProcedimientos?.() || []);
+    if (lista.length) return lista;
+
+    const codigoRdace = rdaceSelect2Value('RDACE_CodigoProcedimiento') || rdaceGetInputValue('RDACE_CodigoProcedimiento');
+    if (codigoRdace) {
+        return [{
+            tipo: 'Procedimiento',
+            codigo: codigoRdace,
+            nombre: rdaceGetInputValue('RDACE_NombreProcedimiento') || '',
+            finalidad: rdaceSelect2Value('RDACE_FinalidadTecSaludProc') || rdaceGetInputValue('RDACE_FinalidadTecSaludProc') || null,
+            fechaPrescripcion: rdaceGetInputValue('RDACE_FechaPrescripcionProc') || null,
+        }];
+    }
+
+    const ripSel = document.getElementById('SelectProcedimientoRIPSAP1');
+    const codigoRips = ripSel && ripSel.value && ripSel.value !== 'Sin Seleccionar' ? String(ripSel.value).trim() : '';
+    if (codigoRips) {
+        const opt = ripSel.options[ripSel.selectedIndex];
+        return [{
+            tipo: 'Procedimiento',
+            codigo: codigoRips,
+            nombre: opt ? String(opt.text || '').trim() : '',
+            finalidad: null,
+            fechaPrescripcion: null,
+        }];
+    }
+
+    return [];
 }
 
 function rdaceGetInputValue(id) {
@@ -74,6 +107,19 @@ function rdaceValidateRequiredForSave() {
         rdaceMarkFieldInvalid(f.id, isMissing);
         if (isMissing) missing.push(f.label);
     });
+
+    const procItems = resolvePrescripcionProcedimientosCE();
+    const procCodigo = procItems.length && procItems.some((p) => p.codigo && String(p.codigo).trim());
+    const procFinalidad = procItems.length && procItems.some((p) => p.finalidad && String(p.finalidad).trim());
+    rdaceMarkFieldInvalid('RDACE_CodigoProcedimiento', !procCodigo);
+    rdaceMarkFieldInvalid('RDACE_FinalidadTecSaludProc', !procFinalidad);
+    if (!procCodigo) {
+        missing.push('Código procedimiento (CUPS) — obligatorio para envío IHCE');
+    }
+    if (procCodigo && !procFinalidad) {
+        missing.push('Finalidad tecnología salud del procedimiento — obligatoria para envío IHCE');
+    }
+
     return missing;
 }
 
@@ -148,26 +194,13 @@ function rdaceAttachDigitsOnlyFilter(inputId) {
     });
 }
 
-function rdaceExtractIhceMessage(data) {
-    if (!data) return '';
-    if (typeof data === 'string') return data;
-    if (typeof data.error === 'string' && data.error.trim()) return data.error.trim();
-    if (typeof data.message === 'string' && data.message.trim()) return data.message.trim();
-    if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue) && data.issue.length) {
-        const first = data.issue[0] || {};
-        return (
-            first.diagnostics ||
-            (first.details && first.details.text) ||
-            ''
-        );
-    }
-    return '';
-}
-
-/** true = al enviar desde RDACE se guarda y envía también RDA Paciente; false = solo RDACE. */
-function rdaceIhceUnifiedSendEnabled() {
-    const cfg = typeof window !== 'undefined' ? window.__APP_CONFIG__ || {} : {};
-    return cfg.RDA_IHCE_UNIFIED_SEND !== false;
+function rdaceEscapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 function rdaceSummarizeSendOutcome(nombre, out) {
@@ -175,8 +208,21 @@ function rdaceSummarizeSendOutcome(nombre, out) {
     if (out.ok) {
         return `<b>${nombre}:</b> enviado correctamente (HTTP ${out.status})`;
     }
-    const detail = rdaceExtractIhceMessage(out.data);
-    return `<b>${nombre}:</b> error (HTTP ${out.status})${detail ? `<br><small>${detail}</small>` : ''}`;
+    const detail = extractIhceMessage(out.data);
+    const panelStyle =
+        'max-height:200px;overflow:auto;text-align:left;font-size:0.8rem;' +
+        'background:#1e293b;color:#f1f5f9;border:1px solid rgba(148,163,184,0.35);' +
+        'border-radius:0.375rem;padding:0.5rem;margin-top:0.35rem;line-height:1.45;';
+    const detailHtml = detail
+        ? `<div style="${panelStyle}">${rdaceEscapeHtml(detail).replace(/\n/g, '<br>')}</div>`
+        : '';
+    return `<b>${nombre}:</b> error (HTTP ${out.status}) — respuesta del Ministerio (IHCE):${detailHtml}`;
+}
+
+/** true = al enviar desde RDACE se guarda y envía también RDA Paciente; false = solo RDACE. */
+function rdaceIhceUnifiedSendEnabled() {
+    const cfg = typeof window !== 'undefined' ? window.__APP_CONFIG__ || {} : {};
+    return cfg.RDA_IHCE_UNIFIED_SEND !== false;
 }
 
 async function rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace }) {
@@ -448,7 +494,7 @@ export async function guardarRDACE() {
             });
         }
 
-        const presProc = (window.RDA?.getPrescripcionProcedimientos?.() || []);
+        const presProc = resolvePrescripcionProcedimientosCE();
         for (const item of presProc) {
             await postPrescripcionProcCE({
                 IdEvaluacionEntidadRDACE: idCE,
@@ -517,11 +563,12 @@ export async function guardarRDACE() {
                 let pacienteResult = null;
                 let rdaceResult = null;
                 let pacienteError = null;
+                let idPacienteIhce = null;
 
                 if (unifiedSend) {
                     try {
-                        const idPaciente = await rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace });
-                        pacienteResult = await window.enviarIhcePaciente(idPaciente, { ambiente: ambiente, showSwal: false });
+                        idPacienteIhce = await rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace });
+                        pacienteResult = await window.enviarIhcePaciente(idPacienteIhce, { ambiente: ambiente, showSwal: false });
                     } catch (ePac) {
                         pacienteError = ePac;
                     }
@@ -560,11 +607,46 @@ export async function guardarRDACE() {
                         rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
                         '</div>';
 
+                const jsonBtnHtml = (!okCe || (unifiedSend && !okPac))
+                    ? '<div class="mt-3 text-center d-flex flex-column gap-2">' +
+                        (!okCe ? '<button type="button" class="btn btn-sm btn-outline-danger" id="rdace-btn-resp-ihce-ce">Ver respuesta completa IHCE (Consulta Externa)</button>' : '') +
+                        (!okCe ? '<button type="button" class="btn btn-sm btn-outline-primary" id="rdace-btn-ver-json-ce">Ver JSON enviado (Consulta Externa)</button>' : '') +
+                        (unifiedSend && !okPac ? '<button type="button" class="btn btn-sm btn-outline-danger" id="rdace-btn-resp-ihce-pac">Ver respuesta completa IHCE (Paciente)</button>' : '') +
+                        (unifiedSend && !okPac ? '<button type="button" class="btn btn-sm btn-outline-secondary" id="rdace-btn-ver-json-pac">Ver JSON enviado (Paciente)</button>' : '') +
+                        '</div>'
+                    : '';
+
                 await Swal.fire({
                     icon,
                     title,
-                    html: htmlResumen,
+                    html: htmlResumen + jsonBtnHtml,
                     confirmButtonText: 'Cerrar',
+                    didOpen: function (popup) {
+                        const btnRespCe = popup.querySelector('#rdace-btn-resp-ihce-ce');
+                        if (btnRespCe && ceOut && ceOut.data) {
+                            btnRespCe.addEventListener('click', function () {
+                                showIhceApiResponse(ceOut.data, 'IHCE — respuesta Consulta Externa (HTTP ' + (ceOut.status || '') + ')');
+                            });
+                        }
+                        const btnRespPac = popup.querySelector('#rdace-btn-resp-ihce-pac');
+                        if (btnRespPac && pacienteOut && pacienteOut.data) {
+                            btnRespPac.addEventListener('click', function () {
+                                showIhceApiResponse(pacienteOut.data, 'IHCE — respuesta RDA Paciente (HTTP ' + (pacienteOut.status || '') + ')');
+                            });
+                        }
+                        const btnCe = popup.querySelector('#rdace-btn-ver-json-ce');
+                        if (btnCe && idCE) {
+                            btnCe.addEventListener('click', function () {
+                                openIhceBundlePreview('rdace', idCE, ambiente);
+                            });
+                        }
+                        const btnPac = popup.querySelector('#rdace-btn-ver-json-pac');
+                        if (btnPac && idPacienteIhce) {
+                            btnPac.addEventListener('click', function () {
+                                openIhceBundlePreview('paciente', idPacienteIhce, ambiente);
+                            });
+                        }
+                    },
                 });
             }
         );

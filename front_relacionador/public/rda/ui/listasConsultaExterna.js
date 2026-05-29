@@ -335,7 +335,7 @@ export function initListasConsultaExterna() {
             tipo: "Procedimiento",
             codigo,
             nombre: document.getElementById("RDACE_NombreProcedimiento")?.value || "",
-            finalidad: getSelectText("RDACE_FinalidadTecSaludProc"),
+            finalidad: getSelectValue("RDACE_FinalidadTecSaludProc"),
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionProc")?.value || "",
         });
         rerender(contProcCE, getPrescripcionProcedimientos(), "procCE");
@@ -359,7 +359,7 @@ export function initListasConsultaExterna() {
             codigo,
             nombre: document.getElementById("RDACE_NombreOtraTecnologia")?.value || "",
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionOtra")?.value || "",
-            finalidad: getSelectText("RDACE_FinalidadTecSaludOtra"),
+            finalidad: getSelectValue("RDACE_FinalidadTecSaludOtra"),
         });
         rerender(contOtraCE, getOtrasTecnologias(), "otraCE");
 

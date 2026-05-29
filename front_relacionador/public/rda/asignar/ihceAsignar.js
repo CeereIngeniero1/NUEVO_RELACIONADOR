@@ -63,62 +63,190 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
-/** Texto legible a partir de la respuesta IHCE (misma lógica que el HTML original, compacta en ramas frecuentes). */
-function extractIhceMessage(data) {
+/** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.). */
+export function extractIhceMessage(data) {
     if (data == null) return '';
     if (typeof data === 'string') return data.trim();
     if (typeof data !== 'object') return String(data);
-    if (typeof data.message === 'string' && data.message.trim()) return data.message.trim();
-    if (typeof data.error === 'string' && data.error.trim()) return data.error.trim();
+
+    const lines = [];
+
+    if (typeof data.message === 'string' && data.message.trim()) lines.push(data.message.trim());
+    if (typeof data.error === 'string' && data.error.trim()) lines.push(data.error.trim());
     if (typeof data.error_description === 'string' && data.error_description.trim()) {
-        return data.error_description.trim();
+        lines.push(data.error_description.trim());
     }
+
+    const formatIssue = (i, idx) => {
+        if (!i || typeof i !== 'object') return [];
+        const out = [];
+        const n = idx != null ? ` [${idx + 1}]` : '';
+        if (i.severity) out.push(`severity${n}: ${i.severity}`);
+        if (i.code) out.push(`code${n}: ${i.code}`);
+        if (i.diagnostics) out.push(String(i.diagnostics));
+        if (i.details && i.details.text) out.push(String(i.details.text));
+        if (i.details && Array.isArray(i.details.coding)) {
+            i.details.coding.forEach((c) => {
+                if (!c) return;
+                const parts = [c.system, c.code, c.display].filter(Boolean).join(' | ');
+                if (parts) out.push(`coding${n}: ${parts}`);
+            });
+        }
+        if (Array.isArray(i.location) && i.location.length) {
+            out.push(`location${n}: ${i.location.join(', ')}`);
+        }
+        if (Array.isArray(i.expression) && i.expression.length) {
+            out.push(`expression${n}: ${i.expression.join(', ')}`);
+        }
+        return out;
+    };
+
     if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue)) {
-        const parts = data.issue.map((i) => {
-            if (!i) return '';
-            if (i.diagnostics) return String(i.diagnostics);
-            if (i.details && i.details.text) return String(i.details.text);
-            return '';
-        }).filter(Boolean);
-        if (parts.length) return parts.join('\n');
+        data.issue.forEach((i, idx) => {
+            formatIssue(i, idx).forEach((l) => lines.push(l));
+        });
     }
+
     if (data.resourceType === 'Bundle' && Array.isArray(data.entry)) {
-        const outcomes = [];
         const statuses = [];
+        lines.push(
+            `IHCE devolvió Bundle FHIR (${data.type ? 'tipo «' + data.type + '»' : 'sin tipo'}, ${data.entry.length} entrada(s)).`
+        );
         data.entry.forEach((ent) => {
             if (ent && ent.response && ent.response.status) {
                 statuses.push(String(ent.response.status).trim());
             }
             const res = ent && ent.resource;
             if (res && res.resourceType === 'OperationOutcome' && Array.isArray(res.issue)) {
-                res.issue.forEach((i) => {
-                    const txt = (i.diagnostics) || (i.details && i.details.text) || '';
-                    if (txt) outcomes.push(String(txt));
+                res.issue.forEach((i, idx) => {
+                    formatIssue(i, idx).forEach((l) => lines.push(l));
                 });
             }
         });
-        const lines = [];
-        lines.push(
-            `IHCE devolvió un Bundle FHIR (${data.type ? 'tipo «' + data.type + '»' : 'sin tipo'}, ${data.entry.length} entrada(s)).`
-        );
         if (statuses.length) {
             const okN = statuses.filter((s) => {
                 const n = parseInt(s, 10);
                 return n >= 200 && n < 400;
             }).length;
-            lines.push(`Estados: ${statuses.slice(0, 14).join(', ')}${statuses.length > 14 ? '…' : ''} → ${okN}/${statuses.length} éxito.`);
+            lines.push(`HTTP por entry: ${statuses.join(', ')} (${okN}/${statuses.length} éxito)`);
         }
-        if (outcomes.length) {
-            lines.push('OperationOutcome:');
-            outcomes.forEach((o) => lines.push('• ' + o));
-        }
-        return lines.join('\n');
     }
-    if (data.resourceType) {
-        return 'IHCE respondió con recurso FHIR tipo «' + data.resourceType + '».';
+
+    if (!lines.length && data.resourceType) {
+        lines.push('IHCE respondió recurso FHIR tipo «' + data.resourceType + '».');
     }
-    if (typeof data.raw === 'string' && data.raw.trim()) return data.raw.trim().slice(0, 4000);
-    return '';
+    if (!lines.length && typeof data.raw === 'string' && data.raw.trim()) {
+        return data.raw.trim();
+    }
+
+    return lines.join('\n');
+}
+
+/** Modal con la respuesta JSON cruda del Ministerio (IHCE). */
+export function showIhceApiResponse(data, title) {
+    const summary = extractIhceMessage(data);
+    const jsonText = typeof data === 'string'
+        ? data
+        : JSON.stringify(data, null, 2);
+    Swal.fire({
+        icon: 'error',
+        title: title || 'Respuesta IHCE (Ministerio)',
+        width: 'min(95vw, 860px)',
+        html:
+            (summary
+                ? '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen legible:</p>' +
+                  '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + 'max-height:280px;">' +
+                  escapeHtml(summary).replace(/\n/g, '<br>') +
+                  '</div>'
+                : '') +
+            '<p class="small text-start mt-3 mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">JSON completo de la API:</p>' +
+            '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(jsonText) + '</pre>' +
+            '<p class="mt-2 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-copy-resp">Copiar JSON</button></p>',
+        confirmButtonText: 'Cerrar',
+        didOpen: function (popup) {
+            const b = popup.querySelector('#rda-ihce-btn-copy-resp');
+            if (!b) return;
+            b.addEventListener('click', function () {
+                const copy = (navigator.clipboard && navigator.clipboard.writeText)
+                    ? navigator.clipboard.writeText(jsonText)
+                    : Promise.reject(new Error('Clipboard no disponible'));
+                copy.then(function () {
+                    Swal.showValidationMessage('JSON copiado.');
+                    setTimeout(function () { Swal.resetValidationMessage(); }, 900);
+                }).catch(function () {
+                    Swal.showValidationMessage('No se pudo copiar.');
+                });
+            });
+        },
+    });
+}
+
+function openJsonModal(title, jsonText, width) {
+    Swal.fire({
+        title: title,
+        html:
+            '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(jsonText) + '</pre>' +
+            '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-copy-json">Copiar al portapapeles</button></p>',
+        width: width || 'min(95vw, 760px)',
+        confirmButtonText: 'Cerrar',
+        didOpen: function (popup) {
+            const b = popup.querySelector('#rda-ihce-btn-copy-json');
+            if (!b) return;
+            b.addEventListener('click', function () {
+                const txt = String(jsonText || '');
+                const copy = (navigator.clipboard && navigator.clipboard.writeText)
+                    ? navigator.clipboard.writeText(txt)
+                    : Promise.reject(new Error('Clipboard API no disponible'));
+                copy.then(function () {
+                    Swal.showValidationMessage('Copiado al portapapeles.');
+                    setTimeout(function () { Swal.resetValidationMessage(); }, 900);
+                }).catch(function () {
+                    Swal.showValidationMessage('No se pudo copiar automáticamente.');
+                });
+            });
+        },
+    });
+}
+
+/** Abre modal con el Bundle/JSON que se enviaría (o se envió) a IHCE. */
+export function openIhceBundlePreview(kind, id, ambienteUi) {
+    const amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
+    const k = kind === 'rdace' ? 'rdace' : 'paciente';
+    const url = urlJsonEnviarPreview(k);
+    const body = JSON.stringify(bodyJsonEnviarPreview(k, id, amb));
+    Swal.fire({
+        title: 'Cargando JSON enviado…',
+        allowOutsideClick: false,
+        didOpen: function () {
+            Swal.showLoading();
+        },
+    });
+    fetch(url, {
+        method: 'POST',
+        headers: authJsonHeaders(),
+        body: body,
+    })
+        .then(function (r) {
+            return r.text().then(function (t) {
+                return { ok: r.ok, status: r.status, text: t };
+            });
+        })
+        .then(function (out) {
+            let parsed;
+            try {
+                parsed = JSON.parse(out.text);
+            } catch (e) {
+                parsed = { raw: out.text };
+            }
+            openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsed, null, 2), 'min(95vw, 860px)');
+        })
+        .catch(function (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo cargar el JSON enviado',
+                text: err.message || String(err),
+            });
+        });
 }
 
 /**
@@ -132,76 +260,13 @@ function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
     const isSandbox = ambienteUi !== 'prod';
     const amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
 
-    function openJsonModal(title, jsonText, width) {
-        Swal.fire({
-            title: title,
-            html:
-                '<pre style="' + RDA_IHCE_SWAL_PRE_STYLE + '">' + escapeHtml(jsonText) + '</pre>' +
-                '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-copy-json">Copiar al portapapeles</button></p>',
-            width: width || 'min(95vw, 760px)',
-            confirmButtonText: 'Cerrar',
-            didOpen: function (popup) {
-                const b = popup.querySelector('#rda-ihce-btn-copy-json');
-                if (!b) return;
-                b.addEventListener('click', function () {
-                    const txt = String(jsonText || '');
-                    const copy = (navigator.clipboard && navigator.clipboard.writeText)
-                        ? navigator.clipboard.writeText(txt)
-                        : Promise.reject(new Error('Clipboard API no disponible'));
-                    copy.then(function () {
-                        Swal.showValidationMessage('Copiado al portapapeles.');
-                        setTimeout(function () { Swal.resetValidationMessage(); }, 900);
-                    }).catch(function () {
-                        Swal.showValidationMessage('No se pudo copiar automáticamente.');
-                    });
-                });
-            },
-        });
-    }
-
     function showJsonRespuesta() {
         openJsonModal('Respuesta IHCE (JSON)', prettyJson, 'min(95vw, 760px)');
     }
 
     function showJsonEnviado() {
         if (!bundleCtx || bundleCtx.id == null) return;
-        const kind = bundleCtx.kind === 'rdace' ? 'rdace' : 'paciente';
-        const url = urlJsonEnviarPreview(kind);
-        const body = JSON.stringify(bodyJsonEnviarPreview(kind, bundleCtx.id, amb));
-        Swal.fire({
-            title: 'Cargando JSON enviado…',
-            allowOutsideClick: false,
-            didOpen: function () {
-                Swal.showLoading();
-            },
-        });
-        fetch(url, {
-            method: 'POST',
-            headers: authJsonHeaders(),
-            body: body,
-        })
-            .then(function (r) {
-                return r.text().then(function (t) {
-                    return { ok: r.ok, status: r.status, text: t };
-                });
-            })
-            .then(function (out) {
-                let parsed;
-                try {
-                    parsed = JSON.parse(out.text);
-                } catch (e) {
-                    parsed = { raw: out.text };
-                }
-                const sentStr = JSON.stringify(parsed, null, 2);
-                openJsonModal('JSON generado para envío IHCE', sentStr, 'min(95vw, 860px)');
-            })
-            .catch(function (err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'No se pudo cargar el JSON enviado',
-                    text: err.message || String(err),
-                });
-            });
+        openIhceBundlePreview(bundleCtx.kind === 'rdace' ? 'rdace' : 'paciente', bundleCtx.id, amb);
     }
 
     if (isSandbox) {
