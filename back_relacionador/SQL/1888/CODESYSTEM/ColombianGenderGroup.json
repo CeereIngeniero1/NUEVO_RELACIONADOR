@@ -1,0 +1,84 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianGenderGroup",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T15:59:03.224+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup",
+    "version": "0.1.0",
+    "name": "ColombianGenderGroup",
+    "title": "CodeSystem: Gender Group - Colombia",
+    "status": "active",
+    "experimental": false,
+    "date": "2025-05-21",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Code system for gender groups applicable to health care concepts (procedures, services, diagnoses).\r\n\r\n[ES: Sistema de códificación de grupos de género aplicables a conceptos asistenciales (procedimientos, servicios, diagnósticos).]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a nomenclature of gender groups applicable to health care concepts (procedures, services, diagnoses).\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador de grupos de género aplicables a conceptos asistenciales (procedimientos, servicios, diagnósticos).]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2006+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 3,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Hombre"
+        },
+        {
+            "code": "02",
+            "display": "Mujer"
+        },
+        {
+            "code": "03",
+            "display": "Indeterminado o Intersexual"
+        }
+    ]
+}
