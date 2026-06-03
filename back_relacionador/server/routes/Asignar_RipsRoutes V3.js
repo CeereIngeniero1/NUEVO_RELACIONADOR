@@ -3393,8 +3393,8 @@ router.post('/ActualizarPaciente', async (req, res) => {
         { key: 'IdResidencia', value: IdResidencia, label: 'País Residencia' },
         { key: 'IdMunicipio', value: IdMunicipio, label: 'Municipio Residencia' },
         { key: 'IdZonaTerritorial', value: IdZonaTerritorial, label: 'Zona Territorial' },
-        { key: 'IdEtnia', value: IdEtnia, label: 'Etnia' },
-        { key: 'IdDiscapacidad', value: IdDiscapacidad, label: 'Discapacidad' },
+        // { key: 'IdEtnia', value: IdEtnia, label: 'Etnia' },
+        // { key: 'IdDiscapacidad', value: IdDiscapacidad, label: 'Discapacidad' },
     ];
     const missing = requiredFields.filter(f => isEmptyRequired(f.value));
     if (missing.length > 0) {

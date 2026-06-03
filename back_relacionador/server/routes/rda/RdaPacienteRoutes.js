@@ -1234,7 +1234,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 ? ({ F: 'female', M: 'male' }[sexCode.toUpperCase()] || 'other')
                 : undefined;
             const biologicalGenderMap = { F: { code: '02', display: 'Mujer' }, M: { code: '01', display: 'Hombre' } };
-            const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '03', display: 'Indeterminado o Intersexual' }) : null;
+            // const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '03', display: 'Indeterminado o Intersexual' }) : null;
+            const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '01', display: 'Hombre' }) : null;
 
             // Document type display label for ColombianPersonIdentifier
             const docTypeLabels = {
