@@ -339,6 +339,13 @@ ALTER COLUMN [Ocupación] NVARCHAR(200) NULL;
 
 
 
+-- Alter table to add Alergeno column
+-- Se agrega la columna Alergeno a la tabla Entidad1888 para almacenar información sobre alergias específicas del paciente, con un tamaño máximo de 200 caracteres y permitiendo valores nulos.
+alter table [entidad1888] add Alergeno varchar (200) null
+
+
+
+
 
 
 ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
@@ -1325,7 +1332,7 @@ VALUES
 ('02', 'Físicos'),
 ('03', 'Biomecánicos'),
 ('04', 'Psicosociales'),
-('05', 'Biológicos');
+('05', 'Biológicos'),
 ('06', 'Otro');
 
 create view [dbo].[Cnsta Factor De Riesgo 1888]

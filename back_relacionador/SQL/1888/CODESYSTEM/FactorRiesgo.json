@@ -1,0 +1,79 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "FactorRiesgo",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:25:30.257+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/FactorRiesgo",
+    "version": "0.1.0",
+    "name": "FactorRiesgo",
+    "title": "CodeSystem: Tipo de factor de riesgo",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "HL7 Colombia",
+    "contact": [
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Sistema de codificación de Ttipo de factor de riesgo",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador Tipo de factor de riesgo",
+    "copyright": "HL7 Colombia, CC-BY-4.0, 2024+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 6,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Químicos"
+        },
+        {
+            "code": "02",
+            "display": "Físicos"
+        },
+        {
+            "code": "03",
+            "display": "Biomecánicos"
+        },
+        {
+            "code": "04",
+            "display": "Psicosociales"
+        },
+        {
+            "code": "05",
+            "display": "Biológicos"
+        },
+        {
+            "code": "06",
+            "display": "Otro"
+        }
+    ]
+}

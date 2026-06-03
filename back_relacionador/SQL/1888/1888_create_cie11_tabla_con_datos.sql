@@ -8,6 +8,7 @@ BEGIN
         Codigo NVARCHAR(50) NOT NULL,
         Nombre NVARCHAR(500) NOT NULL,
         DefinicionUrl NVARCHAR(1000) NULL,
+        IdEstado INT NOT NULL CONSTRAINT DF_CIE11_Codigos_IdEstado DEFAULT (7),
         FechaCarga DATETIME2(0) NOT NULL CONSTRAINT DF_CIE11_Codigos_FechaCarga DEFAULT (SYSDATETIME())
     );
     CREATE UNIQUE INDEX UX_CIE11_Codigos_Codigo ON dbo.CIE11_Codigos(Codigo);
