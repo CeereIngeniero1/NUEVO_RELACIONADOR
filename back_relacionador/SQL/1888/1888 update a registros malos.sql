@@ -107,6 +107,60 @@ GO
 delete from  [Finalidad tecnologia salud 1888]
 
 
+IF OBJECT_ID(N'[dbo].[Finalidad tecnologia salud 1888]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @FinalidadTecnologiaSalud1888 TABLE (Codigo VARCHAR(50) NOT NULL PRIMARY KEY, Nombre VARCHAR(250) NULL, Descripcion VARCHAR(250) NOT NULL, IdEstado INT NOT NULL);
+
+    INSERT INTO @FinalidadTecnologiaSalud1888 (Codigo, Nombre, Descripcion, IdEstado)
+    VALUES
+        ('11', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO', 'VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO', 7),
+        ('12', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL', 'DETECCION TEMPRANA DE ENFERMEDAD GENERAL', 7),
+        ('13', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL', 'DETECCION TEMPRANA DE ENFERMEDAD LABORAL', 7),
+        ('14', 'PROTECCION ESPECIFICA', 'PROTECCION ESPECIFICA', 7),
+        ('15', 'DIAGNOSTICO', 'DIAGNOSTICO', 7),
+        ('16', 'TRATAMIENTO', 'TRATAMIENTO', 7),
+        ('17', 'REHABILITACION', 'REHABILITACION', 7),
+        ('18', 'PALIACION', 'PALIACION', 7),
+        ('19', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION', 'PLANIFICACION FAMILIAR Y ANTICONCEPCION', 7),
+        ('20', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA', 'PROMOCION Y APOYO A LA LACTANCIA MATERNA', 7),
+        ('21', 'ATENCION BASICA DE ORIENTACION FAMILIAR', 'ATENCION BASICA DE ORIENTACION FAMILIAR', 7),
+        ('22', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL', 'ATENCION PARA EL CUIDADO PRECONCEPCIONAL', 7),
+        ('23', 'ATENCION PARA EL CUIDADO PRENATAL', 'ATENCION PARA EL CUIDADO PRENATAL', 7),
+        ('24', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO', 'INTERRUPCION VOLUNTARIA DEL EMBARAZO', 7),
+        ('25', 'ATENCION DEL PARTO Y PUERPERIO', 'ATENCION DEL PARTO Y PUERPERIO', 7),
+        ('26', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO', 'ATENCION PARA EL CUIDADO DEL RECIEN NACIDO', 7),
+        ('27', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO', 'ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO', 7),
+        ('28', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD', 'PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD', 7),
+        ('29', 'PROMOCION DE ACTIVIDAD FISICA', 'PROMOCION DE ACTIVIDAD FISICA', 7),
+        ('30', 'PROMOCION DE LA CESACION DEL TABAQUISMO', 'PROMOCION DE LA CESACION DEL TABAQUISMO', 7),
+        ('31', 'PREVENCION DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', 'PREVENCION DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', 7),
+        ('32', 'PROMOCION DE LA ALIMENTACION SALUDABLE', 'PROMOCION DE LA ALIMENTACION SALUDABLE', 7),
+        ('33', 'PROMOCION PARA EL EJERCICIO DE LOS DERECHOS SEXUALES Y DERECHOS REPRODUCTIVOS', 'PROMOCION PARA EL EJERCICIO DE LOS DERECHOS SEXUALES Y DERECHOS REPRODUCTIVOS', 7),
+        ('34', 'PROMOCION PARA EL DESARROLLO DE HABILIDADES PARA LA VIDA', 'PROMOCION PARA EL DESARROLLO DE HABILIDADES PARA LA VIDA', 7),
+        ('35', 'PROMOCION PARA LA CONSTRUCCION DE ESTRATEGIAS DE AFRONTAMIENTO FRENTE A  SUCESOS VITALES', 'PROMOCION PARA LA CONSTRUCCION DE ESTRATEGIAS DE AFRONTAMIENTO FRENTE A  SUCESOS VITALES', 7),
+        ('36', 'PROMOCION DE LA SANA CONVIVENCIA Y EL TEJIDO  SOCIAL', 'PROMOCION DE LA SANA CONVIVENCIA Y EL TEJIDO  SOCIAL', 7),
+        ('37', 'PROMOCION DE UN AMBIENTE SEGURO Y DE CUIDADO Y PROTECCION DEL AMBIENTE', 'PROMOCION DE UN AMBIENTE SEGURO Y DE CUIDADO Y PROTECCION DEL AMBIENTE', 7),
+        ('38', 'PROMOCION DEL EMPODERAMIENTO PARA EL EJERCICIO DEL DERECHO A LA SALUD', 'PROMOCION DEL EMPODERAMIENTO PARA EL EJERCICIO DEL DERECHO A LA SALUD', 7),
+        ('39', 'PROMOCION PARA LA ADOPCION DE PRACTICAS DE CRIANZA Y CUIDADO PARA LA SALUD', 'PROMOCION PARA LA ADOPCION DE PRACTICAS DE CRIANZA Y CUIDADO PARA LA SALUD', 7),
+        ('40', 'PROMOCION DE LA CAPACIDAD DE LA AGENCIA Y CUIDADO DE LA SALUD', 'PROMOCION DE LA CAPACIDAD DE LA AGENCIA Y CUIDADO DE LA SALUD', 7),
+        ('41', 'DESARROLLO DE HABILIDADES COGNITIVAS', 'DESARROLLO DE HABILIDADES COGNITIVAS', 7),
+        ('42', 'INTERVENCION COLECTIVA', 'INTERVENCION COLECTIVA', 7),
+        ('43', 'MODIFICACION DE LA ESTETICA CORPORAL FINES ESTETICOS', 'MODIFICACION DE LA ESTETICA CORPORAL FINES ESTETICOS', 7),
+        ('44', 'OTRA', 'OTRA', 7);
+
+    MERGE [dbo].[Finalidad tecnologia salud 1888] AS tgt
+    USING @FinalidadTecnologiaSalud1888 AS src
+      ON tgt.Codigo = src.Codigo
+    WHEN MATCHED THEN
+        UPDATE SET
+            tgt.Nombre = src.Nombre,
+            tgt.Descripcion = src.Descripcion,
+            tgt.[Id Estado] = src.IdEstado
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (Codigo, Nombre, Descripcion, [Id Estado])
+        VALUES (src.Codigo, src.Nombre, src.Descripcion, src.IdEstado);
+END
+GO
 
 
 delete from [Unidad tiempo duracion 1888]
@@ -414,8 +468,11 @@ GO
 
 
 
+
+
 ALTER VIEW [dbo].[Cnsta Relacionador Usuarios Info]
 AS
+
 SELECT
     e.[Id Tipo de Documento] AS IdTipodeDocumento,
     td.[Descripción Tipo de Documento] AS DescripciTipoDocumento,
@@ -427,8 +484,9 @@ SELECT
     e.[Segundo Nombre Entidad] AS SegundoNombreBase,
     e.[Nombre Completo Entidad] AS NombreCompletoPaciente,
     sx.[Sexo] AS SexoPaciente,
+    sx.[Código Sexo] as CódigoSexo,
+   
     sx.[Descripción Sexo] AS Sexo,
-    sx.[Código Sexo] AS CódigoSexo,
     sx.[Id Sexo] AS IdSexo,
     e3.[Edad EntidadIII] AS Edad,
     e2.[Dirección EntidadII] AS Direccion,
@@ -441,6 +499,7 @@ SELECT
     sig.[Codigo] AS codigoIdentidadGeneroBase,
     sig.[Identidad Genero] AS IdentidadGeneroBase,
     e3.[Id Zona Residencia],
+    
     e1888.[Talla],
     e1888.[Peso],
     e1888.[Id Etnia],
@@ -472,7 +531,10 @@ SELECT
     o.[Ocupación] AS Ocupación,
     o.[Descripción Ocupación] AS DescripciónOcupación,
     e1888.[Alergias] AS Alergias,
-    e1888.[Alergeno] AS Alergeno
+    e1888.[Alergeno] AS Alergeno,
+    ec.[Estado Civil] AS EstadoCivil,
+    respon.[Nombre Completo Entidad] AS NombreResponsable,
+    ParRespo.Parentesco AS ParentescoResponsable
 FROM dbo.Entidad e
 LEFT JOIN dbo.[Tipo de Documento] td
     ON td.[Id Tipo de Documento] = e.[Id Tipo de Documento]
@@ -492,9 +554,15 @@ LEFT JOIN dbo.País1888 pr
     ON pr.[Id Pais1888] = e1888.[Id Pais Recidencia]
 LEFT JOIN dbo.Ciudad1888 cr
     ON cr.[Id Ciudad1888] = e1888.[Id Municipio Recidencia]
--- EntidadIII.[Id Zona Residencia] guarda el código RIPS (1→01 Urbana, 2→02 Rural), no el PK del catálogo.
+-- EntidadIII.[Id Zona Residencia] guarda el código RIPS (1→01 Urbana, 2→02 Rural), no el PK [Id Zona Residencia] del catálogo.
+
+
+
 LEFT JOIN dbo.[Zona Residencia] zr
-    ON LTRIM(RTRIM(zr.[Código Zona Residencia])) = RIGHT('0' + CAST(e3.[Id Zona Residencia] AS VARCHAR(2)), 2)
+    ON e3.[Id Zona Residencia] = zr.[Id Zona Residencia]
+
+
+
 LEFT JOIN dbo.Etnia et
     ON et.[Id Etnia] = e1888.[Id Etnia]
 LEFT JOIN dbo.Discapacidad d
@@ -503,7 +571,14 @@ LEFT JOIN dbo.EntidadVI e6
     ON e6.[Documento Entidad] = e.[Documento Entidad]
 LEFT JOIN dbo.Ocupación o
     ON o.[Id Ocupación] = e6.[Id Ocupación]
+LEFT JOIN dbo.[Estado Civil] EC 
+    ON EC.[Id Estado Civil] = E3.[Id Estado Civil]
+LEFT JOIN Entidad Respon 
+    ON respon.[Documento Entidad] = e3.[Documento Responsable]
+LEFT JOIN dbo.Parentesco ParRespo 
+    ON ParRespo.[Id Parentesco] = E3.[Id Parentesco]
 GO
+
 
 
 -- aca porfa 

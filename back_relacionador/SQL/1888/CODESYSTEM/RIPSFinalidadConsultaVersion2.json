@@ -1,0 +1,208 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "RIPSFinalidadConsultaVersion2",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:10:46.537+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSFinalidadConsultaVersion2",
+    "version": "0.1.0",
+    "name": "RIPSFinalidadConsultaVersion2",
+    "title": "CodeSystem: Colombian Encounter ReasonCode",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-08-27",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Colombian ReasonCode classification code system for encounters in Colombia.\r\n\r\n[ES: Codificación de clasificación motivos de consulta para encuentros ambulatorios en Colombia.]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a general encounter reason classification nomenclator in Colombia.\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador de motivos de consulta de encuentros de atención en Colombia.]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2021+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 34,
+    "concept": [
+        {
+            "code": "11",
+            "display": "VALORACION INTEGRAL PARA LA PROMOCION Y MANTENIMIENTO"
+        },
+        {
+            "code": "12",
+            "display": "DETECCION TEMPRANA DE ENFERMEDAD GENERAL"
+        },
+        {
+            "code": "13",
+            "display": "DETECCION TEMPRANA DE ENFERMEDAD LABORAL"
+        },
+        {
+            "code": "14",
+            "display": "PROTECCION ESPECIFICA"
+        },
+        {
+            "code": "15",
+            "display": "DIAGNOSTICO"
+        },
+        {
+            "code": "16",
+            "display": "TRATAMIENTO"
+        },
+        {
+            "code": "17",
+            "display": "REHABILITACION"
+        },
+        {
+            "code": "18",
+            "display": "PALIACION"
+        },
+        {
+            "code": "19",
+            "display": "PLANIFICACION FAMILIAR Y ANTICONCEPCION"
+        },
+        {
+            "code": "20",
+            "display": "PROMOCION Y APOYO A LA LACTANCIA MATERNA"
+        },
+        {
+            "code": "21",
+            "display": "ATENCION BASICA DE ORIENTACION FAMILIAR"
+        },
+        {
+            "code": "22",
+            "display": "ATENCION PARA EL CUIDADO PRECONCEPCIONAL"
+        },
+        {
+            "code": "23",
+            "display": "ATENCION PARA EL CUIDADO PRENATAL"
+        },
+        {
+            "code": "24",
+            "display": "INTERRUPCION VOLUNTARIA DEL EMBARAZO"
+        },
+        {
+            "code": "25",
+            "display": "ATENCION DEL PARTO Y PUERPERIO"
+        },
+        {
+            "code": "26",
+            "display": "ATENCION PARA EL CUIDADO DEL RECIEN NACIDO"
+        },
+        {
+            "code": "27",
+            "display": "ATENCION PARA EL SEGUIMIENTO DEL RECIEN NACIDO"
+        },
+        {
+            "code": "28",
+            "display": "PREPARACION PARA LA MATERNIDAD Y LA PATERNIDAD"
+        },
+        {
+            "code": "29",
+            "display": "PROMOCION DE ACTIVIDAD FISICA"
+        },
+        {
+            "code": "30",
+            "display": "PROMOCION DE LA CESACION DEL TABAQUISMO"
+        },
+        {
+            "code": "31",
+            "display": "PREVENCION DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS"
+        },
+        {
+            "code": "32",
+            "display": "PROMOCION DE LA ALIMENTACION SALUDABLE"
+        },
+        {
+            "code": "33",
+            "display": "PROMOCION PARA EL EJERCICIO DE LOS DERECHOS SEXUALES Y DERECHOS REPRODUCTIVOS"
+        },
+        {
+            "code": "34",
+            "display": "PROMOCION PARA EL DESARROLLO DE HABILIDADES PARA LA VIDA"
+        },
+        {
+            "code": "35",
+            "display": "PROMOCION PARA LA CONSTRUCCION DE ESTRATEGIAS DE AFRONTAMIENTO FRENTE A SUCESOS VITALES"
+        },
+        {
+            "code": "36",
+            "display": "PROMOCION DE LA SANA CONVIVENCIA Y EL TEJIDO SOCIAL"
+        },
+        {
+            "code": "37",
+            "display": "PROMOCION DE UN AMBIENTE SEGURO Y DE CUIDADO Y PROTECCION DEL AMBIENTE"
+        },
+        {
+            "code": "38",
+            "display": "PROMOCION DEL EMPODERAMIENTO PARA EL EJERCICIO DEL DERECHO A LA SALUD"
+        },
+        {
+            "code": "39",
+            "display": "PROMOCION PARA LA ADOPCION DE PRACTICAS DE CRIANZA Y CUIDADO PARA LA SALUD"
+        },
+        {
+            "code": "40",
+            "display": "PROMOCION DE LA CAPACIDAD DE LA AGENCIA Y CUIDADO DE LA SALUD"
+        },
+        {
+            "code": "41",
+            "display": "DESARROLLO DE HABILIDADES COGNITIVAS"
+        },
+        {
+            "code": "42",
+            "display": "INTERVENCION COLECTIVA"
+        },
+        {
+            "code": "43",
+            "display": "MODIFICACION DE LA ESTETICA CORPORAL FINES ESTETICOS"
+        },
+        {
+            "code": "44",
+            "display": "OTRA"
+        }
+    ]
+}

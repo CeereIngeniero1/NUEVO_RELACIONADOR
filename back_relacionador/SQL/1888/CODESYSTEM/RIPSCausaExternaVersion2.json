@@ -1,0 +1,188 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "RIPSCausaExternaVersion2",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:10:46.530+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSCausaExternaVersion2",
+    "version": "0.1.0",
+    "name": "RIPSCausaExternaVersion2",
+    "title": "CodeSystem: Colombian Encounter ReasonCode",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-09-12",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Colombian ReasonCode classification code system for encounters in Colombia.\r\n\r\n[ES: Codificación de clasificación motivos de consulta para encuentros ambulatorios en Colombia.]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a general encounter reason classification nomenclator in Colombia.\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador de motivos de consulta de encuentros de atención en Colombia.]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2021+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 29,
+    "concept": [
+        {
+            "code": "21",
+            "display": "ACCIDENTE DE TRABAJO"
+        },
+        {
+            "code": "22",
+            "display": "ACCIDENTE EN EL HOGAR"
+        },
+        {
+            "code": "23",
+            "display": "ACCIDENTE DE TRANSITO DE ORIGEN COMUN"
+        },
+        {
+            "code": "24",
+            "display": "ACCIDENTE DE TRANSITO DE ORIGEN LABORAL"
+        },
+        {
+            "code": "25",
+            "display": "ACCIDENTE EN EL ENTORNO EDUCATIVO"
+        },
+        {
+            "code": "26",
+            "display": "OTRO TIPO DE ACCIDENTE"
+        },
+        {
+            "code": "27",
+            "display": "EVENTO CATASTROFICO DE ORIGEN NATURAL"
+        },
+        {
+            "code": "28",
+            "display": "LESION POR AGRESION"
+        },
+        {
+            "code": "29",
+            "display": "LESION AUTO INFLIGIDA"
+        },
+        {
+            "code": "30",
+            "display": "SOSPECHA DE VIOLENCIA FISICA"
+        },
+        {
+            "code": "31",
+            "display": "SOSPECHA DE VIOLENCIA PSICOLOGICA"
+        },
+        {
+            "code": "32",
+            "display": "SOSPECHA DE VIOLENCIA SEXUAL"
+        },
+        {
+            "code": "33",
+            "display": "SOSPECHA DE NEGLIGENCIA Y ABANDONO"
+        },
+        {
+            "code": "34",
+            "display": "IVE RELACIONADO CON PELIGRO A LA SALUD O VIDA DE LA MUJER"
+        },
+        {
+            "code": "35",
+            "display": "IVE POR MALFORMACION CONGENITA INCOMPATIBLE CON LA VIDA"
+        },
+        {
+            "code": "36",
+            "display": "IVE POR VIOLENCIA SEXUAL, INCESTO O POR INSEMINACION ARTIFICIAL O TRANSFERENCIA DE OVULO FECUNDADO NO CONSENTIDA"
+        },
+        {
+            "code": "37",
+            "display": "EVENTO ADVERSO EN SALUD"
+        },
+        {
+            "code": "38",
+            "display": "ENFERMEDAD GENERAL"
+        },
+        {
+            "code": "39",
+            "display": "ENFERMEDAD LABORAL"
+        },
+        {
+            "code": "40",
+            "display": "PROMOCION Y MANTENIMIENTO DE LA SALUD - INTERVENCIONES INDIVIDUALES"
+        },
+        {
+            "code": "41",
+            "display": "INTERVENCION COLECTIVA"
+        },
+        {
+            "code": "42",
+            "display": "ATENCION DE POBLACION MATERNO PERINATAL"
+        },
+        {
+            "code": "43",
+            "display": "RIESGO AMBIENTAL"
+        },
+        {
+            "code": "44",
+            "display": "OTROS EVENTOS CATASTROFICOS"
+        },
+        {
+            "code": "45",
+            "display": "ACCIDENTE DE MINA ANTIPERSONAL - MAP"
+        },
+        {
+            "code": "46",
+            "display": "ACCIDENTE DE ARTEFACTO EXPLOSIVO IMPROVISADO - AEI"
+        },
+        {
+            "code": "47",
+            "display": "ACCIDENTE DE MUNICION SIN EXPLOTAR - MUSE"
+        },
+        {
+            "code": "48",
+            "display": "OTRA VICTIMA DE CONFLICTO ARMADO COLOMBIANO"
+        },
+        {
+            "code": "49",
+            "display": "IVE POR DECISION O MANIFESTACION DE VOLUNTAD DE LA PERSONA GESTANTE HASTA LA SEMANA 24 DE GESTACION"
+        }
+    ]
+}

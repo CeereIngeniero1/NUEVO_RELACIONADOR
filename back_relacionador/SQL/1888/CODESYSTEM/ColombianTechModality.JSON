@@ -1,0 +1,108 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianTechModality",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T15:58:52.424+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality",
+    "version": "3.0",
+    "name": "ColombianTechModality",
+    "title": "CodeSystem: Modalidad de realización de la tecnología de salud",
+    "status": "active",
+    "experimental": false,
+    "date": "2023-07-30",
+    "publisher": "SISPRO",
+    "contact": [
+        {
+            "name": "Sistema Integrado de Información de la Protección Social",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.sispro.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57 (601) 330 5000"
+                },
+                {
+                    "system": "email",
+                    "value": "correo@minsalud.gov.co"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Sistema de códificación de modalidad de realización de la tecnología de salud.",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador de la modalidad de realización de la tecnología de salud.]",
+    "copyright": "SISPRO, CCBY4.0 2006+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 9,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Intramural"
+        },
+        {
+            "code": "02",
+            "display": "Extramural unidad móvil"
+        },
+        {
+            "code": "03",
+            "display": "Extramural domiciliaria"
+        },
+        {
+            "code": "04",
+            "display": "Extramural jornada de salud"
+        },
+        {
+            "code": "05",
+            "display": "Extramural (atención pre hospitalaria o transporte asistencial)"
+        },
+        {
+            "code": "06",
+            "display": "Telemedicina interactiva"
+        },
+        {
+            "code": "07",
+            "display": "Telemedicina no interactiva"
+        },
+        {
+            "code": "08",
+            "display": "Telemedicina - Telexperticia"
+        },
+        {
+            "code": "09",
+            "display": "Telemedicina - Telemonitoreo"
+        }
+    ]
+}

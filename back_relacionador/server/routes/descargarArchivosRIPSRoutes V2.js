@@ -40,7 +40,7 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         '12' AS [tipoUsuario],
         CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], Sexo.[Sexo] AS [codSexo], 
         País.País AS [codPaisResidencia], Dep.[Código Departamento] +  Ciu.[Código Ciudad] AS [codMunicipioResidencia], 
-		CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia], 
+		CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE   zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia], 
 		'NO' AS incapacidad,
  
         1 AS consecutivo,
@@ -271,7 +271,7 @@ CASE
          + Ciu.[Código Ciudad]               -- Si viene corto (ej: 001)
 END AS codMunicipioResidencia,
 
-    CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  '0' + zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
+    CASE WHEN zr.[Código Zona Residencia]  IS NULL THEN '02' ELSE  zr.[Código Zona Residencia] END AS  [codZonaTerritorialResidencia],  
     'NO' AS [incapacidad],
     --DENSE_RANK() OVER (ORDER BY en.[Documento Entidad]) AS [consecutivo],
 	--ROW_NUMBER() OVER (PARTITION BY FC.[Id Factura]  ORDER BY FC.[Id Factura] ) AS consecutivo,

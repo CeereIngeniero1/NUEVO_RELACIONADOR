@@ -1,0 +1,124 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianHealthTechnologyCategory",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T15:58:49.213+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianHealthTechnologyCategory",
+    "version": "0.1.0",
+    "name": "ColombianHealthTechnologyCategory",
+    "title": "CodeSystem: Tipo de tecnología en salud",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Código de clasificación de tipo de tecnología en salud (Procedimiento en salud | Medicamento con registro sanitario | Medicamento vital no disponible | Preparación magistral | Medicamento UNIRS | Dispositivo médico | Componentes sanguíneos | Fluidos orgánicos | Órganos | Tejidos | Células | Producto Soporte Nutricional | Servicio complementario).]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador de los tipos de tecnología en salud en Colombia.]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2021+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 13,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Procedimiento en salud"
+        },
+        {
+            "code": "02",
+            "display": "Medicamento con registro sanitario"
+        },
+        {
+            "code": "03",
+            "display": "Medicamento vital no disponible"
+        },
+        {
+            "code": "04",
+            "display": "Preparación magistral"
+        },
+        {
+            "code": "05",
+            "display": "Medicamento UNIRS"
+        },
+        {
+            "code": "06",
+            "display": "Dispositivo médico"
+        },
+        {
+            "code": "07",
+            "display": "Componentes sanguíneos"
+        },
+        {
+            "code": "08",
+            "display": "Fluidos orgánicos"
+        },
+        {
+            "code": "09",
+            "display": "Órganos"
+        },
+        {
+            "code": "10",
+            "display": "Tejidos"
+        },
+        {
+            "code": "11",
+            "display": "Células"
+        },
+        {
+            "code": "12",
+            "display": "Producto Soporte Nutricional"
+        },
+        {
+            "code": "13",
+            "display": "Servicio complementario"
+        }
+    ]
+}

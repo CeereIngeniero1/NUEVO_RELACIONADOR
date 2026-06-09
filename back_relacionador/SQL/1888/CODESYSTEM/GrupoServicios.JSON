@@ -1,0 +1,92 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "GrupoServicios",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:14:47.565+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios",
+    "version": "3.0",
+    "name": "GrupoServicios",
+    "title": "CodeSystem: Grupo de Servicios",
+    "status": "active",
+    "experimental": false,
+    "date": "2022-06-16",
+    "publisher": "SISPRO",
+    "contact": [
+        {
+            "name": "Sistema Integrado de Información de la Protección Social",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.sispro.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57 (601) 330 5000"
+                },
+                {
+                    "system": "email",
+                    "value": "correo@minsalud.gov.co"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Sistema de códificación de grupo de servicio o ámbito de prescripción o administración de una tecnología en salud.]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador de grupo de servicio o ámbito de prescripción o administración de una tecnología en salud.]",
+    "copyright": "SISPRO, CCBY4.0 2022+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 5,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Consulta externa"
+        },
+        {
+            "code": "02",
+            "display": "Apoyo diagnóstico y complementación terapéutica"
+        },
+        {
+            "code": "03",
+            "display": "Internación"
+        },
+        {
+            "code": "04",
+            "display": "Quirúrgico"
+        },
+        {
+            "code": "05",
+            "display": "Atención inmediata"
+        }
+    ]
+}

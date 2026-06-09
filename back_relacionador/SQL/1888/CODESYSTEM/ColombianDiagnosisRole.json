@@ -1,0 +1,96 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianDiagnosisRole",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T15:57:37.133+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianDiagnosisRole",
+    "version": "0.1.0",
+    "name": "ColombianDiagnosisRole",
+    "title": "CodeSystem: Colombian Diagnosis Role",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Colombian diagnosis classification group for encounter in Colombia.\r\n\r\n[ES: Código de clasificación del diagnósico durante un encuentro en Colombia (principal, comobilidades, etc).]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a general encounter purpose classification nomenclator in Colombia.\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador de finalidad de la consulta de encuentros de atención en Colombia.]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2021+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 6,
+    "concept": [
+        {
+            "code": "8319008",
+            "display": "diagnóstico primario"
+        },
+        {
+            "code": "398192003",
+            "display": "comorbilidades"
+        },
+        {
+            "code": "89100005",
+            "display": "diagnóstico final (alta)"
+        },
+        {
+            "code": "16100001",
+            "display": "diagnóstico de la causa de muerte"
+        },
+        {
+            "code": "52870002",
+            "display": "diagnóstico de ingreso"
+        },
+        {
+            "code": "263718001",
+            "display": "complicación"
+        }
+    ]
+}

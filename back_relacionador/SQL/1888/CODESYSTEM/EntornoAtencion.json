@@ -1,0 +1,75 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "EntornoAtencion",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:16:02.437+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/EntornoAtencion",
+    "version": "0.1.0",
+    "name": "EntornoAtencion",
+    "title": "CodeSystem: Entorno donde se realiza la atención",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "HL7 Colombia",
+    "contact": [
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Sistema de codificación de entorno donde se realiza la atención",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador entorno donde se realiza la atención",
+    "copyright": "HL7 Colombia, CC-BY-4.0, 2024+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 5,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Hogar"
+        },
+        {
+            "code": "02",
+            "display": "Comunitario"
+        },
+        {
+            "code": "03",
+            "display": "Escolar"
+        },
+        {
+            "code": "04",
+            "display": "Laboral"
+        },
+        {
+            "code": "05",
+            "display": "Institucional"
+        }
+    ]
+}

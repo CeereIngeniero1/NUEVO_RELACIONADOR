@@ -1,0 +1,84 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "RIPSTipoDiagnosticoPrincipalVersion2",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T16:25:30.117+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSTipoDiagnosticoPrincipalVersion2",
+    "version": "0.1.0",
+    "name": "RIPSTipoDiagnosticoPrincipalVersion2",
+    "title": "CodeSystem: Tipo de diagnóstico principal en Colombia",
+    "status": "active",
+    "experimental": false,
+    "date": "2022-06-16",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Colombian admit source classification for inpatient encounter in Colombia.\r\n\r\n[ES: Código de clasificación del via de ingreso para un encuentro de hospitalización en Colombia (urgencias, remitido, consulta externa, etc.).]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a admit source for inpatient encounters classification nomenclator in Colombia.\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador de ingreso de encuentros de hospitalización en Colombia.]",
+    "copyright": "MinSalud Colombia, CC-BY-4.0 2024+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 3,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Impresión Diagnóstica"
+        },
+        {
+            "code": "02",
+            "display": "Confirmado Nuevo"
+        },
+        {
+            "code": "03",
+            "display": "Confirmado Repetido"
+        }
+    ]
+}

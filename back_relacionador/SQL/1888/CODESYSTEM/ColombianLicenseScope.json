@@ -1,0 +1,80 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianLicenseScope",
+    "meta": {
+        "versionId": "2",
+        "lastUpdated": "2025-10-01T15:58:54.173+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLicenseScope",
+    "version": "0.1.0",
+    "name": "ColombianLicenseScope",
+    "title": "CodeSystem: Incapacidad - Alcance de la incapacidad",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "MinSalud Colombia",
+    "contact": [
+        {
+            "name": "Ministerio de Salud y Protección Social Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.minsalud.gov.co/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 330-5043"
+                },
+                {
+                    "system": "phone",
+                    "value": "018000960020"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "Sistema de codificación del alcance de la incapacidad laboral por enfermedad en Colombia.",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "Este sistema de codificación se utiliza como nomenclador del alcance de la incapacidad laboral por enfermedad en Colombia.",
+    "copyright": "HL7 Colombia, CC-BY-4.0, 2024+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 2,
+    "concept": [
+        {
+            "code": "01",
+            "display": "Nueva"
+        },
+        {
+            "code": "02",
+            "display": "Prórroga"
+        }
+    ]
+}
