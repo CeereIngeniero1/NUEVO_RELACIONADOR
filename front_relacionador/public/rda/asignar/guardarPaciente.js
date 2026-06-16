@@ -54,6 +54,17 @@ export function wireGuardarPaciente() {
     });
 }
 
+function buildDescAntecedenteFamiliar(item) {
+    const codigo = (item.codigo || '').trim();
+    const descripcion = (item.descripcion || '').trim();
+    if (codigo) return descripcion ? `${codigo} - ${descripcion}` : codigo;
+    const c11 = (item.cie11Codigo || '').trim();
+    const t11 = (item.cie11Termino || '').trim();
+    if (c11) return t11 ? `${c11} - ${t11}` : c11;
+    if (t11) return t11;
+    return 'Sin descripción';
+}
+
 export async function guardarRDAPaciente() {
     const btn = document.getElementById('RDA_BtnGuardarPaciente');
     // ── Datos del paciente (sección superior) ──────────────────────
@@ -195,12 +206,11 @@ export async function guardarRDAPaciente() {
 
         const antFam = (window.RDA?.getAntecedentesFamiliares?.() || []);
         for (const item of antFam) {
-            const desc = item.codigo ? (item.codigo + (item.descripcion ? ' - ' + item.descripcion : '')) : null;
             await postAntecedenteFamPac({
                 IdEvaluacionEntidadRDA: idRDA,
                 DocumentoEntidad: documento,
                 Parentesco: item.parentesco || null,
-                Descripcion: desc,
+                Descripcion: buildDescAntecedenteFamiliar(item),
                 CIE11Codigo: item.cie11Codigo || null,
                 CIE11Termino: item.cie11Termino || null,
                 IdEstado: 1,
@@ -209,7 +219,9 @@ export async function guardarRDAPaciente() {
 
         const medic = (window.RDA?.getMedicamentos?.() || []);
         for (const item of medic) {
-            const desc = item.nombre + (item.observacion ? ' (' + item.observacion + ')' : '');
+            const obs = (item.observacion || '').trim();
+            const base = (item.codigo ? item.codigo + ' - ' : '') + (item.nombre || '');
+            const desc = obs ? `${base} (${obs})` : base;
             await postAntecedenteFarmPac({
                 IdEvaluacionEntidadRDA: idRDA,
                 DocumentoEntidad: documento,

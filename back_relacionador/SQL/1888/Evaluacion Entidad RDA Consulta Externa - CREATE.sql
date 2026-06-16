@@ -47,6 +47,7 @@ BEGIN
         [Dias Incapacidad]                INT           NULL,
         [Dias Licencia Maternidad]        INT           NULL,
         [Nombre Documento PDF]            NVARCHAR(300) NULL,
+        [Notas Adicionales PDF]           NVARCHAR(MAX) NULL,
         [Contenido Documento PDF]       VARBINARY(MAX) NULL,
         [Fecha Generacion Documento PDF]  DATETIME2(7)   NULL,
         [Id Modalidad Atencion]           INT           NULL,

@@ -1192,6 +1192,7 @@ BEGIN
         [Dias Incapacidad]                INT           NULL,
         [Dias Licencia Maternidad]        INT           NULL,
         [Nombre Documento PDF]            NVARCHAR(300) NULL,
+        [Notas Adicionales PDF]           NVARCHAR(MAX) NULL,
         -- Contexto alineado con RIPS (lista RDA consulta externa)
         [Id Modalidad Atencion]           INT           NULL,
         [Id Grupo Servicios]              INT           NULL,
@@ -1948,6 +1949,14 @@ IF NOT EXISTS (
     ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Contenido Documento PDF Base64] NVARCHAR(MAX) NULL;
 GO
 
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U')
+      AND name = N'Notas Adicionales PDF'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa] ADD [Notas Adicionales PDF] NVARCHAR(MAX) NULL;
+GO
+
 /* ---------------------------------------------------------------------------
    Normalización consolidada de catálogos RDA 1888 (idempotente)
 --------------------------------------------------------------------------- */
@@ -2449,3 +2458,17 @@ WHERE  ([Id Estado] <> 60 OR
                   [Id Estado] <> 61)
 ORDER BY [Id CompromisoVI] DESC
 GO
+
+
+
+--Ejecutar en importante para poder generar el pdf con las notas adicionales
+
+-- back_relacionador/SQL/1888/ALTER_RDACE_NotasAdicionalesPdf.sql
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', N'U')
+      AND name = N'Notas Adicionales PDF'
+)
+    ALTER TABLE [dbo].[Evaluacion Entidad RDA Consulta Externa]
+        ADD [Notas Adicionales PDF] NVARCHAR(MAX) NULL;
+

@@ -96,13 +96,40 @@ export function initListasPaciente() {
     const contenedorMed = document.getElementById("RDA_ListaMedicamentos");
 
     btnMed?.addEventListener("click", () => {
-        const nombre = inputDCI?.value?.trim();
+        let nombre = inputDCI?.value?.trim();
         if (!nombre) return;
 
-        addMedicamento({ nombre, observacion: inputObs?.value || "" });
+        let codigo = "";
+        const $dci = window.jQuery && inputDCI ? window.jQuery(inputDCI) : null;
+        if ($dci && $dci.data("select2")) {
+            const d = $dci.select2("data")[0];
+            if (d) {
+                codigo = (d.codigo || "").trim();
+                const label = (d.text || "").trim();
+                if (label) {
+                    const m = label.match(/^(\S+)\s*-\s*(.+)$/);
+                    if (m) {
+                        codigo = codigo || m[1].trim();
+                        nombre = m[2].trim();
+                    } else {
+                        nombre = label;
+                    }
+                }
+            }
+        }
+
+        addMedicamento({
+            codigo,
+            nombre,
+            observacion: (inputObs?.value || '').trim(),
+        });
         rerender(contenedorMed, getMedicamentos(), "medicamento");
 
-        if (inputDCI) inputDCI.value = "";
+        if ($dci && $dci.data("select2")) {
+            $dci.val(null).trigger("change");
+        } else if (inputDCI) {
+            inputDCI.value = "";
+        }
         if (inputObs) inputObs.value = "";
     });
 }

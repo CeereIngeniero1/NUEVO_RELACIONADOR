@@ -16,12 +16,14 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
         SELECT
             CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBin,
             CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Fecha Generacion Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasFechaGeneracionDocumentoPdf,
-            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF Base64') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBase64
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF Base64') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBase64,
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Notas Adicionales PDF') IS NULL THEN 0 ELSE 1 END AS HasNotasAdicionalesPdf
     `);
     const colInfo = (cols.recordset && cols.recordset[0]) || {};
     const hasPdfBin = Number(colInfo.HasContenidoDocumentoPdfBin) === 1;
     const hasPdfDate = Number(colInfo.HasFechaGeneracionDocumentoPdf) === 1;
     const hasPdfBase64 = Number(colInfo.HasContenidoDocumentoPdfBase64) === 1;
+    const hasNotasAdicionalesPdf = Number(colInfo.HasNotasAdicionalesPdf) === 1;
 
     const selectPdfBin = hasPdfBin
         ? 'ce.[Contenido Documento PDF]         AS ContenidoDocumentoPdfBin,'
@@ -32,6 +34,9 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
     const selectPdfBase64 = hasPdfBase64
         ? 'ce.[Contenido Documento PDF Base64]   AS ContenidoDocumentoPdfBase64,'
         : 'CAST(NULL AS NVARCHAR(MAX))           AS ContenidoDocumentoPdfBase64,';
+    const selectNotasPdf = hasNotasAdicionalesPdf
+        ? 'ce.[Notas Adicionales PDF]            AS NotasAdicionalesPdf,'
+        : 'CAST(NULL AS NVARCHAR(MAX))           AS NotasAdicionalesPdf,';
 
     const mainResult = await pool.request()
         .input('Id', sql.Int, id)
@@ -61,6 +66,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ce.[Dias Incapacidad]                AS DiasIncapacidad,
                 ce.[Dias Licencia Maternidad]        AS DiasLicenciaMaternidad,
                 ce.[Nombre Documento PDF]            AS NombreDocumentoPDF,
+                ${selectNotasPdf}
                 ce.[Id Modalidad Atencion]           AS IdModalidadAtencion,
                 ce.[Id Grupo Servicios]              AS IdGrupoServicios,
                 ce.[Id Via Ingreso Usuario]          AS IdViaIngresoUsuario,
@@ -83,7 +89,11 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 eg.[Descripcion]                     AS NombreCondicionDestinoEgreso,
                 alc.[Descripcion]                    AS NombreAlcanceIncapacidad,
                 tal.[Descripcion]                    AS NombreTipoAlergia,
-                tdiag.[Descripcion]                  AS NombreTipoDiagnosticoPrincipal
+                tdiag.[Descripcion]                  AS NombreTipoDiagnosticoPrincipal,
+                eprof.[Primer Apellido Entidad]      AS ProfPrimerApellido,
+                eprof.[Segundo Apellido Entidad]     AS ProfSegundoApellido,
+                eprof.[Primer Nombre Entidad]        AS ProfPrimerNombre,
+                eprof.[Segundo Nombre Entidad]       AS ProfSegundoNombre
             FROM [dbo].[Evaluacion Entidad RDA Consulta Externa] ce
             LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
                 ON ma.[IdModalidadAtencion] = ce.[Id Modalidad Atencion]
@@ -103,6 +113,8 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ON LTRIM(RTRIM(tal.Codigo)) = LTRIM(RTRIM(LEFT(LTRIM(RTRIM(ce.[Tipo Alergia])), 2)))
             LEFT JOIN [dbo].[Cnsta Tipo diagnostico principal 1888] tdiag
                 ON LTRIM(RTRIM(tdiag.Codigo)) = LTRIM(RTRIM(ce.[Tipo Diagnostico Principal]))
+            LEFT JOIN [dbo].[Entidad] eprof
+                ON LTRIM(RTRIM(eprof.[Documento Entidad])) = LTRIM(RTRIM(ce.[Num Doc Profesional]))
             WHERE ce.[Id Evaluacion Entidad RDA Consulta Externa] = @Id
         `);
 
@@ -171,7 +183,9 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                     CodigoMunicipioRecidencia  AS CodigoMunicipio,
                     NombreMunicipioRecidencia  AS NombreMunicipio,
                     Direccion,
-                    Tel                        AS TelefonoCelular
+                    Tel                        AS TelefonoCelular,
+                    [CódigoOcupación]           AS CodigoOcupacion,
+                    [Ocupación]                AS Ocupacion
                 FROM [dbo].[Cnsta Relacionador Usuarios Info]
                 WHERE DocumentoPaciente = @DocumentoPaciente
             `);
@@ -260,24 +274,31 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
 
     let cupsFromRips = null;
     const docPaciente = String(head.DocumentoEntidad || '').trim();
+    const fechaAtencion = head.FechaHoraInicioAtencion || head.FechaRDA || null;
     if (docPaciente) {
         const cupsRipsRes = await pool.request()
             .input('DocumentoPaciente', sql.VarChar(50), docPaciente)
-            .input('FechaAtencion', sql.DateTime2, head.FechaHoraInicioAtencion || head.FechaRDA || null)
+            .input('FechaAtencion', sql.DateTime2, fechaAtencion)
             .query(`
                 SELECT TOP 1
                     LTRIM(RTRIM(er.[Codigo Rips])) AS CodigoCups,
-                    COALESCE(c1888.Nombre, c1888.Descripcion, cr.Nombre, cr.Descripcion) AS NombreCups
+                    COALESCE(c1888.Nombre, c1888.Descripcion, cr.Nombre, cr.Descripcion) AS NombreCups,
+                    LTRIM(RTRIM(s.[Código Servicios])) AS CodigoServicioReps,
+                    s.[Nombre Servicios] AS NombreServicioReps
                 FROM [dbo].[Evaluación Entidad Rips] er
                 INNER JOIN [dbo].[Evaluación Entidad] ee
                     ON ee.[Id Evaluación Entidad] = er.[Id Evaluación Entidad]
+                LEFT JOIN [dbo].[Cnsta Relacionador Servicios] s
+                    ON s.[Id Servicios] = er.[Id Servicios]
                 LEFT JOIN [dbo].[Cnsta Cups 1888] c1888
                     ON LTRIM(RTRIM(c1888.Codigo)) = LTRIM(RTRIM(er.[Codigo Rips]))
                 LEFT JOIN [dbo].[Cnsta Relacionador Cups] cr
                     ON LTRIM(RTRIM(cr.Codigo)) = LTRIM(RTRIM(er.[Codigo Rips]))
                 WHERE LTRIM(RTRIM(ee.[Documento Entidad])) = LTRIM(RTRIM(@DocumentoPaciente))
-                  AND er.[Codigo Rips] IS NOT NULL
-                  AND LTRIM(RTRIM(er.[Codigo Rips])) NOT IN ('', '0')
+                  AND (
+                      (er.[Codigo Rips] IS NOT NULL AND LTRIM(RTRIM(er.[Codigo Rips])) NOT IN ('', '0'))
+                      OR er.[Id Servicios] IS NOT NULL
+                  )
                 ORDER BY
                     CASE WHEN @FechaAtencion IS NOT NULL
                          AND CAST(ee.[Fecha Evaluación Entidad] AS DATE) = CAST(@FechaAtencion AS DATE)
@@ -288,6 +309,27 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                     ee.[Fecha Evaluación Entidad] DESC
             `);
         cupsFromRips = (cupsRipsRes.recordset && cupsRipsRes.recordset[0]) || null;
+    }
+
+    let empresaIps = null;
+    const codPrest = str(head.CodigoPrestador);
+    if (codPrest) {
+        const empRes = await pool.request()
+            .input('CodPrest', sql.VarChar(50), codPrest)
+            .query(`
+                SELECT TOP 1
+                    e.DocumentoEmpresa,
+                    e.RazonSocialEmpresa,
+                    e.NombreComercialEmpresa,
+                    e.[FechaInscripción}Empresa] AS FechaInscripcionEmpresa,
+                    c1888.Codigo AS CodigoMunicipioDivipola,
+                    c1888.Nombre AS NombreMunicipio
+                FROM [dbo].[Cnsta Empresa 1888] e
+                LEFT JOIN [dbo].[Cnsta Ciudad 1888] c1888
+                    ON c1888.IdCiudad1888 = e.IdCiudad
+                WHERE LTRIM(RTRIM(e.NroIDPrestador)) = LTRIM(RTRIM(@CodPrest))
+            `);
+        empresaIps = (empRes.recordset && empRes.recordset[0]) || null;
     }
 
     return {
@@ -301,6 +343,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
         antecedentesFamiliares: antFamRes.recordset || [],
         antecedentesFarmacologicos: antFarmRes.recordset || [],
         cupsFromRips,
+        empresaIps,
         storedPdfBuffer,
         fechaGeneracionPdf,
     };

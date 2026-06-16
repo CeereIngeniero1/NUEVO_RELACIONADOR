@@ -14,7 +14,18 @@ import {
     urlResumenClinicoPdf,
     fetchBlobAuthenticated,
 } from '../api/entidad1888.js';
-import { openIhceBundlePreview, extractIhceMessage, showIhceApiResponse } from './ihceAsignar.js';
+import { openIhceBundlePreview, openIhceJsonModal, extractIhceMessage } from './ihceAsignar.js';
+
+function buildDescAntecedenteFamiliar(item) {
+    const codigo = (item.codigo || '').trim();
+    const descripcion = (item.descripcion || '').trim();
+    if (codigo) return descripcion ? `${codigo} - ${descripcion}` : codigo;
+    const c11 = (item.cie11Codigo || '').trim();
+    const t11 = (item.cie11Termino || '').trim();
+    if (c11) return t11 ? `${c11} - ${t11}` : c11;
+    if (t11) return t11;
+    return 'Sin descripción';
+}
 
 function rdaceSelect2Value(selectId) {
     const el = document.getElementById(selectId);
@@ -201,6 +212,54 @@ function rdaceEscapeHtml(s) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+function rdaceIhceJsonButtonsHtml(unifiedSend) {
+    let html =
+        '<div class="mt-3 text-center d-flex flex-column gap-2">' +
+        '<button type="button" class="btn btn-sm btn-outline-light" id="rdace-btn-json-resp-ce">Ver JSON respuesta — Consulta Externa</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-light" id="rdace-btn-json-env-ce">Ver JSON enviado — Consulta Externa</button>';
+    if (unifiedSend) {
+        html +=
+            '<button type="button" class="btn btn-sm btn-outline-light" id="rdace-btn-json-resp-pac">Ver JSON respuesta — Paciente</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-light" id="rdace-btn-json-env-pac">Ver JSON enviado — Paciente</button>';
+    }
+    html += '</div>';
+    return html;
+}
+
+function wireRdaceIhceJsonButtons(popup, { ambiente, idCE, idPacienteIhce, ceOut, pacienteOut, unifiedSend }) {
+    const btnRespCe = popup.querySelector('#rdace-btn-json-resp-ce');
+    if (btnRespCe && ceOut && ceOut.data != null) {
+        btnRespCe.addEventListener('click', function () {
+            openIhceJsonModal(
+                'Respuesta IHCE — Consulta Externa (HTTP ' + (ceOut.status || '') + ')',
+                ceOut.data
+            );
+        });
+    }
+    const btnEnvCe = popup.querySelector('#rdace-btn-json-env-ce');
+    if (btnEnvCe && idCE) {
+        btnEnvCe.addEventListener('click', function () {
+            openIhceBundlePreview('rdace', idCE, ambiente);
+        });
+    }
+    if (!unifiedSend) return;
+    const btnRespPac = popup.querySelector('#rdace-btn-json-resp-pac');
+    if (btnRespPac && pacienteOut && pacienteOut.data != null) {
+        btnRespPac.addEventListener('click', function () {
+            openIhceJsonModal(
+                'Respuesta IHCE — Paciente (HTTP ' + (pacienteOut.status || '') + ')',
+                pacienteOut.data
+            );
+        });
+    }
+    const btnEnvPac = popup.querySelector('#rdace-btn-json-env-pac');
+    if (btnEnvPac && idPacienteIhce) {
+        btnEnvPac.addEventListener('click', function () {
+            openIhceBundlePreview('paciente', idPacienteIhce, ambiente);
+        });
+    }
 }
 
 function rdaceSummarizeSendOutcome(nombre, out) {
@@ -411,6 +470,7 @@ export async function guardarRDACE() {
         DiasIncapacidad: rdaceDigitsOnly(document.getElementById('RDACE_DiasIncapacidad')?.value || '') || null,
         DiasLicenciaMaternidad: rdaceDigitsOnly(document.getElementById('RDACE_DiasLicenciaMaternidad')?.value || '') || null,
         NombreDocumentoPDF: document.getElementById('RDACE_NombreDocumentoPDF')?.value || null,
+        NotasAdicionalesPdf: rdaceGetInputValue('RDACE_NotasAdicionalesPdf') || null,
         IdModalidadAtencion: document.getElementById('RDACE_IdModalidadAtencion')?.value || null,
         IdGrupoServicios: document.getElementById('RDACE_IdGrupoServicios')?.value || null,
         IdViaIngresoUsuario: document.getElementById('RDACE_IdViaIngresoUsuario')?.value || null,
@@ -438,12 +498,11 @@ export async function guardarRDACE() {
 
         const antFam = (window.RDA?.getAntecedentesFamiliaresCE?.() || []);
         for (const item of antFam) {
-            const desc = item.codigo ? (item.codigo + (item.descripcion ? ' - ' + item.descripcion : '')) : null;
             await postAntecedenteFamCE({
                 IdEvaluacionEntidadRDACE: idCE,
                 DocumentoEntidad: documento,
                 Parentesco: item.parentesco != null ? String(item.parentesco) : null,
-                Descripcion: desc,
+                Descripcion: buildDescAntecedenteFamiliar(item),
                 CIE11Codigo: item.cie11Codigo || null,
                 CIE11Termino: item.cie11Termino || null,
                 IdEstado: 1,
@@ -560,6 +619,10 @@ export async function guardarRDACE() {
             'RDA Consulta Externa guardado',
             resumenCe + '<hr class="my-2">' + textoEnvioIhce,
             async function (ambiente) {
+                if (!unifiedSend) {
+                    return window.enviarIhceRdace(idCE, { ambiente: ambiente });
+                }
+
                 let pacienteResult = null;
                 let rdaceResult = null;
                 let pacienteError = null;
@@ -607,46 +670,33 @@ export async function guardarRDACE() {
                         rdaceSummarizeSendOutcome('RDA Consulta Externa', ceOut) +
                         '</div>';
 
-                const jsonBtnHtml = (!okCe || (unifiedSend && !okPac))
-                    ? '<div class="mt-3 text-center d-flex flex-column gap-2">' +
-                        (!okCe ? '<button type="button" class="btn btn-sm btn-outline-danger" id="rdace-btn-resp-ihce-ce">Ver respuesta completa IHCE (Consulta Externa)</button>' : '') +
-                        (!okCe ? '<button type="button" class="btn btn-sm btn-outline-primary" id="rdace-btn-ver-json-ce">Ver JSON enviado (Consulta Externa)</button>' : '') +
-                        (unifiedSend && !okPac ? '<button type="button" class="btn btn-sm btn-outline-danger" id="rdace-btn-resp-ihce-pac">Ver respuesta completa IHCE (Paciente)</button>' : '') +
-                        (unifiedSend && !okPac ? '<button type="button" class="btn btn-sm btn-outline-secondary" id="rdace-btn-ver-json-pac">Ver JSON enviado (Paciente)</button>' : '') +
-                        '</div>'
-                    : '';
+                const jsonBtnHtml = rdaceIhceJsonButtonsHtml(unifiedSend);
 
                 await Swal.fire({
                     icon,
                     title,
                     html: htmlResumen + jsonBtnHtml,
                     confirmButtonText: 'Cerrar',
+                    showDenyButton: true,
+                    denyButtonText: 'Ver JSON respuesta — Consulta Externa',
+                    denyButtonColor: '#6c757d',
                     didOpen: function (popup) {
-                        const btnRespCe = popup.querySelector('#rdace-btn-resp-ihce-ce');
-                        if (btnRespCe && ceOut && ceOut.data) {
-                            btnRespCe.addEventListener('click', function () {
-                                showIhceApiResponse(ceOut.data, 'IHCE — respuesta Consulta Externa (HTTP ' + (ceOut.status || '') + ')');
-                            });
-                        }
-                        const btnRespPac = popup.querySelector('#rdace-btn-resp-ihce-pac');
-                        if (btnRespPac && pacienteOut && pacienteOut.data) {
-                            btnRespPac.addEventListener('click', function () {
-                                showIhceApiResponse(pacienteOut.data, 'IHCE — respuesta RDA Paciente (HTTP ' + (pacienteOut.status || '') + ')');
-                            });
-                        }
-                        const btnCe = popup.querySelector('#rdace-btn-ver-json-ce');
-                        if (btnCe && idCE) {
-                            btnCe.addEventListener('click', function () {
-                                openIhceBundlePreview('rdace', idCE, ambiente);
-                            });
-                        }
-                        const btnPac = popup.querySelector('#rdace-btn-ver-json-pac');
-                        if (btnPac && idPacienteIhce) {
-                            btnPac.addEventListener('click', function () {
-                                openIhceBundlePreview('paciente', idPacienteIhce, ambiente);
-                            });
-                        }
+                        wireRdaceIhceJsonButtons(popup, {
+                            ambiente,
+                            idCE,
+                            idPacienteIhce,
+                            ceOut,
+                            pacienteOut,
+                            unifiedSend,
+                        });
                     },
+                }).then(function (result) {
+                    if (result.isDenied && ceOut && ceOut.data != null) {
+                        openIhceJsonModal(
+                            'Respuesta IHCE — Consulta Externa (HTTP ' + (ceOut.status || '') + ')',
+                            ceOut.data
+                        );
+                    }
                 });
             }
         );

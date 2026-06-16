@@ -20,7 +20,17 @@
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
+const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
+const {
+    toFhirDateTimeColombia,
+    toFhirBirthTimeColombia,
+    hasBirthTimeColombia,
+    normalizePatientBirthTimeExtension,
+    normalizeDivipolaMunicipalityCode,
+    buildRdaPersonName,
+} = require('../../rda/fhirColombiaFormat');
 const { createHash } = require('crypto');
+const { classifyIcdCode, isIcd10Code } = require('../../rda/icdCodeKind');
 
 /** Catálogo Res. 1888: código "7" = Sin Asignar (no permitido para envío real IHCE). */
 function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
@@ -40,6 +50,18 @@ function resolveEthnicityForFhir(codigoEtnia, textoEtnia) {
     }
     if (!code) return null;
     return { code, display: display || undefined };
+}
+
+/** Descripcion NOT NULL en BD: CIE-10, CIE-11 o texto de respaldo. */
+function resolveAntecedenteFamDescripcion(descripcion, cie11Codigo, cie11Termino) {
+    const d = descripcion != null ? String(descripcion).trim() : '';
+    if (d) return d;
+    const c11 = cie11Codigo != null ? String(cie11Codigo).trim() : '';
+    const t11 = cie11Termino != null ? String(cie11Termino).trim() : '';
+    if (c11 && t11) return `${c11} - ${t11}`;
+    if (c11) return c11;
+    if (t11) return t11;
+    return 'Sin descripción';
 }
 
 function sanitizeOptionalPatientFields(patient) {
@@ -393,13 +415,14 @@ router.post('/EvaluacionEntidadRDA/AntecedentesSalud', async (req, res) => {
 
 router.post('/EvaluacionEntidadRDA/AntecedentesFamiliares', async (req, res) => {
     const { IdEvaluacionEntidadRDA, DocumentoEntidad, Parentesco, Descripcion, IdEstado, CIE11Codigo, CIE11Termino } = req.body;
+    const descripcionFinal = resolveAntecedenteFamDescripcion(Descripcion, CIE11Codigo, CIE11Termino);
     try {
         const pool = await poolPromise;
         await pool.request()
             .input('IdEvaluacionEntidadRDA', sql.Int,      parseInt(IdEvaluacionEntidadRDA))
             .input('DocumentoEntidad',       sql.NVarChar, DocumentoEntidad || null)
             .input('Parentesco',             sql.NVarChar, Parentesco       || null)
-            .input('Descripcion',            sql.NVarChar, Descripcion      || null)
+            .input('Descripcion',            sql.NVarChar, descripcionFinal)
             .input('CIE11Codigo',            sql.NVarChar, CIE11Codigo      || null)
             .input('CIE11Termino',           sql.NVarChar, CIE11Termino     || null)
             .input('IdEstado',               sql.Int,      IdEstado ? parseInt(IdEstado) : 1)
@@ -481,8 +504,6 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return `#${id}`;
     };
 
-    const nowIso = new Date().toISOString();
-
     const parseCodigoDescripcion = (text) => {
         const s = (text ?? '').toString().trim();
         if (!s) return { codigo: '', descripcion: '' };
@@ -512,6 +533,28 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         }
         return { nombre: s, observacion: '' };
     };
+
+    /** Formato BD: `codigo - nombre (observacion)` o `codigo - nombre` o `nombre (obs)`. */
+    const parseMedicamentoDescripcion = (text) => {
+        const s = (text ?? '').toString().trim();
+        if (!s) return { codigo: '', nombre: '', observacion: '' };
+        let base = s;
+        let observacion = '';
+        const obsMatch = s.match(/^(.+?)\s+\(([^)]+)\)\s*$/);
+        if (obsMatch) {
+            base = obsMatch[1].trim();
+            observacion = obsMatch[2].trim();
+        }
+        const codeDesc = parseCodigoDescripcion(base);
+        if (codeDesc.descripcion) {
+            return {
+                codigo: codeDesc.codigo,
+                nombre: codeDesc.descripcion,
+                observacion,
+            };
+        }
+        return { codigo: '', nombre: base, observacion };
+    };
     const parseParentescoAntecedente = (value) => {
         const s = (value ?? '').toString().trim();
         if (!s) return '';
@@ -537,9 +580,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             '01': 'Medicamento',
             '02': 'Alimento',
             '03': 'Sustancia del ambiente',
-            '04': 'Producto biologico',
-            '05': 'Sustancia quimica',
-            '06': 'Otro',
+            '04': 'Sustancia en contacto con la piel',
+            '05': 'Picadura de insectos',
+            '06': 'Otra',
         };
         const code = (tipoAlergiaCodigo ?? '').toString().trim();
         return map[code] || '';
@@ -551,11 +594,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
     const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
     const ICD11_SYSTEM = 'http://hl7.org/fhir/sid/icd-11';
 
-    const toIsoDateTime = (v) => {
-        if (v == null || v === '') return null;
-        const d = new Date(v);
-        return isNaN(d.getTime()) ? null : d.toISOString();
-    };
+    const toFhirDtCo = (v) => toFhirDateTimeColombia(v);
 
     const emptySectionNilKnown = (texto) => ({
         emptyReason: {
@@ -570,6 +609,20 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         },
     });
 
+    const CONDITION_STATEMENT_RDA_BASE = {
+        clinicalStatus: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active', display: 'Active' }],
+        },
+        verificationStatus: {
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: 'unconfirmed', display: 'Unconfirmed' }],
+        },
+        category: [{
+            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis', display: 'Encounter Diagnosis' }],
+        }],
+    };
+
+    const CS_MIPRES_INN = 'https://fhir.minsalud.gov.co/rda/CodeSystem/MipresINN';
+
     // Construye codings de Condition para soportar dualidad CIE-10 / CIE-11.
     const buildConditionCodings = ({
         cie10Code,
@@ -583,14 +636,14 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const c11 = cie11Code != null ? String(cie11Code).trim() : '';
         const d11 = cie11Display != null ? String(cie11Display).trim() : '';
 
-        if (c10) {
+        if (c10 && isIcd10Code(c10)) {
             codings.push({
                 system: ICD10_SYSTEM,
                 code: c10,
                 display: d10 || undefined,
             });
         }
-        if (c11) {
+        if (c11 && classifyIcdCode(c11) !== 'icd-10') {
             codings.push({
                 system: ICD11_SYSTEM,
                 code: c11,
@@ -598,6 +651,26 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             });
         }
         return codings;
+    };
+
+    /** FamilyMemberHistoryRDA: solo ICD-10 Colombia en condition.code.coding (sin CIE-11). */
+    const buildFamilyHistoryConditionCode = (item) => {
+        const c10 = (item.codigo || '').trim();
+        const c10Desc = (item.descripcion || '').trim();
+        const c11Term = (item.cie11Termino || '').trim();
+        const codings = [];
+        if (c10 && isIcd10Code(c10)) {
+            codings.push({
+                system: ICD10_SYSTEM,
+                code: c10,
+                display: c10Desc || undefined,
+            });
+        }
+        const text = c10Desc || c11Term || c10 || (item.cie11Codigo || '').trim() || undefined;
+        return {
+            ...(codings.length ? { coding: codings } : {}),
+            ...(text ? { text } : {}),
+        };
     };
 
     const buildRdaPacienteBundle = ({
@@ -613,8 +686,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
     }) => {
         const patientEntry = makeEntry(paciente.resource);
         const patientId = patientEntry.resource.id;
-        const compositionDateIso = toIsoDateTime(head && head.FechaRDA) || nowIso;
-        const bundleTs = compositionDateIso;
+        const compositionDateIso = toFhirDtCo(head && head.FechaRDA) || toFhirDtCo(new Date());
 
         const conditionEntries = (antecedents || []).map((item, idx) =>
             makeEntry({
@@ -623,6 +695,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 meta: {
                     profile: [`${RDA_SD}/ConditionStatementRDA`],
                 },
+                ...CONDITION_STATEMENT_RDA_BASE,
                 subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: buildConditionCodings({
@@ -637,52 +710,34 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         );
 
         const c11Ingreso = head && (head.DiagnosticoIngresoCIE11Codigo || '').toString().trim();
-        const c10Ingreso = head && (head.DiagnosticoIngresoCIE10Codigo || '').toString().trim();
-        const conditionIngresoEntry = c11Ingreso || c10Ingreso
+        const c11IngresoTerm = head && (head.DiagnosticoIngresoCIE11Termino || '').toString().trim();
+        const conditionIngresoEntry = c11Ingreso
             ? makeEntry({
                 resourceType: 'Condition',
                 id: 'ConditionIngreso-0',
                 meta: {
                     profile: [`${RDA_SD}/ConditionStatementRDA`],
                 },
+                ...CONDITION_STATEMENT_RDA_BASE,
                 subject: { reference: refOf(patientEntry) },
                 code: {
                     coding: buildConditionCodings({
-                        cie10Code: c10Ingreso,
-                        cie10Display: head && head.DiagnosticoIngresoCIE10Termino,
                         cie11Code: c11Ingreso,
-                        cie11Display: head && head.DiagnosticoIngresoCIE11Termino,
+                        cie11Display: c11IngresoTerm,
                     }),
-                    text:
-                        (head && (head.DiagnosticoIngresoCIE11Termino || head.DiagnosticoIngresoCIE10Termino))
-                            ? String(head.DiagnosticoIngresoCIE11Termino || head.DiagnosticoIngresoCIE10Termino)
-                            : (c11Ingreso || c10Ingreso),
+                    text: c11IngresoTerm || c11Ingreso,
                 },
             })
             : null;
 
-        const familyHistoryEntries = (antecedentsFam || []).map((item, idx) => {
-            const codings = [
-                {
-                    system: ICD10_SYSTEM,
-                    code: item.codigo,
-                    display: item.descripcion || undefined,
-                },
-            ];
-            if (item.cie11Codigo) {
-                codings.push({
-                    system: ICD11_SYSTEM,
-                    code: item.cie11Codigo,
-                    display: item.cie11Termino || undefined,
-                });
-            }
-            return makeEntry({
+        const familyHistoryEntries = (antecedentsFam || []).map((item, idx) =>
+            makeEntry({
                 resourceType: 'FamilyMemberHistory',
                 id: `FamilyMemberHistory-${idx}`,
                 meta: {
                     profile: [`${RDA_SD}/FamilyMemberHistoryRDA`],
                 },
-                status: 'completed',
+                status: 'partial',
                 patient: { reference: refOf(patientEntry) },
                 relationship: {
                     coding: [
@@ -695,28 +750,37 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 },
                 condition: [
                     {
-                        code: {
-                            coding: codings,
-                            text: item.descripcion || item.codigo,
-                        },
+                        code: buildFamilyHistoryConditionCode(item),
                     },
                 ],
-            });
-        });
+            })
+        );
 
-        const medicationStatementEntries = (medications || []).map((item, idx) =>
-            makeEntry({
+        const medicationStatementEntries = (medications || []).map((item, idx) => {
+            const medCode = (item.codigo || '').toString().trim();
+            const medName = (item.nombre || '').toString().trim();
+            const medObs = (item.observacion || '').toString().trim();
+            const medDisplay = medName || medCode;
+            return makeEntry({
                 resourceType: 'MedicationStatement',
                 id: `MedicationStatement-${idx}`,
                 meta: {
                     profile: [`${RDA_SD}/MedicationStatementRDA`],
                 },
-                status: 'active',
+                status: 'completed',
                 subject: { reference: refOf(patientEntry) },
-                medicationCodeableConcept: { text: item.nombre },
-                note: item.observacion ? [{ text: item.observacion }] : undefined,
-            })
-        );
+                medicationCodeableConcept: medCode
+                    ? {
+                        coding: [{
+                            system: CS_MIPRES_INN,
+                            code: medCode,
+                            display: medDisplay || undefined,
+                        }],
+                    }
+                    : { text: medDisplay },
+                note: medObs ? [{ text: medObs }] : undefined,
+            });
+        });
 
         const observationEntries = [];
         const parseNum = (x) => {
@@ -788,55 +852,55 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             );
         }
 
-        const hasAlergia = alergia && (alergia.alergeno || '').toString().trim().length > 0;
+        // AllergyIntolerance: tipo de alergía (obligatorio en pantalla) + texto del alérgeno si existe.
+        const tipoAlergiaParsed = parseCodigoDescripcion(alergia && alergia.tipoAlergia);
+        const tipoAlergiaCode = (tipoAlergiaParsed.codigo || '').trim();
+        const tipoAlergiaDisplay = (tipoAlergiaParsed.descripcion || '').trim() || allergyTypeDisplay(tipoAlergiaCode);
+        const alergenoTexto = alergia && (alergia.alergeno || '').toString().trim();
+        const hasAlergia = Boolean(tipoAlergiaCode || alergenoTexto);
+        const allergyText = alergenoTexto || tipoAlergiaDisplay || 'Alergia no especificada';
         const allergyEntry = hasAlergia
-            ? (() => {
-                const tipoAlergiaParsed = parseCodigoDescripcion(alergia && alergia.tipoAlergia);
-                const tipoAlergiaCode = (tipoAlergiaParsed.codigo || '').trim();
-                const tipoAlergiaDisplay = (tipoAlergiaParsed.descripcion || '').trim() || allergyTypeDisplay(tipoAlergiaCode);
-                const allergenText = alergia.alergeno.toString().trim();
-                return makeEntry({
-                    resourceType: 'AllergyIntolerance',
-                    id: 'AllergyIntolerance-0',
-                    meta: {
-                        profile: [`${RDA_SD}/AllergyIntoleranceStatementRDA`],
-                    },
-                    clinicalStatus: {
-                        coding: [
-                            {
-                                system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
-                                code: 'active',
-                            },
-                        ],
-                    },
-                    verificationStatus: {
-                        coding: [
-                            {
-                                system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
-                                code: 'unconfirmed',
-                                display: 'Unconfirmed',
-                            },
-                        ],
-                    },
-                    code: {
-                        coding: [
-                            {
-                                system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/TipoAlergia',
-                                code: tipoAlergiaCode || '99',
-                                display: tipoAlergiaDisplay || 'No especificado',
-                            },
-                        ],
-                        text: allergenText,
-                    },
-                    patient: { reference: refOf(patientEntry) },
-                });
-            })()
+            ? (() => makeEntry({
+                resourceType: 'AllergyIntolerance',
+                id: 'AllergyIntolerance-0',
+                meta: {
+                    profile: [`${RDA_SD}/AllergyIntoleranceStatementRDA`],
+                },
+                clinicalStatus: {
+                    coding: [
+                        {
+                            system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical',
+                            code: 'active',
+                        },
+                    ],
+                },
+                verificationStatus: {
+                    coding: [
+                        {
+                            system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+                            code: 'unconfirmed',
+                            display: 'Unconfirmed',
+                        },
+                    ],
+                },
+                code: {
+                    coding: [
+                        {
+                            system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/TipoAlergia',
+                            code: tipoAlergiaCode || '99',
+                            display: tipoAlergiaDisplay || 'No especificado',
+                        },
+                    ],
+                    text: allergyText,
+                },
+                patient: { reference: refOf(patientEntry) },
+            }))()
             : null;
 
         const periodStart =
-            toIsoDateTime(head && head.FechaHoraInicioAtencion) || compositionDateIso;
+            toFhirDtCo(head && head.FechaHoraInicioAtencion) || compositionDateIso;
         const periodEnd =
-            toIsoDateTime(head && head.FechaHoraFinAtencion) || periodStart;
+            toFhirDtCo(head && head.FechaHoraFinAtencion) || periodStart;
         const modCode = (head && head.CodigoModalidadAtencion && String(head.CodigoModalidadAtencion).trim()) || '01';
         const modDisplay = head && head.NombreModalidadAtencion ? String(head.NombreModalidadAtencion) : undefined;
         const grpCode = (head && head.CodigoGrupoServicios && String(head.CodigoGrupoServicios).trim()) || '01';
@@ -860,12 +924,6 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         // RDA Paciente (CompositionPatientStatementRDA): encounter tiene cardinalidad 0 en el IG IHCE;
         // incluir Encounter provoca BUNDLE-005 (“Prior creation in FHIR service”). Modalidad/grupo van en Composition.event.
         const sections = [];
-        if (conditionIngresoEntry) {
-            sections.push({
-                title: 'Diagnóstico de ingreso (CIE-11)',
-                entry: [{ reference: refOf(conditionIngresoEntry) }],
-            });
-        }
         sections.push(
             medicationStatementEntries.length
                 ? {
@@ -889,10 +947,13 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 }
         );
         sections.push(
-            conditionEntries.length
+            (conditionEntries.length || conditionIngresoEntry)
                 ? {
                     title: 'Antecedentes patológicos',
-                    entry: conditionEntries.map((e) => ({ reference: refOf(e) })),
+                    entry: [
+                        ...(conditionIngresoEntry ? [{ reference: refOf(conditionIngresoEntry) }] : []),
+                        ...conditionEntries.map((e) => ({ reference: refOf(e) })),
+                    ],
                 }
                 : {
                     title: 'Antecedentes patológicos',
@@ -926,11 +987,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                         display: 'FHIR resource patient medical record',
                     },
                 ],
-                text: 'FHIR resource patient medical record',
             },
             date: compositionDateIso,
             title: 'Resumen Digital de Atención en Salud - RDA de antecedentes manifestados por el paciente',
             confidentiality: 'N',
+            attester: custodianRef ? [{ mode: 'legal', party: custodianRef }] : undefined,
             event: [
                 {
                     period: {
@@ -946,7 +1007,6 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                                     display: modDisplay,
                                 },
                             ],
-                            text: modDisplay || modCode,
                         },
                         {
                             coding: [
@@ -956,7 +1016,6 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                                     display: grpDisplay,
                                 },
                             ],
-                            text: grpDisplay || grpCode,
                         },
                     ],
                 },
@@ -985,8 +1044,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         return {
             resourceType: 'Bundle',
+            language: 'es-CO',
             type: 'document',
-            timestamp: bundleTs,
             entry: bundleEntries,
         };
     };
@@ -1078,7 +1137,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     ma.[Codigo]                        AS CodigoModalidadAtencion,
                     ma.[NombreModalidadAtencion]       AS NombreModalidadAtencion,
                     gs.[Codigo]                        AS CodigoGrupoServicios,
-                    gs.[NombreGrupoServicios]          AS NombreGrupoServicios
+                    gs.[NombreGrupoServicios]          AS NombreGrupoServicios,
+                    eprof.[Primer Apellido Entidad]    AS ProfPrimerApellido,
+                    eprof.[Segundo Apellido Entidad]   AS ProfSegundoApellido,
+                    eprof.[Primer Nombre Entidad]      AS ProfPrimerNombre,
+                    eprof.[Segundo Nombre Entidad]     AS ProfSegundoNombre
                 FROM [dbo].[Evaluacion Entidad RDA] e
                 LEFT JOIN [dbo].[Cnsta Tipodocumento 1888] t
                     ON t.[IdTipodeDocumento] = e.[Id Tipo Documento]
@@ -1102,6 +1165,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     ON ma.[IdModalidadAtencion] = e.[Id Modalidad Atencion]
                 LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
                     ON gs.[IdGrupoServicios] = e.[Id Grupo Servicios]
+                LEFT JOIN [dbo].[Entidad] eprof
+                    ON eprof.[Documento Entidad] = e.[Num Doc Profesional]
                 WHERE e.[Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA
             `);
 
@@ -1188,19 +1253,46 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             const parentescoCodigo = r.Parentesco != null ? String(r.Parentesco) : '';
             const c11c = r.CIE11Codigo != null ? String(r.CIE11Codigo).trim() : '';
             const c11t = r.CIE11Termino != null ? String(r.CIE11Termino).trim() : '';
+
+            let cie10Code = '';
+            let cie10Desc = '';
+            if (c11c) {
+                // Descripcion suele repetir CIE-11; solo tomar CIE-10 si el parsed es distinto y formato CIE-10.
+                if (parsed.codigo && parsed.codigo !== c11c && isIcd10Code(parsed.codigo)) {
+                    cie10Code = parsed.codigo;
+                    cie10Desc = parsed.descripcion;
+                }
+            } else if (parsed.codigo && isIcd10Code(parsed.codigo)) {
+                cie10Code = parsed.codigo;
+                cie10Desc = parsed.descripcion;
+            } else if (parsed.codigo && classifyIcdCode(parsed.codigo) === 'icd-11') {
+                return {
+                    parentesco: parentescoCodigo,
+                    textoParentesco: parentescosMap.get(parentescoCodigo) || undefined,
+                    codigo: '',
+                    descripcion: '',
+                    cie11Codigo: parsed.codigo,
+                    cie11Termino: parsed.descripcion || c11t || undefined,
+                };
+            }
+
             return {
                 parentesco: parentescoCodigo,
                 textoParentesco: parentescosMap.get(parentescoCodigo) || undefined,
-                codigo: parsed.codigo,
-                descripcion: parsed.descripcion,
+                codigo: cie10Code,
+                descripcion: cie10Desc,
                 cie11Codigo: c11c || undefined,
                 cie11Termino: c11t || undefined,
             };
         });
 
         const medicamentos = (medsRes.recordset || []).map((r) => {
-            const parsed = parseNombreObservacion(r.Descripcion);
-            return { nombre: parsed.nombre, observacion: parsed.observacion };
+            const parsed = parseMedicamentoDescripcion(r.Descripcion);
+            return {
+                codigo: parsed.codigo || '',
+                nombre: parsed.nombre,
+                observacion: parsed.observacion,
+            };
         });
 
         // 3) Resources base (Patient + Organization)
@@ -1228,14 +1320,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
             };
 
-            // gender: DB sexo code (F/M) → FHIR administrative gender + BiologicalGender extension
-            const sexCode = str(h.CodigoSexo) || str(h.Sexo);
-            const fhirGender = sexCode
-                ? ({ F: 'female', M: 'male' }[sexCode.toUpperCase()] || 'other')
-                : undefined;
-            const biologicalGenderMap = { F: { code: '02', display: 'Mujer' }, M: { code: '01', display: 'Hombre' } };
-            // const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '03', display: 'Indeterminado o Intersexual' }) : null;
-            const biologicalGender = sexCode ? (biologicalGenderMap[sexCode.toUpperCase()] || { code: '01', display: 'Hombre' }) : null;
+            // gender: catálogo Sexo 1888 (CódigoSexo 01/02/03 o letra M/F) → FHIR + extensión biológica alineados (IHCE err-000)
+            const { fhirGender, bioGender: biologicalGender } = patientGenderFromCatalog({
+                codigoSexo: str(h.CodigoSexo),
+                letraSexo: str(h.Sexo),
+            });
 
             // Document type display label for ColombianPersonIdentifier
             const docTypeLabels = {
@@ -1337,8 +1426,17 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 if (str(h.Direccion)) addr.line = [str(h.Direccion)];
                 if (str(h.NombreMunicipio)) {
                     addr.city = str(h.NombreMunicipio);
-                    if (str(h.CodigoMunicipio)) {
-                        addr._city = { extension: [{ url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaMunicipality', valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA', code: str(h.CodigoMunicipio) } }] };
+                    const divipola = normalizeDivipolaMunicipalityCode(str(h.CodigoMunicipio));
+                    if (divipola) {
+                        addr._city = {
+                            extension: [{
+                                url: 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionDivipolaMunicipality',
+                                valueCoding: {
+                                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA',
+                                    code: divipola,
+                                },
+                            }],
+                        };
                     }
                 }
                 if (str(h.CodigoPaisResidencia)) {
@@ -1388,23 +1486,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     const birthIso = toIsoDate(h.FechaNacimiento);
                     if (!birthIso) return {};
                     const out = { birthDate: birthIso };
-                    const birthDt = new Date(h.FechaNacimiento);
-                    if (!isNaN(birthDt.getTime())) {
-                        const hasTime =
-                            birthDt.getUTCHours() ||
-                            birthDt.getUTCMinutes() ||
-                            birthDt.getUTCSeconds() ||
-                            birthDt.getUTCMilliseconds();
-                        if (hasTime) {
-                            out._birthDate = {
-                                extension: [
-                                    {
-                                        url: 'http://hl7.org/fhir/StructureDefinition/patient-birthTime',
-                                        valueDateTime: birthDt.toISOString(),
-                                    },
-                                ],
-                            };
-                        }
+                    if (hasBirthTimeColombia(h.FechaNacimiento)) {
+                        normalizePatientBirthTimeExtension(out, h.FechaNacimiento);
                     }
                     return out;
                 })(),
@@ -1455,6 +1538,12 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         const tipoProf = (head.TipoDocProfesional || 'SI').toString().trim();
         const numProf = (head.NumDocProfesional || 'NO-INFORMADO').toString().trim();
         const practId = `${tipoProf}-${numProf}`;
+        const profName = buildRdaPersonName({
+            primerApellido: head.ProfPrimerApellido,
+            segundoApellido: head.ProfSegundoApellido,
+            primerNombre: head.ProfPrimerNombre,
+            segundoNombre: head.ProfSegundoNombre,
+        });
         const practitionerResource = {
             resourceType: 'Practitioner',
             id: practId,
@@ -1479,6 +1568,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     value: numProf,
                 },
             ],
+            ...(profName ? { name: [profName] } : {}),
             active: true,
         };
         const practitionerEntry = makeEntry(practitionerResource);
@@ -1822,11 +1912,11 @@ router.post(
         const isModularEndpoint =
             /\/RdaPaciente\/(Json)?EnviarIHCE(Modular)$/i.test(req.path) ||
             /\/RdaPaciente\/IHCE\/(Preview|Enviar)PacienteAntecedentes(Modular)$/i.test(req.path);
+        // Envío normal: incluir antecedentes guardados en BD. Flags modular solo para pruebas incrementales.
         const wantsObservations = isModularEndpoint && incluirObservations === true;
-        const wantsConditionIngreso = isModularEndpoint && incluirConditionIngreso === true;
-        const wantsConditions = isModularEndpoint && incluirConditions === true;
-        const wantsFamilyHistory = isModularEndpoint && incluirFamilyHistory === true;
-        const wantsAllergy = isModularEndpoint && incluirAllergy === true;
+        const wantsConditions = !isModularEndpoint || incluirConditions === true;
+        const wantsFamilyHistory = !isModularEndpoint || incluirFamilyHistory === true;
+        const wantsAllergy = !isModularEndpoint || incluirAllergy === true;
 
         // Base estable: no enviar Observations salvo que el endpoint de prueba lo solicite.
         if (bundle && Array.isArray(bundle.entry) && !wantsObservations) {
@@ -1874,7 +1964,7 @@ router.post(
                 'MedicationStatement',
             ]);
             if (wantsAllergy) keepTypes.add('AllergyIntolerance');
-            if (wantsConditions || wantsConditionIngreso) keepTypes.add('Condition');
+            if (wantsConditions) keepTypes.add('Condition');
             if (wantsFamilyHistory) keepTypes.add('FamilyMemberHistory');
             if (wantsObservations) keepTypes.add('Observation');
 
@@ -1900,9 +1990,32 @@ router.post(
             if (compEntry && compEntry.resource) {
                 const comp = compEntry.resource;
 
+                bundle.language = 'es-CO';
+                if (Object.prototype.hasOwnProperty.call(bundle, 'timestamp')) {
+                    delete bundle.timestamp;
+                }
+
+                if (comp.date) {
+                    comp.date = toFhirDateTimeColombia(comp.date) || comp.date;
+                }
+                if (comp.type && Object.prototype.hasOwnProperty.call(comp.type, 'text')) {
+                    delete comp.type.text;
+                }
+                if (comp.custodian && (!Array.isArray(comp.attester) || comp.attester.length === 0)) {
+                    comp.attester = [{ mode: 'legal', party: comp.custodian }];
+                }
+
                 // El perfil no permite event.code.text
                 if (Array.isArray(comp.event)) {
                     comp.event.forEach((ev) => {
+                        if (ev && ev.period) {
+                            if (ev.period.start) {
+                                ev.period.start = toFhirDateTimeColombia(ev.period.start) || ev.period.start;
+                            }
+                            if (ev.period.end) {
+                                ev.period.end = toFhirDateTimeColombia(ev.period.end) || ev.period.end;
+                            }
+                        }
                         if (ev && Array.isArray(ev.code)) {
                             ev.code.forEach((c) => {
                                 if (c && Object.prototype.hasOwnProperty.call(c, 'text')) {
@@ -1921,7 +2034,11 @@ router.post(
                     return filterExistingRefs(s && s.entry);
                 };
 
-                const medicationsRefs = getSectionRefs('farmacol');
+                const medicationsRefs = filterExistingRefs(
+                    bundle.entry
+                        .filter((e) => e && e.resource && e.resource.resourceType === 'MedicationStatement')
+                        .map((e) => ({ reference: `#${e.resource.id}` }))
+                );
                 const allergiesRefs =
                     wantsAllergy
                         ? filterExistingRefs(
@@ -1930,30 +2047,11 @@ router.post(
                                 .map((e) => ({ reference: `#${e.resource.id}` }))
                         )
                         : getSectionRefs('alerg');
-                const problemsRefs = wantsConditions || wantsConditionIngreso
+                const problemsRefs = wantsConditions
                     ? filterExistingRefs(
                         bundle.entry
-                            .filter(
-                                (e) =>
-                                    e &&
-                                    e.resource &&
-                                    e.resource.resourceType === 'Condition' &&
-                                    e.resource.id !== 'ConditionIngreso-0'
-                            )
+                            .filter((e) => e && e.resource && e.resource.resourceType === 'Condition')
                             .map((e) => ({ reference: `#${e.resource.id}` }))
-                            .concat(
-                                wantsConditionIngreso
-                                    ? bundle.entry
-                                        .filter(
-                                            (e) =>
-                                                e &&
-                                                e.resource &&
-                                                e.resource.resourceType === 'Condition' &&
-                                                e.resource.id === 'ConditionIngreso-0'
-                                        )
-                                        .map((e) => ({ reference: `#${e.resource.id}` }))
-                                    : []
-                            )
                     )
                     : [];
                 const familyRefs = wantsFamilyHistory
@@ -1981,14 +2079,14 @@ router.post(
                         : { text: { status: 'generated', div: `<div xmlns="http://www.w3.org/1999/xhtml">${emptyText}</div>` } }),
                 });
 
-                // 4 secciones exactas requeridas por el perfil
+                // 4 secciones exactas requeridas por el perfil (orden guía Ministerio)
                 comp.section = [
                     mkSection(
-                        '10160-0',
-                        'History of Medication use Narrative',
-                        'Historial de medicamentos',
-                        medicationsRefs,
-                        'Sin antecedentes farmacologicos'
+                        '11450-4',
+                        'Problem list - Reported',
+                        'Historial de diagnósticos de problemas de salud',
+                        problemsRefs,
+                        'No se registran antecedentes patologicos'
                     ),
                     mkSection(
                         '48765-2',
@@ -1998,11 +2096,11 @@ router.post(
                         'No se conocen alergias'
                     ),
                     mkSection(
-                        '11450-4',
-                        'Problem list - Reported',
-                        'Historial de diagnósticos de problemas de salud',
-                        problemsRefs,
-                        'No se registran antecedentes patologicos'
+                        '10160-0',
+                        'History of Medication use Narrative',
+                        'Historial de medicamentos',
+                        medicationsRefs,
+                        'Sin antecedentes farmacologicos'
                     ),
                     mkSection(
                         '10157-6',
@@ -2014,10 +2112,58 @@ router.post(
                 ];
             }
 
+            bundle.entry.forEach((e) => {
+                if (!e || !e.resource) return;
+                if (e.resource.resourceType === 'MedicationStatement') {
+                    e.resource.status = 'completed';
+                    const mcc = e.resource.medicationCodeableConcept;
+                    if (mcc && Array.isArray(mcc.coding) && mcc.coding.length && mcc.text) {
+                        delete mcc.text;
+                    }
+                }
+                if (e.resource.resourceType === 'AllergyIntolerance') {
+                    const vs = e.resource.verificationStatus;
+                    if (vs && Array.isArray(vs.coding)) {
+                        vs.coding.forEach((c) => {
+                            if (!c) return;
+                            c.system = 'http://terminology.hl7.org/CodeSystem/condition-ver-status';
+                            if (c.code === 'unconfirmed' && !c.display) c.display = 'Unconfirmed';
+                        });
+                    }
+                }
+                if (e.resource.resourceType === 'FamilyMemberHistory' && Array.isArray(e.resource.condition)) {
+                    e.resource.condition.forEach((cond) => {
+                        const code = cond && cond.code;
+                        if (!code || !Array.isArray(code.coding)) return;
+                        code.coding = code.coding.filter((c) => {
+                            if (!c || !c.code) return false;
+                            const sys = String(c.system || '');
+                            if (sys.includes('icd-11') || classifyIcdCode(c.code) === 'icd-11') return false;
+                            if (sys.includes('icd-10') && !isIcd10Code(c.code)) return false;
+                            return true;
+                        });
+                        if (!code.coding.length) delete code.coding;
+                    });
+                }
+            });
+
             // Patient.address.line no permitido por este perfil IHCE.
             byType('Patient').forEach((e) => {
                 const p = e.resource;
                 sanitizeOptionalPatientFields(p);
+                if (p.birthDate) {
+                    if (p._birthDate && Array.isArray(p._birthDate.extension)) {
+                        p._birthDate.extension.forEach((ex) => {
+                            if (!ex || !ex.url) return;
+                            if (ex.url.includes('patient-birthTime') && ex.valueDateTime) {
+                                ex.url = 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ExtensionBirthTime';
+                                const vt = toFhirBirthTimeColombia(ex.valueDateTime);
+                                delete ex.valueDateTime;
+                                if (vt) ex.valueTime = vt;
+                            }
+                        });
+                    }
+                }
                 if (Array.isArray(p.extension)) {
                     p.extension.forEach((ex) => {
                         if (
@@ -2035,9 +2181,20 @@ router.post(
                         if (a && Object.prototype.hasOwnProperty.call(a, 'line')) {
                             delete a.line;
                         }
-                        // Desactivar temporalmente extensión DIVIPOLA inválida (ej: 5001)
                         if (a && a._city && Array.isArray(a._city.extension)) {
-                            delete a._city;
+                            a._city.extension.forEach((ex) => {
+                                if (ex && ex.valueCoding && ex.valueCoding.code != null) {
+                                    const norm = normalizeDivipolaMunicipalityCode(ex.valueCoding.code);
+                                    if (norm) {
+                                        ex.valueCoding.code = norm;
+                                    } else {
+                                        delete a._city;
+                                    }
+                                }
+                            });
+                            if (a._city && (!a._city.extension || !a._city.extension.length)) {
+                                delete a._city;
+                            }
                         }
                     });
                 }

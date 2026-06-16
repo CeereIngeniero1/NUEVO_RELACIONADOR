@@ -63,6 +63,58 @@ function escapeHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
+function formatIsoPeriod(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }) + ' (hora Colombia)';
+}
+
+function issueToText(issue) {
+    if (issue == null) return '';
+    if (typeof issue === 'string') return issue.trim();
+    if (typeof issue !== 'object') return String(issue).trim();
+    if (issue.details && issue.details.text) return String(issue.details.text).trim();
+    if (issue.diagnostics) return String(issue.diagnostics).trim();
+    return '';
+}
+
+/** IHCE: Composition ya existe para el mismo subject/period (historia duplicada). */
+function parseDuplicateRdaHistoria(text) {
+    const t = issueToText(text);
+    if (!t || !/already exist/i.test(t) || !/Composition/i.test(t)) return null;
+
+    const periods = [];
+    const re = /period='([^']+)'/gi;
+    let m;
+    while ((m = re.exec(t)) !== null) {
+        periods.push(m[1]);
+    }
+
+    const lines = [
+        'Esta historia clínica ya fue registrada en IHCE para este paciente y periodo de atención.',
+        'No puede volverse a diligenciar ni enviarse nuevamente.',
+    ];
+    if (periods.length >= 2) {
+        lines.push('');
+        lines.push('Periodo de la historia ya existente:');
+        lines.push('• Inicio: ' + formatIsoPeriod(periods[0]));
+        lines.push('• Fin: ' + formatIsoPeriod(periods[1]));
+    } else if (periods.length === 1) {
+        lines.push('');
+        lines.push('Periodo de la historia ya existente: ' + formatIsoPeriod(periods[0]));
+    }
+    return lines.join('\n');
+}
+
 /** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.). */
 export function extractIhceMessage(data) {
     if (data == null) return '';
@@ -78,7 +130,15 @@ export function extractIhceMessage(data) {
     }
 
     const formatIssue = (i, idx) => {
+        if (typeof i === 'string') {
+            const dup = parseDuplicateRdaHistoria(i);
+            if (dup) return [dup];
+            const t = i.trim();
+            return t ? [t] : [];
+        }
         if (!i || typeof i !== 'object') return [];
+        const dupObj = parseDuplicateRdaHistoria(issueToText(i));
+        if (dupObj) return [dupObj];
         const out = [];
         const n = idx != null ? ` [${idx + 1}]` : '';
         if (i.severity) out.push(`severity${n}: ${i.severity}`);
@@ -102,6 +162,10 @@ export function extractIhceMessage(data) {
     };
 
     if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue)) {
+        for (let idx = 0; idx < data.issue.length; idx++) {
+            const dup = parseDuplicateRdaHistoria(data.issue[idx]);
+            if (dup) return dup;
+        }
         data.issue.forEach((i, idx) => {
             formatIssue(i, idx).forEach((l) => lines.push(l));
         });
@@ -249,13 +313,21 @@ export function openIhceBundlePreview(kind, id, ambienteUi) {
         });
 }
 
+/** Modal JSON legible (enviado o respuesta IHCE). */
+export function openIhceJsonModal(title, dataOrText, width) {
+    const jsonText = typeof dataOrText === 'string'
+        ? dataOrText
+        : JSON.stringify(dataOrText, null, 2);
+    openJsonModal(title, jsonText, width || 'min(95vw, 760px)');
+}
+
 /**
  * @param {Response} resp
  * @param {object} data
  * @param {'sandbox'|'prod'} ambienteUi
  * @param {{ id: number, kind: 'paciente'|'rdace' }|null} bundleCtx
  */
-function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
+export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
     const prettyJson = JSON.stringify(data, null, 2);
     const isSandbox = ambienteUi !== 'prod';
     const amb = ambienteUi === 'prod' ? 'prod' : 'sandbox';
@@ -271,12 +343,13 @@ function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
 
     if (isSandbox) {
         let msg = extractIhceMessage(data);
+        const historiaDuplicada = Boolean(msg && msg.includes('ya fue registrada en IHCE'));
         if (!msg) {
             msg = resp.ok
                 ? 'El envío a IHCE (sandbox) finalizó correctamente. Use los botones de abajo para ver JSON de respuesta o el Bundle enviado.'
                 : 'IHCE respondió con error HTTP ' + resp.status + '. Use «Ver JSON de la respuesta» para el detalle técnico.';
         }
-        const icon = resp.ok ? 'success' : 'error';
+        const icon = resp.ok ? 'success' : (historiaDuplicada ? 'warning' : 'error');
         const bundleBtnHtml =
             bundleCtx && bundleCtx.id != null
                 ? '<div class="mt-3 mb-0 text-center d-flex flex-column gap-2">' +
@@ -286,7 +359,9 @@ function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
                 : '';
         Swal.fire({
             icon: icon,
-            title: resp.ok ? 'IHCE — Sandbox' : 'IHCE — Sandbox (error)',
+            title: resp.ok
+                ? 'IHCE — Sandbox'
+                : (historiaDuplicada ? 'IHCE — Historia ya registrada' : 'IHCE — Sandbox (error)'),
             html:
                 '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
                 '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +
@@ -357,13 +432,16 @@ function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
     const msgProd = extractIhceMessage(data) || (resp.ok
         ? 'Envío a IHCE (producción) finalizado.'
         : 'IHCE respondió con error HTTP ' + resp.status + '.');
+    const historiaDuplicadaProd = Boolean(msgProd && msgProd.includes('ya fue registrada en IHCE'));
     const jsonBtnProdHtml =
         bundleCtx && bundleCtx.id != null
             ? '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-json-enviado">Ver JSON enviado</button></p>'
             : '';
     Swal.fire({
-        icon: resp.ok ? 'success' : 'error',
-        title: resp.ok ? 'IHCE — Producción' : 'IHCE — Producción (error)',
+        icon: resp.ok ? 'success' : (historiaDuplicadaProd ? 'warning' : 'error'),
+        title: resp.ok
+            ? 'IHCE — Producción'
+            : (historiaDuplicadaProd ? 'IHCE — Historia ya registrada' : 'IHCE — Producción (error)'),
         html:
             '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
             '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +

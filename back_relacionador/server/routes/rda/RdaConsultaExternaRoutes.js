@@ -36,6 +36,13 @@ const Router      = require('express').Router;
 const { randomUUID, createHash } = require('crypto');
 const { sql, poolPromise } = require('../../db2');
 const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
+const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
+const {
+    toFhirDateTimeColombia,
+    normalizePatientBirthTimeExtension,
+    normalizeDivipolaMunicipalityCode,
+    buildRdaPersonName,
+} = require('../../rda/fhirColombiaFormat');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -306,6 +313,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
         CondicionDestinoEgreso, CodigoPrestadorRemite,
         AlcanceIncapacidad, DiasIncapacidad, DiasLicenciaMaternidad,
         NombreDocumentoPDF,
+        NotasAdicionalesPdf,
         IdModalidadAtencion, IdGrupoServicios, IdViaIngresoUsuario, IdCausaMotivoAtencion,
     } = req.body;
 
@@ -342,6 +350,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
             .input('DiasIncapacidad', sql.Int, toStrictIntOrNull(DiasIncapacidad))
             .input('DiasLicenciaMaternidad', sql.Int, toStrictIntOrNull(DiasLicenciaMaternidad))
             .input('NombreDocumentoPDF', sql.NVarChar, NombreDocumentoPDF || null)
+            .input('NotasAdicionalesPdf', sql.NVarChar(sql.MAX), NotasAdicionalesPdf || null)
             .input('IdModalidadAtencion', sql.Int, rdaceIntOrNull(IdModalidadAtencion))
             .input('IdGrupoServicios', sql.Int, rdaceIntOrNull(IdGrupoServicios))
             .input('IdViaIngresoUsuario', sql.Int, rdaceIntOrNull(IdViaIngresoUsuario))
@@ -359,7 +368,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     [Diagnostico Principal CIE10 Codigo], [Diagnostico Principal CIE10 Nombre], [Tipo Diagnostico Principal],
                     [Condicion Destino Egreso], [Codigo Prestador Remite],
                     [Alcance Incapacidad], [Dias Incapacidad], [Dias Licencia Maternidad],
-                    [Nombre Documento PDF],
+                    [Nombre Documento PDF], [Notas Adicionales PDF],
                     [Id Modalidad Atencion], [Id Grupo Servicios], [Id Via Ingreso Usuario], [Id Causa Motivo Atencion]
                 )
                 OUTPUT INSERTED.[Id Evaluacion Entidad RDA Consulta Externa]
@@ -375,7 +384,7 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
                     @DiagnosticoPrincipalCIE10Codigo, @DiagnosticoPrincipalCIE10Nombre, @TipoDiagnosticoPrincipal,
                     @CondicionDestinoEgreso, @CodigoPrestadorRemite,
                     @AlcanceIncapacidad, @DiasIncapacidad, @DiasLicenciaMaternidad,
-                    @NombreDocumentoPDF,
+                    @NombreDocumentoPDF, @NotasAdicionalesPdf,
                     @IdModalidadAtencion, @IdGrupoServicios, @IdViaIngresoUsuario, @IdCausaMotivoAtencion
                 )
             `);
@@ -409,14 +418,24 @@ router.post('/EvaluacionEntidadRDACE/AntecedentesSalud', async (req, res) => {
 });
 
 router.post('/EvaluacionEntidadRDACE/AntecedentesFamiliares', async (req, res) => {
-    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Parentesco, Descripcion, IdEstado } = req.body;
+    const { IdEvaluacionEntidadRDACE, DocumentoEntidad, Parentesco, Descripcion, IdEstado, CIE11Codigo, CIE11Termino } = req.body;
+    const descripcionFinal = (() => {
+        const d = Descripcion != null ? String(Descripcion).trim() : '';
+        if (d) return d;
+        const c11 = CIE11Codigo != null ? String(CIE11Codigo).trim() : '';
+        const t11 = CIE11Termino != null ? String(CIE11Termino).trim() : '';
+        if (c11 && t11) return `${c11} - ${t11}`;
+        if (c11) return c11;
+        if (t11) return t11;
+        return 'Sin descripción';
+    })();
     try {
         const pool = await poolPromise;
         await pool.request()
             .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
             .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
             .input('Parentesco', sql.NVarChar, Parentesco || null)
-            .input('Descripcion', sql.NVarChar, Descripcion || null)
+            .input('Descripcion', sql.NVarChar, descripcionFinal)
             .input('IdEstado', sql.Int, IdEstado ? parseInt(IdEstado, 10) : 1)
             .query(`
                 INSERT INTO [dbo].[Evaluacion Entidad RDA CE Antecedentes Familiares]
@@ -757,6 +776,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const str           = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
     const toIsoDateTime = (v) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString(); };
     const toIsoDate     = (v) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0]; };
+    const toFhirDtCo    = (v) => toFhirDateTimeColombia(v) || toIsoDateTime(v);
 
     const RDA_SD       = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
     const CS_MODALITY  = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
@@ -774,6 +794,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const CS_RIPS_FINALIDAD = 'https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSFinalidadConsultaVersion2';
     const CS_COLOMBIAN_HT_CAT = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianHealthTechnologyCategory';
     const CS_MIPRES_INN = 'https://fhir.minsalud.gov.co/rda/CodeSystem/MipresINN';
+    const CS_REPS_HC_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/REPShealthcareServices';
+    const CS_VIA_INGRESO = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ViaIngreso';
     const SCT = 'http://snomed.info/sct';
 
     const codeableFromDb = (system, code, display) => {
@@ -798,36 +820,34 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const d = str(display) || str(rawFallback);
         return codeableFromDb(CS_RIPS_FINALIDAD, c, d);
     };
-    /** Código ColombianGenderGroup (01/02/03) y gender FHIR alineados — solo datos de BD / catálogo Sexo 1888. */
-    const patientGenderFromDb = (pdem) => {
-        const codigoCatalogo = str(pdem.CodigoSexo);
-        const letraSexo = str(pdem.SexoPaciente);
-        const display = str(pdem.Sexo);
-
-        let grupoCode = null;
-        if (codigoCatalogo) {
-            const c = codigoCatalogo.trim();
-            if (/^0?[1-3]$/.test(c)) {
-                grupoCode = String(parseInt(c, 10)).padStart(2, '0');
-            } else if (/^(01|02|03)$/i.test(c)) {
-                grupoCode = c.toUpperCase();
-            } else if (/^[MF]$/i.test(c)) {
-                grupoCode = c.toUpperCase() === 'M' ? '01' : '02';
-            }
-        }
-        if (!grupoCode && letraSexo && /^[MF]$/i.test(letraSexo)) {
-            grupoCode = letraSexo.toUpperCase() === 'M' ? '01' : '02';
-        }
-        if (!grupoCode) return { fhirGender: undefined, bioGender: null };
-
-        const fhirByGrupo = { '01': 'male', '02': 'female', '03': 'unknown' };
-        return {
-            fhirGender: fhirByGrupo[grupoCode],
-            bioGender: { code: grupoCode, display: display || undefined },
-        };
-    };
+    const patientGenderFromDb = (pdem) => patientGenderFromCatalog({
+        codigoSexo: str(pdem.CodigoSexo),
+        letraSexo: str(pdem.SexoPaciente),
+        descripcionSexo: str(pdem.Sexo),
+    });
     const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
     const ICD11_SYSTEM = 'http://hl7.org/fhir/sid/icd-11';
+
+    /** ConditionRDA: un solo sistema por recurso (no mezclar CIE-10 y CIE-11 en el mismo coding). */
+    const buildConditionRdaCode = ({ cie10Code, cie10Display, cie11Code, cie11Display }) => {
+        const c10 = str(cie10Code);
+        const d10 = str(cie10Display);
+        const c11 = str(cie11Code);
+        const d11 = str(cie11Display);
+        if (c10) {
+            return {
+                coding: [{ system: ICD10_SYSTEM, code: c10, display: d10 || undefined }],
+                text: d10 || c10,
+            };
+        }
+        if (c11) {
+            return {
+                coding: [{ system: ICD11_SYSTEM, code: c11, display: d11 || undefined }],
+                text: d11 || c11,
+            };
+        }
+        return null;
+    };
 
     // Perfil IG RDA Consulta: ConditionRDA (https://vulcano.ihcecol.gov.co/RDA-consulta)
     // ConditionStatementRDA corresponde al RDA Paciente y no está permitido en $enviar-rda-consulta.
@@ -862,11 +882,10 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const medPrescripciones = aggregate.medPrescripciones;
         const procPrescripciones = aggregate.procPrescripciones;
         const otrasTecnologias = aggregate.otrasTecnologias;
+        const empresaIps = aggregate.empresaIps || null;
         const codPrest = str(head.CodigoPrestador);
-        const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS)
-            || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS);
-        const nomIpsOverride = str((req.body || {}).overrideNombrePrestadorIPS)
-            || str(process.env.IHCE_RDACE_DEFAULT_NOMBRE_IPS);
+        const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS);
+        const nomIpsOverride = str((req.body || {}).overrideNombrePrestadorIPS);
 
         // =======================================================================
         // CONSTRUCCIÓN DE RECURSOS FHIR
@@ -896,13 +915,36 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const CS_LEGAL_NATURE   = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLegalNatureType';
         const CS_DIVIPOLA       = 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA';
         const ipsId = codPrest ? codPrest : '';
-        const repsPeriodStart = str(process.env.IHCE_RDACE_DEFAULT_REPS_PERIOD_START) || '2011-11-30';
-        const ipsMunicipioCode = str(process.env.IHCE_RDACE_DEFAULT_DIVIPOLA_MUNICIPIO) || '05001';
-        const ipsDeptCode      = str(process.env.IHCE_RDACE_DEFAULT_DIVIPOLA_DEPTO) || '05';
-        const nombreIps        = codPrest ? (nomIpsOverride || `IPS (${codPrest})`) : '';
+        const repsPeriodFromDb = empresaIps && empresaIps.FechaInscripcionEmpresa
+            ? toIsoDate(empresaIps.FechaInscripcionEmpresa)
+            : null;
+        const repsPeriodStart = repsPeriodFromDb
+            || str(process.env.IHCE_RDACE_DEFAULT_REPS_PERIOD_START)
+            || '2011-11-30';
+        const ipsMunicipioFromDb = normalizeDivipolaMunicipalityCode(
+            empresaIps && empresaIps.CodigoMunicipioDivipola
+        );
+        const ipsMunicipioCode = ipsMunicipioFromDb
+            || str(process.env.IHCE_RDACE_DEFAULT_DIVIPOLA_MUNICIPIO)
+            || '05001';
+        const ipsDeptCode = ipsMunicipioFromDb
+            ? ipsMunicipioFromDb.slice(0, 2)
+            : (str(process.env.IHCE_RDACE_DEFAULT_DIVIPOLA_DEPTO) || '05');
+        const ipsCityDisplay = str(empresaIps && empresaIps.NombreMunicipio)
+            || (ipsMunicipioCode === '05001' ? 'MEDELLÍN' : ipsMunicipioCode);
+        const nombreIps = codPrest ? (
+            nomIpsOverride
+            || str(empresaIps && empresaIps.RazonSocialEmpresa)
+            || str(empresaIps && empresaIps.NombreComercialEmpresa)
+            || str(process.env.IHCE_RDACE_DEFAULT_NOMBRE_IPS)
+            || `IPS (${codPrest})`
+        ) : '';
         let ipsOrgEntry = null;
         if (codPrest) {
-            const nitIps    = nitIpsOverride || null;
+            const nitIps = nitIpsOverride
+                || str(empresaIps && empresaIps.DocumentoEmpresa)
+                || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS)
+                || null;
             ipsOrgEntry = makeEntry({
                 resourceType: 'Organization',
                 id: ipsId,
@@ -938,7 +980,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                     use: 'work',
                     type: 'physical',
                     text: 'Sin informacion',
-                    city: 'MEDELLÍN',
+                    city: ipsCityDisplay,
                     _city: {
                         extension: [{
                             url: `${RDA_SD}/ExtensionDivipolaMunicipality`,
@@ -1032,12 +1074,18 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const homeAddr = hasAddr ? (() => {
             const addr = { id: 'HomeAddress-0', use: 'home', type: 'physical' };
             if (zonaCode) addr.extension = [{ url: `${RDA_SD}/ExtensionResidenceZone`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianResidenceZone', code: zonaCode, display: zonaDisplay } }];
-            console.log('zonaCode', zonaCode);
-            console.log('zonaDisplay', zonaDisplay);
             if (str(pdem.Direccion)) addr.line = [str(pdem.Direccion)];
             if (str(pdem.NombreMunicipio)) {
                 addr.city = str(pdem.NombreMunicipio);
-                if (str(pdem.CodigoMunicipio)) addr._city = { extension: [{ url: `${RDA_SD}/ExtensionDivipolaMunicipality`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA', code: str(pdem.CodigoMunicipio) } }] };
+                const divipola = normalizeDivipolaMunicipalityCode(pdem.CodigoMunicipio);
+                if (divipola) {
+                    addr._city = {
+                        extension: [{
+                            url: `${RDA_SD}/ExtensionDivipolaMunicipality`,
+                            valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/DIVIPOLA', code: divipola },
+                        }],
+                    };
+                }
             }
             if (str(pdem.CodigoPaisResidencia)) {
                 addr.country  = str(pdem.NombrePaisResidencia) || str(pdem.CodigoPaisResidencia);
@@ -1049,7 +1097,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         if (!pacienteId) {
             return res.status(400).json({ ok: false, error: 'Faltan tipo y número de documento del paciente en base de datos' });
         }
-        const patientEntry = makeEntry({
+        const patientResource = {
             resourceType: 'Patient',
             id: pacienteId,
             meta: { profile: [`${RDA_SD}/PatientRDA`] },
@@ -1067,21 +1115,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ...(familyText || givenArr.length > 0 ? { name: [{ use: 'official', ...(familyText ? { family: familyText } : {}), ...(familyExtArr.length > 0 ? { _family: { extension: familyExtArr } } : {}), ...(givenArr.length > 0 ? { given: givenArr } : {}) }] } : {}),
             ...(fhirGender ? { gender: fhirGender } : {}),
             ...(bioGender  ? { _gender: { extension: [{ url: `${RDA_SD}/ExtensionBiologicalGender`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup', code: bioGender.code, display: bioGender.display } }] } } : {}),
-            ...(() => {
-                const birthIso = toIsoDate(pdem.FechaNacimiento);
-                if (!birthIso) return {};
-                const out = { birthDate: birthIso };
-                const bd = new Date(pdem.FechaNacimiento);
-                if (!isNaN(bd.getTime()) && (bd.getUTCHours() || bd.getUTCMinutes() || bd.getUTCSeconds())) {
-                    out._birthDate = { extension: [{ url: 'http://hl7.org/fhir/StructureDefinition/patient-birthTime', valueDateTime: bd.toISOString() }] };
-                }
-                return out;
-            })(),
+            ...(toIsoDate(pdem.FechaNacimiento) ? { birthDate: toIsoDate(pdem.FechaNacimiento) } : {}),
             deceasedBoolean: false,
             ...(str(pdem.TelefonoCelular) ? { telecom: [{ system: 'phone', value: str(pdem.TelefonoCelular) }] } : {}),
             ...(homeAddr    ? { address: [homeAddr] } : {}),
             ...(eapbOrgEntry ? { managingOrganization: { reference: refOf(eapbOrgEntry), display: str(head.NombreAdminPlanBeneficios) || undefined } } : {}),
-        });
+        };
+        normalizePatientBirthTimeExtension(patientResource, pdem.FechaNacimiento);
+        const patientEntry = makeEntry(patientResource);
 
         // Practitioner
         const tipoProf = str(head.TipoDocProfesional);
@@ -1090,6 +1131,12 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         if (!practId) {
             return res.status(400).json({ ok: false, error: 'Faltan tipo y número de documento del profesional en base de datos' });
         }
+        const profName = buildRdaPersonName({
+            primerApellido: head.ProfPrimerApellido,
+            segundoApellido: head.ProfSegundoApellido,
+            primerNombre: head.ProfPrimerNombre,
+            segundoNombre: head.ProfSegundoNombre,
+        });
         const practitionerEntry = makeEntry({
             resourceType: 'Practitioner',
             id: practId,
@@ -1102,55 +1149,65 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
                 value: numProf,
             }],
+            ...(profName ? { name: [profName] } : {}),
             active: true,
         });
+        const practitionerRef = { reference: refOf(practitionerEntry) };
 
-        // Condition principal + relacionadas.
-        // Perfil: ConditionRDA (RDA Consulta). Id patrón Condition-<n> (BUNDLE-005).
+        // Condition principal (solo CIE-10) + ingreso CIE-11 en recurso aparte si aplica.
         let conditionSeq = 0;
-        let condPrincipalEntry = (str(head.DiagPrincipalCIE10Codigo) || str(head.DiagnosticoIngresoCIE11Codigo)) ? makeEntry({
+        const principalCode = buildConditionRdaCode({
+            cie10Code: head.DiagPrincipalCIE10Codigo,
+            cie10Display: head.DiagPrincipalCIE10Nombre,
+        });
+        let condPrincipalEntry = principalCode ? makeEntry({
             resourceType: 'Condition',
             id: `Condition-${conditionSeq++}`,
             meta: { profile: [`${RDA_SD}/ConditionRDA`] },
             ...CONDITION_RDA_BASE,
             subject: { reference: refOf(patientEntry) },
-            code: {
-                coding: [
-                    ...(str(head.DiagPrincipalCIE10Codigo)     ? [{ system: ICD10_SYSTEM, code: str(head.DiagPrincipalCIE10Codigo),     display: str(head.DiagPrincipalCIE10Nombre)       || undefined }] : []),
-                    ...(str(head.DiagnosticoIngresoCIE11Codigo) ? [{ system: ICD11_SYSTEM, code: str(head.DiagnosticoIngresoCIE11Codigo), display: str(head.DiagnosticoIngresoCIE11Termino) || undefined }] : []),
-                ],
-                text: str(head.DiagPrincipalCIE10Nombre) || str(head.DiagnosticoIngresoCIE11Termino) || str(head.DiagPrincipalCIE10Codigo) || undefined,
-            },
+            code: principalCode,
         }) : null;
 
-        // Diagnósticos relacionados
+        const condIngresoC11Code = buildConditionRdaCode({
+            cie11Code: head.DiagnosticoIngresoCIE11Codigo,
+            cie11Display: head.DiagnosticoIngresoCIE11Termino,
+        });
+        const condIngresoC11Entry = condIngresoC11Code ? makeEntry({
+            resourceType: 'Condition',
+            id: `Condition-${conditionSeq++}`,
+            meta: { profile: [`${RDA_SD}/ConditionRDA`] },
+            ...CONDITION_RDA_BASE,
+            subject: { reference: refOf(patientEntry) },
+            code: condIngresoC11Code,
+        }) : null;
+
+        // Diagnósticos relacionados (un coding por Condition; prioriza CIE-10 si ambos existen).
         const condRelacionadasEntries = diagRelacionados.map((r) => {
-            const c10 = str(r.CodigoCIE10); const c11 = str(r.CodigoCIE11);
-            if (!c10 && !c11) return null;
+            const code = buildConditionRdaCode({
+                cie10Code: r.CodigoCIE10,
+                cie10Display: r.NombreCIE10,
+                cie11Code: r.CodigoCIE11,
+                cie11Display: r.TerminoCIE11,
+            });
+            if (!code) return null;
             return makeEntry({
                 resourceType: 'Condition',
                 id: `Condition-${conditionSeq++}`,
                 meta: { profile: [`${RDA_SD}/ConditionRDA`] },
                 ...CONDITION_RDA_BASE,
                 subject: { reference: refOf(patientEntry) },
-                code: {
-                    coding: [
-                        ...(c10 ? [{ system: ICD10_SYSTEM, code: c10, display: str(r.NombreCIE10)   || undefined }] : []),
-                        ...(c11 ? [{ system: ICD11_SYSTEM, code: c11, display: str(r.TerminoCIE11) || undefined }] : []),
-                    ],
-                    text: str(r.NombreCIE10) || str(r.TerminoCIE11) || c10 || c11,
-                },
+                code,
             });
         }).filter(Boolean);
 
-        // AllergyIntolerance — AllergyIntoleranceRDA: verificationStatus → ValueSet allergyintolerance-verification (R4).
+        // AllergyIntoleranceRDA (CE): sin verificationStatus; encounter obligatorio en guía.
         const tipoAlergiaCode = str(head.TipoAlergia);
         const allergyEntry   = tipoAlergiaCode ? makeEntry({
             resourceType: 'AllergyIntolerance',
             id: 'AllergyIntolerance-0',
             meta: { profile: [`${RDA_SD}/AllergyIntoleranceRDA`] },
-            clinicalStatus:     { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active', display: 'Active' }] },
-            verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed', display: 'Confirmed' }] },
+            clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active', display: 'Active' }] },
             code: {
                 coding: [{
                     system: CS_TIPO_ALERGIA,
@@ -1160,6 +1217,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 text: str(head.NombreTipoAlergia) || tipoAlergiaCode,
             },
             patient: { reference: refOf(patientEntry) },
+            encounter: { reference: refOf('Encounter-0', 'Encounter') },
         }) : null;
 
         // RiskAssessment — RiskFactorRDA: status registered (fijo); encounter 1..1; FactorRiesgo + texto obligatorio
@@ -1179,9 +1237,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             prediction: [],
         }) : null;
 
-        const authoredOnFromHead = toIsoDateTime(head.FechaRDA)
-            || toIsoDateTime(head.FechaHoraInicioAtencion)
-            || toIsoDateTime(head.FechaHoraFinAtencion);
+        const authoredOnFromHead = toFhirDtCo(head.FechaRDA)
+            || toFhirDtCo(head.FechaHoraInicioAtencion)
+            || toFhirDtCo(head.FechaHoraFinAtencion);
 
         // MedicationRequest — MedicationRequestRDA: código MipresINN debe existir en ValueSet MipresDCI (solo CodigoMedicamento oficial Mi Prescripción).
         const CS_MED_TIME = 'https://fhir.minsalud.gov.co/rda/CodeSystem/MedicationTime';
@@ -1209,8 +1267,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
+                requester: practitionerRef,
                 ...(ripsFinalidadCodeable(m.FinalidadCodigo, m.FinalidadDescripcion, m.Finalidad) ? { reasonCode: [ripsFinalidadCodeable(m.FinalidadCodigo, m.FinalidadDescripcion, m.Finalidad)] } : {}),
-                ...(toIsoDateTime(m.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toIsoDateTime(m.FechaPrescripcion) || authoredOnFromHead } : {}),
+                ...(toFhirDtCo(m.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(m.FechaPrescripcion) || authoredOnFromHead } : {}),
             };
             const dosis = str(m.DosisOrdenada); const via = str(m.ViaAdministracion);
             const durCant = str(m.DuracionCantidad); const durUnid = str(m.DuracionUnidad);
@@ -1292,7 +1351,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
-                ...(toIsoDateTime(p.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toIsoDateTime(p.FechaPrescripcion) || authoredOnFromHead } : {}),
+                requester: practitionerRef,
+                ...(toFhirDtCo(p.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(p.FechaPrescripcion) || authoredOnFromHead } : {}),
             });
         });
 
@@ -1319,7 +1379,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
-                ...(toIsoDateTime(o.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toIsoDateTime(o.FechaPrescripcion) || authoredOnFromHead } : {}),
+                requester: practitionerRef,
+                ...(toFhirDtCo(o.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(o.FechaPrescripcion) || authoredOnFromHead } : {}),
             });
         });
 
@@ -1373,8 +1434,33 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ],
         }) : null;
 
+        const ocupacionCodigo = str(pdem.CodigoOcupacion);
+        const ocupacionNombre = str(pdem.Ocupacion);
+        const ocupacionEntry = (ocupacionCodigo || ocupacionNombre) ? makeEntry({
+            resourceType: 'Observation',
+            id: 'Observation-1',
+            meta: { profile: [`${RDA_SD}/PatientOccupationAtEncounterRDA`] },
+            status: 'final',
+            code: {
+                coding: [{ system: SCT, code: '184104002', display: 'ocupación del paciente' }],
+                text: 'Ocupación del paciente en el momento de la atención',
+            },
+            valueCodeableConcept: {
+                coding: [{
+                    system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/CIUO88AC',
+                    ...(ocupacionCodigo ? { code: ocupacionCodigo } : {}),
+                    ...(ocupacionNombre ? { display: ocupacionNombre } : {}),
+                }],
+            },
+            subject: { reference: refOf(patientEntry) },
+        }) : null;
+
         // Encounter (EncounterAmbulatoryRDA) — OBLIGATORIO en RDA Consulta
-        const allConditionEntries = [...(condPrincipalEntry ? [condPrincipalEntry] : []), ...condRelacionadasEntries];
+        const allConditionEntries = [
+            ...(condPrincipalEntry ? [condPrincipalEntry] : []),
+            ...(condIngresoC11Entry ? [condIngresoC11Entry] : []),
+            ...condRelacionadasEntries,
+        ];
         const condicionEgreso     = str(head.CondicionDestinoEgreso);
         const codPrestRemite      = str(head.CodigoPrestadorRemite);
         const encounterExt        = [];
@@ -1393,6 +1479,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         // EncounterAmbulatoryRDA (RDA Consulta Externa):
         //   type[1] → GrupoServicios 01 "Consulta externa" SIEMPRE (fijo del perfil IG; no es el grupo RIPS del formulario).
         //   serviceType → system CUPS + código CUPS (procedimiento real). Nunca repetir GrupoServicios aquí.
+        const cupsFromRips = aggregate.cupsFromRips || null;
         const encounterTypes = [];
         if (str(head.CodigoModalidadAtencion)) {
             encounterTypes.push({ coding: [{ system: CS_MODALITY, code: str(head.CodigoModalidadAtencion), display: str(head.NombreModalidadAtencion) || undefined }] });
@@ -1401,12 +1488,18 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             || (str(head.CodigoGrupoServicios) === '01' ? str(head.NombreGrupoServicios) : '')
             || 'Consulta externa';
         encounterTypes.push({ coding: [{ system: CS_GRUPO_SVC, code: '01', display: grupoPerfilCeDisplay }] });
+        const repsHcSvcCode = str(cupsFromRips && cupsFromRips.CodigoServicioReps)
+            || str(process.env.IHCE_RDACE_DEFAULT_REPS_HEALTHCARE_SERVICE_CODE)
+            || '328';
+        const repsHcSvcDisplay = str(cupsFromRips && cupsFromRips.NombreServicioReps)
+            || str(process.env.IHCE_RDACE_DEFAULT_REPS_HEALTHCARE_SERVICE_DISPLAY)
+            || 'MEDICINA GENERAL';
+        encounterTypes.push({ coding: [{ system: CS_REPS_HC_SVC, code: repsHcSvcCode, display: repsHcSvcDisplay }] });
         const entorno = str(head.EntornoAtencion);
         if (entorno) {
             encounterTypes.push({ coding: [{ system: CS_ENTORNO, code: entorno, display: str(head.NombreEntornoAtencion) || undefined }] });
         }
         const procConCups = (procPrescripciones || []).find((p) => str(p.CodigoProcedimiento));
-        const cupsFromRips = aggregate.cupsFromRips || null;
         const cupsSvcCode = str(procConCups && procConCups.CodigoProcedimiento)
             || str(cupsFromRips && cupsFromRips.CodigoCups);
         const cupsSvcDispRaw = str(procConCups && procConCups.NombreProcedimiento)
@@ -1423,6 +1516,21 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             });
         }
 
+        const locationId = codPrest ? `${codPrest}-01` : null;
+        const locationEntry = (codPrest && locationId) ? makeEntry({
+            resourceType: 'Location',
+            id: locationId,
+            meta: { profile: [`${RDA_SD}/CareDeliveryLocationRDA`] },
+            identifier: [{
+                use: 'official',
+                system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
+                value: locationId,
+            }],
+            name: nombreIps || `Sede ${codPrest}`,
+            managingOrganization: { reference: `#${codPrest}` },
+        }) : null;
+
+        const viaIngresoCode = str(head.CodigoViaIngreso);
         const encounterEntry = makeEntry({
             resourceType: 'Encounter',
             id: 'Encounter-0',
@@ -1439,10 +1547,22 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 type: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', code: 'ATND', display: 'attender' }] }],
                 individual: { reference: refOf(practitionerEntry) },
             }],
-            ...(toIsoDateTime(head.FechaHoraInicioAtencion) || toIsoDateTime(head.FechaHoraFinAtencion) ? {
+            ...(toFhirDtCo(head.FechaHoraInicioAtencion) || toFhirDtCo(head.FechaHoraFinAtencion) ? {
                 period: {
-                    ...(toIsoDateTime(head.FechaHoraInicioAtencion) ? { start: toIsoDateTime(head.FechaHoraInicioAtencion) } : {}),
-                    ...(toIsoDateTime(head.FechaHoraFinAtencion)    ? { end:   toIsoDateTime(head.FechaHoraFinAtencion)    } : {}),
+                    ...(toFhirDtCo(head.FechaHoraInicioAtencion) ? { start: toFhirDtCo(head.FechaHoraInicioAtencion) } : {}),
+                    ...(toFhirDtCo(head.FechaHoraFinAtencion)    ? { end:   toFhirDtCo(head.FechaHoraFinAtencion)    } : {}),
+                },
+            } : {}),
+            ...(locationEntry ? { location: [{ location: { reference: `#${locationId}` } }] } : {}),
+            ...(viaIngresoCode ? {
+                hospitalization: {
+                    admitSource: {
+                        coding: [{
+                            system: CS_VIA_INGRESO,
+                            code: viaIngresoCode,
+                            display: str(head.NombreViaIngreso) || undefined,
+                        }],
+                    },
                 },
             } : {}),
             ...(str(head.CodigoCausaMotivo) ? { reasonCode: [{ coding: [{
@@ -1460,7 +1580,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ...(ipsOrgEntry ? { serviceProvider: { reference: `#${codPrest}` } } : {}),
         });
 
-        const compositionDateIso = toIsoDateTime(head.FechaRDA) || nowIso;
+        const compositionDateIso = toFhirDtCo(head.FechaRDA) || toFhirDtCo(new Date());
 
         let attachmentPdfBase64;
         try {
@@ -1569,7 +1689,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             eapbOrgEntry
                 ? { title: 'Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', code: { coding: [{ system: 'http://loinc.org', code: '48768-6', display: 'Payment sources Document' }] }, entry: [{ reference: refOf(eapbOrgEntry) }] }
                 : emptySection('Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', '48768-6', 'Payment sources Document'),
-            emptySection('Otros datos demográficos', '74208-0', 'Demographic information + History of occupation Document'),
+            ocupacionEntry
+                ? { title: 'Otros datos demográficos', code: { coding: [{ system: 'http://loinc.org', code: '74208-0', display: 'Demographic information + History of occupation Document' }] }, entry: [{ reference: refOf(ocupacionEntry) }] }
+                : emptySection('Otros datos demográficos', '74208-0', 'Demographic information + History of occupation Document'),
             incapacidadEntry
                 ? { title: 'Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', code: { coding: [{ system: 'http://loinc.org', code: '105583-9', display: 'Worker Sick leave form' }] }, entry: [{ reference: refOf(incapacidadEntry) }] }
                 : emptySection('Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', '105583-9', 'Worker Sick leave form'),
@@ -1605,22 +1727,22 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             subject:         { reference: refOf(patientEntry) },
             encounter:       { reference: refOf('Encounter-0', 'Encounter') },
             date:            compositionDateIso,
-            author:          [{ reference: refOf(practitionerEntry) }],
+            author:          ipsOrgEntry ? [{ reference: `#${codPrest}` }] : [{ reference: refOf(practitionerEntry) }],
             title:           'Resumen Digital de Atención en Salud - RDA de consulta externa',
             confidentiality: 'N',
             attester:        [{ mode: 'legal', party: { reference: refOf(practitionerEntry) } }],
             custodian:       ipsOrgEntry ? { reference: `#${codPrest}` } : { reference: refOf(practitionerEntry) },
             event:           [{ period: {
-                ...(toIsoDateTime(head.FechaHoraInicioAtencion) ? { start: toIsoDateTime(head.FechaHoraInicioAtencion) } : {}),
-                ...(toIsoDateTime(head.FechaHoraFinAtencion)    ? { end:   toIsoDateTime(head.FechaHoraFinAtencion)    } : {}),
+                ...(toFhirDtCo(head.FechaHoraInicioAtencion) ? { start: toFhirDtCo(head.FechaHoraInicioAtencion) } : {}),
+                ...(toFhirDtCo(head.FechaHoraFinAtencion)    ? { end:   toFhirDtCo(head.FechaHoraFinAtencion)    } : {}),
             } }],
             section: sections,
         });
 
         return res.json({
             resourceType: 'Bundle',
+            language: 'es-CO',
             type: 'document',
-            timestamp: compositionDateIso,
             entry: [
                 compositionEntry,
                 patientEntry,
@@ -1628,11 +1750,13 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 practitionerEntry,
                 ...(ipsOrgEntry      ? [ipsOrgEntry]      : []),
                 ...(eapbOrgEntry     ? [eapbOrgEntry]     : []),
+                ...(locationEntry    ? [locationEntry]    : []),
                 ...allConditionEntries,
                 ...(allergyEntry     ? [allergyEntry]     : []),
                 ...(riskEntry        ? [riskEntry]        : []),
                 ...allMedEntries,
                 ...allServiceEntries,
+                ...(ocupacionEntry   ? [ocupacionEntry]   : []),
                 ...(incapacidadEntry ? [incapacidadEntry] : []),
                 documentReferenceEntry,
             ],
@@ -1926,7 +2050,7 @@ router.post(
             // ServiceRequest no es excluible: la Composition RDACE exige al menos un entry en la sección de órdenes (61146-1).
             const isModular = /Modular$/i.test(req.path);
             // DocumentReference: sección Composition «Documentos de soporte» (55107-7) exige entry 1..1 y prohíbe emptyReason (IG / validador IHCE).
-            const alwaysKeep = new Set(['Composition', 'Patient', 'Encounter', 'Practitioner', 'Organization', 'DocumentReference']);
+            const alwaysKeep = new Set(['Composition', 'Patient', 'Encounter', 'Practitioner', 'Organization', 'Location', 'DocumentReference']);
             const optFlags = {
                 Condition:          isModular ? incluirConditions        !== false : true,
                 AllergyIntolerance: includeAllergyIntolerance,
@@ -1967,17 +2091,99 @@ router.post(
                     }
                     return { ...s, entry: filtered };
                 });
+
+                bundle.language = 'es-CO';
+                if (Object.prototype.hasOwnProperty.call(bundle, 'timestamp')) {
+                    delete bundle.timestamp;
+                }
+                if (comp.date) {
+                    comp.date = toFhirDateTimeColombia(comp.date) || comp.date;
+                }
+                if (comp.type && Object.prototype.hasOwnProperty.call(comp.type, 'text')) {
+                    delete comp.type.text;
+                }
+                if (Array.isArray(comp.event)) {
+                    comp.event.forEach((ev) => {
+                        if (ev && ev.period) {
+                            if (ev.period.start) {
+                                ev.period.start = toFhirDateTimeColombia(ev.period.start) || ev.period.start;
+                            }
+                            if (ev.period.end) {
+                                ev.period.end = toFhirDateTimeColombia(ev.period.end) || ev.period.end;
+                            }
+                        }
+                    });
+                }
             }
 
-            // Patient.address: quitar line y _city (validación IHCE)
+            bundle.entry
+                .filter((e) => e && e.resource && e.resource.resourceType === 'Encounter')
+                .forEach((e) => {
+                    const enc = e.resource;
+                    if (enc.period) {
+                        if (enc.period.start) {
+                            enc.period.start = toFhirDateTimeColombia(enc.period.start) || enc.period.start;
+                        }
+                        if (enc.period.end) {
+                            enc.period.end = toFhirDateTimeColombia(enc.period.end) || enc.period.end;
+                        }
+                    }
+                });
+
+            bundle.entry
+                .filter((e) => e && e.resource && e.resource.resourceType === 'DocumentReference')
+                .forEach((e) => {
+                    const dr = e.resource;
+                    if (dr.date) {
+                        dr.date = toFhirDateTimeColombia(dr.date) || dr.date;
+                    }
+                    if (Array.isArray(dr.content)) {
+                        dr.content.forEach((c) => {
+                            if (c && c.attachment && c.attachment.creation) {
+                                c.attachment.creation = toFhirDateTimeColombia(c.attachment.creation) || c.attachment.creation;
+                            }
+                        });
+                    }
+                });
+
+            // PatientOccupationAtEncounterRDA: valueCodeableConcept.text prohibido (0..0)
+            bundle.entry
+                .filter((e) => e && e.resource && e.resource.resourceType === 'Observation')
+                .forEach((e) => {
+                    const prof = e.resource.meta && Array.isArray(e.resource.meta.profile)
+                        ? e.resource.meta.profile.join(' ')
+                        : '';
+                    if (!prof.includes('PatientOccupationAtEncounterRDA')) return;
+                    const vcc = e.resource.valueCodeableConcept;
+                    if (vcc && Object.prototype.hasOwnProperty.call(vcc, 'text')) {
+                        delete vcc.text;
+                    }
+                });
+
+            // Patient.address: quitar line; normalizar DIVIPOLA en _city (no eliminar)
             bundle.entry
                 .filter((e) => e && e.resource && e.resource.resourceType === 'Patient')
                 .forEach((e) => {
                     sanitizeOptionalPatientFields(e.resource);
+                    normalizePatientBirthTimeExtension(e.resource);
                     if (Array.isArray(e.resource.address)) {
                         e.resource.address.forEach((a) => {
                             if (a && Object.prototype.hasOwnProperty.call(a, 'line')) delete a.line;
-                            if (a && a._city) delete a._city;
+                            if (a && a._city && Array.isArray(a._city.extension)) {
+                                a._city.extension.forEach((ex) => {
+                                    if (ex && ex.valueCoding && ex.valueCoding.code != null) {
+                                        const norm = normalizeDivipolaMunicipalityCode(ex.valueCoding.code);
+                                        if (norm) {
+                                            ex.valueCoding.code = norm;
+                                        } else {
+                                            delete a._city;
+                                        }
+                                    }
+                                });
+                                if (a._city && (!a._city.extension || !a._city.extension.length)) {
+                                    delete a._city;
+                                }
+                            }
                         });
                     }
                 });
@@ -1994,7 +2200,10 @@ router.post(
             const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
             // Misma forma que RdaPaciente/EnviarIHCE: referencia por fragmento al Organization del bundle.
             // Organization/<reps> en $enviar-rda-consulta puede disparar err-000 (custodian vs token) aunque RDA Paciente pase.
-            if (compE && compE.resource) compE.resource.custodian = { reference: `#${reps}` };
+            if (compE && compE.resource) {
+                compE.resource.custodian = { reference: `#${reps}` };
+                compE.resource.author = [{ reference: `#${reps}` }];
+            }
             const encE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Encounter');
             if (encE && encE.resource) encE.resource.serviceProvider = { reference: `#${reps}` };
             const docRefE = entries.find((e) => e && e.resource && e.resource.resourceType === 'DocumentReference');

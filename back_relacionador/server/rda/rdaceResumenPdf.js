@@ -58,6 +58,12 @@ function paragraph(doc, title, lines) {
     doc.moveDown(0.6);
 }
 
+function textToPdfLines(value) {
+    const raw = str(value);
+    if (!raw) return [];
+    return raw.split(/\r?\n/).map((ln) => ln.trim()).filter(Boolean);
+}
+
 function asciiSafe(v) {
     return String(v == null ? '' : v)
         .replace(/[\u0080-\uFFFF]/g, '?')
@@ -83,6 +89,9 @@ function fallbackPdfLines(aggregate, opts = {}) {
         `Prestador REPS: ${str(head.CodigoPrestador) || '-'}`,
         `Administradora: ${str(head.NombreAdminPlanBeneficios) || '-'}`,
         '',
+        ...(textToPdfLines(head.NotasAdicionalesPdf).length
+            ? ['Notas adicionales:', ...textToPdfLines(head.NotasAdicionalesPdf), '']
+            : []),
         'Nota: PDF generado en modo de compatibilidad (sin pdfkit).',
         'Para formato enriquecido instale dependencias en back_relacionador.',
     ];
@@ -247,9 +256,10 @@ function buildRdaceResumenClinicoPdfBuffer(aggregate, opts = {}) {
                 : '— Sin información registrada.',
         ]);
 
-        paragraph(doc, '8. Evolución clínica (narrativa)', [
-            'No registrado en sistema: el formulario RDACE actual no incluye campo libre de evolución clínica.',
-        ]);
+        const notasPdfLines = textToPdfLines(head.NotasAdicionalesPdf);
+        paragraph(doc, '8. Evolución clínica y notas adicionales (texto libre)', notasPdfLines.length
+            ? notasPdfLines
+            : ['— Sin información adicional registrada.']);
 
         paragraph(doc, '9. Resultados paraclínicos', [
             'No registrado en sistema: no hay captura dedicada de laboratorios / imágenes en RDACE.',
