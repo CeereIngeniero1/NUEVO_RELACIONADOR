@@ -17,13 +17,15 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
             CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBin,
             CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Fecha Generacion Documento PDF') IS NULL THEN 0 ELSE 1 END AS HasFechaGeneracionDocumentoPdf,
             CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Contenido Documento PDF Base64') IS NULL THEN 0 ELSE 1 END AS HasContenidoDocumentoPdfBase64,
-            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Notas Adicionales PDF') IS NULL THEN 0 ELSE 1 END AS HasNotasAdicionalesPdf
+            CASE WHEN COL_LENGTH(N'[dbo].[Evaluacion Entidad RDA Consulta Externa]', 'Notas Adicionales PDF') IS NULL THEN 0 ELSE 1 END AS HasNotasAdicionalesPdf,
+            CASE WHEN OBJECT_ID('dbo.VW_RDA_ColombianTechModality_Activos', 'V') IS NOT NULL THEN 1 ELSE 0 END AS HasColombianTechModalityView
     `);
     const colInfo = (cols.recordset && cols.recordset[0]) || {};
     const hasPdfBin = Number(colInfo.HasContenidoDocumentoPdfBin) === 1;
     const hasPdfDate = Number(colInfo.HasFechaGeneracionDocumentoPdf) === 1;
     const hasPdfBase64 = Number(colInfo.HasContenidoDocumentoPdfBase64) === 1;
     const hasNotasAdicionalesPdf = Number(colInfo.HasNotasAdicionalesPdf) === 1;
+    const hasCtmView = Number(colInfo.HasColombianTechModalityView) === 1;
 
     const selectPdfBin = hasPdfBin
         ? 'ce.[Contenido Documento PDF]         AS ContenidoDocumentoPdfBin,'
@@ -37,6 +39,16 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
     const selectNotasPdf = hasNotasAdicionalesPdf
         ? 'ce.[Notas Adicionales PDF]            AS NotasAdicionalesPdf,'
         : 'CAST(NULL AS NVARCHAR(MAX))           AS NotasAdicionalesPdf,';
+    const selectModalidadDisplay = hasCtmView
+        ? 'COALESCE(ctm.display, ma.[NombreModalidadAtencion]) AS NombreModalidadAtencion,'
+        : 'ma.[NombreModalidadAtencion]         AS NombreModalidadAtencion,';
+    const selectModalidadSystemUrl = hasCtmView
+        ? 'ctm.system_url                       AS ModalidadAtencionSystemUrl,'
+        : 'CAST(NULL AS NVARCHAR(300))          AS ModalidadAtencionSystemUrl,';
+    const joinModalidadCatalog = hasCtmView
+        ? `LEFT JOIN dbo.VW_RDA_ColombianTechModality_Activos ctm
+                ON LTRIM(RTRIM(ctm.codigo)) = LTRIM(RTRIM(ma.[Codigo]))`
+        : '';
 
     const mainResult = await pool.request()
         .input('Id', sql.Int, id)
@@ -75,7 +87,8 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                 ${selectPdfDate}
                 ${selectPdfBase64}
                 ma.[Codigo]                          AS CodigoModalidadAtencion,
-                ma.[NombreModalidadAtencion]         AS NombreModalidadAtencion,
+                ${selectModalidadDisplay}
+                ${selectModalidadSystemUrl}
                 gs.[Codigo]                          AS CodigoGrupoServicios,
                 gs.[NombreGrupoServicios]            AS NombreGrupoServicios,
                 (SELECT TOP 1 gsce.[NombreGrupoServicios]
@@ -97,6 +110,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
             FROM [dbo].[Evaluacion Entidad RDA Consulta Externa] ce
             LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
                 ON ma.[IdModalidadAtencion] = ce.[Id Modalidad Atencion]
+            ${joinModalidadCatalog}
             LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
                 ON gs.[IdGrupoServicios] = ce.[Id Grupo Servicios]
             LEFT JOIN [dbo].[Cnsta Relacionador Via Ingreso Usuario] via
@@ -216,21 +230,50 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                    pm.[Frecuencia Cantidad] AS FrecuenciaCantidad, pm.[Frecuencia Unidad Tiempo] AS FrecuenciaUnidad,
                    pm.[Finalidad Tec Salud] AS Finalidad,
                    fin.Codigo AS FinalidadCodigo, fin.Descripcion AS FinalidadDescripcion,
-                   umm.Codigo AS UnidadDosisCodigo, umm.Descripcion AS UnidadDosisDescripcion,
-                   dur.Codigo AS DuracionUnidadCodigo, dur.Descripcion AS DuracionUnidadDescripcion,
-                   freq.Codigo AS FrecuenciaUnidadCodigo, freq.Descripcion AS FrecuenciaUnidadDescripcion
+                   COALESCE(umm_v.codigo, umm.Codigo) AS UnidadDosisCodigo,
+                   COALESCE(umm_v.display, umm.Descripcion) AS UnidadDosisDescripcion,
+                   umm_v.unidad AS UnidadDosisUnidad,
+                   umm_v.system_url AS UnidadDosisSystemUrl,
+                   COALESCE(dur_mt.codigo, dur.Codigo) AS DuracionUnidadCodigo,
+                   COALESCE(dur_mt.display, dur.Descripcion) AS DuracionUnidadDescripcion,
+                   dur_mt.fhir_duration_unit AS DuracionFhirDurationUnit,
+                   COALESCE(mt.codigo, freq.Codigo) AS FrecuenciaUnidadCodigo,
+                   COALESCE(mt.display, freq.Descripcion) AS FrecuenciaUnidadDescripcion,
+                   mt.codigo AS FrecuenciaMedicationTimeCodigo,
+                   mt.display AS FrecuenciaMedicationTimeDisplay,
+                   mt.fhir_duration_unit AS FrecuenciaFhirDurationUnit,
+                   mt.system_url AS FrecuenciaMedicationTimeSystemUrl,
+                   vad_v.codigo AS ViaAdministracionCodigo,
+                   vad_v.display AS ViaAdministracionDescripcion,
+                   vad_v.system_url AS ViaAdministracionSystemUrl,
+                   pm.[Via Administracion] AS ViaAdministracion
             FROM [dbo].[Evaluacion Entidad RDA CE Prescripcion Medicamentos] pm
             LEFT JOIN [dbo].[Cnsta Finalidad tecnologia salud 1888] fin
                 ON LTRIM(RTRIM(fin.Codigo)) = LTRIM(RTRIM(pm.[Finalidad Tec Salud]))
+            LEFT JOIN dbo.VW_RDA_UMM_Activos umm_v
+                ON LTRIM(RTRIM(umm_v.codigo)) = LTRIM(RTRIM(pm.[Unidad Medida Dosis]))
             LEFT JOIN [dbo].[Cnsta Unidad medida dosis 1888] umm
                 ON LTRIM(RTRIM(umm.Codigo)) = LTRIM(RTRIM(pm.[Unidad Medida Dosis]))
                 OR LTRIM(RTRIM(umm.Descripcion)) = LTRIM(RTRIM(pm.[Unidad Medida Dosis]))
+            LEFT JOIN dbo.VW_RDA_MedicationTime_Activos dur_mt
+                ON LTRIM(RTRIM(dur_mt.codigo)) = LTRIM(RTRIM(pm.[Duracion Unidad Tiempo]))
+                OR LOWER(LTRIM(RTRIM(dur_mt.display))) = LOWER(LTRIM(RTRIM(pm.[Duracion Unidad Tiempo])))
             LEFT JOIN [dbo].[Cnsta Unidad tiempo duracion 1888] dur
                 ON LTRIM(RTRIM(dur.Codigo)) = LTRIM(RTRIM(pm.[Duracion Unidad Tiempo]))
                 OR LTRIM(RTRIM(dur.Descripcion)) = LTRIM(RTRIM(pm.[Duracion Unidad Tiempo]))
+            LEFT JOIN dbo.VW_RDA_MedicationTime_Activos mt
+                ON LTRIM(RTRIM(mt.codigo)) = LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo]))
+                OR LOWER(LTRIM(RTRIM(mt.display))) = LOWER(LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo])))
             LEFT JOIN [dbo].[Cnsta Unidad tiempo frecuencia 1888] freq
                 ON LTRIM(RTRIM(freq.Codigo)) = LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo]))
                 OR LTRIM(RTRIM(freq.Descripcion)) = LTRIM(RTRIM(pm.[Frecuencia Unidad Tiempo]))
+            LEFT JOIN dbo.VW_RDA_ViaAdministracion_Activos vad_v
+                ON LTRIM(RTRIM(vad_v.codigo)) = CASE
+                    WHEN TRY_CAST(LTRIM(RTRIM(pm.[Via Administracion])) AS INT) IS NOT NULL
+                         AND LEN(LTRIM(RTRIM(pm.[Via Administracion]))) < 3
+                    THEN RIGHT(REPLICATE(N'0', 3) + LTRIM(RTRIM(pm.[Via Administracion])), 3)
+                    ELSE LTRIM(RTRIM(pm.[Via Administracion]))
+                END
             WHERE pm.[Id Evaluacion Entidad RDA Consulta Externa] = @Id AND pm.[Id Estado] = 1
         `),
         pool.request().input('Id', sql.Int, id).query(`

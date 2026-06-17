@@ -45,7 +45,7 @@ const formatters = {
     medCE(item) {
         let t = `${item.codigo || ""} ${item.nombre || item.dci || ""}`;
         if (item.dosis) t += ` | ${item.dosis} ${item.unidadDosis || ""}`;
-        if (item.via) t += ` | ${item.via}`;
+        if (item.viaDisplay || item.viaCodigo || item.via) t += ` | ${item.viaDisplay || item.viaCodigo || item.via}`;
         return t;
     },
     procCE(item) {
@@ -54,7 +54,8 @@ const formatters = {
         return t;
     },
     otraCE(item) {
-        return `${item.tipo || ""} | ${item.codigo} - ${item.nombre || ""}`;
+        if (item.tipo) return item.tipo;
+        return `${item.codigo || ""}${item.nombre ? ` - ${item.nombre}` : ""}`;
     },
 };
 

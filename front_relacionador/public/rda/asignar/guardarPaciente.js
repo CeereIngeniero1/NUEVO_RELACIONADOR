@@ -20,6 +20,19 @@ function rdaIsMissingRequired(v) {
     return s === '' || s === 'null' || s === 'undefined';
 }
 
+function rdaSelect2Value(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return null;
+    try {
+        const $ = window.jQuery;
+        if ($ && $(el).data('select2')) {
+            const d = $(el).select2('data')[0];
+            return d && d.id != null ? String(d.id) : (el.value || null);
+        }
+    } catch (e) { /* ignore */ }
+    return el.value || null;
+}
+
 function rdaValidatePacienteRequiredForSave() {
     const required = [
         { id: 'TipoDocumentoBase', label: 'Tipo Documento' },
@@ -175,7 +188,7 @@ export async function guardarRDAPaciente() {
         NumDocProfesional: document.getElementById('RDA_NumDocProfesional')?.value || null,
         DiagnosticoIngresoCIE11Codigo: document.getElementById('RDA_DiagnosticoIngresoCIE11Codigo')?.value || null,
         DiagnosticoIngresoCIE11Termino: cie11Termino || null,
-        TipoAlergia: document.getElementById('RDA_TipoAlergia')?.value || null,
+        TipoAlergia: rdaSelect2Value('RDA_TipoAlergia'),
         IdModalidadAtencion: document.getElementById('RDA_IdModalidadAtencion')?.value || null,
         IdGrupoServicios: document.getElementById('RDA_IdGrupoServicios')?.value || null,
         NitPrestadorIPS: nitPrestadorIps,

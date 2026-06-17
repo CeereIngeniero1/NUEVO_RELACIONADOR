@@ -641,6 +641,7 @@ router.post('/RdaConsultaExterna/Seccion3IncapacidadSIPE', async (req, res) => {
         }
 
         // OPCIONAL (BD): si no existen estos datos, la sección se envía vacía.
+        const LICENSE_SCOPE_DISPLAY = { '01': 'Nueva', '02': 'Prórroga' };
         const alcance = str(head.AlcanceIncapacidad);
         const diasIncapacidad = Number(head.DiasIncapacidad);
         const diasLicencia = Number(head.DiasLicenciaMaternidad);
@@ -676,9 +677,9 @@ router.post('/RdaConsultaExterna/Seccion3IncapacidadSIPE', async (req, res) => {
                         coding: [{
                             system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLicenseScope',
                             code: alcance,
-                            display: alcance,
+                            display: LICENSE_SCOPE_DISPLAY[alcance] || alcance,
                         }],
-                        text: alcance,
+                        text: LICENSE_SCOPE_DISPLAY[alcance] || alcance,
                     },
                 });
             }

@@ -96,3 +96,69 @@ body.app-layout .icon-style {
     margin-right: 0.5rem;
     vertical-align: middle;
 }
+
+/* Modo embebido (iframe desde Asignar RIPS / RDA) */
+html.visor-embed-mode body.app-layout #crTopbar,
+html.visor-embed-mode body.app-layout .cr-page-heading,
+html.visor-embed-mode body.app-layout .cr-page-content > p.text-muted,
+html.visor-embed-mode body.app-layout .cr-page-content > .alert:not(.visor-embed-bar),
+html.visor-embed-mode body.app-layout .cr-page-content > .row.g-3.mb-3 {
+    display: none !important;
+}
+
+html.visor-embed-mode body.app-layout .cr-page-content {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+html.visor-embed-mode body.app-layout .visor-accordion {
+    max-width: none;
+    margin: 0;
+}
+
+html.visor-embed-mode .visor-embed-bar {
+    background: var(--color-primary-light, rgba(0, 126, 130, 0.1));
+    border-left: 4px solid var(--color-primary, #007e82) !important;
+}
+
+html.visor-embed-mode .visor-embed-bar.visor-embed-bar--done {
+    background: rgba(25, 135, 84, 0.08);
+    border-left-color: #198754 !important;
+}
+
+.visor-ihce-logo {
+    height: 36px;
+    width: auto;
+    max-width: 140px;
+    object-fit: contain;
+}
+
+.visor-ihce-logo--sm {
+    height: 28px;
+    max-width: 120px;
+}
+
+html.visor-embed-mode .visor-acc-icon {
+    font-size: 1.15rem;
+    width: 1.35rem;
+    text-align: center;
+    color: var(--color-primary, #007e82);
+}
+
+html.visor-embed-mode .table .btn-ver-rda {
+    color: var(--color-primary, #007e82);
+    font-size: 1.1rem;
+}
+
+body.app-layout .table .btn-ver-rda {
+    color: var(--color-primary, #007e82);
+    font-size: 1.1rem;
+}
+
+html.visor-embed-mode .modal {
+    z-index: 2000;
+}
+
+html.visor-embed-mode .modal-backdrop {
+    z-index: 1990;
+}

@@ -1786,14 +1786,26 @@ CREATE TABLE [dbo].[Alcance incapacidad 1888](
 GO
 IF NOT EXISTS (SELECT 1 FROM [Alcance incapacidad 1888])
 INSERT INTO [Alcance incapacidad 1888] (Codigo, Descripcion) VALUES
-('01', 'Laboral'),
-('02', 'Escolar'),
-('03', 'Laboral y escolar');
+('01', 'Nueva'),
+('02', 'Prórroga');
 GO
 IF OBJECT_ID(N'[dbo].[Cnsta Alcance incapacidad 1888]', N'V') IS NULL
 EXEC('CREATE VIEW [dbo].[Cnsta Alcance incapacidad 1888] AS
 SELECT [Id Alcance incapacidad 1888] AS IdAlcanceIncapacidad1888, Codigo, Descripcion, [Id Estado] AS IdEstado
 FROM [dbo].[Alcance incapacidad 1888] WHERE [Id Estado] = 7');
+GO
+
+-- ColombianLicenseScope (MinSalud): 01 Nueva, 02 Prórroga
+UPDATE [dbo].[Alcance incapacidad 1888]
+SET Descripcion = CASE Codigo
+    WHEN '01' THEN 'Nueva'
+    WHEN '02' THEN 'Prórroga'
+END
+WHERE Codigo IN ('01', '02');
+
+UPDATE [dbo].[Alcance incapacidad 1888]
+SET [Id Estado] = 8
+WHERE Codigo NOT IN ('01', '02');
 GO
 
 -- Tipos de tecnología en salud: códigos usados en RDA (Medicamento / Procedimiento)

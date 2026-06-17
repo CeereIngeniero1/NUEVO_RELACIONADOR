@@ -36,6 +36,17 @@ const Router      = require('express').Router;
 const { randomUUID, createHash } = require('crypto');
 const { sql, poolPromise } = require('../../db2');
 const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
+const {
+    loadRdaceMedicationCatalogs,
+    loadColombianTechModalityCatalog,
+    resolveMedicationTimeFromRow,
+    resolveDurationMedicationTimeFromRow,
+    resolveUmmFromRow,
+    resolveVadFromRow,
+    isCompleteMedicationPrescriptionRow,
+    validateMedicationDosageFromCatalogs,
+    validatePrescripcionMedicamentoCatalogCodes,
+} = require('../../rda/rdaFhirCatalogs');
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
 const {
     toFhirDateTimeColombia,
@@ -177,7 +188,8 @@ function sanitizeOptionalPatientFields(patient) {
     }
 }
 
-function validateRequiredForIhceCeBundle(bundle) {
+function validateRequiredForIhceCeBundle(bundle, options = {}) {
+    const medicationTimeCatalog = options.medicationTimeCatalog || null;
     if (!bundle || !Array.isArray(bundle.entry)) {
         return 'Bundle inválido: no contiene entry.';
     }
@@ -226,20 +238,204 @@ function validateRequiredForIhceCeBundle(bundle) {
         return `El custodian de Composition referencia una Organization inexistente en el bundle (${custRef}).`;
     }
 
+    const cupsSystem = 'https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS';
+    const SCT = 'http://snomed.info/sct';
+    const sections = Array.isArray(composition.section) ? composition.section : [];
+    const sectionByLoinc = (loinc) => sections.find((s) =>
+        s &&
+        s.code &&
+        Array.isArray(s.code.coding) &&
+        s.code.coding.some((c) => String(c && c.code ? c.code : '').trim() === loinc)
+    );
+
+    if (entries.some((e) => e && e.resource && e.resource.resourceType === 'FamilyMemberHistory')) {
+        return 'RDA Consulta Externa no permite FamilyMemberHistory en el bundle.';
+    }
+
     const encounterEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Encounter');
     const encounter = encounterEntry && encounterEntry.resource;
-    const cupsSystem = 'https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS';
-    const svcType = encounter && encounter.serviceType;
-    const svcCoding = svcType && Array.isArray(svcType.coding) ? svcType.coding[0] : null;
-    const svcSystem = svcCoding && svcCoding.system != null ? String(svcCoding.system).trim() : '';
-    const svcCode = svcCoding && svcCoding.code != null ? String(svcCoding.code).trim() : '';
     if (!encounter) {
         return 'Falta recurso Encounter (EncounterAmbulatoryRDA).';
     }
+    if (encounter && Array.isArray(encounter.diagnosis)) {
+        if (encounter.diagnosis.length > 1) {
+            return 'Encounter.diagnosis debe contener solo el diagnóstico principal (Condition-0).';
+        }
+        const mainRef = encounter.diagnosis[0]
+            && encounter.diagnosis[0].condition
+            && encounter.diagnosis[0].condition.reference;
+        if (mainRef && refIdFromBundleReference(mainRef) !== 'Condition-0') {
+            return 'Encounter.diagnosis[0] debe referenciar Condition-0.';
+        }
+    }
+
+    const svcType = encounter.serviceType;
+    const svcCoding = svcType && Array.isArray(svcType.coding) ? svcType.coding[0] : null;
+    const svcSystem = svcCoding && svcCoding.system != null ? String(svcCoding.system).trim() : '';
+    const svcCode = svcCoding && svcCoding.code != null ? String(svcCoding.code).trim() : '';
     if (!svcCoding || svcSystem !== cupsSystem || !svcCode) {
         return 'Encounter.serviceType requiere un código CUPS (system https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS). '
             + 'No use GrupoServicios en serviceType: el grupo RIPS va en type[1]=01 solo para el perfil RDA CE; '
             + 'el procedimiento CUPS va en prescripción de procedimientos o en el RIPS de la historia clínica.';
+    }
+
+    const allergyCount = entries.filter((e) => e && e.resource && e.resource.resourceType === 'AllergyIntolerance').length;
+    const riskCount = entries.filter((e) => e && e.resource && e.resource.resourceType === 'RiskAssessment').length;
+    const svcCount = entries.filter((e) => e && e.resource && e.resource.resourceType === 'ServiceRequest').length;
+
+    const allergySection = sectionByLoinc('48765-2');
+    const riskSection = sectionByLoinc('75492-9');
+    const svcSection = sectionByLoinc('61146-1');
+
+    if (allergyCount > 0 && allergySection && allergySection.emptyReason) {
+        return 'La sección de alergias no puede tener emptyReason si existe AllergyIntolerance en el bundle.';
+    }
+    if (allergyCount === 0 && allergySection && Array.isArray(allergySection.entry) && allergySection.entry.length > 0) {
+        return 'La sección de alergias tiene entry pero no hay AllergyIntolerance en el bundle.';
+    }
+    if (riskCount > 0 && riskSection && riskSection.emptyReason) {
+        return 'La sección de factores de riesgo no puede tener emptyReason si existe RiskAssessment en el bundle.';
+    }
+    if (riskCount === 0 && riskSection && Array.isArray(riskSection.entry) && riskSection.entry.length > 0) {
+        return 'La sección de factores de riesgo tiene entry pero no hay RiskAssessment en el bundle.';
+    }
+    if (svcCount > 0 && svcSection && svcSection.emptyReason) {
+        return 'La sección de órdenes no puede tener emptyReason si existe ServiceRequest en el bundle.';
+    }
+    if (svcCount === 0 && svcSection && Array.isArray(svcSection.entry) && svcSection.entry.length > 0) {
+        return 'La sección de órdenes tiene entry pero no hay ServiceRequest en el bundle.';
+    }
+
+    const badSvc = entries.find((e) => {
+        const r = e && e.resource;
+        if (!r || r.resourceType !== 'ServiceRequest') return false;
+        if (!r.requester) return true;
+        if (!r.authoredOn) return true;
+        if (!Array.isArray(r.reasonCode) || r.reasonCode.length === 0) return true;
+        const codings = r.code && Array.isArray(r.code.coding) ? r.code.coding : [];
+        const hasCups = codings.some((c) =>
+            String(c && c.system ? c.system : '').trim() === cupsSystem && String(c && c.code ? c.code : '').trim()
+        );
+        const hasSnomed = codings.some((c) =>
+            String(c && c.system ? c.system : '').trim() === SCT && String(c && c.code ? c.code : '').trim()
+        );
+        return !hasCups && !hasSnomed;
+    });
+    if (badSvc) {
+        return 'ServiceRequestRDA incompleto: requiere requester, reasonCode, authoredOn y código CUPS o SNOMED válido.';
+    }
+
+    if (riskCount > 0) {
+        const badRisk = entries.find((e) => {
+            const r = e && e.resource;
+            return r && r.resourceType === 'RiskAssessment' && (!r.encounter || !r.subject || !r.code);
+        });
+        if (badRisk) {
+            return 'RiskAssessment incompleto: requiere encounter, subject y code.';
+        }
+    }
+
+    const diagSection = sectionByLoinc('11450-4');
+    const conditionCount = entries.filter((e) => e && e.resource && e.resource.resourceType === 'Condition').length;
+    if (diagSection && Array.isArray(diagSection.entry) && diagSection.entry.length !== conditionCount) {
+        return 'La sección Historial de diagnósticos debe referenciar exactamente las Condition del bundle.';
+    }
+
+    if (entries.some((e) => e && e.resource && e.resource.resourceType === 'MedicationStatement')) {
+        return 'RDA Consulta Externa no permite MedicationStatement: use MedicationRequestRDA.';
+    }
+
+    const hasIcd11Condition = entries.some((e) => {
+        const r = e && e.resource;
+        if (!r || r.resourceType !== 'Condition') return false;
+        const codings = r.code && Array.isArray(r.code.coding) ? r.code.coding : [];
+        return codings.some((c) => String(c && c.system ? c.system : '').trim() === 'http://hl7.org/fhir/sid/icd-11');
+    });
+    if (hasIcd11Condition) {
+        return 'ConditionRDA en RDACE debe usar CIE-10; no envíe codificaciones ICD-11 en Condition.';
+    }
+
+    const idSet = new Set(
+        entries
+            .map((e) => e && e.resource && String(e.resource.id || '').trim())
+            .filter(Boolean)
+    );
+
+    const refs = [];
+    const collectRefs = (node) => {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) {
+            node.forEach(collectRefs);
+            return;
+        }
+        if (typeof node.reference === 'string' && node.reference.trim().startsWith('#')) {
+            refs.push(node.reference.trim().slice(1));
+        }
+        Object.keys(node).forEach((k) => collectRefs(node[k]));
+    };
+    collectRefs(bundle);
+    const missingRef = refs.find((rid) => !idSet.has(rid));
+    if (missingRef) {
+        return `Reference #${missingRef} no existe en Bundle.entry.resource.id.`;
+    }
+
+    const medsSection = sectionByLoinc('10160-0');
+    const medReqCount = entries.filter((e) => e && e.resource && e.resource.resourceType === 'MedicationRequest').length;
+
+    if (sections.some((s) =>
+        s &&
+        s.code &&
+        Array.isArray(s.code.coding) &&
+        s.code.coding.some((c) => String(c && c.code ? c.code : '').trim() === '10157-6')
+    )) {
+        return 'CompositionAmbulatoryRDA no admite la sección Historial de antecedentes familiares (10157-6).';
+    }
+
+    if (medReqCount > 0 && (!medsSection || !Array.isArray(medsSection.entry) || medsSection.entry.length === 0)) {
+        return 'Hay MedicationRequest en el bundle, pero la sección de Historial de medicamentos no tiene entry.';
+    }
+    if (medReqCount === 0 && medsSection && Array.isArray(medsSection.entry) && medsSection.entry.length > 0) {
+        return 'La sección de Historial de medicamentos tiene entry pero no hay MedicationRequest en el bundle.';
+    }
+
+    const medReqInvalid = entries.find((e) => {
+        const r = e && e.resource;
+        if (!r || r.resourceType !== 'MedicationRequest') return false;
+        if (!r.subject || !r.encounter || !r.requester || !r.authoredOn) return true;
+        if (!Array.isArray(r.reasonCode) || r.reasonCode.length === 0) return true;
+        if (!Array.isArray(r.dosageInstruction) || r.dosageInstruction.length === 0) return true;
+        const di = r.dosageInstruction[0];
+        const routeOk = di && di.route && Array.isArray(di.route.coding) && di.route.coding.length > 0;
+        const timing = di && di.timing;
+        const repeat = timing && timing.repeat;
+        const dar = di && Array.isArray(di.doseAndRate) ? di.doseAndRate[0] : null;
+        return !(
+            routeOk &&
+            repeat && repeat.duration != null && repeat.durationUnit &&
+            timing.code &&
+            dar && dar.doseQuantity && dar.rateQuantity
+        );
+    });
+    if (medReqInvalid) {
+        return 'MedicationRequestRDA incompleto: requiere reasonCode, dosageInstruction, subject, encounter, requester y authoredOn.';
+    }
+
+    const medTimeInvalid = entries.find((e) => {
+        const r = e && e.resource;
+        if (!r || r.resourceType !== 'MedicationRequest') return false;
+        const di = Array.isArray(r.dosageInstruction) ? r.dosageInstruction[0] : null;
+        const err = validateMedicationDosageFromCatalogs(di, options.medicationCatalogs || {});
+        return Boolean(err);
+    });
+    if (medTimeInvalid) {
+        const di = medTimeInvalid.resource.dosageInstruction[0];
+        const err = validateMedicationDosageFromCatalogs(di, options.medicationCatalogs || {});
+        return err || 'MedicationRequest dosageInstruction inválido respecto a catálogos BD.';
+    }
+
+    const badSection = sections.find((s) => Array.isArray(s && s.entry) && s.entry.length > 0 && s.emptyReason);
+    if (badSection) {
+        return 'Una sección Composition contiene entry y emptyReason al mismo tiempo, lo cual es inválido.';
     }
 
     return '';
@@ -293,6 +489,55 @@ const toStrictIntOrNull = (value) => {
     if (s == null) return null;
     const n = parseInt(s, 10);
     return Number.isFinite(n) ? n : null;
+};
+
+const parseCodeDisplayFromText = (raw) => {
+    const s = raw != null ? String(raw).trim() : '';
+    if (!s) return { code: null, display: null };
+    const m = s.match(/^([A-Za-z0-9.]+)\s*[-:]\s*(.+)$/);
+    if (m) return { code: m[1].trim(), display: m[2].trim() || null };
+    return { code: s, display: null };
+};
+
+const cleanMipresInnDisplay = (raw) => {
+    const s = raw != null ? String(raw).trim() : '';
+    if (!s) return null;
+    return s.replace(/\s*\([^)]*\)\s*$/g, '').trim() || null;
+};
+
+/** Prescripción CE completa solo si todos los catálogos FHIR resuelven desde BD. */
+const isCompleteMedicationPrescription = (m, catalogs) => isCompleteMedicationPrescriptionRow(m, catalogs);
+
+const refIdFromBundleReference = (reference) => {
+    const raw = String(reference || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('#')) return raw.slice(1);
+    const m = raw.match(/^[A-Za-z]+\/(.+)$/);
+    return m ? m[1] : raw;
+};
+
+const parseIcd10FromText = (raw) => {
+    const s = raw != null ? String(raw).trim() : '';
+    if (!s) return { code: null, display: null };
+
+    const cie10Slice = s.match(/CIE\s*-\s*10\s*:\s*([^|]+)/i);
+    const source = cie10Slice ? String(cie10Slice[1] || '').trim() : s;
+    const matchCode = source.match(/\b([A-TV-Z][0-9][0-9A-Z]{1,3})\b/i);
+    if (!matchCode) return { code: null, display: null };
+
+    const code = String(matchCode[1] || '').toUpperCase();
+    const after = source.slice(matchCode.index + matchCode[0].length).trim();
+    const cleaned = after.replace(/^[-:]\s*/, '').trim();
+    return { code, display: cleaned || null };
+};
+
+const parseParentescoFromText = (raw) => {
+    const s = raw != null ? String(raw).trim() : '';
+    if (!s) return { code: null, display: null };
+    const m = s.match(/^(\d{1,2})\s*[-:]\s*(.+)$/);
+    if (m) return { code: String(parseInt(m[1], 10)).padStart(2, '0'), display: m[2].trim() || null };
+    if (/^\d{1,2}$/.test(s)) return { code: String(parseInt(s, 10)).padStart(2, '0'), display: null };
+    return { code: null, display: s };
 };
 
 // ===========================================================================
@@ -503,6 +748,14 @@ router.post('/EvaluacionEntidadRDACE/PrescripcionMedicamentos', async (req, res)
     } = req.body;
     try {
         const pool = await poolPromise;
+        const medicationCatalogs = await loadRdaceMedicationCatalogs(pool);
+        const catalogErr = validatePrescripcionMedicamentoCatalogCodes(
+            { via, unidadDosis, duracionUnid, frecuenciaUnid },
+            medicationCatalogs
+        );
+        if (catalogErr) {
+            return res.status(400).json({ ok: false, error: catalogErr });
+        }
         await pool.request()
             .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
             .input('TipoTec', sql.NVarChar, tipo || null)
@@ -657,7 +910,6 @@ const RDACE_CATALOGOS_1888 = {
     ParentescoFamiliar:          '[Cnsta Parentesco familiar RDA 1888]',
     TipoDiagnosticoPrincipal:    '[Cnsta Tipo diagnostico principal 1888]',
     UnidadMedidaDosis:           '[Cnsta Unidad medida dosis 1888]',
-    ViaAdministracionMedicamento:'[Cnsta Via administracion medicamento 1888]',
     UnidadTiempoDuracion:        '[Cnsta Unidad tiempo duracion 1888]',
     UnidadTiempoFrecuencia:      '[Cnsta Unidad tiempo frecuencia 1888]',
     FinalidadTecnologiaSalud:    '[Cnsta Finalidad tecnologia salud 1888]',
@@ -666,9 +918,78 @@ const RDACE_CATALOGOS_1888 = {
 };
 
 router.get('/Catalogo1888/:clave', async (req, res) => {
-    const viewName = RDACE_CATALOGOS_1888[req.params.clave];
-    if (!viewName) return res.status(404).json({ error: 'Catálogo no encontrado', clave: req.params.clave });
+    const clave = req.params.clave;
     const q = req.query.q != null ? String(req.query.q).trim() : '';
+    if (clave === 'MedicationTime') {
+        try {
+            const pool = await poolPromise;
+            const sqlBase = `
+                SELECT
+                    codigo AS Codigo,
+                    display AS Descripcion,
+                    system_url AS SystemUrl,
+                    fhir_duration_unit AS FhirDurationUnit,
+                    id_estado AS IdEstado
+                FROM dbo.VW_RDA_MedicationTime_Activos
+            `;
+            if (!q) {
+                const result = await pool.request().query(`${sqlBase} ORDER BY TRY_CAST(codigo AS INT), codigo`);
+                return res.json(result.recordset);
+            }
+            const result = await pool.request()
+                .input('Busqueda', sql.VarChar, '%' + q + '%')
+                .query(`${sqlBase} WHERE display LIKE @Busqueda OR CAST(codigo AS NVARCHAR(50)) LIKE @Busqueda ORDER BY TRY_CAST(codigo AS INT), codigo`);
+            return res.json(result.recordset);
+        } catch (error) {
+            console.error('❌ Error catálogo MedicationTime:', error);
+            if (!res.headersSent) res.status(500).send('Error interno del servidor');
+            return;
+        }
+    }
+    if (clave === 'UMM') {
+        try {
+            const pool = await poolPromise;
+            const sqlBase = `
+                SELECT codigo AS Codigo, display AS Descripcion, unidad AS Unidad, system_url AS SystemUrl, id_estado AS IdEstado
+                FROM dbo.VW_RDA_UMM_Activos
+            `;
+            if (!q) {
+                const result = await pool.request().query(`${sqlBase} ORDER BY codigo`);
+                return res.json(result.recordset);
+            }
+            const result = await pool.request()
+                .input('Busqueda', sql.VarChar, '%' + q + '%')
+                .query(`${sqlBase} WHERE display LIKE @Busqueda OR unidad LIKE @Busqueda OR CAST(codigo AS NVARCHAR(50)) LIKE @Busqueda ORDER BY codigo`);
+            return res.json(result.recordset);
+        } catch (error) {
+            console.error('❌ Error catálogo UMM:', error);
+            if (!res.headersSent) res.status(500).send('Error interno del servidor');
+            return;
+        }
+    }
+    if (clave === 'VAD') {
+        try {
+            const pool = await poolPromise;
+            const sqlBase = `
+                SELECT codigo AS Codigo, display AS Descripcion, system_url AS SystemUrl, id_estado AS IdEstado
+                FROM dbo.VW_RDA_ViaAdministracion_Activos
+            `;
+            if (!q) {
+                const result = await pool.request().query(`${sqlBase} ORDER BY codigo`);
+                return res.json(result.recordset);
+            }
+            const result = await pool.request()
+                .input('Busqueda', sql.VarChar, '%' + q + '%')
+                .query(`${sqlBase} WHERE display LIKE @Busqueda OR CAST(codigo AS NVARCHAR(50)) LIKE @Busqueda ORDER BY codigo`);
+            return res.json(result.recordset);
+        } catch (error) {
+            console.error('❌ Error catálogo VAD:', error);
+            if (!res.headersSent) res.status(500).send('Error interno del servidor');
+            return;
+        }
+    }
+    const viewName = RDACE_CATALOGOS_1888[clave];
+    if (!viewName) return res.status(404).json({ error: 'Catálogo no encontrado', clave: clave });
     try {
         const pool = await poolPromise;
         if (!q) {
@@ -779,7 +1100,6 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const toFhirDtCo    = (v) => toFhirDateTimeColombia(v) || toIsoDateTime(v);
 
     const RDA_SD       = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
-    const CS_MODALITY  = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
     const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
     const CS_ENTORNO   = 'https://fhir.minsalud.gov.co/rda/CodeSystem/EntornoAtencion';
     const CS_CAUSA_EXT = 'https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSCausaExternaVersion2';
@@ -791,6 +1111,15 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const CS_CUPS = 'https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS';
     const CS_UMM = 'https://fhir.minsalud.gov.co/rda/CodeSystem/UMM';
     const CS_COLOMBIAN_LICENSE_SCOPE = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLicenseScope';
+    const LICENSE_SCOPE_DISPLAY = Object.freeze({
+        '01': 'Nueva',
+        '02': 'Prórroga',
+    });
+    const licenseScopeDisplayFromCode = (code, fallback) => {
+        const c = str(code).trim();
+        if (!c) return str(fallback) || undefined;
+        return LICENSE_SCOPE_DISPLAY[c] || str(fallback) || c;
+    };
     const CS_RIPS_FINALIDAD = 'https://fhir.minsalud.gov.co/rda/CodeSystem/RIPSFinalidadConsultaVersion2';
     const CS_COLOMBIAN_HT_CAT = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianHealthTechnologyCategory';
     const CS_MIPRES_INN = 'https://fhir.minsalud.gov.co/rda/CodeSystem/MipresINN';
@@ -882,6 +1211,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const medPrescripciones = aggregate.medPrescripciones;
         const procPrescripciones = aggregate.procPrescripciones;
         const otrasTecnologias = aggregate.otrasTecnologias;
+        const antecedentesSalud = aggregate.antecedentesSalud || [];
+        // Antecedentes familiares y farmacológicos: persistidos en BD para UI/PDF;
+        // no se incluyen como FamilyMemberHistory ni MedicationRequest en RDA CE (slicing cerrado).
         const empresaIps = aggregate.empresaIps || null;
         const codPrest = str(head.CodigoPrestador);
         const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS);
@@ -1154,7 +1486,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         });
         const practitionerRef = { reference: refOf(practitionerEntry) };
 
-        // Condition principal (solo CIE-10) + ingreso CIE-11 en recurso aparte si aplica.
+        // Condition principal (solo CIE-10) + antecedentes de salud/relacionados como Conditions adicionales.
         let conditionSeq = 0;
         const principalCode = buildConditionRdaCode({
             cie10Code: head.DiagPrincipalCIE10Codigo,
@@ -1169,26 +1501,11 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             code: principalCode,
         }) : null;
 
-        const condIngresoC11Code = buildConditionRdaCode({
-            cie11Code: head.DiagnosticoIngresoCIE11Codigo,
-            cie11Display: head.DiagnosticoIngresoCIE11Termino,
-        });
-        const condIngresoC11Entry = condIngresoC11Code ? makeEntry({
-            resourceType: 'Condition',
-            id: `Condition-${conditionSeq++}`,
-            meta: { profile: [`${RDA_SD}/ConditionRDA`] },
-            ...CONDITION_RDA_BASE,
-            subject: { reference: refOf(patientEntry) },
-            code: condIngresoC11Code,
-        }) : null;
-
-        // Diagnósticos relacionados (un coding por Condition; prioriza CIE-10 si ambos existen).
+        // Diagnósticos relacionados (solo CIE-10 para ConditionRDA).
         const condRelacionadasEntries = diagRelacionados.map((r) => {
             const code = buildConditionRdaCode({
                 cie10Code: r.CodigoCIE10,
                 cie10Display: r.NombreCIE10,
-                cie11Code: r.CodigoCIE11,
-                cie11Display: r.TerminoCIE11,
             });
             if (!code) return null;
             return makeEntry({
@@ -1198,6 +1515,26 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 ...CONDITION_RDA_BASE,
                 subject: { reference: refOf(patientEntry) },
                 code,
+            });
+        }).filter(Boolean);
+
+        const condAntecedentesSaludEntries = antecedentesSalud.map((a) => {
+            const parsed = parseIcd10FromText(a && a.Descripcion);
+            if (!parsed.code) return null;
+            return makeEntry({
+                resourceType: 'Condition',
+                id: `Condition-${conditionSeq++}`,
+                meta: { profile: [`${RDA_SD}/ConditionRDA`] },
+                ...CONDITION_RDA_BASE,
+                subject: { reference: refOf(patientEntry) },
+                code: {
+                    coding: [{
+                        system: 'http://hl7.org/fhir/sid/icd-10',
+                        code: parsed.code,
+                        display: parsed.display || undefined,
+                    }],
+                    text: parsed.display || parsed.code,
+                },
             });
         }).filter(Boolean);
 
@@ -1241,18 +1578,141 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             || toFhirDtCo(head.FechaHoraInicioAtencion)
             || toFhirDtCo(head.FechaHoraFinAtencion);
 
-        // MedicationRequest — MedicationRequestRDA: código MipresINN debe existir en ValueSet MipresDCI (solo CodigoMedicamento oficial Mi Prescripción).
-        const CS_MED_TIME = 'https://fhir.minsalud.gov.co/rda/CodeSystem/MedicationTime';
+        const medicationCatalogs = await loadRdaceMedicationCatalogs(pool);
+        let colombianTechModalityCatalog = null;
+
+        const defaultMedReasonCodeable = () => {
+            const code = str(process.env.IHCE_RDACE_DEFAULT_MED_FINALIDAD_CODE) || '21';
+            const display = str(process.env.IHCE_RDACE_DEFAULT_MED_FINALIDAD_DISPLAY)
+                || 'ATENCION BASICA DE ORIENTACION FAMILIAR';
+            return codeableFromDb(CS_RIPS_FINALIDAD, code, display);
+        };
+        const resolveMedicationReasonCodeable = (m) =>
+            ripsFinalidadCodeable(m.FinalidadCodigo, m.FinalidadDescripcion, m.Finalidad)
+            || defaultMedReasonCodeable();
+        const buildMedicationDosageInstruction = (m) => {
+            const medTime = resolveMedicationTimeFromRow(m, medicationCatalogs.medicationTime);
+            const durTime = resolveDurationMedicationTimeFromRow(m, medicationCatalogs.medicationTime);
+            const umm = resolveUmmFromRow(m, medicationCatalogs.umm);
+            const vad = resolveVadFromRow(m, medicationCatalogs.vad);
+            if (!medTime || !durTime || !umm || !vad) return null;
+            if (!durTime.fhir_duration_unit) return null;
+
+            const durCant = str(m.DuracionCantidad);
+            const dosisRaw = str(m.DosisOrdenada);
+            const doseValue = dosisRaw != null ? parseFloat(dosisRaw) : NaN;
+            const freqRaw = str(m.FrecuenciaCantidad);
+            const rateValue = freqRaw != null ? parseFloat(freqRaw) : NaN;
+            if (!durCant || isNaN(doseValue) || isNaN(rateValue)) return null;
+
+            return {
+                route: {
+                    coding: [{
+                        system: vad.system_url,
+                        code: vad.codigo,
+                        display: vad.display || undefined,
+                    }],
+                },
+                timing: {
+                    repeat: {
+                        duration: parseFloat(durCant),
+                        durationUnit: durTime.fhir_duration_unit,
+                    },
+                    code: {
+                        coding: [{
+                            system: medTime.system_url,
+                            code: medTime.codigo,
+                            display: medTime.display || undefined,
+                        }],
+                    },
+                },
+                doseAndRate: [{
+                    doseQuantity: {
+                        value: doseValue,
+                        unit: umm.unidad || umm.display || umm.codigo,
+                        system: umm.system_url,
+                        code: umm.codigo,
+                    },
+                    rateQuantity: {
+                        value: rateValue,
+                        unit: medTime.display || medTime.codigo,
+                        system: medTime.system_url,
+                        code: medTime.codigo,
+                    },
+                }],
+            };
+        };
+
+        const medicationSourceRows = medPrescripciones
+            .map((m) => ({
+                CodigoMedicamento: m.CodigoMedicamento,
+                NombreMedicamento: m.NombreMedicamento,
+                DCI: m.DCI,
+                FechaPrescripcion: m.FechaPrescripcion,
+                DosisOrdenada: m.DosisOrdenada,
+                UnidadDosisCodigo: m.UnidadDosisCodigo,
+                UnidadDosisDescripcion: m.UnidadDosisDescripcion,
+                ViaAdministracion: m.ViaAdministracion,
+                ViaAdministracionCodigo: m.ViaAdministracionCodigo,
+                ViaAdministracionDescripcion: m.ViaAdministracionDescripcion,
+                DuracionCantidad: m.DuracionCantidad,
+                DuracionUnidad: m.DuracionUnidad,
+                DuracionUnidadCodigo: m.DuracionUnidadCodigo,
+                FrecuenciaCantidad: m.FrecuenciaCantidad,
+                FrecuenciaUnidadCodigo: m.FrecuenciaUnidadCodigo,
+                FrecuenciaUnidadDescripcion: m.FrecuenciaUnidadDescripcion,
+                FrecuenciaMedicationTimeCodigo: m.FrecuenciaMedicationTimeCodigo,
+                FrecuenciaMedicationTimeDisplay: m.FrecuenciaMedicationTimeDisplay,
+                FrecuenciaUnidad: m.FrecuenciaUnidad,
+                FinalidadCodigo: m.FinalidadCodigo,
+                FinalidadDescripcion: m.FinalidadDescripcion,
+                Finalidad: m.Finalidad,
+                reportedBoolean: false,
+            }))
+            .filter((m) => isCompleteMedicationPrescription(m, medicationCatalogs));
+
+        const mipresCatalog = {};
+        const medCodesUnique = [...new Set(medicationSourceRows.map((m) => str(m.CodigoMedicamento)).filter(Boolean))];
+        if (medCodesUnique.length) {
+            for (const code of medCodesUnique) {
+                const catRes = await pool.request()
+                    .input('Codigo', sql.VarChar(20), code)
+                    .query(`
+                        SELECT TOP 1 Codigo, Descripcion
+                        FROM [dbo].[Cnsta Medicamentos DCI 1888]
+                        WHERE LTRIM(RTRIM(Codigo)) = LTRIM(RTRIM(@Codigo))
+                    `);
+                const row = catRes.recordset && catRes.recordset[0];
+                if (row && row.Descripcion) {
+                    mipresCatalog[String(row.Codigo).trim()] = String(row.Descripcion).trim();
+                }
+            }
+        }
+        const resolveMipresDisplay = (code, rawDisplay) => {
+            const key = str(code);
+            if (key && mipresCatalog[key]) return mipresCatalog[key];
+            const cleaned = cleanMipresInnDisplay(rawDisplay);
+            if (cleaned) return cleaned;
+            return key;
+        };
+
+        // MedicationRequestRDA — solo si hay medicamentos; sección 10160-0 usa emptyReason si no hay ninguno.
         let medSeq = 0;
-        const medRequestEntries = medPrescripciones.map((m) => {
+        const allMedEntries = medicationSourceRows.map((m) => {
             const medCode = str(m.CodigoMedicamento);
-            if (!medCode) return null;
-            const medName = str(m.NombreMedicamento) || str(m.DCI) || medCode;
-            const medReq  = {
+            const medDisplay = resolveMipresDisplay(
+                medCode,
+                str(m.NombreMedicamento) || str(m.DCI)
+            );
+            const authoredOn = toFhirDtCo(m.FechaPrescripcion) || authoredOnFromHead;
+            const dosageInstruction = buildMedicationDosageInstruction(m);
+            if (!authoredOn || !dosageInstruction) return null;
+            return makeEntry({
                 resourceType: 'MedicationRequest',
                 id: `MedicationRequest-${medSeq++}`,
                 meta: { profile: [`${RDA_SD}/MedicationRequestRDA`] },
-                status: 'active', intent: 'order',
+                status: 'active',
+                intent: 'order',
                 category: [{
                     coding: [{
                         system: CS_COLOMBIAN_HT_CAT,
@@ -1260,74 +1720,30 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                         display: 'Medicamento con registro sanitario',
                     }],
                 }],
-                reportedBoolean: false,
+                reportedBoolean: m.reportedBoolean === true,
                 medicationCodeableConcept: {
-                    coding: [{ system: CS_MIPRES_INN, code: String(medCode).slice(0, 64), display: medName }],
-                    text: medName,
+                    coding: [{
+                        system: CS_MIPRES_INN,
+                        code: String(medCode).slice(0, 64),
+                        display: medDisplay,
+                    }],
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 requester: practitionerRef,
-                ...(ripsFinalidadCodeable(m.FinalidadCodigo, m.FinalidadDescripcion, m.Finalidad) ? { reasonCode: [ripsFinalidadCodeable(m.FinalidadCodigo, m.FinalidadDescripcion, m.Finalidad)] } : {}),
-                ...(toFhirDtCo(m.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(m.FechaPrescripcion) || authoredOnFromHead } : {}),
-            };
-            const dosis = str(m.DosisOrdenada); const via = str(m.ViaAdministracion);
-            const durCant = str(m.DuracionCantidad); const durUnid = str(m.DuracionUnidad);
-            const freqCant = str(m.FrecuenciaCantidad); const freqUnid = str(m.FrecuenciaUnidad);
-            const ummCode = str(m.UnidadDosisCodigo);
-            const ummDisplay = str(m.UnidadDosisDescripcion);
-            const medTimeCode = str(m.FrecuenciaUnidadCodigo);
-            const medTimeDisplay = str(m.FrecuenciaUnidadDescripcion);
-            const durUnit = str(m.DuracionUnidadCodigo);
-            const dosageInst = {
-                ...(via ? { route: { text: via } } : {}),
-                ...((durCant && durUnit) || medTimeCode ? {
-                    timing: {
-                        ...(durCant && durUnit ? {
-                            repeat: {
-                                duration: parseFloat(durCant),
-                                durationUnit: durUnit,
-                            },
-                        } : {}),
-                        ...(medTimeCode ? {
-                            code: {
-                                coding: [{
-                                    system: CS_MED_TIME,
-                                    code: medTimeCode,
-                                    display: medTimeDisplay || undefined,
-                                }],
-                            },
-                        } : {}),
-                    },
-                } : {}),
-            };
-            const dv = dosis != null && String(dosis).trim() !== '' ? parseFloat(dosis) : NaN;
-            if (Number.isFinite(dv) && ummCode) {
-                dosageInst.doseAndRate = [{
-                    doseQuantity: {
-                        value: dv,
-                        unit: ummDisplay || ummCode,
-                        system: CS_UMM,
-                        code: ummCode,
-                    },
-                    ...(freqCant && medTimeCode ? {
-                        rateQuantity: {
-                            value: parseFloat(freqCant),
-                            unit: medTimeDisplay || medTimeCode,
-                            system: CS_MED_TIME,
-                            code: medTimeCode,
-                        },
-                    } : {}),
-                }];
-            }
-            if (Object.keys(dosageInst).length > 0) medReq.dosageInstruction = [dosageInst];
-            return makeEntry(medReq);
+                reasonCode: [resolveMedicationReasonCodeable(m)],
+                authoredOn,
+                dosageInstruction: [dosageInstruction],
+            });
         }).filter(Boolean);
 
         // ServiceRequest: procedimientos + otras tecnologías con secuencia global (BUNDLE-005: id = ServiceRequest-<n>)
         let serviceSeq = 0;
         const serviceRequestEntries = procPrescripciones.map((p) => {
             const cprod = str(p.CodigoProcedimiento);
+            const reason = ripsFinalidadCodeable(p.FinalidadCodigo, p.FinalidadDescripcion, p.Finalidad);
+            const authoredOn = toFhirDtCo(p.FechaPrescripcion) || authoredOnFromHead;
+            if (!cprod || !reason || !authoredOn) return null;
             return makeEntry({
                 resourceType: 'ServiceRequest',
                 id: `ServiceRequest-${serviceSeq++}`,
@@ -1340,26 +1756,29 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                         display: 'Procedimiento en salud',
                     }],
                 }],
-                ...(ripsFinalidadCodeable(p.FinalidadCodigo, p.FinalidadDescripcion, p.Finalidad) ? { reasonCode: [ripsFinalidadCodeable(p.FinalidadCodigo, p.FinalidadDescripcion, p.Finalidad)] } : {}),
+                reasonCode: [reason],
                 code: {
-                    coding: cprod ? [{
+                    coding: [{
                         system: CS_CUPS,
                         code: cprod,
                         display: str(p.NombreProcedimiento) || undefined,
-                    }] : [],
+                    }],
                     text: str(p.NombreProcedimiento) || cprod || undefined,
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 requester: practitionerRef,
-                ...(toFhirDtCo(p.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(p.FechaPrescripcion) || authoredOnFromHead } : {}),
+                authoredOn,
             });
-        });
+        }).filter(Boolean);
 
         // ServiceRequest: otras tecnologías — primer coding SNOMED (perfil); categoría ValueSet ColombianOtherHealthTechnologyCategoryCodes
         const otrasTecEntries = otrasTecnologias.map((o) => {
             const cotra = str(o.Codigo);
             const nom = str(o.Nombre) || cotra || 'Otra tecnología';
+            const reason = ripsFinalidadCodeable(o.FinalidadCodigo, o.FinalidadDescripcion, o.Finalidad);
+            const authoredOn = toFhirDtCo(o.FechaPrescripcion) || authoredOnFromHead;
+            if (!cotra || !reason || !authoredOn) return null;
             return makeEntry({
                 resourceType: 'ServiceRequest',
                 id: `ServiceRequest-${serviceSeq++}`,
@@ -1372,17 +1791,17 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                         display: 'Servicio complementario',
                     }],
                 }],
-                ...(ripsFinalidadCodeable(o.FinalidadCodigo, o.FinalidadDescripcion, o.Finalidad) ? { reasonCode: [ripsFinalidadCodeable(o.FinalidadCodigo, o.FinalidadDescripcion, o.Finalidad)] } : {}),
+                reasonCode: [reason],
                 code: {
-                    coding: cotra ? [{ system: SCT, code: cotra, display: nom || undefined }] : [],
+                    coding: [{ system: SCT, code: cotra, display: nom || undefined }],
                     text: nom || cotra || undefined,
                 },
                 subject: { reference: refOf(patientEntry) },
                 encounter: { reference: refOf('Encounter-0', 'Encounter') },
                 requester: practitionerRef,
-                ...(toFhirDtCo(o.FechaPrescripcion) || authoredOnFromHead ? { authoredOn: toFhirDtCo(o.FechaPrescripcion) || authoredOnFromHead } : {}),
+                authoredOn,
             });
-        });
+        }).filter(Boolean);
 
         // Observation incapacidad — AttendanceAllowanceRDA: slices LicenseScope (1..1), LicenseTime, MaternityLicenseTime (IG 0.7+/0.8)
         const alcanceIncapacidad = str(head.AlcanceIncapacidad);
@@ -1393,7 +1812,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             return [{
                 system: CS_COLOMBIAN_LICENSE_SCOPE,
                 code: alcanceIncapacidad,
-                display: str(head.NombreAlcanceIncapacidad) || undefined,
+                display: licenseScopeDisplayFromCode(alcanceIncapacidad, head.NombreAlcanceIncapacidad),
             }];
         };
         const incapacidadEntry   = (alcanceIncapacidad || (diasIncapacidad != null && !isNaN(diasIncapacidad)) || (diasLicencia != null && !isNaN(diasLicencia))) ? makeEntry({
@@ -1458,8 +1877,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         // Encounter (EncounterAmbulatoryRDA) — OBLIGATORIO en RDA Consulta
         const allConditionEntries = [
             ...(condPrincipalEntry ? [condPrincipalEntry] : []),
-            ...(condIngresoC11Entry ? [condIngresoC11Entry] : []),
             ...condRelacionadasEntries,
+            ...condAntecedentesSaludEntries,
         ];
         const condicionEgreso     = str(head.CondicionDestinoEgreso);
         const codPrestRemite      = str(head.CodigoPrestadorRemite);
@@ -1482,7 +1901,32 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const cupsFromRips = aggregate.cupsFromRips || null;
         const encounterTypes = [];
         if (str(head.CodigoModalidadAtencion)) {
-            encounterTypes.push({ coding: [{ system: CS_MODALITY, code: str(head.CodigoModalidadAtencion), display: str(head.NombreModalidadAtencion) || undefined }] });
+            let modalitySystem = str(head.ModalidadAtencionSystemUrl);
+            let modalityDisplay = str(head.NombreModalidadAtencion);
+            if (!modalitySystem || !modalityDisplay) {
+                if (!colombianTechModalityCatalog) {
+                    try {
+                        colombianTechModalityCatalog = await loadColombianTechModalityCatalog(pool);
+                    } catch (_) {
+                        colombianTechModalityCatalog = {};
+                    }
+                }
+                const ctmRow = colombianTechModalityCatalog[str(head.CodigoModalidadAtencion)];
+                if (ctmRow) {
+                    modalitySystem = modalitySystem || str(ctmRow.system_url);
+                    modalityDisplay = modalityDisplay || str(ctmRow.display);
+                }
+            }
+            if (!modalitySystem) {
+                throw new Error('Modalidad de atención sin system_url oficial en BD (ejecute script RDA_ColombianTechModality).');
+            }
+            encounterTypes.push({
+                coding: [{
+                    system: modalitySystem,
+                    code: str(head.CodigoModalidadAtencion),
+                    display: modalityDisplay || undefined,
+                }],
+            });
         }
         const grupoPerfilCeDisplay = str(head.NombreGrupoServiciosPerfilCE)
             || (str(head.CodigoGrupoServicios) === '01' ? str(head.NombreGrupoServicios) : '')
@@ -1682,7 +2126,6 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             emptyReason: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason', code: 'nilknown', display: 'Nil Known' }], text: 'Sin información registrada' },
         });
 
-        const allMedEntries     = medRequestEntries;
         const allServiceEntries = [...serviceRequestEntries, ...otrasTecEntries];
 
         const sections = [
@@ -2252,12 +2695,16 @@ router.post(
 
         normalizeBundleRefsToHashFragment(bundle);
 
+        const poolValidate = await poolPromise;
+        const medicationCatalogs = await loadRdaceMedicationCatalogs(poolValidate);
+        const bundleValidateOpts = { medicationCatalogs };
+
         // Mismo cuerpo que JSON.stringify(bundle) en POST a IHCE; sin token ni llamada remota
         const isBundlePayloadPreview = /\/Json/i.test(req.path)
             || /BundlePayloadIHCE/i.test(req.path)
             || /PayloadParaIHCE/i.test(req.path);
         if (isBundlePayloadPreview) {
-            const previewErr = validateRequiredForIhceCeBundle(bundle);
+            const previewErr = validateRequiredForIhceCeBundle(bundle, bundleValidateOpts);
             if (previewErr) {
                 return res.status(400).json({
                     ok: false,
@@ -2267,7 +2714,7 @@ router.post(
             }
             return res.type('application/fhir+json').json(bundle);
         }
-        const requiredErr = validateRequiredForIhceCeBundle(bundle);
+        const requiredErr = validateRequiredForIhceCeBundle(bundle, bundleValidateOpts);
         if (strictRequiredFields && requiredErr) {
             return res.status(400).json({
                 ok: false,

@@ -765,3 +765,48 @@ body.app-layout .container {
     background-color: #1e293b !important;
     color: #e2e8f0 !important;
 }
+
+/* Visor IHCE embebido en modal RDA */
+.ihce-visor-modal-body {
+    min-height: calc(100vh - 56px);
+    background: var(--color-bg, #fff);
+}
+
+.ihce-visor-iframe {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 56px);
+    border: 0;
+    background: var(--color-bg, #fff);
+}
+
+#RDA_BtnVisorIHCE:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+#RDA_BtnVisorIHCE:not(:disabled) {
+    pointer-events: auto;
+}
+
+.visor-ihce-logo--sm {
+    height: 28px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+}
+
+#modalVisorIHCE .modal-header {
+    flex-shrink: 0;
+}
+
+.ihce-visor-btn-volver {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.cr-card-header--rda .d-flex.align-items-center.gap-2 {
+    position: relative;
+    z-index: 2;
+}

@@ -133,3 +133,9 @@ export function initListasPaciente() {
         if (inputObs) inputObs.value = "";
     });
 }
+
+export function refreshListasAntecedentesPaciente() {
+    rerender(document.getElementById("RDA_ListaAntecedentes"), getAntecedentes(), "antecedente");
+    rerender(document.getElementById("RDA_ListaAntecedentesFamiliares"), getAntecedentesFamiliares(), "familiar");
+    rerender(document.getElementById("RDA_ListaMedicamentos"), getMedicamentos(), "medicamento");
+}

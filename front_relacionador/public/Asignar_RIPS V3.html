@@ -130,7 +130,7 @@
                 <span class="text-muted small">·</span>
                 <a href="Desrelacionar.html" class="link-secondary text-decoration-none small fw-semibold">Desrelacionar</a>
                 <span class="text-muted small">·</span>
-                <a href="visor/visor.html" class="link-secondary text-decoration-none small fw-semibold">Visor IHCE</a>
+                <a href="visor/visor.html" class="link-secondary text-decoration-none small fw-semibold" title="Abrir visor IHCE en pantalla completa">Visor IHCE (pantalla completa)</a>
             </nav>
         </div>
         <div class="cr-topbar-right">
@@ -1155,6 +1155,10 @@
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-shrink-0">
                         <input type="checkbox" id="GenerarRDABase" class="d-none" aria-hidden="true" tabindex="-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm fw-semibold" id="RDA_BtnVisorIHCE"
+                            title="Consultar historial RDA del paciente en IHCE" disabled>
+                            <i class="fa-solid fa-hospital-user me-1" aria-hidden="true"></i>Consultar RDA IHCE
+                        </button>
                         <button type="button" class="btn btn-success btn-sm fw-bolder" id="RDA_BtnGenerar">
                             Generar RDA
                         </button>
@@ -1310,16 +1314,7 @@
                                                 (complemento):</label>
                                             <select class="form-select-sm border border-secondary w-100"
                                                 id="RDA_TipoAlergia">
-                                                <option value="">Sin alergia</option>
-                                                <option value="01">01 - Medicamento</option>
-                                                <option value="02">02 - Alimento</option>
-                                                <option value="03">03 - Sustancia del ambiente
-                                                </option>
-                                                <option value="04">04 - Sustancia en contacto con la
-                                                    piel</option>
-                                                <option value="05">05 - Picadura de insectos
-                                                </option>
-                                                <option value="06">06 - Otra</option>
+                                                <option value="">Sin alergia / buscar tipo...</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1925,13 +1920,7 @@
                                                         <label>Unidad medida dosis:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_UnidadMedidaDosis">
-                                                            <option value="">Seleccionar</option>
-                                                            <option value="mg">mg</option>
-                                                            <option value="ml">ml</option>
-                                                            <option value="g">g</option>
-                                                            <option value="UI">UI</option>
-                                                            <option value="mcg">mcg</option>
-                                                            <option value="gotas">Gotas</option>
+                                                            <option value="">Unidad de medida de dosis...</option>
                                                         </select>
                                                     </div>
                                                     <div class="col-md-2">
@@ -2055,41 +2044,28 @@
                                                 <h6 class="text-muted">Otras Tecnologías en Salud
                                                 </h6>
                                                 <div class="row g-2 align-items-end">
-                                                    <div class="col-md-2">
-                                                        <label>Tipo tec. salud:</label>
+                                                    <div class="col-md-4">
+                                                        <label>Otra tecnología en salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_TipoTecSaludOtra">
                                                             <option value="">Buscar categoría...</option>
                                                         </select>
                                                     </div>
+                                                    <input type="hidden" id="RDACE_CodigoOtraTecnologia" />
+                                                    <input type="hidden" id="RDACE_NombreOtraTecnologia" />
                                                     <div class="col-md-3">
-                                                        <label>Código otra tecnología:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_CodigoOtraTecnologia" placeholder="Código">
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Nombre otra tecnología:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_NombreOtraTecnologia" placeholder="Nombre">
-                                                    </div>
-                                                    <div class="col-md-2">
                                                         <label>Fecha prescripción:</label>
                                                         <input type="datetime-local"
                                                             class="form-control-sm border border-secondary w-100"
                                                             id="RDACE_FechaPrescripcionOtra">
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-md-3">
                                                         <label>Finalidad tec. salud:</label>
                                                         <select class="form-select-sm border border-secondary w-100"
                                                             id="RDACE_FinalidadTecSaludOtra">
                                                             <option value="">Buscar finalidad...</option>
                                                         </select>
                                                     </div>
-                                                </div>
-                                                <div class="row g-2 mt-1">
-                                                    <div class="col-md-10"></div>
                                                     <div class="col-md-2">
                                                         <button type="button"
                                                             class="btn btn-sm btn-outline-primary w-100"
@@ -2282,6 +2258,33 @@
             setInterval(calculateProgress, 2000);
         });
     </script>
+
+    <!-- Modal Visor IHCE embebido (módulo RDA) -->
+    <div class="modal fade" id="modalVisorIHCE" tabindex="-1" aria-labelledby="modalVisorIHCELabel"
+        data-bs-backdrop="static" data-bs-keyboard="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content ihce-visor-modal-content">
+                <div class="modal-header py-2 px-3">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1 min-width-0">
+                        <img src="images/logo-IHCE.png" alt="IHCE" class="visor-ihce-logo visor-ihce-logo--sm"
+                            onerror="this.onerror=null;this.src='https://www.minsalud.gov.co/ihce/PublishingImages/Logos/logo-IHCE.png';" />
+                        <div class="min-width-0">
+                            <h5 class="modal-title mb-0 fs-6" id="modalVisorIHCELabel">Consulta RDA — IHCE</h5>
+                            <div class="small text-muted text-truncate" id="modalVisorIHCEPacienteLabel">Paciente</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm ihce-visor-btn-volver" id="modalVisorIHCEBtnVolver"
+                        data-bs-dismiss="modal" aria-label="Volver a Asignar RIPS">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Volver
+                    </button>
+                </div>
+                <div class="modal-body p-0 ihce-visor-modal-body">
+                    <iframe id="iframeVisorIHCE" title="Visor IHCE RDA" class="ihce-visor-iframe"
+                        src="about:blank"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 <!-- SWEETALERT -->

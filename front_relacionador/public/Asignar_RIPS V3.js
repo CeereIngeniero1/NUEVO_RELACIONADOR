@@ -707,6 +707,27 @@ SelectPacientes.addEventListener("change", async function (e) {
         SegundoNombreBase.value = CargarDatosPaciente[0].SegundoNombreBase;
         FechaNacimientoBase.value = CargarDatosPaciente[0].FechaNacimientoBase.slice(0, 16);
 
+        const ihcePayload = {
+          documento: CargarDatosPaciente[0].DocumentoPaciente || '',
+          tipoIhce: CargarDatosPaciente[0].TipoDocumentoBase || CargarDatosPaciente[0].TipoDocumentoPaciente || '',
+          idTipoDocumento: CargarDatosPaciente[0].IdTipodeDocumento || null,
+          nombre: CargarDatosPaciente[0].NombreCompletoPaciente || '',
+        };
+        if (window.RDA && typeof window.RDA.setPacienteActivoIhce === 'function') {
+          window.RDA.setPacienteActivoIhce(ihcePayload);
+        } else {
+          window.__pacienteActivoIhce = {
+            documento: ihcePayload.documento,
+            tipoIhce: String(ihcePayload.tipoIhce || '').trim().toUpperCase(),
+            idTipoDocumento: ihcePayload.idTipoDocumento,
+            nombre: ihcePayload.nombre,
+          };
+          document.dispatchEvent(new CustomEvent('paciente-activo-ihce-updated'));
+        }
+        if (window.RDA && typeof window.RDA.syncIhceVisorButtonState === 'function') {
+          window.RDA.syncIhceVisorButtonState();
+        }
+
         await autocompletarAtencionRdaceDesdeCompromiso(CargarDatosPaciente[0].DocumentoPaciente);
       } catch (error) {
         console.error("Error al cargar los datos del paciente:", error);
@@ -732,6 +753,13 @@ SelectPacientes.addEventListener("change", async function (e) {
     PrimerNombreBase.value = "";
     SegundoNombreBase.value = "";
 
+    const ihceClear = { documento: '', tipoIhce: '', idTipoDocumento: null, nombre: '' };
+    if (window.RDA && typeof window.RDA.setPacienteActivoIhce === 'function') {
+      window.RDA.setPacienteActivoIhce(ihceClear);
+    } else {
+      window.__pacienteActivoIhce = { documento: '', tipoIhce: '', idTipoDocumento: null, nombre: '' };
+      document.dispatchEvent(new CustomEvent('paciente-activo-ihce-updated'));
+    }
   }
 });
 

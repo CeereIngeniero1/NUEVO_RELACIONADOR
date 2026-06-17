@@ -903,6 +903,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             toFhirDtCo(head && head.FechaHoraFinAtencion) || periodStart;
         const modCode = (head && head.CodigoModalidadAtencion && String(head.CodigoModalidadAtencion).trim()) || '01';
         const modDisplay = head && head.NombreModalidadAtencion ? String(head.NombreModalidadAtencion) : undefined;
+        const modSystem = head && head.ModalidadAtencionSystemUrl
+            ? String(head.ModalidadAtencionSystemUrl).trim()
+            : null;
         const grpCode = (head && head.CodigoGrupoServicios && String(head.CodigoGrupoServicios).trim()) || '01';
         const grpDisplay = head && head.NombreGrupoServicios ? String(head.NombreGrupoServicios) : undefined;
 
@@ -1002,7 +1005,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                         {
                             coding: [
                                 {
-                                    system: CS_MODALITY,
+                                    system: modSystem || CS_MODALITY,
                                     code: modCode,
                                     display: modDisplay,
                                 },
@@ -1135,7 +1138,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     e.[NIT Prestador IPS]              AS NitPrestadorIPS,
                     e.[Nombre Prestador IPS]           AS NombrePrestadorIPS,
                     ma.[Codigo]                        AS CodigoModalidadAtencion,
-                    ma.[NombreModalidadAtencion]       AS NombreModalidadAtencion,
+                    COALESCE(ctm.display, ma.[NombreModalidadAtencion]) AS NombreModalidadAtencion,
+                    ctm.system_url                     AS ModalidadAtencionSystemUrl,
                     gs.[Codigo]                        AS CodigoGrupoServicios,
                     gs.[NombreGrupoServicios]          AS NombreGrupoServicios,
                     eprof.[Primer Apellido Entidad]    AS ProfPrimerApellido,
@@ -1163,6 +1167,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     ON d.[IdDiscapacidad] = e.[Id Discapacidad]
                 LEFT JOIN [dbo].[Cnsta Relacionador Modalidad Atencion] ma
                     ON ma.[IdModalidadAtencion] = e.[Id Modalidad Atencion]
+                LEFT JOIN dbo.VW_RDA_ColombianTechModality_Activos ctm
+                    ON LTRIM(RTRIM(ctm.codigo)) = LTRIM(RTRIM(ma.[Codigo]))
                 LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
                     ON gs.[IdGrupoServicios] = e.[Id Grupo Servicios]
                 LEFT JOIN [dbo].[Entidad] eprof

@@ -543,7 +543,7 @@ export async function guardarRDACE() {
                 fechaPrescripcion: item.fechaPrescripcion || null,
                 dosis: item.dosis || null,
                 unidadDosis: item.unidadDosis || null,
-                via: item.via || null,
+                via: item.viaCodigo || item.via || null,
                 duracionCant: item.duracionCant || null,
                 duracionUnid: item.duracionUnid || null,
                 frecuenciaCant: item.frecuenciaCant || null,

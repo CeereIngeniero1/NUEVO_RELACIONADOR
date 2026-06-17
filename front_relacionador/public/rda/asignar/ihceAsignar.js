@@ -115,6 +115,34 @@ function parseDuplicateRdaHistoria(text) {
     return lines.join('\n');
 }
 
+/** IHCE: Encounter ya existe para mismo paciente/fecha-hora (episodio duplicado). */
+function parseDuplicateEncounter(text) {
+    const t = issueToText(text);
+    if (!t || !/Resource type\s+'Encounter'/i.test(t) || !/already exist/i.test(t)) return null;
+
+    const periods = [];
+    const re = /period='([^']+)'/gi;
+    let m;
+    while ((m = re.exec(t)) !== null) {
+        periods.push(m[1]);
+    }
+
+    const lines = [
+        'Ya existe una historia clínica (encuentro) registrada en IHCE para ese paciente en esa fecha/hora.',
+        'Para enviar nuevamente, cambie la fecha/hora del encuentro o valide si corresponde a otro registro.',
+    ];
+    if (periods.length >= 2) {
+        lines.push('');
+        lines.push('Periodo del encuentro ya existente:');
+        lines.push('• Inicio: ' + formatIsoPeriod(periods[0]));
+        lines.push('• Fin: ' + formatIsoPeriod(periods[1]));
+    } else if (periods.length === 1) {
+        lines.push('');
+        lines.push('Periodo del encuentro ya existente: ' + formatIsoPeriod(periods[0]));
+    }
+    return lines.join('\n');
+}
+
 /** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.). */
 export function extractIhceMessage(data) {
     if (data == null) return '';
@@ -133,12 +161,16 @@ export function extractIhceMessage(data) {
         if (typeof i === 'string') {
             const dup = parseDuplicateRdaHistoria(i);
             if (dup) return [dup];
+            const dupEncounter = parseDuplicateEncounter(i);
+            if (dupEncounter) return [dupEncounter];
             const t = i.trim();
             return t ? [t] : [];
         }
         if (!i || typeof i !== 'object') return [];
         const dupObj = parseDuplicateRdaHistoria(issueToText(i));
         if (dupObj) return [dupObj];
+        const dupEncounterObj = parseDuplicateEncounter(issueToText(i));
+        if (dupEncounterObj) return [dupEncounterObj];
         const out = [];
         const n = idx != null ? ` [${idx + 1}]` : '';
         if (i.severity) out.push(`severity${n}: ${i.severity}`);

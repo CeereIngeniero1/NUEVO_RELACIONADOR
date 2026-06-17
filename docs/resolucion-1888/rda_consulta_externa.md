@@ -115,7 +115,7 @@ Misma estructura que RDA Paciente, con IDs prefijados `RDACE_` en lugar de `RDA_
 
 | # | Campo | ID HTML | Tipo |
 |---|---|---|---|
-| 36 | Alcance Incapacidad | `RDACE_AlcanceIncapacidad` | Select (01-03) |
+| 36 | Alcance Incapacidad | `RDACE_AlcanceIncapacidad` | Select (01 Nueva, 02 Prórroga) |
 | 37 | Días de Incapacidad | `RDACE_DiasIncapacidad` | Input number |
 | 38 | Días Licencia Maternidad | `RDACE_DiasLicenciaMaternidad` | Input number |
 

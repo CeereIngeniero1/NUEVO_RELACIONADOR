@@ -72,6 +72,24 @@ export function removeItem(listName, index) {
     }
 }
 
+export function replaceAntecedentesPaciente({ salud = [], familiares = [], medicamentos = [] } = {}) {
+    listaAntecedentes.length = 0;
+    listaAntecedentesFam.length = 0;
+    listaMedicamentos.length = 0;
+    salud.forEach((item) => listaAntecedentes.push(item));
+    familiares.forEach((item) => listaAntecedentesFam.push(item));
+    medicamentos.forEach((item) => listaMedicamentos.push(item));
+}
+
+export function replaceAntecedentesCE({ salud = [], familiares = [], medicamentos = [] } = {}) {
+    listaAntecedentesCE.length = 0;
+    listaAntecedentesFamCE.length = 0;
+    listaMedicamentosCE.length = 0;
+    salud.forEach((item) => listaAntecedentesCE.push(item));
+    familiares.forEach((item) => listaAntecedentesFamCE.push(item));
+    medicamentos.forEach((item) => listaMedicamentosCE.push(item));
+}
+
 /**
  * Vacía todas las listas (útil al cambiar de paciente).
  */

@@ -75,6 +75,32 @@ function getSelectValue(id) {
     return el.value || "";
 }
 
+function parseNombreFromTipoText(text) {
+    const t = String(text || "").trim();
+    if (!t) return "";
+    const idx = t.indexOf(" - ");
+    return idx >= 0 ? t.slice(idx + 3).trim() : t;
+}
+
+function syncOtraTecCodigoNombreFromTipo() {
+    const codigo = getSelectValue("RDACE_TipoTecSaludOtra");
+    const texto = getSelectText("RDACE_TipoTecSaludOtra");
+    const codEl = document.getElementById("RDACE_CodigoOtraTecnologia");
+    const nomEl = document.getElementById("RDACE_NombreOtraTecnologia");
+    if (codEl) codEl.value = codigo || "";
+    if (nomEl) nomEl.value = codigo ? parseNombreFromTipoText(texto) : "";
+}
+
+function wireOtraTecnologiaTipoSync() {
+    const el = document.getElementById("RDACE_TipoTecSaludOtra");
+    if (!el || el.dataset.otraTecWired === "1") return;
+    el.dataset.otraTecWired = "1";
+    el.addEventListener("change", syncOtraTecCodigoNombreFromTipo);
+    if (typeof $ !== "undefined") {
+        $(el).on("select2:select select2:clear", syncOtraTecCodigoNombreFromTipo);
+    }
+}
+
 function clearSelect2(selector) {
     if (typeof $ !== "undefined") {
         try { $(selector).val(null).trigger("change"); } catch (_) { /* noop */ }
@@ -86,8 +112,49 @@ function clearSelect2(selector) {
 
 function digitsOnly(value) {
     if (value == null) return "";
-    const s = String(value);
-    return s.replace(/\D+/g, "");
+    return String(value).replace(/\D+/g, "");
+}
+
+function getSelectCatalogData(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    if (typeof $ !== "undefined" && $(el).data("select2")) {
+        const d = $(el).select2("data")[0];
+        if (!d) return null;
+        return {
+            codigo: (d.codigo || d.id || "").toString().trim(),
+            display: (d.display || "").toString().trim(),
+            systemUrl: (d.systemUrl || "").toString().trim(),
+            fhirDurationUnit: (d.fhirDurationUnit || "").toString().trim(),
+            unidad: (d.unidad || "").toString().trim(),
+        };
+    }
+    const codigo = (el.value || "").trim();
+    if (!codigo) return null;
+    const text = el.options[el.selectedIndex]?.text || "";
+    return { codigo, display: text, systemUrl: "", fhirDurationUnit: "", unidad: "" };
+}
+
+function isPrescripcionMedFormComplete() {
+    const codigo = document.getElementById("RDACE_CodigoMedicamento")?.value?.trim();
+    const nombre = document.getElementById("RDACE_NombreMedicamento")?.value?.trim();
+    if (!codigo && !nombre) return false;
+
+    const umm = getSelectCatalogData("RDACE_UnidadMedidaDosis");
+    const vad = getSelectCatalogData("RDACE_ViaAdministracionMed");
+    const dur = getSelectCatalogData("RDACE_DuracionUnidadTiempoMed");
+    const freq = getSelectCatalogData("RDACE_FrecuenciaUnidadTiempoMed");
+
+    return Boolean(
+        digitsOnly(document.getElementById("RDACE_DosisOrdenadaMed")?.value || "") &&
+        umm && umm.codigo &&
+        vad && vad.codigo &&
+        digitsOnly(document.getElementById("RDACE_DuracionCantidadMed")?.value || "") &&
+        dur && dur.codigo && dur.codigo !== "7" && dur.fhirDurationUnit &&
+        digitsOnly(document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || "") &&
+        freq && freq.codigo && freq.codigo !== "7" &&
+        getSelectValue("RDACE_FinalidadTecSaludMed")
+    );
 }
 
 function attachDigitsOnlyFilter(input) {
@@ -149,6 +216,7 @@ function initDigitsOnlyInputs() {
 
 export function initListasConsultaExterna() {
     initDigitsOnlyInputs();
+    wireOtraTecnologiaTipoSync();
 
     // ── Antecedentes de Salud CE ────────────────────────────
     const btnAntCE = document.getElementById("RDACE_BtnAgregarAntecedente");
@@ -296,6 +364,18 @@ export function initListasConsultaExterna() {
         const codigo = document.getElementById("RDACE_CodigoMedicamento")?.value?.trim();
         const nombre = document.getElementById("RDACE_NombreMedicamento")?.value?.trim();
         if (!codigo && !nombre) return;
+        if (!isPrescripcionMedFormComplete()) {
+            alert(
+                "Complete dosis, UMM, vía (VAD), duración, frecuencia y finalidad desde catálogos oficiales. " +
+                "La duración requiere unidad con equivalencia FHIR (no use «Según respuesta al tratamiento»)."
+            );
+            return;
+        }
+
+        const umm = getSelectCatalogData("RDACE_UnidadMedidaDosis");
+        const vad = getSelectCatalogData("RDACE_ViaAdministracionMed");
+        const dur = getSelectCatalogData("RDACE_DuracionUnidadTiempoMed");
+        const freq = getSelectCatalogData("RDACE_FrecuenciaUnidadTiempoMed");
 
         addPrescripcionMed({
             tipo: document.getElementById("RDACE_TipoTecSaludMed")?.value || "M",
@@ -304,12 +384,20 @@ export function initListasConsultaExterna() {
             dci: document.getElementById("RDACE_DescripcionComunMed")?.value || "",
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionMed")?.value || "",
             dosis: digitsOnly(document.getElementById("RDACE_DosisOrdenadaMed")?.value || ""),
-            unidadDosis: getSelectValue("RDACE_UnidadMedidaDosis"),
-            via: getSelectText("RDACE_ViaAdministracionMed"),
+            unidadDosis: umm?.codigo || "",
+            unidadDosisDisplay: umm?.display || "",
+            unidadDosisSystemUrl: umm?.systemUrl || "",
+            viaCodigo: vad?.codigo || "",
+            viaDisplay: vad?.display || "",
+            viaSystemUrl: vad?.systemUrl || "",
             duracionCant: digitsOnly(document.getElementById("RDACE_DuracionCantidadMed")?.value || ""),
-            duracionUnid: getSelectValue("RDACE_DuracionUnidadTiempoMed"),
+            duracionUnid: dur?.codigo || "",
+            duracionDisplay: dur?.display || "",
+            duracionFhirUnit: dur?.fhirDurationUnit || "",
             frecuenciaCant: digitsOnly(document.getElementById("RDACE_FrecuenciaCantidadMed")?.value || ""),
-            frecuenciaUnid: getSelectValue("RDACE_FrecuenciaUnidadTiempoMed"),
+            frecuenciaUnid: freq?.codigo || "",
+            frecuenciaDisplay: freq?.display || "",
+            frecuenciaSystemUrl: freq?.systemUrl || "",
             finalidad: getSelectValue("RDACE_FinalidadTecSaludMed"),
         });
         rerender(contMedCE, getPrescripcionMedicamentos(), "medCE");
@@ -330,6 +418,10 @@ export function initListasConsultaExterna() {
     btnProcCE?.addEventListener("click", () => {
         const codigo = document.getElementById("RDACE_CodigoProcedimiento")?.value?.trim();
         if (!codigo) return;
+        if (!getSelectValue("RDACE_FinalidadTecSaludProc")) {
+            alert("Seleccione la finalidad de la tecnología en salud antes de agregar el procedimiento.");
+            return;
+        }
 
         addPrescripcionProc({
             tipo: "Procedimiento",
@@ -351,22 +443,34 @@ export function initListasConsultaExterna() {
     const contOtraCE = document.getElementById("RDACE_ListaOtrasTecnologias");
 
     btnOtraCE?.addEventListener("click", () => {
-        const codigo = document.getElementById("RDACE_CodigoOtraTecnologia")?.value?.trim();
-        if (!codigo) return;
+        syncOtraTecCodigoNombreFromTipo();
+        const tipoCodigo = getSelectValue("RDACE_TipoTecSaludOtra");
+        if (!tipoCodigo) return;
+
+        const codigo = document.getElementById("RDACE_CodigoOtraTecnologia")?.value?.trim() || tipoCodigo;
+        const nombre = document.getElementById("RDACE_NombreOtraTecnologia")?.value?.trim()
+            || parseNombreFromTipoText(getSelectText("RDACE_TipoTecSaludOtra"));
 
         addOtraTecnologia({
             tipo: getSelectText("RDACE_TipoTecSaludOtra"),
+            tipoCodigo,
             codigo,
-            nombre: document.getElementById("RDACE_NombreOtraTecnologia")?.value || "",
+            nombre,
             fechaPrescripcion: document.getElementById("RDACE_FechaPrescripcionOtra")?.value || "",
             finalidad: getSelectValue("RDACE_FinalidadTecSaludOtra"),
         });
         rerender(contOtraCE, getOtrasTecnologias(), "otraCE");
 
         clearFields([
-            "RDACE_CodigoOtraTecnologia", "RDACE_NombreOtraTecnologia",
             "RDACE_TipoTecSaludOtra", "RDACE_FechaPrescripcionOtra",
             "RDACE_FinalidadTecSaludOtra",
         ]);
+        syncOtraTecCodigoNombreFromTipo();
     });
+}
+
+export function refreshListasAntecedentesCE() {
+    rerender(document.getElementById("RDACE_ListaAntecedentes"), getAntecedentesCE(), "antecedente");
+    rerender(document.getElementById("RDACE_ListaAntecedentesFamiliares"), getAntecedentesFamiliaresCE(), "familiar");
+    rerender(document.getElementById("RDACE_ListaMedicamentos"), getMedicamentosCE(), "medicamento");
 }

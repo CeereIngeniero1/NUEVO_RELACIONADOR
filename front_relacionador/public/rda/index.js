@@ -37,6 +37,12 @@ import { initIhceAsignarWindow } from "./asignar/ihceAsignar.js";
 import { wireRdaFechaAtencionGlobal } from "./asignar/rdaFechaAtencion.js";
 import { wireGuardarPaciente } from "./asignar/guardarPaciente.js";
 import { wireGuardarRdace } from "./asignar/guardarRdace.js";
+import { wireIhceVisorModal, setPacienteActivoIhce, syncIhceVisorButtonState, refreshIhceVisorConsulta, closeIhceVisorModal } from "./visor/ihceVisorModal.js";
+import {
+    applyAntecedentesFromIhce,
+    extractAntecedentesFromIhceBundle,
+    handleIhceAntecedentesMessage,
+} from "./visor/ihceAntecedentesImport.js";
 
 // ── Inicialización (el script se carga al final del body, DOM ya existe) ──
 // Orden documentado: módulos internos primero, luego wireup de página.
@@ -52,6 +58,7 @@ wireRdaFechaAtencionGlobal();
 initIhceAsignarWindow();
 wireGuardarPaciente();
 wireGuardarRdace();
+wireIhceVisorModal();
 
 console.log(
     "%c[RDA V3] Módulo cargado correctamente",
@@ -86,4 +93,10 @@ window.RDA = {
     // Feature flag (localStorage RDA_API_VERSION o __APP_CONFIG__.RDA_API_VERSION)
     getRdaApiVersion,
     isRdaV2,
+    setPacienteActivoIhce,
+    syncIhceVisorButtonState,
+    refreshIhceVisorConsulta,
+    closeIhceVisorModal,
+    extractAntecedentesFromIhceBundle,
+    applyAntecedentesFromIhce,
 };

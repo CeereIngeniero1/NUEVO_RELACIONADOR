@@ -325,6 +325,50 @@ function initEgresoRemisionSelect2(selector, placeholderText) {
     });
 }
 
+function initRdaFhirCatalogSelect2(selector, claveCatalogo, placeholderText) {
+    if ($(selector).data("select2")) return;
+    $(selector).select2({
+        placeholder: placeholderText || "Buscar...",
+        allowClear: true,
+        width: "100%",
+        minimumInputLength: 0,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = (params.data.term || "").trim();
+                const base = `${getApiBaseUrl()}/apiV3/Catalogo1888/${claveCatalogo}`;
+                const url = term ? `${base}?q=${encodeURIComponent(term)}` : base;
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
+                    .catch(failure);
+            },
+            processResults: function (data) {
+                const arr = data.results || data || [];
+                return {
+                    results: arr.map(item => {
+                        const cod = item.Codigo != null ? String(item.Codigo) : "";
+                        const desc = item.Descripcion || "";
+                        const text = cod ? `${cod} - ${desc}` : desc;
+                        return {
+                            id: cod,
+                            text: text || cod,
+                            codigo: cod,
+                            display: desc,
+                            systemUrl: item.SystemUrl || item.system_url || "",
+                            fhirDurationUnit: item.FhirDurationUnit || item.fhir_duration_unit || "",
+                            unidad: item.Unidad || item.unidad || "",
+                        };
+                    })
+                };
+            }
+        }
+    });
+}
+
 // ── Catálogos RDA CE (genérico vía Catalogo1888/:clave) ──────────────────
 
 function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
@@ -470,15 +514,18 @@ export function wireRdaceCatalogs() {
     // Egreso y Remisión
     initEgresoRemisionSelect2("#RDACE_CondicionDestinoEgreso", "Buscar condición y destino al egreso...");
 
+    // Catálogos RDA Paciente
+    initRdaceCatalogSelect2("#RDA_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
+
     // Catálogos RDA CE
     initRdaceCatalogSelect2("#RDACE_EntornoAtencion", "EntornoAtencion", "Buscar entorno de atención...");
     initRdaceCatalogSelect2("#RDACE_TipoAlergia", "TipoAlergia", "Tipo de alergia...");
     initRdaceCatalogSelect2("#RDACE_ParentescoFamiliar", "ParentescoFamiliar", "Parentesco...");
     initRdaceCatalogSelect2("#RDACE_TipoDiagPrincipalCIE10", "TipoDiagnosticoPrincipal", "Tipo diagnóstico principal...");
-    initRdaceCatalogSelect2("#RDACE_UnidadMedidaDosis", "UnidadMedidaDosis", "Unidad de medida de dosis...");
-    initRdaceCatalogSelect2("#RDACE_ViaAdministracionMed", "ViaAdministracionMedicamento", "Vía de administración...");
-    initRdaceCatalogSelect2("#RDACE_DuracionUnidadTiempoMed", "UnidadTiempoDuracion", "Unidad de duración...");
-    initRdaceCatalogSelect2("#RDACE_FrecuenciaUnidadTiempoMed", "UnidadTiempoFrecuencia", "Unidad de frecuencia...");
+    initRdaFhirCatalogSelect2("#RDACE_UnidadMedidaDosis", "UMM", "Unidad de medida de dosis...");
+    initRdaFhirCatalogSelect2("#RDACE_ViaAdministracionMed", "VAD", "Vía de administración...");
+    initRdaFhirCatalogSelect2("#RDACE_DuracionUnidadTiempoMed", "MedicationTime", "Unidad de duración...");
+    initRdaFhirCatalogSelect2("#RDACE_FrecuenciaUnidadTiempoMed", "MedicationTime", "Unidad de frecuencia...");
     initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludMed", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
     initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludProc", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");
     initRdaceCatalogSelect2("#RDACE_FinalidadTecSaludOtra", "FinalidadTecnologiaSalud", "Finalidad tecnología en salud...");

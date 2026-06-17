@@ -99,6 +99,67 @@ const AppState = {
 };
 
 // ============================================================================
+// 2b. UI EMBEBIDA (iframe desde Asignar RIPS)
+// ============================================================================
+
+const EmbedUI = {
+  isActive() {
+    return document.documentElement.classList.contains('visor-embed-mode');
+  },
+
+  setConsultaInProgress(tipo, doc) {
+    if (!this.isActive()) return;
+    const spinner = document.getElementById('visorEmbedSpinner');
+    const embedBar = document.getElementById('visorEmbedBar');
+    if (spinner) spinner.classList.remove('d-none');
+    if (embedBar) embedBar.classList.remove('visor-embed-bar--done');
+    const embedText = document.getElementById('visorEmbedPacienteText');
+    if (embedText && tipo && doc) {
+      embedText.textContent = `Consultando IHCE: ${tipo} ${doc}`;
+      embedText.classList.remove('text-danger');
+    }
+  },
+
+  setConsultaComplete(tipo, doc, errorMsg) {
+    if (!this.isActive()) return;
+    const spinner = document.getElementById('visorEmbedSpinner');
+    const embedBar = document.getElementById('visorEmbedBar');
+    if (spinner) spinner.classList.add('d-none');
+    const embedText = document.getElementById('visorEmbedPacienteText');
+    if (!embedText) return;
+    if (errorMsg) {
+      embedText.textContent = errorMsg;
+      embedText.classList.add('text-danger');
+      if (embedBar) embedBar.classList.remove('visor-embed-bar--done');
+    } else if (tipo && doc) {
+      embedText.textContent = `IHCE: ${tipo} ${doc}`;
+      embedText.classList.remove('text-danger');
+      if (embedBar) embedBar.classList.add('visor-embed-bar--done');
+    }
+  },
+
+  notifyAntecedentesReady(bundle) {
+    if (!this.isActive() || !window.parent || window.parent === window) return;
+    const send = () => {
+      const extractFn = window.__ihceExtractAntecedentes;
+      if (typeof extractFn !== 'function') return false;
+      try {
+        const payload = extractFn(bundle);
+        window.parent.postMessage({ type: 'ihce-visor-antecedentes', payload }, '*');
+        return true;
+      } catch (err) {
+        console.warn('IHCE antecedentes extract:', err);
+        return true;
+      }
+    };
+    if (!send()) {
+      setTimeout(send, 400);
+      setTimeout(send, 1000);
+    }
+  }
+};
+
+// ============================================================================
 // 3. UTILIDADES DOM
 // ============================================================================
 
@@ -1749,6 +1810,7 @@ const UIRenderers = {
             <th>Región</th>
             <th>Autor</th>
             <th>Fecha Bundle</th>
+            <th class="text-center" title="Ver detalle">Ver</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -1763,12 +1825,14 @@ const UIRenderers = {
 
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
+        tr.title = 'Clic para ver el detalle del RDA';
         tr.innerHTML = `
           <td>${index + 1}</td>
           <td>${r?.title || 'RDA'}</td>
           <td>${FHIRUtils.getRegionFromOrg(org)}</td>
           <td>${org?.name || 'N/A'}</td>
           <td>${r?.date || r?.meta?.lastUpdated || 'Sin fecha'}</td>
+          <td class="text-center"><i class="fa-solid fa-eye btn-ver-rda" aria-hidden="true"></i><span class="visually-hidden">Ver detalle</span></td>
         `;
         tr.addEventListener('click', () => ModalService.mostrarDetalle(entry));
         cuerpo.appendChild(tr);
@@ -1779,7 +1843,7 @@ const UIRenderers = {
       DOM.setBadgeCount('contadorDocumentos', 0);
       const msg = document.createElement('div');
       msg.className = 'alert alert-info';
-      msg.innerHTML = '<i class="bx bx-info-circle"></i> No se encontraron documentos de RDA Paciente para este paciente.';
+      msg.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i> No se encontraron documentos de RDA Paciente para este paciente.';
       contenedor.appendChild(msg);
     }
   },
@@ -1823,6 +1887,7 @@ const UIRenderers = {
           <th>Autor</th>
           <th>Fecha Bundle</th>
           <th>Origen</th>
+          <th class="text-center" title="Ver detalle">Ver</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -1846,6 +1911,7 @@ const UIRenderers = {
       const tr = document.createElement('tr');
       tr.setAttribute('data-source', origen);
       tr.style.cursor = 'pointer';
+      tr.title = 'Clic para ver el detalle del RDA';
       tr.innerHTML = `
         <td>${index + 1}</td>
         <td>${r.title || 'RDA'}</td>
@@ -1853,6 +1919,7 @@ const UIRenderers = {
         <td>${org?.name || 'N/A'}</td>
         <td>${r.date || r.meta?.lastUpdated || 'Sin fecha'}</td>
         <td><span class="badge ${badgeColor}" title="${origenLabel}">${badgeIcon} ${badgeText}</span></td>
+        <td class="text-center"><i class="fa-solid fa-eye btn-ver-rda" aria-hidden="true"></i><span class="visually-hidden">Ver detalle</span></td>
       `;
       tr.addEventListener('click', () => ModalService.mostrarDetalle(entry));
       tbody.appendChild(tr);
@@ -3627,6 +3694,8 @@ const AppController = {
       // Limpiar datos previos
       InmunizacionService.limpiar();
 
+      EmbedUI.setConsultaInProgress(tipoDocumento, numeroDocumento.trim());
+
       // Iniciar consultas en paralelo
       const consultaPromises = [
         APIService.consultarComposition(tipoDocumento, numeroDocumento.trim()),
@@ -3666,6 +3735,9 @@ const AppController = {
       }
     } catch (error) {
       console.error('❌ Error en manejarConsulta:', error);
+      const tipo = DOM.elements.inputTipoDocumento?.value;
+      const doc = DOM.elements.inputDocumento?.value?.trim();
+      EmbedUI.setConsultaComplete(tipo, doc, error?.message || 'Error al consultar IHCE');
       alert(`Error: ${error.message}`);
     }
   },
@@ -3692,6 +3764,11 @@ const AppController = {
       DOM.setBadgeText('badgeTotalEncuentros', `Total: ${documentosEncuentros.length}`);
 
       UIRenderers.renderPaginacion(resultado);
+
+      const tipo = DOM.elements.inputTipoDocumento?.value;
+      const doc = Utils.getText(DOM.elements.inputDocumento?.value).trim();
+      EmbedUI.setConsultaComplete(tipo, doc);
+      EmbedUI.notifyAntecedentesReady(resultado);
     } catch (error) {
       console.error('Error procesando resultados:', error);
       throw error;
@@ -3804,4 +3881,40 @@ document.addEventListener('DOMContentLoaded', () => {
     api: APIService,
     utils: Utils
   };
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const isEmbed = urlParams.get('embed') === '1';
+  const isAuto = urlParams.get('auto') === '1';
+  const tipoParam = Utils.getText(urlParams.get('tipo')).trim();
+  const docParam = Utils.getText(urlParams.get('doc')).trim();
+
+  if (isEmbed) {
+    document.body.classList.add('visor-embed-mode');
+    const searchPanel = document.getElementById('visorSearchPanel');
+    if (searchPanel) searchPanel.style.display = 'none';
+    const embedBar = document.getElementById('visorEmbedBar');
+    if (embedBar) {
+      embedBar.classList.remove('d-none');
+      const embedText = document.getElementById('visorEmbedPacienteText');
+      if (embedText && tipoParam && docParam) {
+        embedText.textContent = `Consultando IHCE: ${tipoParam} ${docParam}`;
+      }
+    }
+  }
+
+  if (tipoParam && elements.inputTipoDocumento) elements.inputTipoDocumento.value = tipoParam;
+  if (docParam && elements.inputDocumento) elements.inputDocumento.value = docParam;
+
+  if (isAuto && tipoParam && docParam) {
+    EmbedUI.setConsultaInProgress(tipoParam, docParam);
+    setTimeout(() => {
+      AppController.manejarConsulta()
+        .catch((err) => {
+          console.error('Auto-consulta IHCE:', err);
+          EmbedUI.setConsultaComplete(tipoParam, docParam, err?.message || 'Error al consultar IHCE');
+        });
+    }, 200);
+  } else if (isEmbed && tipoParam && docParam && AppState.datosGlobalesFHIR) {
+    EmbedUI.setConsultaComplete(tipoParam, docParam);
+  }
 });
