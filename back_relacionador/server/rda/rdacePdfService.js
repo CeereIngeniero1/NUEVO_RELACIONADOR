@@ -1,6 +1,7 @@
 'use strict';
 
 const { buildRdaceResumenClinicoPdfBuffer } = require('./rdaceResumenPdf');
+const { resolvePrestadorForIhce, normalizeIhceAmbiente } = require('./rdaBundleIpsHelpers');
 
 const str = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
 
@@ -65,10 +66,19 @@ async function getOrBuildRdacePdfBuffer({
     }
 
     const codPrest = str(aggregate.head.CodigoPrestador);
-    const nitIpsOverride = str(reqBody.overrideNitPrestadorIPS)
-        || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS);
-    const nomIpsOverride = str(reqBody.overrideNombrePrestadorIPS)
-        || str(process.env.IHCE_RDACE_DEFAULT_NOMBRE_IPS);
+    const empresaIps = aggregate.empresaIps || null;
+    const prestador = resolvePrestadorForIhce(normalizeIhceAmbiente(reqBody.ambiente), {
+        overrideNitPrestadorIPS: reqBody.overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS: reqBody.overrideNombrePrestadorIPS,
+        overrideCodigoPrestador: reqBody.overrideCodigoPrestador,
+        codigoPrestador: codPrest,
+        nitPrestadorIPS: empresaIps && empresaIps.DocumentoEmpresa,
+        nombrePrestadorIPS:
+            (empresaIps && (empresaIps.RazonSocialEmpresa || empresaIps.NombreComercialEmpresa))
+            || null,
+    });
+    const nitIpsOverride = prestador.nit;
+    const nomIpsOverride = prestador.name;
     const nombreIpsDisplay = codPrest ? (nomIpsOverride || `IPS (${codPrest})`) : '';
 
     const aggForPdf = {

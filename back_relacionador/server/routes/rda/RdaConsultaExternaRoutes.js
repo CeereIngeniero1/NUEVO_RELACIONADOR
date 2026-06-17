@@ -54,6 +54,11 @@ const {
     normalizeDivipolaMunicipalityCode,
     buildRdaPersonName,
 } = require('../../rda/fhirColombiaFormat');
+const {
+    resolvePrestadorForIhce,
+    applyEnvCustodianIfConfigured,
+    normalizeIhceAmbiente,
+} = require('../../rda/rdaBundleIpsHelpers');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -1215,9 +1220,23 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         // Antecedentes familiares y farmacológicos: persistidos en BD para UI/PDF;
         // no se incluyen como FamilyMemberHistory ni MedicationRequest en RDA CE (slicing cerrado).
         const empresaIps = aggregate.empresaIps || null;
-        const codPrest = str(head.CodigoPrestador);
-        const nitIpsOverride = str((req.body || {}).overrideNitPrestadorIPS);
-        const nomIpsOverride = str((req.body || {}).overrideNombrePrestadorIPS);
+        const reqBody = req.body || {};
+        const { loadDotEnvFromCandidates } = require('../../config/envLoader');
+        loadDotEnvFromCandidates();
+        const ihceAmb = normalizeIhceAmbiente(reqBody.ambiente);
+        const prestadorIps = resolvePrestadorForIhce(ihceAmb, {
+            overrideCodigoPrestador: reqBody.overrideCodigoPrestador,
+            overrideNitPrestadorIPS: reqBody.overrideNitPrestadorIPS,
+            overrideNombrePrestadorIPS: reqBody.overrideNombrePrestadorIPS,
+            codigoPrestador: head.CodigoPrestador,
+            nitPrestadorIPS: empresaIps && empresaIps.DocumentoEmpresa,
+            nombrePrestadorIPS:
+                (empresaIps && (empresaIps.RazonSocialEmpresa || empresaIps.NombreComercialEmpresa))
+                || null,
+        });
+        const codPrest = prestadorIps.reps;
+        const nitIpsResolved = prestadorIps.nit;
+        const nomIpsResolved = prestadorIps.name;
 
         // =======================================================================
         // CONSTRUCCIÓN DE RECURSOS FHIR
@@ -1265,17 +1284,15 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const ipsCityDisplay = str(empresaIps && empresaIps.NombreMunicipio)
             || (ipsMunicipioCode === '05001' ? 'MEDELLÍN' : ipsMunicipioCode);
         const nombreIps = codPrest ? (
-            nomIpsOverride
+            nomIpsResolved
             || str(empresaIps && empresaIps.RazonSocialEmpresa)
             || str(empresaIps && empresaIps.NombreComercialEmpresa)
-            || str(process.env.IHCE_RDACE_DEFAULT_NOMBRE_IPS)
             || `IPS (${codPrest})`
         ) : '';
         let ipsOrgEntry = null;
         if (codPrest) {
-            const nitIps = nitIpsOverride
+            const nitIps = nitIpsResolved
                 || str(empresaIps && empresaIps.DocumentoEmpresa)
-                || str(process.env.IHCE_RDACE_DEFAULT_NIT_IPS)
                 || null;
             ipsOrgEntry = makeEntry({
                 resourceType: 'Organization',
@@ -2182,7 +2199,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             section: sections,
         });
 
-        return res.json({
+        const bundle = {
             resourceType: 'Bundle',
             language: 'es-CO',
             type: 'document',
@@ -2203,7 +2220,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 ...(incapacidadEntry ? [incapacidadEntry] : []),
                 documentReferenceEntry,
             ],
-        });
+        };
+        applyEnvCustodianIfConfigured(bundle, ihceAmb, reqBody, { rdace: true });
+        return res.json(bundle);
 
     } catch (error) {
         console.error('❌ [RDACE] Error al construir Bundle FHIR RDA Consulta Externa:', error);
@@ -2294,35 +2313,6 @@ router.post(
         }
         return '';
     };
-    const readEnvKeyFromFile = (key) => {
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const envCandidates = [
-                path.resolve(__dirname, '..', '..', '..', '.env'),
-                path.resolve(__dirname, '..', '..', '..', '.env acquir'),
-            ];
-            for (const envPath of envCandidates) {
-                if (!fs.existsSync(envPath)) continue;
-                const txt = fs.readFileSync(envPath, 'utf8');
-                for (const line of txt.split(/\r?\n/)) {
-                    const s = line.replace(/^\uFEFF/, '').trim();
-                    if (!s || s.startsWith('#')) continue;
-                    const eq = s.indexOf('=');
-                    if (eq <= 0) continue;
-                    const k = s.slice(0, eq).trim();
-                    if (k !== key) continue;
-                    let val = s.slice(eq + 1).trim();
-                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-                        val = val.slice(1, -1);
-                    }
-                    return val != null ? String(val).trim() : '';
-                }
-            }
-        } catch (_) {}
-        return '';
-    };
-    const envPathDiag = require('path').resolve(__dirname, '..', '..', '..', '.env');
 
     let baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey;
     if (envPrefix === 'IHCE_SANDBOX_') {
@@ -2341,23 +2331,6 @@ router.post(
         subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
     }
 
-    const forceCustodianNIT  = firstEnv(`${envPrefix}CUSTODIAN_NIT`)  || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_NIT`);
-    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`) || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_REPS`);
-    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`) || readEnvKeyFromFile(`${envPrefix}CUSTODIAN_NAME`);
-    console.log('[RDACE] Diagnóstico env custodian:', {
-        envPath: envPathDiag,
-        envPrefix,
-        fromEnv: {
-            reps: firstEnv(`${envPrefix}CUSTODIAN_REPS`) ? 'OK' : 'EMPTY',
-            nit: firstEnv(`${envPrefix}CUSTODIAN_NIT`) ? 'OK' : 'EMPTY',
-            name: firstEnv(`${envPrefix}CUSTODIAN_NAME`) ? 'OK' : 'EMPTY',
-        },
-        resolved: {
-            reps: forceCustodianREPS ? 'OK' : 'EMPTY',
-            nit: forceCustodianNIT ? 'OK' : 'EMPTY',
-            name: forceCustodianName ? 'OK' : 'EMPTY',
-        },
-    });
     const omitAllergyForIHCE = ['1', 'true', 'yes'].includes(String(process.env.IHCE_RDACE_OMIT_ALLERGY_INTOLERANCE || '').trim().toLowerCase());
     const includeAllergyIntolerance = incluirAllergyIntolerance === true
         ? true
@@ -2454,7 +2427,7 @@ router.post(
             // Igual que RdaPaciente/EnviarIHCE: solo overrides explícitos en el body al construir el Bundle.
             // IHCE_*_CUSTODIAN_* se aplica después sobre el JSON (bloque «Override custodian»), no aquí,
             // para no pisar el [Codigo Prestador] de BD con un REPS de .env distinto al del token.
-            const bundleBody = { IdEvaluacionEntidadRDACE: id };
+            const bundleBody = { IdEvaluacionEntidadRDACE: id, ambiente: effectiveAmb };
             if (overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim()) {
                 bundleBody.overrideCodigoPrestador = String(overrideCodigoPrestador).trim();
             }
@@ -2464,12 +2437,12 @@ router.post(
             if (overrideNombrePrestadorIPS != null && String(overrideNombrePrestadorIPS).trim()) {
                 bundleBody.overrideNombrePrestadorIPS = String(overrideNombrePrestadorIPS).trim();
             }
-            console.log('[RDACE] FhirBundle request (overrides body solamente):', {
-                ambiente: envPrefix === 'IHCE_PROD_' ? 'prod' : 'sandbox',
-                overrideCodigoPrestador: bundleBody.overrideCodigoPrestador || '(ninguno; usa BD)',
-                overrideNitPrestadorIPS: bundleBody.overrideNitPrestadorIPS || '(ninguno)',
-                overrideNombrePrestadorIPS: bundleBody.overrideNombrePrestadorIPS || '(ninguno)',
-                custodianEnvActivo: Boolean(forceCustodianREPS && String(forceCustodianREPS).trim()),
+            const prestadorDiag = resolvePrestadorForIhce(effectiveAmb, bundleBody);
+            console.log('[RDACE] Prestador IPS resuelto (body > .env > BD):', {
+                ambiente: effectiveAmb,
+                reps: prestadorDiag.reps || '(vacío)',
+                nit: prestadorDiag.nit || '(vacío)',
+                name: prestadorDiag.name || '(vacío)',
             });
             const payload = JSON.stringify(bundleBody);
             const req3 = http.request(
@@ -2632,66 +2605,11 @@ router.post(
                 });
         }
 
-        // 3) Override custodian si las variables de entorno lo solicitan (misma idea que RdaPaciente/EnviarIHCE)
-        if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
-            const reps = String(forceCustodianREPS).trim();
-            const nit  = forceCustodianNIT  ? String(forceCustodianNIT).trim()  : '';
-            const name = forceCustodianName && String(forceCustodianName).trim()
-                ? String(forceCustodianName).trim()
-                : `IPS (${reps})`;
-            const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
-            const compE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
-            // Misma forma que RdaPaciente/EnviarIHCE: referencia por fragmento al Organization del bundle.
-            // Organization/<reps> en $enviar-rda-consulta puede disparar err-000 (custodian vs token) aunque RDA Paciente pase.
-            if (compE && compE.resource) {
-                compE.resource.custodian = { reference: `#${reps}` };
-                compE.resource.author = [{ reference: `#${reps}` }];
-            }
-            const encE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Encounter');
-            if (encE && encE.resource) encE.resource.serviceProvider = { reference: `#${reps}` };
-            const docRefE = entries.find((e) => e && e.resource && e.resource.resourceType === 'DocumentReference');
-            if (docRefE && docRefE.resource) {
-                const drCust = {
-                    identifier: {
-                        use: 'official',
-                        type: { coding: [
-                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
-                            { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
-                        ] },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
-                        value: reps,
-                    },
-                    display: name,
-                };
-                docRefE.resource.custodian = drCust;
-                docRefE.resource.author = [drCust];
-            }
-            let orgE = entries.find((e) => e && e.resource && e.resource.resourceType === 'Organization' && e.resource.id === reps);
-            if (!orgE) { orgE = { resource: { resourceType: 'Organization', id: reps } }; entries.push(orgE); bundle.entry = entries; }
-            orgE.resource.active = true;
-            orgE.resource.meta   = orgE.resource.meta || { profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'] };
-            orgE.resource.name   = name;
-            orgE.resource.identifier = nit
-                ? [
-                    { id: 'TaxIdentifier', use: 'official', type: { coding: [
-                        { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
-                        { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
-                    ]}, system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN', value: nit },
-                    { id: 'HealthcareProviderIdentifier', use: 'official', type: { coding: [
-                        { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
-                        { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
-                    ]}, system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps },
-                ]
-                : orgE.resource.identifier || [{ system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS', value: reps }];
-            // Evitar dos Organization IPS (id distinto al REPS forzado) en el mismo Bundle
-            const ipsProf = 'CareDeliveryOrganizationRDA';
-            bundle.entry = bundle.entry.filter((e) => {
-                if (!e || !e.resource || e.resource.resourceType !== 'Organization') return true;
-                const prof0 = (e.resource.meta && Array.isArray(e.resource.meta.profile) && e.resource.meta.profile[0]) || '';
-                if (!String(prof0).includes(ipsProf)) return true;
-                return String(e.resource.id) === reps;
-            });
-        }
+        applyEnvCustodianIfConfigured(bundle, effectiveAmb, {
+            overrideCodigoPrestador,
+            overrideNitPrestadorIPS,
+            overrideNombrePrestadorIPS,
+        }, { rdace: true });
 
         normalizeBundleRefsToHashFragment(bundle);
 

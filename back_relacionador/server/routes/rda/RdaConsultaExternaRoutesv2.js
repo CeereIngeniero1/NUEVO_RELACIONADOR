@@ -13,6 +13,7 @@ const {
     ihceConsultarProfesionalSaludShared,
     ihceConsultarOrganizacionShared,
 } = require('../../rda/ihceInteropService');
+const { resolveTipoAlergiaDisplay, normalizeTipoAlergiaCode } = require('../../rda/tipoAlergiaCatalog');
 
 const router = Router();
 
@@ -361,19 +362,6 @@ function emptySection(title, loinc, display) {
             text: 'Sin información registrada',
         },
     };
-}
-
-function tipoAlergiaDisplay(codigo) {
-    const c = str(codigo);
-    const map = {
-        '01': 'Medicamento',
-        '02': 'Alimento',
-        '03': 'Ambiental',
-        '04': 'Insectos',
-        '05': 'Contacto',
-        '99': 'No especificado',
-    };
-    return map[c] || c || 'No especificado';
 }
 
 router.post('/RdaConsultaExterna/Seccion1EAPB', async (req, res) => {
@@ -982,9 +970,8 @@ router.post('/RdaConsultaExterna/Seccion5Alergias', async (req, res) => {
 
         // OPCIONAL (BD): tipo alergia; si no existe se envía sección vacía.
         const rawTipoAlergia = str(head.TipoAlergia);
-        const tipoAlergiaCode = (rawTipoAlergia.match(/^(\d{2})/) || [])[1]
-            || (rawTipoAlergia ? rawTipoAlergia.slice(0, 2) : '');
-        const tipoAlergiaText = tipoAlergiaDisplay(tipoAlergiaCode) || rawTipoAlergia;
+        const tipoAlergiaCode = normalizeTipoAlergiaCode(rawTipoAlergia);
+        const tipoAlergiaText = resolveTipoAlergiaDisplay(tipoAlergiaCode, str(head.NombreTipoAlergia)) || rawTipoAlergia;
 
         const docPaciente = str(head.DocumentoEntidad);
         // OPCIONAL (request): permite forzar referencia del paciente para pruebas.

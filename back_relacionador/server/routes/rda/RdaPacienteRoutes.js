@@ -20,6 +20,8 @@
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
+const { mergePrestadorHeadFromEnv, applyEnvCustodianIfConfigured, normalizeIhceAmbiente } = require('../../rda/rdaBundleIpsHelpers');
+const { resolveTipoAlergiaDisplay, normalizeTipoAlergiaCode, allergyTypeToCategory } = require('../../rda/tipoAlergiaCatalog');
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
 const {
     toFhirDateTimeColombia,
@@ -467,7 +469,7 @@ router.post('/EvaluacionEntidadRDA/AntecedentesFarmacologicos', async (req, res)
 // RDA PACIENTE — Construcción FHIR Bundle desde BD
 // ======================================================================================
 // Body (recomendado): { "IdEvaluacionEntidadRDA": 123 }
-// Opcional (solo pruebas / alinear custodian IHCE sin UPDATE en BD):
+// Opcional (solo pruebas puntuales sin UPDATE en BD):
 //   overrideCodigoPrestador, overrideNitPrestadorIPS, overrideNombrePrestadorIPS
 // Devuelve: Bundle FHIR type="document" (paciente) con Composition + Patient + entradas
 // (Condition, FamilyMemberHistory, MedicationStatement).
@@ -562,31 +564,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return m ? m[1] : s;
     };
 
-    // Maps Tipo Alergia codes (01-06) to FHIR AllergyIntolerance category values
-    const allergyTypeToCategory = (tipoAlergiaCodigo) => {
-        const map = {
-            '01': 'medication',
-            '02': 'food',
-            '03': 'environment',
-            '04': 'environment',
-            '05': 'biologic',
-            '06': 'environment',
-        };
-        const code = (tipoAlergiaCodigo ?? '').toString().trim();
-        return map[code] || null;
-    };
-    const allergyTypeDisplay = (tipoAlergiaCodigo) => {
-        const map = {
-            '01': 'Medicamento',
-            '02': 'Alimento',
-            '03': 'Sustancia del ambiente',
-            '04': 'Sustancia en contacto con la piel',
-            '05': 'Picadura de insectos',
-            '06': 'Otra',
-        };
-        const code = (tipoAlergiaCodigo ?? '').toString().trim();
-        return map[code] || '';
-    };
+    // Categoría FHIR AllergyIntolerance según código TipoAlergia (catálogo MinSalud).
 
     const RDA_SD = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
     const CS_MODALITY = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianTechModality';
@@ -854,8 +832,11 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         // AllergyIntolerance: tipo de alergía (obligatorio en pantalla) + texto del alérgeno si existe.
         const tipoAlergiaParsed = parseCodigoDescripcion(alergia && alergia.tipoAlergia);
-        const tipoAlergiaCode = (tipoAlergiaParsed.codigo || '').trim();
-        const tipoAlergiaDisplay = (tipoAlergiaParsed.descripcion || '').trim() || allergyTypeDisplay(tipoAlergiaCode);
+        const tipoAlergiaCode = normalizeTipoAlergiaCode(tipoAlergiaParsed.codigo || (alergia && alergia.tipoAlergia));
+        const tipoAlergiaDisplay = resolveTipoAlergiaDisplay(
+            tipoAlergiaCode,
+            tipoAlergiaParsed.descripcion || (alergia && alergia.nombreTipoAlergia),
+        );
         const alergenoTexto = alergia && (alergia.alergeno || '').toString().trim();
         const hasAlergia = Boolean(tipoAlergiaCode || alergenoTexto);
         const allergyText = alergenoTexto || tipoAlergiaDisplay || 'Alergia no especificada';
@@ -1127,6 +1108,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     e.[Fecha RDA]                      AS FechaRDA,
                     e.[Alergeno]                       AS Alergeno,
                     e.[Tipo Alergia]                   AS TipoAlergia,
+                    tal.[Descripcion]                  AS NombreTipoAlergia,
                     e.[Fecha Hora Inicio Atencion]     AS FechaHoraInicioAtencion,
                     e.[Fecha Hora Fin Atencion]        AS FechaHoraFinAtencion,
                     e.[Tipo Doc Profesional]           AS TipoDocProfesional,
@@ -1171,6 +1153,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     ON LTRIM(RTRIM(ctm.codigo)) = LTRIM(RTRIM(ma.[Codigo]))
                 LEFT JOIN [dbo].[Cnsta Relacionador ModalidadGrupoServicioTecSal] gs
                     ON gs.[IdGrupoServicios] = e.[Id Grupo Servicios]
+                LEFT JOIN [dbo].[Cnsta Tipo de alergia 1888] tal
+                    ON LTRIM(RTRIM(tal.Codigo)) = LTRIM(RTRIM(LEFT(LTRIM(RTRIM(e.[Tipo Alergia])), 2)))
                 LEFT JOIN [dbo].[Entidad] eprof
                     ON eprof.[Documento Entidad] = e.[Num Doc Profesional]
                 WHERE e.[Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA
@@ -1192,6 +1176,10 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         if (ob.overrideNombrePrestadorIPS != null && String(ob.overrideNombrePrestadorIPS).trim()) {
             head.NombrePrestadorIPS = String(ob.overrideNombrePrestadorIPS).trim();
         }
+
+        const { loadDotEnvFromCandidates } = require('../../config/envLoader');
+        loadDotEnvFromCandidates();
+        mergePrestadorHeadFromEnv(head, normalizeIhceAmbiente(ob.ambiente), ob);
 
         const codPrestHdr = head.CodigoPrestador != null ? String(head.CodigoPrestador).trim() : '';
         if (!codPrestHdr || codPrestHdr.toLowerCase() === 'null') {
@@ -1646,9 +1634,14 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             antecedents: antecedentes,
             antecedentsFam: antecedentesFam,
             medications: medicamentos,
-            alergia: { alergeno: head.Alergeno, tipoAlergia: head.TipoAlergia },
+            alergia: {
+                alergeno: head.Alergeno,
+                tipoAlergia: head.TipoAlergia,
+                nombreTipoAlergia: head.NombreTipoAlergia,
+            },
         });
 
+        applyEnvCustodianIfConfigured(bundle, normalizeIhceAmbiente(ob.ambiente), ob);
         return res.json(bundle);
     } catch (error) {
         console.error('❌ [RDA] Error al construir Bundle FHIR RDA Paciente:', error);
@@ -1754,10 +1747,6 @@ router.post(
         subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
     }
 
-    const forceCustodianNIT = firstEnv(`${envPrefix}CUSTODIAN_NIT`);
-    const forceCustodianREPS = firstEnv(`${envPrefix}CUSTODIAN_REPS`);
-    const forceCustodianName = firstEnv(`${envPrefix}CUSTODIAN_NAME`);
-
     const missing = [
         !baseUrl && 'BASE_URL',
         !tenantId && 'TENANT_ID',
@@ -1801,7 +1790,7 @@ router.post(
         const localBase = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
         const bundleResp = await new Promise((resolve, reject) => {
             const http = require('http');
-            const bundleBody = { IdEvaluacionEntidadRDA: id };
+            const bundleBody = { IdEvaluacionEntidadRDA: id, ambiente: effectiveAmb };
             if (overrideCodigoPrestador != null && String(overrideCodigoPrestador).trim()) {
                 bundleBody.overrideCodigoPrestador = String(overrideCodigoPrestador).trim();
             }
@@ -1841,78 +1830,6 @@ router.post(
             if (compEntry && compEntry.resource && compEntry.resource.encounter != null) {
                 delete compEntry.resource.encounter;
             }
-        }
-
-        // Opcional: forzar custodian para que coincida con el token del prestador (IHCE valida coherencia).
-        // Se usa cuando los datos en BD/UI aún no están alineados (NIT/REPS).
-        if (forceCustodianREPS && String(forceCustodianREPS).trim()) {
-            const reps = String(forceCustodianREPS).trim();
-            const nit = forceCustodianNIT != null ? String(forceCustodianNIT).trim() : '';
-            const name = forceCustodianName != null && String(forceCustodianName).trim()
-                ? String(forceCustodianName).trim()
-                : `IPS (${reps})`;
-
-            const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
-            const compEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
-            if (compEntry && compEntry.resource) {
-                compEntry.resource.custodian = { reference: `#${reps}` };
-            }
-
-            let orgEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Organization' && e.resource.id === reps);
-            if (!orgEntry) {
-                orgEntry = { resource: { resourceType: 'Organization', id: reps } };
-                entries.push(orgEntry);
-                bundle.entry = entries;
-            }
-            orgEntry.resource.active = true;
-            orgEntry.resource.meta = orgEntry.resource.meta || { profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/CareDeliveryOrganizationRDA'] };
-            orgEntry.resource.name = name;
-            if (nit) {
-                orgEntry.resource.identifier = [
-                    {
-                        id: 'TaxIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'TAX', display: 'Tax ID number' },
-                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'NIT', display: 'Número de Identificación Tributaria' },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/DIAN',
-                        value: nit,
-                    },
-                    {
-                        id: 'HealthcareProviderIdentifier',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PRN', display: 'Provider number' },
-                                { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianOrganizationIdentifiers', code: 'CodigoPrestador', display: 'Código de habilitación de prestador de servicios de salud' },
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
-                        value: reps,
-                    },
-                ];
-            } else {
-                orgEntry.resource.identifier = orgEntry.resource.identifier || [
-                    {
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/REPS',
-                        value: reps,
-                    },
-                ];
-            }
-
-            // Evitar Organization IPS duplicada cuando el bundle base ya trae otra (p.ej. id = NIT).
-            // Conservamos solo la Organization de perfil CareDeliveryOrganizationRDA cuyo id sea el REPS forzado.
-            const ipsProfileToken = 'CareDeliveryOrganizationRDA';
-            bundle.entry = (Array.isArray(bundle.entry) ? bundle.entry : []).filter((e) => {
-                if (!e || !e.resource || e.resource.resourceType !== 'Organization') return true;
-                const profiles = e.resource.meta && Array.isArray(e.resource.meta.profile) ? e.resource.meta.profile : [];
-                const isIpsOrg = profiles.some((p) => String(p || '').includes(ipsProfileToken));
-                if (!isIpsOrg) return true;
-                return String(e.resource.id || '') === reps;
-            });
         }
 
         const isModularEndpoint =
@@ -2007,7 +1924,7 @@ router.post(
                 if (comp.type && Object.prototype.hasOwnProperty.call(comp.type, 'text')) {
                     delete comp.type.text;
                 }
-                if (comp.custodian && (!Array.isArray(comp.attester) || comp.attester.length === 0)) {
+                if (comp.custodian) {
                     comp.attester = [{ mode: 'legal', party: comp.custodian }];
                 }
 
@@ -2128,6 +2045,13 @@ router.post(
                     }
                 }
                 if (e.resource.resourceType === 'AllergyIntolerance') {
+                    const tipoCod = e.resource.code
+                        && Array.isArray(e.resource.code.coding)
+                        && e.resource.code.coding.find((c) => c && String(c.system || '').includes('TipoAlergia'));
+                    if (tipoCod && tipoCod.code) {
+                        const officialDisplay = resolveTipoAlergiaDisplay(tipoCod.code);
+                        if (officialDisplay) tipoCod.display = officialDisplay;
+                    }
                     const vs = e.resource.verificationStatus;
                     if (vs && Array.isArray(vs.coding)) {
                         vs.coding.forEach((c) => {
@@ -2206,6 +2130,12 @@ router.post(
                 }
             });
         }
+
+        applyEnvCustodianIfConfigured(bundle, effectiveAmb, {
+            overrideCodigoPrestador,
+            overrideNitPrestadorIPS,
+            overrideNombrePrestadorIPS,
+        });
 
         // Modo preview: devolver exactamente el JSON que se enviaría a IHCE.
         if (

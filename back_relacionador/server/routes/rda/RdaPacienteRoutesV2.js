@@ -14,6 +14,11 @@
 const Router = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const http = require('http');
+const {
+    resolveTipoAlergiaDisplay,
+    normalizeTipoAlergiaCode,
+    allergyTypeToCategory,
+} = require('../../rda/tipoAlergiaCatalog');
 
 const router = Router();
 
@@ -125,36 +130,6 @@ function postLocalJson(path, bodyObj) {
     });
 }
 
-function allergyTypeToCategory(tipoAlergiaCodigo) {
-    const map = {
-        '01': 'medication',
-        '02': 'food',
-        '03': 'environment',
-        '04': 'environment',
-        '05': 'biologic',
-        '06': 'environment',
-    };
-    const code = str(tipoAlergiaCodigo);
-    return map[code] || null;
-}
-
-function allergyTypeDisplay(tipoAlergiaCodigo) {
-    const map = {
-        '01': 'Medicamento',
-        '02': 'Alimento',
-        '03': 'Sustancia del ambiente',
-        '04': 'Producto biologico',
-        '05': 'Sustancia quimica',
-        '06': 'Otro',
-    };
-    const code = str(tipoAlergiaCodigo);
-    return map[code] || '';
-}
-
-/**
- * Lista breve de trabajo (orden recomendado).
- * NOTA: esta lista corresponde al núcleo del RDA Paciente según la guía.
- */
 const PLAN_SECCIONES_RDA_PACIENTE_V2 = [
     {
         orden: 1,
@@ -337,9 +312,8 @@ router.post('/RdaPacienteV2/Seccion2AntecedentesAlergicos', async (req, res) => 
 
         const rawAlergeno = str(head.Alergeno);
         const rawTipoAlergia = str(head.TipoAlergia);
-        const tipoAlergiaCode = (rawTipoAlergia.match(/^(\d{2})/) || [])[1]
-            || (rawTipoAlergia ? rawTipoAlergia.slice(0, 2) : '');
-        const tipoAlergiaText = allergyTypeDisplay(tipoAlergiaCode) || rawTipoAlergia;
+        const tipoAlergiaCode = normalizeTipoAlergiaCode(rawTipoAlergia);
+        const tipoAlergiaText = resolveTipoAlergiaDisplay(tipoAlergiaCode) || rawTipoAlergia;
         const categoryCode = allergyTypeToCategory(tipoAlergiaCode);
         const patientReference = `#CC-${str(head.DocumentoEntidad) || '00000000'}`;
 
@@ -787,9 +761,8 @@ router.post('/RdaPacienteV2/JsonCompleto', async (req, res) => {
         // Sección 2: alérgicos
         const rawAlergeno = str(head.Alergeno);
         const rawTipoAlergia = str(head.TipoAlergia);
-        const tipoAlergiaCode = (rawTipoAlergia.match(/^(\d{2})/) || [])[1]
-            || (rawTipoAlergia ? rawTipoAlergia.slice(0, 2) : '');
-        const tipoAlergiaText = allergyTypeDisplay(tipoAlergiaCode) || rawTipoAlergia;
+        const tipoAlergiaCode = normalizeTipoAlergiaCode(rawTipoAlergia);
+        const tipoAlergiaText = resolveTipoAlergiaDisplay(tipoAlergiaCode) || rawTipoAlergia;
         const categoryCode = allergyTypeToCategory(tipoAlergiaCode);
         if (!rawAlergeno && !rawTipoAlergia) {
             sections.push(emptySection('Antecedentes alérgicos', '48765-2', 'Allergies and adverse reactions Document'));

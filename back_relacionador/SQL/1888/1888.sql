@@ -2016,7 +2016,7 @@ BEGIN
         ('01', 'Medicamento', 7),
         ('02', 'Alimento', 7),
         ('03', 'Sustancia del ambiente', 7),
-        ('04', 'Sustancia en contacto con la piel', 7),
+        ('04', 'Sustancia que entran en contacto con la piel', 7),
         ('05', 'Picadura de insectos', 7),
         ('06', 'Otra', 7);
 

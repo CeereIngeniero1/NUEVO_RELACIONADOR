@@ -84,7 +84,7 @@ router.post('/RdaLogin/IhceConsultarOrganizacion/sandbox', async (req, res) => {
                 error: 'Sandbox deshabilitado por seguridad (IHCE_FORCE_PROD_ONLY=true).',
             });
         }
-        const out = await ihceConsultarOrganizacionShared('sandbox');
+        const out = await ihceConsultarOrganizacionShared('sandbox', req.body || {});
         return res.status(out.status >= 200 && out.status < 300 ? 200 : out.status).json(out);
     } catch (e) {
         return res.status(e.status || 500).json({ ok: false, error: e.message, code: e.code || 'CONSULTA_ORGANIZACION_ERROR', details: e.details || null });
@@ -100,7 +100,7 @@ router.post('/RdaLogin/IhceConsultarOrganizacion/produccion', async (req, res) =
                 error: 'Producción deshabilitada por seguridad (IHCE_FORCE_SANDBOX_ONLY=true).',
             });
         }
-        const out = await ihceConsultarOrganizacionShared('prod');
+        const out = await ihceConsultarOrganizacionShared('prod', req.body || {});
         return res.status(out.status >= 200 && out.status < 300 ? 200 : out.status).json(out);
     } catch (e) {
         return res.status(e.status || 500).json({ ok: false, error: e.message, code: e.code || 'CONSULTA_ORGANIZACION_ERROR', details: e.details || null });

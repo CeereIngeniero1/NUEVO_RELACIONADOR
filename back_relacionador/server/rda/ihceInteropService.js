@@ -3,6 +3,7 @@
 const https = require('https');
 const { URL, URLSearchParams } = require('url');
 const { resolveIhceCreds } = require('../services/ihceTokenDebug');
+const { resolvePrestadorForIhce } = require('./rdaBundleIpsHelpers');
 
 function str(v) {
     return v != null && String(v).trim() !== '' ? String(v).trim() : '';
@@ -22,14 +23,6 @@ function isForceProdOnly() {
     return ['1', 'true', 'yes', 'on'].includes(
         String(process.env.IHCE_FORCE_PROD_ONLY || '').trim().toLowerCase()
     );
-}
-
-function firstEnvKey(...keys) {
-    for (let i = 0; i < keys.length; i += 1) {
-        const v = process.env[keys[i]];
-        if (v != null && String(v).trim() !== '') return String(v).trim();
-    }
-    return '';
 }
 
 function httpsPostFormUrlEncoded(urlString, bodyString) {
@@ -143,20 +136,25 @@ function buildConsultarProfesionalParametersPayload(tipoDocumento, numeroDocumen
     return { resourceType: 'Parameters', parameter };
 }
 
-function buildConsultarOrganizacionParametersFromEnv(ambiente) {
-    const prod = ambiente === 'prod';
-    const pfx = prod ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
-    let taxId = firstEnvKey(`${pfx}CUSTODIAN_NIT`, 'IHCE_RDACE_DEFAULT_NIT_IPS');
-    let reps = firstEnvKey(`${pfx}CUSTODIAN_REPS`, 'IHCE_RDACE_DEFAULT_CODIGO_PRESTADOR');
-    let name = firstEnvKey(`${pfx}CUSTODIAN_NAME`, 'IHCE_RDACE_DEFAULT_NOMBRE_IPS');
-    if (prod) {
-        if (!taxId) taxId = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_NIT');
-        if (!reps) reps = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_REPS');
-        if (!name) name = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_NAME');
-    }
+function buildConsultarOrganizacionParameters(ambiente, body = {}) {
+    const b = body && typeof body === 'object' ? body : {};
+    const p = resolvePrestadorForIhce(ambiente, {
+        overrideCodigoPrestador:
+            b.HealthcareProviderIdentifier ?? b.reps ?? b.codigoPrestador ?? b.CodigoPrestador ?? b.overrideCodigoPrestador,
+        overrideNitPrestadorIPS:
+            b.TaxIdentifier ?? b.taxId ?? b.nit ?? b.NitPrestadorIPS ?? b.overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS:
+            b.name ?? b.nombre ?? b.NombrePrestadorIPS ?? b.overrideNombrePrestadorIPS,
+    });
+    const taxId = p.nit;
+    const reps = p.reps;
+    const name = p.name;
     if (!taxId && !reps && !name) {
-        const err = new Error(`Defina ${pfx}CUSTODIAN_NIT/REPS/NAME o IHCE_RDACE_DEFAULT_*`);
-        err.code = 'ORG_ENV_INCOMPLETO';
+        const err = new Error(
+            'Envíe en el body al menos uno de: TaxIdentifier/nit, HealthcareProviderIdentifier/reps/codigoPrestador, name/nombre; '
+            + 'o defina IHCE_*_CUSTODIAN_* / IHCE_RDACE_DEFAULT_* en .env.',
+        );
+        err.code = 'ORG_PARAMETROS_INCOMPLETOS';
         err.status = 400;
         throw err;
     }
@@ -251,8 +249,8 @@ async function ihceConsultarProfesionalSaludShared(ambiente, body) {
     };
 }
 
-async function ihceConsultarOrganizacionShared(ambiente) {
-    const { payload, env_usado } = buildConsultarOrganizacionParametersFromEnv(ambiente);
+async function ihceConsultarOrganizacionShared(ambiente, body = {}) {
+    const { payload, env_usado } = buildConsultarOrganizacionParameters(ambiente, body);
     const tokenOut = await solicitarTokenIhceShared(ambiente);
     const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
     if (!str(creds.baseUrl) || !str(creds.subscriptionKey)) {
