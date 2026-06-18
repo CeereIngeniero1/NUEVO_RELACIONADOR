@@ -172,6 +172,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
             .query(`
                 SELECT TOP 1
                     TipoDocumentoBase,
+                    DescripciTipoDocumento,
                     PrimerApellidoBase, SegundoApellidoBase,
                     PrimerNombreBase, SegundoNombreBase,
                     [CódigoSexo]              AS CodigoSexo,
@@ -198,6 +199,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                     NombreMunicipioRecidencia  AS NombreMunicipio,
                     Direccion,
                     Tel                        AS TelefonoCelular,
+                    [Id Ocupación]             AS IdOcupacion,
                     [CódigoOcupación]           AS CodigoOcupacion,
                     [Ocupación]                AS Ocupacion
                 FROM [dbo].[Cnsta Relacionador Usuarios Info]

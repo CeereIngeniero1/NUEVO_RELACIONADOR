@@ -1,0 +1,29 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "ColombianPersonIdentifier",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier",
+    "name": "ColombianPersonIdentifier",
+    "title": "Tipos de identificación de persona en Colombia (RDA)",
+    "status": "active",
+    "content": "complete",
+    "concept": [
+        { "code": "CC", "display": "Cédula ciudadanía" },
+        { "code": "CE", "display": "Cédula extranjería" },
+        { "code": "PA", "display": "Pasaporte" },
+        { "code": "RC", "display": "Registro civil" },
+        { "code": "TI", "display": "Tarjeta de identidad" },
+        { "code": "CD", "display": "Carné diplomático" },
+        { "code": "SC", "display": "Salvoconducto de permanencia" },
+        { "code": "PE", "display": "Permiso especial de permanencia" },
+        { "code": "PT", "display": "Permiso por protección temporal" },
+        { "code": "PPT", "display": "Permiso por Protección Temporal" },
+        { "code": "CN", "display": "Certificado de nacido vivo" },
+        { "code": "DE", "display": "Documento extranjero" },
+        { "code": "AS", "display": "Adulto sin identificación" },
+        { "code": "MS", "display": "Menor sin identificación" },
+        { "code": "SI", "display": "Sin identificación" },
+        { "code": "UN", "display": "Número único de identificación personal" },
+        { "code": "NI", "display": "Número de identificación tributaria" },
+        { "code": "NH", "display": "Número de historia clínica" }
+    ]
+}

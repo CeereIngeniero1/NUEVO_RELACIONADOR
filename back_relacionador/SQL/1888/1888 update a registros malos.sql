@@ -1433,3 +1433,43 @@ BEGIN
     PRINT 'AVISO: No existe la tabla [dbo].[RIPS Causa Externa Version2].';
 END
 GO
+
+/* ==========================================================================================================
+   CORRECCIÓN CATALOGO: [Tipo de Documento] — display obligatorio para ColombianPersonIdentifier (RDA/IHCE)
+   ========================================================================================================== */
+IF OBJECT_ID(N'[dbo].[Tipo de Documento]', N'U') IS NOT NULL
+BEGIN
+    ;WITH src AS (
+        SELECT *
+        FROM (VALUES
+            ('CC', 'Cédula ciudadanía'),
+            ('CE', 'Cédula extranjería'),
+            ('PA', 'Pasaporte'),
+            ('RC', 'Registro civil'),
+            ('TI', 'Tarjeta de identidad'),
+            ('CD', 'Carné diplomático'),
+            ('SC', 'Salvoconducto de permanencia'),
+            ('PE', 'Permiso especial de permanencia'),
+            ('PT', 'Permiso por protección temporal'),
+            ('PPT', 'Permiso por Protección Temporal'),
+            ('CN', 'Certificado de nacido vivo'),
+            ('DE', 'Documento extranjero'),
+            ('AS', 'Adulto sin identificación'),
+            ('MS', 'Menor sin identificación'),
+            ('SI', 'Sin identificación'),
+            ('UN', 'Número único de identificación personal'),
+            ('NI', 'Número de identificación tributaria'),
+            ('NH', 'Número de historia clínica')
+        ) AS v(TipoDoc, DescripcionOficial)
+    )
+    UPDATE td
+       SET td.[Descripción Tipo de Documento] = src.DescripcionOficial
+      FROM [dbo].[Tipo de Documento] td
+      INNER JOIN src ON src.TipoDoc = td.[Tipo de Documento]
+     WHERE td.[Descripción Tipo de Documento] IS NULL
+        OR LTRIM(RTRIM(td.[Descripción Tipo de Documento])) = ''
+        OR td.[Descripción Tipo de Documento] <> src.DescripcionOficial;
+
+    PRINT 'OK: [Tipo de Documento] — descripciones alineadas con ColombianPersonIdentifier (CC, PA, etc.).';
+END
+GO

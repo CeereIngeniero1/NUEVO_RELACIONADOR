@@ -1,4 +1,4 @@
-﻿/**
+/**
  * RDA Paciente — Router independiente (Resolución 1888)
  *
  * Rutas incluidas:
@@ -22,6 +22,11 @@ const { sql, poolPromise } = require('../../db2');
 const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
 const { mergePrestadorHeadFromEnv, applyEnvCustodianIfConfigured, normalizeIhceAmbiente } = require('../../rda/rdaBundleIpsHelpers');
 const { resolveTipoAlergiaDisplay, normalizeTipoAlergiaCode, allergyTypeToCategory } = require('../../rda/tipoAlergiaCatalog');
+const {
+    buildNationalPersonIdentifier,
+    PersonIdentifierDisplayError,
+    normalizeDocTypeCode,
+} = require('../../rda/colombianPersonIdentifierCatalog');
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
 const {
     toFhirDateTimeColombia,
@@ -1073,6 +1078,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     e.[Id Tipo Documento]              AS IdTipoDocumento,
                     t.[CódigoTipoDocumento]            AS CodigoTipoDocumento,
                     t.[TipoDocumento]                  AS TipoDocumento,
+                    t.[DescripciónTipoDocumento]       AS DescripcionTipoDocumento,
                     e.[Fecha Nacimiento]               AS FechaNacimiento,
                     e.[Id Sexo Biologico]              AS IdSexoBiologico,
                     sx.[CódigoSexo]                   AS CodigoSexo,
@@ -1291,7 +1297,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         // 3) Resources base (Patient + Organization)
         // IHCE recomienda referencias por tipo y número de identificación para Patient/Practitioner
-        const docTypePaciente = (head.CodigoTipoDocumento || head.TipoDocumento || 'SI').toString().trim();
+        const docTypePaciente = normalizeDocTypeCode(head.TipoDocumento || head.CodigoTipoDocumento || 'SI');
         const docNumPaciente = (head.DocumentoEntidad || 'NO-INFORMADO').toString().trim();
         const pacienteId = `${docTypePaciente}-${docNumPaciente}`;
 
@@ -1320,17 +1326,8 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 letraSexo: str(h.Sexo),
             });
 
-            // Document type display label for ColombianPersonIdentifier
-            const docTypeLabels = {
-                CC: 'Cédula ciudadanía', TI: 'Tarjeta de identidad',
-                RC: 'Registro civil',    CE: 'Cédula de extranjería',
-                PA: 'Pasaporte',         PE: 'Permiso especial de permanencia',
-                PT: 'Permiso temporal de permanencia', CD: 'Carné diplomático',
-                SC: 'Salvo conducto',    PPT: 'Permiso por Protección Temporal',
-                AS: 'Adulto sin identificación', MS: 'Menor sin identificación',
-                SI: 'Sin identificación',
-            };
-            const docTypeCode = str(h.TipoDocumento) || str(h.CodigoTipoDocumento);
+            const docTypeCode = normalizeDocTypeCode(str(h.TipoDocumento) || str(h.CodigoTipoDocumento));
+            const docTypeDisplayBd = str(h.DescripcionTipoDocumento);
 
             // Residence zone: map DB value (U/R or Urbana/Rural) to ColombianResidenceZone code
             const zonaText = str(h.ZonaResidencia) || '';
@@ -1451,20 +1448,17 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                     profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PatientRDA'],
                 },
                 ...(patExt.length > 0 ? { extension: patExt } : {}),
-                identifier: str(h.DocumentoEntidad)
-                    ? [{
-                        id: 'NationalPersonIdentifier-0',
-                        use: 'official',
-                        type: {
-                            coding: [
-                                { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
-                                ...(docTypeCode ? [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier', code: docTypeCode, display: docTypeLabels[docTypeCode] || docTypeCode }] : []),
-                            ],
-                        },
-                        system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
-                        value: str(h.DocumentoEntidad),
-                    }]
-                    : undefined,
+                ...(str(h.DocumentoEntidad) && docTypeCode
+                    ? {
+                        identifier: [
+                            buildNationalPersonIdentifier({
+                                docTypeCode,
+                                value: str(h.DocumentoEntidad),
+                                displayFromBd: docTypeDisplayBd,
+                            }),
+                        ],
+                    }
+                    : {}),
                 active: true,
                 ...(familyText || givenArr.length > 0
                     ? { name: [{
@@ -1514,22 +1508,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
 
         const patientResource = buildPatientRdaFromHead(head, pacienteId, orgEntryRef);
 
-        const docTypeLabelsProf = {
-            CC: 'Cédula ciudadanía',
-            TI: 'Tarjeta de identidad',
-            RC: 'Registro civil',
-            CE: 'Cédula de extranjería',
-            PA: 'Pasaporte',
-            PE: 'Permiso especial de permanencia',
-            PT: 'Permiso temporal de permanencia',
-            CD: 'Carné diplomático',
-            SC: 'Salvo conducto',
-            PPT: 'Permiso por Protección Temporal',
-            AS: 'Adulto sin identificación',
-            MS: 'Menor sin identificación',
-            SI: 'Sin identificación',
-        };
-        const tipoProf = (head.TipoDocProfesional || 'SI').toString().trim();
+        const tipoProf = normalizeDocTypeCode(head.TipoDocProfesional || 'SI');
         const numProf = (head.NumDocProfesional || 'NO-INFORMADO').toString().trim();
         const practId = `${tipoProf}-${numProf}`;
         const profName = buildRdaPersonName({
@@ -1545,22 +1524,10 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
                 profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PractitionerRDA'],
             },
             identifier: [
-                {
-                    id: 'NationalPersonIdentifier-0',
-                    use: 'official',
-                    type: {
-                        coding: [
-                            { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
-                            {
-                                system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier',
-                                code: tipoProf,
-                                display: docTypeLabelsProf[tipoProf] || tipoProf,
-                            },
-                        ],
-                    },
-                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
+                buildNationalPersonIdentifier({
+                    docTypeCode: tipoProf,
                     value: numProf,
-                },
+                }),
             ],
             ...(profName ? { name: [profName] } : {}),
             active: true,
@@ -1645,6 +1612,9 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
         return res.json(bundle);
     } catch (error) {
         console.error('❌ [RDA] Error al construir Bundle FHIR RDA Paciente:', error);
+        if (error instanceof PersonIdentifierDisplayError) {
+            return res.status(400).json({ ok: false, code: error.code, error: error.message, docTypeCode: error.docTypeCode });
+        }
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
 });

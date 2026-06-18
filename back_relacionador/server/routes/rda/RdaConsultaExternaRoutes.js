@@ -59,6 +59,11 @@ const {
     applyEnvCustodianIfConfigured,
     normalizeIhceAmbiente,
 } = require('../../rda/rdaBundleIpsHelpers');
+const {
+    buildNationalPersonIdentifier,
+    PersonIdentifierDisplayError,
+    normalizeDocTypeCode,
+} = require('../../rda/colombianPersonIdentifierCatalog');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -1350,7 +1355,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
         // Patient (documento desde cabecera CE; mismo criterio que loadRdaceAggregate)
         const docPac = str(head.DocumentoEntidad);
-        const docTypeCode  = str(pdem.TipoDocumentoBase);
+        const docTypeCode  = normalizeDocTypeCode(pdem.TipoDocumentoBase);
+        const docTypeDisplayBd = str(pdem.DescripciTipoDocumento);
         const pacienteId   = docTypeCode && docPac ? `${docTypeCode}-${docPac}` : null;
         const { fhirGender, bioGender } = patientGenderFromDb(pdem);
         if (str(pdem.CodigoSexo) || str(pdem.SexoPaciente)) {
@@ -1451,15 +1457,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             id: pacienteId,
             meta: { profile: [`${RDA_SD}/PatientRDA`] },
             ...(patExt.length > 0 ? { extension: patExt } : {}),
-            identifier: docPac ? [{
-                id: 'NationalPersonIdentifier-0', use: 'official',
-                type: { coding: [
-                    { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
-                    ...(docTypeCode ? [{ system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier', code: docTypeCode }] : []),
-                ] },
-                system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
-                value: docPac,
-            }] : undefined,
+            ...(docPac && docTypeCode
+                ? { identifier: [buildNationalPersonIdentifier({ docTypeCode, value: docPac, displayFromBd: docTypeDisplayBd })] }
+                : {}),
             active: true,
             ...(familyText || givenArr.length > 0 ? { name: [{ use: 'official', ...(familyText ? { family: familyText } : {}), ...(familyExtArr.length > 0 ? { _family: { extension: familyExtArr } } : {}), ...(givenArr.length > 0 ? { given: givenArr } : {}) }] } : {}),
             ...(fhirGender ? { gender: fhirGender } : {}),
@@ -1474,7 +1474,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const patientEntry = makeEntry(patientResource);
 
         // Practitioner
-        const tipoProf = str(head.TipoDocProfesional);
+        const tipoProf = normalizeDocTypeCode(head.TipoDocProfesional);
         const numProf  = str(head.NumDocProfesional);
         const practId  = tipoProf && numProf ? `${tipoProf}-${numProf}` : null;
         if (!practId) {
@@ -1490,14 +1490,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             resourceType: 'Practitioner',
             id: practId,
             meta: { profile: [`${RDA_SD}/PractitionerRDA`] },
-            identifier: [{ id: 'NationalPersonIdentifier-0', use: 'official',
-                type: { coding: [
-                    { system: 'http://terminology.hl7.org/CodeSystem/v2-0203', code: 'PN', display: 'Person number' },
-                    { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianPersonIdentifier', code: tipoProf },
-                ] },
-                system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
-                value: numProf,
-            }],
+            identifier: [buildNationalPersonIdentifier({ docTypeCode: tipoProf, value: numProf })],
             ...(profName ? { name: [profName] } : {}),
             active: true,
         });
@@ -1870,8 +1863,12 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ],
         }) : null;
 
-        const ocupacionCodigo = str(pdem.CodigoOcupacion);
-        const ocupacionNombre = str(pdem.Ocupacion);
+        const idOcupacionPac = pdem && pdem.IdOcupacion != null
+            ? parseInt(String(pdem.IdOcupacion).trim(), 10)
+            : NaN;
+        const hasOcupacionPac = Number.isFinite(idOcupacionPac) && idOcupacionPac > 0;
+        const ocupacionCodigo = hasOcupacionPac ? str(pdem.CodigoOcupacion) : null;
+        const ocupacionNombre = hasOcupacionPac ? str(pdem.Ocupacion) : null;
         const ocupacionEntry = (ocupacionCodigo || ocupacionNombre) ? makeEntry({
             resourceType: 'Observation',
             id: 'Observation-1',
@@ -2149,9 +2146,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             eapbOrgEntry
                 ? { title: 'Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', code: { coding: [{ system: 'http://loinc.org', code: '48768-6', display: 'Payment sources Document' }] }, entry: [{ reference: refOf(eapbOrgEntry) }] }
                 : emptySection('Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', '48768-6', 'Payment sources Document'),
-            ocupacionEntry
-                ? { title: 'Otros datos demográficos', code: { coding: [{ system: 'http://loinc.org', code: '74208-0', display: 'Demographic information + History of occupation Document' }] }, entry: [{ reference: refOf(ocupacionEntry) }] }
-                : emptySection('Otros datos demográficos', '74208-0', 'Demographic information + History of occupation Document'),
+            ...(ocupacionEntry
+                ? [{ title: 'Otros datos demográficos', code: { coding: [{ system: 'http://loinc.org', code: '74208-0', display: 'Demographic information + History of occupation Document' }] }, entry: [{ reference: refOf(ocupacionEntry) }] }]
+                : []),
             incapacidadEntry
                 ? { title: 'Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', code: { coding: [{ system: 'http://loinc.org', code: '105583-9', display: 'Worker Sick leave form' }] }, entry: [{ reference: refOf(incapacidadEntry) }] }
                 : emptySection('Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', '105583-9', 'Worker Sick leave form'),
@@ -2226,6 +2223,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [RDACE] Error al construir Bundle FHIR RDA Consulta Externa:', error);
+        if (error instanceof PersonIdentifierDisplayError) {
+            return res.status(400).json({ ok: false, code: error.code, error: error.message, docTypeCode: error.docTypeCode });
+        }
         return res.status(500).json({ ok: false, error: error.message || String(error) });
     }
 });

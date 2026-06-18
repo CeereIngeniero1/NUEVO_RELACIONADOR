@@ -14,6 +14,11 @@ const {
     ihceConsultarOrganizacionShared,
 } = require('../../rda/ihceInteropService');
 const { resolveTipoAlergiaDisplay, normalizeTipoAlergiaCode } = require('../../rda/tipoAlergiaCatalog');
+const {
+    buildNationalPersonIdentifier,
+    PersonIdentifierDisplayError,
+    normalizeDocTypeCode,
+} = require('../../rda/colombianPersonIdentifierCatalog');
 
 const router = Router();
 
@@ -496,8 +501,8 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
             });
         }
 
-        // Prioridad: 1) datos reales desde Cnsta Relacionador Usuarios Info, 2) fallback manual por body.
-        // OPCIONAL (BD): ocupación del paciente; si no hay, la sección sale con emptyReason.
+        // OPCIONAL (BD): ocupación del paciente; si Id Ocupación es null, no se incluye en el Bundle.
+        let idOcupacion = null;
         let ocupacionCodigo = '';
         let ocupacionNombre = '';
         const docPaciente = str(head.DocumentoEntidad);
@@ -507,6 +512,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 .input('DocumentoPaciente', sql.VarChar(50), docPaciente)
                 .query(`
                     SELECT TOP 1
+                        [Id Ocupación] AS IdOcupacion,
                         [CódigoOcupación] AS CodigoOcupacion,
                         [Ocupación] AS Ocupacion
                     FROM [Cnsta Relacionador Usuarios Info]
@@ -514,20 +520,26 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 `);
             const usuario = usuarioRs.recordset && usuarioRs.recordset[0] ? usuarioRs.recordset[0] : null;
             if (usuario) {
-                ocupacionCodigo = str(usuario.CodigoOcupacion);
-                ocupacionNombre = str(usuario.Ocupacion);
+                const idParsed = usuario.IdOcupacion != null ? parseInt(String(usuario.IdOcupacion).trim(), 10) : NaN;
+                if (Number.isFinite(idParsed) && idParsed > 0) {
+                    idOcupacion = idParsed;
+                    ocupacionCodigo = str(usuario.CodigoOcupacion);
+                    ocupacionNombre = str(usuario.Ocupacion);
+                }
             }
         }
 
         // OPCIONAL (request fallback): permite pruebas manuales si BD no trae ocupación.
-        if (!ocupacionCodigo) ocupacionCodigo = str(req.body && req.body.ocupacionCodigo);
-        if (!ocupacionNombre) ocupacionNombre = str(req.body && req.body.ocupacionNombre);
+        if (idOcupacion != null) {
+            if (!ocupacionCodigo) ocupacionCodigo = str(req.body && req.body.ocupacionCodigo);
+            if (!ocupacionNombre) ocupacionNombre = str(req.body && req.body.ocupacionNombre);
+        }
         // OPCIONAL (request): referencia del paciente para el Observation.subject.
         const patientRef = str(req.body && req.body.patientReference) || (docPaciente ? `#CC-${docPaciente}` : '');
 
         let section;
         const resources = [];
-        if (ocupacionCodigo || ocupacionNombre) {
+        if (idOcupacion != null && (ocupacionCodigo || ocupacionNombre)) {
             const observation = {
                 resourceType: 'Observation',
                 id: 'Observation-ocupacion-0',
@@ -569,11 +581,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 entry: [{ reference: `#${observation.id}` }],
             };
         } else {
-            section = emptySection(
-                'Otros datos demográficos',
-                '74208-0',
-                'Demographic information + History of occupation Document'
-            );
+            section = null;
         }
 
         return res.json({
@@ -584,7 +592,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
             section,
             resources,
             notes: !resources.length
-                ? ['Sección devuelta en modo vacío: no se encontró ocupación en Cnsta Relacionador Usuarios Info para el documento del paciente.']
+                ? ['Ocupación omitida: Id Ocupación no informado o sin código/nombre (sección opcional 0..1).']
                 : [],
         });
     } catch (e) {
@@ -1877,9 +1885,30 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
         }
 
         const documento = str(head.DocumentoEntidad);
-        const profTipo = str(head.TipoDocProfesional) || 'CC';
+        const profTipo = normalizeDocTypeCode(head.TipoDocProfesional) || 'CC';
         const profNum = str(head.NumDocProfesional) || 'NO-INFORMADO';
-        const patientId = documento ? `CC-${documento}` : `Paciente-${id}`;
+
+        let docTypePaciente = 'CC';
+        let docTypeDisplayBd = '';
+        if (documento) {
+            const tdRs = await pool
+                .request()
+                .input('DocumentoPaciente', sql.VarChar(50), documento)
+                .query(`
+                    SELECT TOP 1
+                        TipoDocumentoBase,
+                        DescripciTipoDocumento
+                    FROM [dbo].[Cnsta Relacionador Usuarios Info]
+                    WHERE DocumentoPaciente = @DocumentoPaciente
+                `);
+            const tdRow = tdRs.recordset && tdRs.recordset[0] ? tdRs.recordset[0] : null;
+            if (tdRow) {
+                docTypePaciente = normalizeDocTypeCode(tdRow.TipoDocumentoBase) || docTypePaciente;
+                docTypeDisplayBd = str(tdRow.DescripciTipoDocumento);
+            }
+        }
+
+        const patientId = documento ? `${docTypePaciente}-${documento}` : `Paciente-${id}`;
         const practitionerId = `${profTipo}-${profNum}`;
 
         const toIsoDateTime = (v) => {
@@ -1892,6 +1921,18 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
             || toIsoDateTime(head.FechaHoraFinAtencion)
             || new Date().toISOString();
 
+        const patientIdentifier = documento
+            ? buildNationalPersonIdentifier({
+                docTypeCode: docTypePaciente,
+                value: documento,
+                displayFromBd: docTypeDisplayBd,
+            })
+            : null;
+        const practitionerIdentifier = buildNationalPersonIdentifier({
+            docTypeCode: profTipo,
+            value: profNum,
+        });
+
         // Recursos de contexto mínimos para el documento completo.
         const patient = {
             resourceType: 'Patient',
@@ -1899,13 +1940,7 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
             meta: {
                 profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PatientRDA'],
             },
-            ...(documento ? {
-                identifier: [{
-                    use: 'official',
-                    system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
-                    value: documento,
-                }],
-            } : {}),
+            ...(patientIdentifier ? { identifier: [patientIdentifier] } : {}),
             active: true,
         };
         const practitioner = {
@@ -1915,11 +1950,7 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
                 profile: ['https://fhir.minsalud.gov.co/rda/StructureDefinition/PractitionerRDA'],
             },
             active: true,
-            identifier: [{
-                use: 'official',
-                system: 'https://fhir.minsalud.gov.co/rda/NamingSystem/RNEC',
-                value: profNum,
-            }],
+            identifier: [practitionerIdentifier],
         };
         const encounter = {
             resourceType: 'Encounter',
@@ -1995,6 +2026,14 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
             },
         });
     } catch (e) {
+        if (e instanceof PersonIdentifierDisplayError) {
+            return res.status(400).json({
+                ok: false,
+                code: e.code,
+                error: e.message,
+                docTypeCode: e.docTypeCode,
+            });
+        }
         return res.status(e.status || 500).json({
             ok: false,
             error: e.message || String(e),
