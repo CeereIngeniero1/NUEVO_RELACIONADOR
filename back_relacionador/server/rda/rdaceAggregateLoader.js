@@ -199,7 +199,7 @@ async function loadRdaceAggregate(pool, sql, id, reqBody = {}) {
                     NombreMunicipioRecidencia  AS NombreMunicipio,
                     Direccion,
                     Tel                        AS TelefonoCelular,
-                    [Id Ocupación]             AS IdOcupacion,
+                    [IdOcupación]              AS IdOcupacion,
                     [CódigoOcupación]           AS CodigoOcupacion,
                     [Ocupación]                AS Ocupacion
                 FROM [dbo].[Cnsta Relacionador Usuarios Info]

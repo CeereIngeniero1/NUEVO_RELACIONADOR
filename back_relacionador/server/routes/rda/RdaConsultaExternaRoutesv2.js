@@ -512,7 +512,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 .input('DocumentoPaciente', sql.VarChar(50), docPaciente)
                 .query(`
                     SELECT TOP 1
-                        [Id Ocupación] AS IdOcupacion,
+                        [IdOcupación] AS IdOcupacion,
                         [CódigoOcupación] AS CodigoOcupacion,
                         [Ocupación] AS Ocupacion
                     FROM [Cnsta Relacionador Usuarios Info]
