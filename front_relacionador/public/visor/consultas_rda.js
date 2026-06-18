@@ -29,13 +29,28 @@ function ihceForceProdOnlyUi() {
   return cfg.IHCE_FORCE_PROD_ONLY === true;
 }
 
+function loadDefaultAmbienteFromConfig() {
+  const cfg = window.__APP_CONFIG__ || {};
+  return normalizeAmbiente(cfg.IHCE_DEFAULT_AMBIENTE || 'sandbox');
+}
+
 function loadAmbienteFromStorage() {
   try {
-    if (typeof localStorage === 'undefined') return 'sandbox';
-    return normalizeAmbiente(localStorage.getItem(VISOR_IHCE_AMBIENTE_KEY) || 'sandbox');
+    if (typeof localStorage === 'undefined') return loadDefaultAmbienteFromConfig();
+    const stored = localStorage.getItem(VISOR_IHCE_AMBIENTE_KEY);
+    if (stored == null || String(stored).trim() === '') return loadDefaultAmbienteFromConfig();
+    return normalizeAmbiente(stored);
   } catch (_) {
-    return 'sandbox';
+    return loadDefaultAmbienteFromConfig();
   }
+}
+
+/** En modal embebido (Asignar RIPS) no hay selector: siempre .env; en visor standalone permite localStorage. */
+function resolveVisorAmbiente() {
+  if (ihceForceProdOnlyUi()) return 'prod';
+  if (ihceForceSandboxOnlyUi()) return 'sandbox';
+  if (EmbedUI.isActive()) return loadDefaultAmbienteFromConfig();
+  return loadAmbienteFromStorage();
 }
 
 function saveAmbienteToStorage(amb) {
@@ -3819,11 +3834,7 @@ const AppController = {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📱 Página cargada completamente');
-  CONFIG.ambiente = ihceForceProdOnlyUi()
-    ? 'prod'
-    : ihceForceSandboxOnlyUi()
-      ? 'sandbox'
-      : loadAmbienteFromStorage();
+  CONFIG.ambiente = resolveVisorAmbiente();
 
   const elements = DOM.elements;
 

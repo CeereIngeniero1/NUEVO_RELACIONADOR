@@ -82,6 +82,15 @@ app.get('/config.js', (req, res) => {
     };
     const forceSandboxOnly = parseBool(process.env.IHCE_FORCE_SANDBOX_ONLY, false);
     const forceProdOnly = parseBool(process.env.IHCE_FORCE_PROD_ONLY, false);
+    const normalizeIhceAmbiente = (val) => {
+        const s = String(val || '').trim().toLowerCase();
+        return s === 'prod' || s === 'produccion' || s === 'production' ? 'prod' : 'sandbox';
+    };
+    const ihceDefaultAmbiente = forceProdOnly
+        ? 'prod'
+        : forceSandboxOnly
+          ? 'sandbox'
+          : normalizeIhceAmbiente(process.env.IHCE_DEFAULT_AMBIENTE || 'sandbox');
     // Banderas de habilitación por ambiente (similares a Visor): permiten ocultar opciones en UI.
     const enableSandbox = forceProdOnly ? false : parseBool(process.env.IHCE_ENABLE_SANDBOX, true);
     const enableProd = forceSandboxOnly ? false : parseBool(process.env.IHCE_ENABLE_PROD, true);
@@ -95,6 +104,7 @@ app.get('/config.js', (req, res) => {
             BACK_PORT: String(backPort),
             IHCE_FORCE_SANDBOX_ONLY: forceSandboxOnly,
             IHCE_FORCE_PROD_ONLY: forceProdOnly,
+            IHCE_DEFAULT_AMBIENTE: ihceDefaultAmbiente,
             IHCE_ENABLE_SANDBOX: enableSandbox,
             IHCE_ENABLE_PROD: enableProd,
             RDA_IHCE_UNIFIED_SEND: rdaIhceUnifiedSend,
