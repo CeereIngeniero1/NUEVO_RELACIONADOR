@@ -23,6 +23,7 @@ const {
     logRdaceCompositionSections,
     validateRdaceCompositionSections,
 } = require('../../rda/rdaceCompositionSections');
+const { isOcupacionInformadaParaFhir, normalizeCiou88acCode } = require('../../rda/ocupacionFhir');
 
 const router = Router();
 
@@ -505,7 +506,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
             });
         }
 
-        // OPCIONAL (BD): ocupación del paciente; si Id Ocupación es null, no se incluye en el Bundle.
+        // OPCIONAL (BD): ocupación del paciente; Id 1 = Sin asignar → no Observation en Bundle.
         let idOcupacion = null;
         let ocupacionCodigo = '';
         let ocupacionNombre = '';
@@ -524,12 +525,9 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 `);
             const usuario = usuarioRs.recordset && usuarioRs.recordset[0] ? usuarioRs.recordset[0] : null;
             if (usuario) {
-                const idParsed = usuario.IdOcupacion != null ? parseInt(String(usuario.IdOcupacion).trim(), 10) : NaN;
-                if (Number.isFinite(idParsed) && idParsed > 0) {
-                    idOcupacion = idParsed;
-                    ocupacionCodigo = str(usuario.CodigoOcupacion);
-                    ocupacionNombre = str(usuario.Ocupacion);
-                }
+                idOcupacion = usuario.IdOcupacion;
+                ocupacionCodigo = str(usuario.CodigoOcupacion);
+                ocupacionNombre = str(usuario.Ocupacion);
             }
         }
 
@@ -538,12 +536,18 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
             if (!ocupacionCodigo) ocupacionCodigo = str(req.body && req.body.ocupacionCodigo);
             if (!ocupacionNombre) ocupacionNombre = str(req.body && req.body.ocupacionNombre);
         }
+        const hasOcupacionFhir = isOcupacionInformadaParaFhir({
+            idOcupacion,
+            codigoOcupacion: ocupacionCodigo,
+            ocupacionNombre,
+        });
+        const codigoFhir = hasOcupacionFhir ? normalizeCiou88acCode(ocupacionCodigo) : '';
         // OPCIONAL (request): referencia del paciente para el Observation.subject.
         const patientRef = str(req.body && req.body.patientReference) || (docPaciente ? `#CC-${docPaciente}` : '');
 
         let section;
         const resources = [];
-        if (idOcupacion != null && (ocupacionCodigo || ocupacionNombre)) {
+        if (hasOcupacionFhir && codigoFhir) {
             const observation = {
                 resourceType: 'Observation',
                 id: 'Observation-ocupacion-0',
@@ -564,11 +568,9 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 valueCodeableConcept: {
                     coding: [{
                         system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/CIUO88AC',
-                        // OPCIONAL: code/display pueden variar según disponibilidad de dato en fuente.
-                        ...(ocupacionCodigo ? { code: ocupacionCodigo } : {}),
+                        code: codigoFhir,
                         ...(ocupacionNombre ? { display: ocupacionNombre } : {}),
                     }],
-                    ...(ocupacionNombre ? { text: ocupacionNombre } : {}),
                 },
                 ...(patientRef ? { subject: { reference: patientRef } } : {}),
             };

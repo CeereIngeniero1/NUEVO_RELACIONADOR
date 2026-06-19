@@ -1,0 +1,2642 @@
+{
+    "resourceType": "CodeSystem",
+    "id": "CIUO88AC",
+    "meta": {
+        "versionId": "1",
+        "lastUpdated": "2025-10-01T15:57:38.136+00:00"
+    },
+    "language": "es",
+    "url": "https://fhir.minsalud.gov.co/rda/CodeSystem/CIUO88AC",
+    "version": "0.1.0",
+    "name": "CIUO88AC",
+    "title": "CodeSystem: CIUO-88 A.C.",
+    "status": "active",
+    "experimental": false,
+    "date": "2024-11-19",
+    "publisher": "DANE",
+    "contact": [
+        {
+            "name": "Departamento Administrativo Nacional de Estadística (DANE)",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "https://www.dane.gov.co/files/sen/nomenclatura/ciuo/CIUO_88A_C_2006.pdf"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 597-8300"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(601) 597-8398"
+                }
+            ]
+        },
+        {
+            "name": "HL7 Colombia",
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://hl7co.org/"
+                },
+                {
+                    "system": "phone",
+                    "value": "+57(320) 230-6178"
+                },
+                {
+                    "system": "email",
+                    "value": "info@hl7co.org"
+                }
+            ]
+        }
+    ],
+    "description": "International Standard Classification of Occupations Adapted for Colombia (ISCO-88 A.C.).\r\n\r\n[ES: Clasificación Internacional Uniforme de Ocupaciones Adaptada para Colombia (CIUO-88 A.C.).]",
+    "jurisdiction": [
+        {
+            "coding": [
+                {
+                    "system": "urn:iso:std:iso:3166:-2",
+                    "code": "CO",
+                    "display": "Colombia"
+                }
+            ]
+        }
+    ],
+    "purpose": "This code system is used as a hierarchical nomenclature of occupations in Colombia, adapted from the International Standard Classification of Occupations (ISCO-88).\r\n\r\n[ES: Este sistema de codificación se utiliza como nomenclador jerárquico de ocupaciones en Colombia, adaptado a partir de la Clasificación Internacional Uniforme de Ocupaciones (CIUO-88).]",
+    "copyright": "DANE, CC-BY-4.0 2005+",
+    "caseSensitive": true,
+    "content": "complete",
+    "count": 562,
+    "concept": [
+        {
+            "code": "0",
+            "display": "FUERZA PÚBLICA",
+            "concept": [
+                {
+                    "code": "01",
+                    "display": "FUERZAS MILITARES (EJÉRCITO,  ARMADA  Y FUERZA AÉREA)",
+                    "concept": [
+                        {
+                            "code": "011",
+                            "display": "OFICIALES DE LAS FUERZAS MILITARES",
+                            "concept": [
+                                {
+                                    "code": "0110",
+                                    "display": "Oficiales de las Fuerzas Militares"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "012",
+                            "display": "Suboficiales de las Fuerzas Militares",
+                            "concept": [
+                                {
+                                    "code": "0120",
+                                    "display": "Suboficiales de las Fuerzas Militares"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "013",
+                            "display": "Soldados de las Fuerzas Militares",
+                            "concept": [
+                                {
+                                    "code": "0130",
+                                    "display": "Soldados de las Fuerzas Militares"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "02",
+                    "display": "POLICÍA NACIONAL",
+                    "concept": [
+                        {
+                            "code": "021",
+                            "display": "Oficiales de la Policía Nacional",
+                            "concept": [
+                                {
+                                    "code": "0210",
+                                    "display": "Oficiales de la Policía Nacional"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "022",
+                            "display": "Suboficiales de la Policía Nacional",
+                            "concept": [
+                                {
+                                    "code": "0220",
+                                    "display": "Suboficiales de la Policía Nacional"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "023",
+                            "display": "Agentes de la Policía Nacional",
+                            "concept": [
+                                {
+                                    "code": "0230",
+                                    "display": "Agentes de la Policía Nacional"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "024",
+                            "display": "Auxiliares de la Policía Nacional",
+                            "concept": [
+                                {
+                                    "code": "0240",
+                                    "display": "Auxiliares de la Policía Nacional"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "1",
+            "display": "MIEMBROS DEL PODER EJECUTIVO, DE LOS CUERPOS LEGISLATIVOS Y PERSONAL DIRECTIVO DE LA ADMINISTRACIÓN PÚBLICA Y DE EMPRESAS",
+            "concept": [
+                {
+                    "code": "11",
+                    "display": "MIEMBROS DEL PODER EJECUTIVO, DE LOS CUERPOS LEGISLATIVOS Y PERSONAL DIRECTIVO DE LA ADMINISTRACIÓN PÚBLICA",
+                    "concept": [
+                        {
+                            "code": "111",
+                            "display": "Miembros del Poder Ejecutivo y de los cuerpos legislativos",
+                            "concept": [
+                                {
+                                    "code": "1110",
+                                    "display": "Miembros del Poder Ejecutivo y de los cuerpos legislativos"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "112",
+                            "display": "Directores generales, de regionales,  sucursales, oficinas y afines de la administración pública",
+                            "concept": [
+                                {
+                                    "code": "1121",
+                                    "display": "Directores generales, de empresas o entidades de la administración pública"
+                                },
+                                {
+                                    "code": "1122",
+                                    "display": "Directores de regionales, sucursales, oficinas y afines de la administración pública"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "113",
+                            "display": "Jefes de comunidades indígenas, etnias especiales y afines",
+                            "concept": [
+                                {
+                                    "code": "1130",
+                                    "display": "Jefes de comunidades indígenas, etnias especiales y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "114",
+                            "display": "Dirigentes y administradores de  partidos políticos, sindicatos y organizaciones especializadas",
+                            "concept": [
+                                {
+                                    "code": "1141",
+                                    "display": "Dirigentes y administradores de partidos políticos"
+                                },
+                                {
+                                    "code": "1142",
+                                    "display": "Dirigentes y administradores de organizaciones de empleadores, de trabajadores y de otras de interés socioeconómico"
+                                },
+                                {
+                                    "code": "1143",
+                                    "display": "Dirigentes y administradores de organizaciones humanitarias y de otras organizaciones especializadas"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "12",
+                    "display": "DIRECTORES Y GERENTES GENERALES DE EMPRESAS PRIVADAS",
+                    "concept": [
+                        {
+                            "code": "121",
+                            "display": "Directores generales, de regionales, sucursales, oficinas y afines de empresas privadas",
+                            "concept": [
+                                {
+                                    "code": "1211",
+                                    "display": "Directores y gerentes generales de empresas privadas"
+                                },
+                                {
+                                    "code": "1212",
+                                    "display": "Directores de regionales, sucursales, oficinas y afines de empresas privadas"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "13",
+                    "display": "DIRECTORES DE DEPARTAMENTOS PÚBLICOS Y PRIVADOS",
+                    "concept": [
+                        {
+                            "code": "131",
+                            "display": "Directores de departamentos de producción y operaciones",
+                            "concept": [
+                                {
+                                    "code": "1311",
+                                    "display": "Directores de departamentos de producción y operaciones en agricultura, ganaderia, silvicultura, caza y pesca"
+                                },
+                                {
+                                    "code": "1312",
+                                    "display": "Directores de departamentos de producción y operaciones en industrias manufactureras y extractivas"
+                                },
+                                {
+                                    "code": "1313",
+                                    "display": "Directores de departamentos de producción y operaciones en construcción y obras públicas"
+                                },
+                                {
+                                    "code": "1314",
+                                    "display": "Directores de departamentos de producción y operaciones en comercio mayorista y minorista"
+                                },
+                                {
+                                    "code": "1315",
+                                    "display": "Directores de departamentos de producción y operaciones en restaurantes, hoteles y afines"
+                                },
+                                {
+                                    "code": "1316",
+                                    "display": "Directores de departamentos de producción y operaciones en transporte, almacenamiento y comunicaciones"
+                                },
+                                {
+                                    "code": "1317",
+                                    "display": "Directores de departamentos de producción y operaciones en empresas de intermediación financiera y servicios a empresas"
+                                },
+                                {
+                                    "code": "1318",
+                                    "display": "Directores de departamentos de producción y operaciones en servicios de salud, educación y recreación"
+                                },
+                                {
+                                    "code": "1319",
+                                    "display": "Directores de departamentos de producción y operaciones, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "132",
+                            "display": "Otros directores de departamentos, públicos y privados",
+                            "concept": [
+                                {
+                                    "code": "1321",
+                                    "display": "Directores de departamentos financieros y administrativos"
+                                },
+                                {
+                                    "code": "1322",
+                                    "display": "Directores de departamentos de personal y de relaciones laborales"
+                                },
+                                {
+                                    "code": "1323",
+                                    "display": "Directores de departamentos de ventas y comercialización"
+                                },
+                                {
+                                    "code": "1324",
+                                    "display": "Directores de departamentos de publicidad y de relaciones públicas"
+                                },
+                                {
+                                    "code": "1325",
+                                    "display": "Directores de departamentos de abastecimiento y distribución"
+                                },
+                                {
+                                    "code": "1326",
+                                    "display": "Directores de departamentos de servicios de informática"
+                                },
+                                {
+                                    "code": "1327",
+                                    "display": "Directores de departamentos de investigaciones y desarrollo"
+                                },
+                                {
+                                    "code": "1329",
+                                    "display": "Otros directores de departamentos públicos y privados, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "14",
+                    "display": "COORDINADORES Y SUPERVISORES EN MANDOS MEDIOS DE EMPRESAS PÚBLICAS Y PRIVADAS",
+                    "concept": [
+                        {
+                            "code": "141",
+                            "display": "Coordinadores y supervisores en mandos medios administrativos, comerciales y de servicios de empresas públicas y privadas",
+                            "concept": [
+                                {
+                                    "code": "1411",
+                                    "display": "Coordinadores y supervisores financieros y administrativos"
+                                },
+                                {
+                                    "code": "1412",
+                                    "display": "Coordinadores y supervisores de  ventas y comercialización"
+                                },
+                                {
+                                    "code": "1413",
+                                    "display": "Coordinadores y supervisores de publicidad, información, relaciones públicas y servicio al cliente"
+                                },
+                                {
+                                    "code": "1414",
+                                    "display": "Coordinadores y supervisores de  almacenamiento, abastecimiento y distribución"
+                                },
+                                {
+                                    "code": "1415",
+                                    "display": "Coordinadores y supervisores de informática,  investigación y desarrollo"
+                                },
+                                {
+                                    "code": "1416",
+                                    "display": "Coordinadores y supervisores de servicios sociales, educación y salud"
+                                },
+                                {
+                                    "code": "1419",
+                                    "display": "Otros coordinadores y supervisores en mandos medios de empresas adminiatrativos, comerciales y de servicios de empresas públicas y privadas, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "142",
+                            "display": "Coordinadores y supervisores en mandos medios de producción y operaciones de empresas publicas y privadas",
+                            "concept": [
+                                {
+                                    "code": "1421",
+                                    "display": "Coordinadores y supervisores de producción y operaciones en aprovechamiento agrícola, pecuario y silvícola"
+                                },
+                                {
+                                    "code": "1422",
+                                    "display": "Coordinadores y supervisores de producción y operaciones en explotación procesamiento y transporte de minerales, petróleo y gas"
+                                },
+                                {
+                                    "code": "1423",
+                                    "display": "Coordinadores y supervisores de producción y operaciones en  procesamiento, fabricación y ensamble"
+                                },
+                                {
+                                    "code": "1424",
+                                    "display": "Coordinadores y supervisores de  producción y operaciones en construcción y obras públicas"
+                                },
+                                {
+                                    "code": "1425",
+                                    "display": "Coordinadores y supervisores de producción y operaciones en  instalación, mantenimiento y reparación mecánica, eléctrica y electrónica"
+                                },
+                                {
+                                    "code": "1426",
+                                    "display": "Coordinadores y supervisores de  producción y operaciones en restaurantes, hoteles hospitales y afines"
+                                },
+                                {
+                                    "code": "1427",
+                                    "display": "Coordinadores y supervisores de producción y operaciones  en transporte y comunicaciones"
+                                },
+                                {
+                                    "code": "1428",
+                                    "display": "Coordinadores y supervisores de producción y operaciones en cuidados personales, limpieza y servicios similares"
+                                },
+                                {
+                                    "code": "1429",
+                                    "display": "Coordinadores y supervisores  en mandos medios de producción y operaciones en empresas públicas y privadas, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "2",
+            "display": "PROFESIONALES UNIVERSITARIOS, CIENTÍFICOS E INTELECTUALES",
+            "concept": [
+                {
+                    "code": "21",
+                    "display": "PROFESIONALES DE LAS CIENCIAS FÍSICAS, QUÍMICAS, MATEMÁTICAS Y DE LA INGENIERÍA",
+                    "concept": [
+                        {
+                            "code": "211",
+                            "display": "Físicos, químicos y afines",
+                            "concept": [
+                                {
+                                    "code": "2111",
+                                    "display": "Físicos y astrónomos"
+                                },
+                                {
+                                    "code": "2112",
+                                    "display": "Meteorólogos"
+                                },
+                                {
+                                    "code": "2113",
+                                    "display": "Químicos y afines"
+                                },
+                                {
+                                    "code": "2114",
+                                    "display": "Geólogos y geofísicos"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "212",
+                            "display": "Matemáticos, estadísticos y afines",
+                            "concept": [
+                                {
+                                    "code": "2121",
+                                    "display": "Matemáticos y actuarios"
+                                },
+                                {
+                                    "code": "2122",
+                                    "display": "Estadísticos"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "213",
+                            "display": "Profesionales de la informática",
+                            "concept": [
+                                {
+                                    "code": "2130",
+                                    "display": "Profesionales de la informática"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "214",
+                            "display": "Arquitectos, ingenieros y afines",
+                            "concept": [
+                                {
+                                    "code": "2141",
+                                    "display": "Arquitectos y urbanistas"
+                                },
+                                {
+                                    "code": "2142",
+                                    "display": "Ingenieros civiles, ingenieros de transporte y afines"
+                                },
+                                {
+                                    "code": "2143",
+                                    "display": "Ingenieros eléctricos, ingenieros electrónicos, de telecomunicaciones y afines"
+                                },
+                                {
+                                    "code": "2144",
+                                    "display": "Ingenieros mecánicos"
+                                },
+                                {
+                                    "code": "2145",
+                                    "display": "Ingenieros industriales y afines"
+                                },
+                                {
+                                    "code": "2146",
+                                    "display": "Ingenieros químicos y afines"
+                                },
+                                {
+                                    "code": "2147",
+                                    "display": "Ingenieros de minas, ingenieros metalúrgicos y afines"
+                                },
+                                {
+                                    "code": "2148",
+                                    "display": "Ingenieros catastrales, ingenieros geógrafos y afines"
+                                },
+                                {
+                                    "code": "2149",
+                                    "display": "Arquitectos, ingenieros y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "22",
+                    "display": "PROFESIONALES DE LAS CIENCIAS BIOLÓGICAS, LA MEDICINA Y LA SALUD",
+                    "concept": [
+                        {
+                            "code": "221",
+                            "display": "Profesionales en ciencias biológicas y otras disciplinas relativas a los seres orgánicos",
+                            "concept": [
+                                {
+                                    "code": "2211",
+                                    "display": "Biólogos, botánicos, zoólogos y afines"
+                                },
+                                {
+                                    "code": "2212",
+                                    "display": "Patólogos y afines"
+                                },
+                                {
+                                    "code": "2213",
+                                    "display": "Agrónomos y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "222",
+                            "display": "Médicos, profesionales en ciencias de la salud y afines",
+                            "concept": [
+                                {
+                                    "code": "2221",
+                                    "display": "Médicos"
+                                },
+                                {
+                                    "code": "2222",
+                                    "display": "Odontólogos"
+                                },
+                                {
+                                    "code": "2223",
+                                    "display": "Médicos veterinarios y zootecnistas"
+                                },
+                                {
+                                    "code": "2224",
+                                    "display": "Optómetras"
+                                },
+                                {
+                                    "code": "2225",
+                                    "display": "Fonoaudiólogos, fisioterapeutas y afines"
+                                },
+                                {
+                                    "code": "2226",
+                                    "display": "Enfermeros(as) profesionales"
+                                },
+                                {
+                                    "code": "2227",
+                                    "display": "Nutricionistas y dietistas"
+                                },
+                                {
+                                    "code": "2229",
+                                    "display": "Médicos, profesionales en ciencias de la salud y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "23",
+                    "display": "PROFESIONALES DE LA EDUCACIÓN",
+                    "concept": [
+                        {
+                            "code": "231",
+                            "display": "Profesores y docentes en educación formal",
+                            "concept": [
+                                {
+                                    "code": "2311",
+                                    "display": "Profesores de universidades y otros establecimientos de educación superior"
+                                },
+                                {
+                                    "code": "2312",
+                                    "display": "Profesores de educación secundaria"
+                                },
+                                {
+                                    "code": "2313",
+                                    "display": "Profesores de educación  primaria"
+                                },
+                                {
+                                    "code": "2314",
+                                    "display": "Profesores de educación preescolar"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "232",
+                            "display": "Profesores e instructores de educación especial",
+                            "concept": [
+                                {
+                                    "code": "2320",
+                                    "display": "Profesores e instructores de educación especial"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "233",
+                            "display": "Otros profesionales de la educación",
+                            "concept": [
+                                {
+                                    "code": "2331",
+                                    "display": "Especialistas en métodos pedagógicos y material didáctico"
+                                },
+                                {
+                                    "code": "2332",
+                                    "display": "Inspectores de la educación"
+                                },
+                                {
+                                    "code": "2333",
+                                    "display": "Consejeros educativos"
+                                },
+                                {
+                                    "code": "2339",
+                                    "display": "Otros profesionales de la educación, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "24",
+                    "display": "OTROS PROFESIONALES CIENTÍFICOS E INTELECTUALES",
+                    "concept": [
+                        {
+                            "code": "241",
+                            "display": "Profesionales en organización, administración de empresas, análisis financiero y afines",
+                            "concept": [
+                                {
+                                    "code": "2411",
+                                    "display": "Contadores"
+                                },
+                                {
+                                    "code": "2412",
+                                    "display": "Especialistas en políticas, servicios de personal y afines"
+                                },
+                                {
+                                    "code": "2413",
+                                    "display": "Analistas y agentes financieros"
+                                },
+                                {
+                                    "code": "2419",
+                                    "display": "Profesionales en organización, administración de empresas, análisis financiero y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "242",
+                            "display": "Profesionales del derecho",
+                            "concept": [
+                                {
+                                    "code": "2421",
+                                    "display": "Abogados"
+                                },
+                                {
+                                    "code": "2422",
+                                    "display": "Jueces"
+                                },
+                                {
+                                    "code": "2429",
+                                    "display": "Profesionales del derecho, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "243",
+                            "display": "Catalogadores, bibliotecarios, documentalistas y afines",
+                            "concept": [
+                                {
+                                    "code": "2431",
+                                    "display": "Catalogadores de piezas de museos, archivos y afines"
+                                },
+                                {
+                                    "code": "2432",
+                                    "display": "Bibliotecarios, documentalistas y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "244",
+                            "display": "Profesionales en ciencias económicas, sociales y humanas",
+                            "concept": [
+                                {
+                                    "code": "2441",
+                                    "display": "Economistas"
+                                },
+                                {
+                                    "code": "2442",
+                                    "display": "Sociólogos, antropólogos y afines"
+                                },
+                                {
+                                    "code": "2443",
+                                    "display": "Filósofos, historiadores y especialistas en ciencias políticas"
+                                },
+                                {
+                                    "code": "2444",
+                                    "display": "Filólogos, traductores e intérpretes"
+                                },
+                                {
+                                    "code": "2445",
+                                    "display": "Psicólogos"
+                                },
+                                {
+                                    "code": "2446",
+                                    "display": "Trabajadores sociales y afines"
+                                },
+                                {
+                                    "code": "2449",
+                                    "display": "Profesionales en ciencias económicas, sociales y humanas no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "245",
+                            "display": "Escritores, artistas creativos y ejecutantes",
+                            "concept": [
+                                {
+                                    "code": "2451",
+                                    "display": "Escritores, periodistas y afines"
+                                },
+                                {
+                                    "code": "2452",
+                                    "display": "Escultores, pintores y afines"
+                                },
+                                {
+                                    "code": "2453",
+                                    "display": "Compositores, músicos y cantantes"
+                                },
+                                {
+                                    "code": "2454",
+                                    "display": "Coreógrafos y bailarines"
+                                },
+                                {
+                                    "code": "2455",
+                                    "display": "Actores y directores de cine, radio, teatro, televisión y afines"
+                                },
+                                {
+                                    "code": "2456",
+                                    "display": "Publicistas y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "246",
+                            "display": "Sacerdotes y religiosos de distintas doctrinas",
+                            "concept": [
+                                {
+                                    "code": "2460",
+                                    "display": "Sacerdotes y religiosos de distintas doctrinas"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "3",
+            "display": "TÉCNICOS, POSTSECUNDARIOS NO UNIVERSITARIOS Y ASISTENTES",
+            "concept": [
+                {
+                    "code": "31",
+                    "display": "TÉCNICOS Y POSTSECUNDARIOS NO UNIVERSITARIOS DE LAS CIENCIAS FÍSICAS, QUÍMICAS, LA INGENIERÍA Y AFINES",
+                    "concept": [
+                        {
+                            "code": "311",
+                            "display": "Técnicos y postsecundarios no universitarios en ciencias físicas, químicas e ingeniería",
+                            "concept": [
+                                {
+                                    "code": "3111",
+                                    "display": "Técnicos y postsecundarios no universitarios en ciencias físicas, químicas y afines"
+                                },
+                                {
+                                    "code": "3112",
+                                    "display": "Técnicos y postsecundarios no universitarios en ingeniería civil, arquitectura, agrimensores y afines"
+                                },
+                                {
+                                    "code": "3113",
+                                    "display": "Electrotécnicos"
+                                },
+                                {
+                                    "code": "3114",
+                                    "display": "Técnicos y postsecundarios no universitarios en electrónica y telecomunicaciones"
+                                },
+                                {
+                                    "code": "3115",
+                                    "display": "Técnicos y postsecundarios no universitarios en mecánica y construcción mecánica"
+                                },
+                                {
+                                    "code": "3116",
+                                    "display": "Técnicos y postsecundarios no universitarios en ingeniería  industrial y química industrial"
+                                },
+                                {
+                                    "code": "3117",
+                                    "display": "Técnicos y postsecundarios no universitarios en ingeniería de minas y metalurgia"
+                                },
+                                {
+                                    "code": "3118",
+                                    "display": "Delineantes y dibujantes técnicos"
+                                },
+                                {
+                                    "code": "3119",
+                                    "display": "Técnicos y postsecundarios no universitarios en ciencias físicas, químicas e ingenierías, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "312",
+                            "display": "Técnicos en programación y control informáticos",
+                            "concept": [
+                                {
+                                    "code": "3121",
+                                    "display": "Analistas de sistemas informáticos"
+                                },
+                                {
+                                    "code": "3122",
+                                    "display": "Técnicos en programación informática"
+                                },
+                                {
+                                    "code": "3123",
+                                    "display": "Técnicos en control de equipos informáticos"
+                                },
+                                {
+                                    "code": "3124",
+                                    "display": "Técnicos en control de robots industriales"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "313",
+                            "display": "Operadores de equipos ópticos y electrónicos",
+                            "concept": [
+                                {
+                                    "code": "3131",
+                                    "display": "Fotógrafos y operadores de equipos de grabación de imagen y sonido"
+                                },
+                                {
+                                    "code": "3132",
+                                    "display": "Operadores de equipos de radiodifusión, televisión y telecomunicaciones"
+                                },
+                                {
+                                    "code": "3133",
+                                    "display": "Operadores de aparatos de diagnóstico y tratamiento médicos"
+                                },
+                                {
+                                    "code": "3139",
+                                    "display": "Operadores de equipos ópticos y electrónicos, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "314",
+                            "display": "Técnicos en navegación marítima y aeronáutica",
+                            "concept": [
+                                {
+                                    "code": "3141",
+                                    "display": "Oficiales maquinistas"
+                                },
+                                {
+                                    "code": "3142",
+                                    "display": "Capitanes, oficiales de cubierta y prácticos"
+                                },
+                                {
+                                    "code": "3143",
+                                    "display": "Pilotos de aviación y afines"
+                                },
+                                {
+                                    "code": "3144",
+                                    "display": "Controladores de tráfico aéreo y marítimo"
+                                },
+                                {
+                                    "code": "3145",
+                                    "display": "Técnicos en seguridad aeronáutica"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "315",
+                            "display": "Inspectores de obras, seguridad y salud y control de calidad",
+                            "concept": [
+                                {
+                                    "code": "3151",
+                                    "display": "Inspectores de edificios y de prevención e investigación de incendios"
+                                },
+                                {
+                                    "code": "3152",
+                                    "display": "Inspectores de seguridad y salud y control de calidad"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "32",
+                    "display": "TÉCNICOS Y POSTSECUNDARIOS NO UNIVERSITARIOS DE LAS CIENCIAS BIOLÓGICAS, LA MEDICINA Y LA SALUD",
+                    "concept": [
+                        {
+                            "code": "321",
+                            "display": "Técnicos y postsecundarios no universitarios en ciencias biológicas, agronomía, zootecnia y afines",
+                            "concept": [
+                                {
+                                    "code": "3211",
+                                    "display": "Técnicos en ciencias biológicas y afines"
+                                },
+                                {
+                                    "code": "3212",
+                                    "display": "Técnicos en agronomía, zootecnia y silvicultura"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "322",
+                            "display": "Técnicos, postsecundarios no universitarios y asistentes de la medicina moderna y la salud (excepto el personal de partería)",
+                            "concept": [
+                                {
+                                    "code": "3221",
+                                    "display": "Practicantes y asistentes médicos"
+                                },
+                                {
+                                    "code": "3222",
+                                    "display": "Higienistas y promotores de salud"
+                                },
+                                {
+                                    "code": "3223",
+                                    "display": "Técnicos en optometría y ópticos"
+                                },
+                                {
+                                    "code": "3224",
+                                    "display": "Técnicos e higienistas dentales"
+                                },
+                                {
+                                    "code": "3225",
+                                    "display": "Técnicos terapeutas, quiroprácticos y afines"
+                                },
+                                {
+                                    "code": "3226",
+                                    "display": "Técnicos y asistentes veterinarios"
+                                },
+                                {
+                                    "code": "3227",
+                                    "display": "Técnicos y asistentes en farmacia"
+                                },
+                                {
+                                    "code": "3229",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes de la medicina moderna y la salud (excepto el personal de partería), no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "323",
+                            "display": "Practicantes de la medicina tradicional y curanderos",
+                            "concept": [
+                                {
+                                    "code": "3231",
+                                    "display": "Practicantes de la medicina tradicional"
+                                },
+                                {
+                                    "code": "3232",
+                                    "display": "Curanderos"
+                                },
+                                {
+                                    "code": "3233",
+                                    "display": "Parteras"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "33",
+                    "display": "ASISTENTES DE ENSEÑANZA E INSTRUCTORES DE EDUCACIÓN FORMAL, ESPECIAL Y VOCACIONAL",
+                    "concept": [
+                        {
+                            "code": "331",
+                            "display": "Asistentes de enseñanza en educación formal (superior, media, básica y preescolar)",
+                            "concept": [
+                                {
+                                    "code": "3311",
+                                    "display": "Asistentes de enseñanza en educación  superior, secundaria y primaria"
+                                },
+                                {
+                                    "code": "3312",
+                                    "display": "Asistentes de enseñanza en educación preescolar"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "332",
+                            "display": "Asistentes de educación especial",
+                            "concept": [
+                                {
+                                    "code": "3320",
+                                    "display": "Asistentes de educación especial"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "333",
+                            "display": "Instructores de educación no formal, vocacional y afines",
+                            "concept": [
+                                {
+                                    "code": "3331",
+                                    "display": "Instructores de educación vocacional artística y técnica"
+                                },
+                                {
+                                    "code": "3332",
+                                    "display": "Instructores de educación vocacional artesanal"
+                                },
+                                {
+                                    "code": "3333",
+                                    "display": "Instructores medios de transporte y afines"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "34",
+                    "display": "OTROS TÉCNICOS, POSTSECUNDARIOS NO UNIVERSITARIOS Y ASISTENTES",
+                    "concept": [
+                        {
+                            "code": "341",
+                            "display": "Técnicos, postsecundarios no universitarios y asistentes en operaciones comerciales",
+                            "concept": [
+                                {
+                                    "code": "3411",
+                                    "display": "Agentes de seguros"
+                                },
+                                {
+                                    "code": "3412",
+                                    "display": "Agentes inmobiliarios"
+                                },
+                                {
+                                    "code": "3413",
+                                    "display": "Agentes de viajes"
+                                },
+                                {
+                                    "code": "3414",
+                                    "display": "Representantes comerciales y técnicos de ventas"
+                                },
+                                {
+                                    "code": "3415",
+                                    "display": "Compradores"
+                                },
+                                {
+                                    "code": "3416",
+                                    "display": "Tasadores y subastadores"
+                                },
+                                {
+                                    "code": "3419",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes en operaciones comerciales, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "342",
+                            "display": "Agentes comerciales y corredores",
+                            "concept": [
+                                {
+                                    "code": "3421",
+                                    "display": "Agentes de compras, intermediarios y consignatarios"
+                                },
+                                {
+                                    "code": "3422",
+                                    "display": "Asistentes de comercio exterior"
+                                },
+                                {
+                                    "code": "3423",
+                                    "display": "Agentes públicos y privados de colocación y contratistas de mano de obra"
+                                },
+                                {
+                                    "code": "3429",
+                                    "display": "Agentes comerciales y corredores, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "343",
+                            "display": "Técnicos, postsecundarios no universitarios y asistentes de servicios de administración",
+                            "concept": [
+                                {
+                                    "code": "3431",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes de servicios administrativos y afines"
+                                },
+                                {
+                                    "code": "3432",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes del derecho y servicios legales y afines"
+                                },
+                                {
+                                    "code": "3433",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes de servicios financieros, contables y afines"
+                                },
+                                {
+                                    "code": "3434",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes de servicios estadísticos, matemáticos y afines"
+                                },
+                                {
+                                    "code": "3439",
+                                    "display": "Técnicos, postsecundarios no universitarios y asistentes de servicios de administración, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "344",
+                            "display": "Agentes de la administración publica en aduanas, impuestos y afines",
+                            "concept": [
+                                {
+                                    "code": "3441",
+                                    "display": "Agentes de aduana e inspectores de fronteras"
+                                },
+                                {
+                                    "code": "3442",
+                                    "display": "Funcionarios del fisco"
+                                },
+                                {
+                                    "code": "3443",
+                                    "display": "Funcionarios de servicios de seguridad social"
+                                },
+                                {
+                                    "code": "3444",
+                                    "display": "Funcionarios de servicios de expedición de licencias y permisos"
+                                },
+                                {
+                                    "code": "3449",
+                                    "display": "Agentes de la administración pública en aduanas, impuestos y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "345",
+                            "display": "Inspectores de policía, detectives y afines",
+                            "concept": [
+                                {
+                                    "code": "3450",
+                                    "display": "Inspectores de policía, detectives y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "346",
+                            "display": "Asistentes en trabajo social y comunitario",
+                            "concept": [
+                                {
+                                    "code": "3460",
+                                    "display": "Asistentes en trabajo social y comunitario"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "347",
+                            "display": "Técnicos, postsecundarios no universitarios y asistentes de actividades artísticas, espectáculos y deportes",
+                            "concept": [
+                                {
+                                    "code": "3471",
+                                    "display": "Técnicos en diseño y decoradores"
+                                },
+                                {
+                                    "code": "3472",
+                                    "display": "Locutores de radio, televisión y afines"
+                                },
+                                {
+                                    "code": "3473",
+                                    "display": "Músicos, cantantes y bailarines callejeros, de cabaret y afines"
+                                },
+                                {
+                                    "code": "3474",
+                                    "display": "Recreadores, payasos, acróbatas, prestidigitadores y afines"
+                                },
+                                {
+                                    "code": "3475",
+                                    "display": "Atletas, deportistas y afines"
+                                },
+                                {
+                                    "code": "3476",
+                                    "display": "Asistentes de cine, teatro, televisión y artes escénicas"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "348",
+                            "display": "Auxiliares laicos de los cultos",
+                            "concept": [
+                                {
+                                    "code": "3480",
+                                    "display": "Auxiliares laicos de los cultos"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "4",
+            "display": "EMPLEADOS DE OFICINA",
+            "concept": [
+                {
+                    "code": "41",
+                    "display": "OFICINISTAS",
+                    "concept": [
+                        {
+                            "code": "411",
+                            "display": "Secretarios y operadores de máquinas de oficina",
+                            "concept": [
+                                {
+                                    "code": "4111",
+                                    "display": "Mecanógrafos, transcriptores de textos y afines"
+                                },
+                                {
+                                    "code": "4112",
+                                    "display": "Operadores de calculadoras y entrada de datos"
+                                },
+                                {
+                                    "code": "4113",
+                                    "display": "Secretarios(as)"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "412",
+                            "display": "Auxiliares contables, estadísticos, administrativos y afines",
+                            "concept": [
+                                {
+                                    "code": "4121",
+                                    "display": "Auxiliares de contabilidad y cálculo de costos"
+                                },
+                                {
+                                    "code": "4122",
+                                    "display": "Auxiliares de servicios estadísticos y financieros"
+                                },
+                                {
+                                    "code": "4123",
+                                    "display": "Auxiliares administrativos y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "413",
+                            "display": "Encargados del registro de materiales y de transportes",
+                            "concept": [
+                                {
+                                    "code": "4131",
+                                    "display": "Encargados de control de abastecimientos e inventario"
+                                },
+                                {
+                                    "code": "4132",
+                                    "display": "Encargados de servicios de apoyo a la producción"
+                                },
+                                {
+                                    "code": "4133",
+                                    "display": "Encargados de servicios de transporte"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "414",
+                            "display": "Empleados de bibliotecas, servicios de correo y afines",
+                            "concept": [
+                                {
+                                    "code": "4141",
+                                    "display": "Empleados de bibliotecas y archivos"
+                                },
+                                {
+                                    "code": "4142",
+                                    "display": "Empleados de servicios de correo"
+                                },
+                                {
+                                    "code": "4143",
+                                    "display": "Codificadores de datos, correctores de pruebas de imprenta y afines"
+                                },
+                                {
+                                    "code": "4144",
+                                    "display": "Escribientes públicos y afines"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "42",
+                    "display": "EMPLEADOS DE TRATO DIRECTO CON EL PÚBLICO",
+                    "concept": [
+                        {
+                            "code": "421",
+                            "display": "Cajeros, taquilleros y afines",
+                            "concept": [
+                                {
+                                    "code": "4211",
+                                    "display": "Cajeros y expendedores de billetes"
+                                },
+                                {
+                                    "code": "4212",
+                                    "display": "Taquilleros"
+                                },
+                                {
+                                    "code": "4213",
+                                    "display": "Receptores de apuestas y afines"
+                                },
+                                {
+                                    "code": "4214",
+                                    "display": "Prestamistas"
+                                },
+                                {
+                                    "code": "4215",
+                                    "display": "Cobradores y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "422",
+                            "display": "Empleados de servicios de información a clientes",
+                            "concept": [
+                                {
+                                    "code": "4221",
+                                    "display": "Empleados de servicios de líneas de viajes aéreas, marítimas y terrestres"
+                                },
+                                {
+                                    "code": "4222",
+                                    "display": "Recepcionistas, empleados de información y servicio al cliente"
+                                },
+                                {
+                                    "code": "4223",
+                                    "display": "Empleados telefonistas y de servicios de internet"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "5",
+            "display": "TRABAJADORES DE LOS SERVICIOS Y VENDEDORES",
+            "concept": [
+                {
+                    "code": "51",
+                    "display": "TRABAJADORES DE LOS SERVICIOS PERSONALES",
+                    "concept": [
+                        {
+                            "code": "511",
+                            "display": "Personal al servicio directo de los pasajeros",
+                            "concept": [
+                                {
+                                    "code": "5111",
+                                    "display": "Personal de servicio a pasajeros"
+                                },
+                                {
+                                    "code": "5112",
+                                    "display": "Revisores, guardas y cobradores de los servicios de transporte"
+                                },
+                                {
+                                    "code": "5113",
+                                    "display": "Guías"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "512",
+                            "display": "Personal de servicios de restaurantes, alimentos y bebidas",
+                            "concept": [
+                                {
+                                    "code": "5121",
+                                    "display": "Cocineros y afines"
+                                },
+                                {
+                                    "code": "5122",
+                                    "display": "Meseros, taberneros y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "513",
+                            "display": "Trabajadores de los cuidados personales y afines",
+                            "concept": [
+                                {
+                                    "code": "5131",
+                                    "display": "Niñeras y cuidadoras infantiles"
+                                },
+                                {
+                                    "code": "5132",
+                                    "display": "Auxiliares de enfermería y odontología"
+                                },
+                                {
+                                    "code": "5139",
+                                    "display": "Trabajadores de los cuidados personales y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "514",
+                            "display": "Otros trabajadores de servicios personales a particulares",
+                            "concept": [
+                                {
+                                    "code": "5141",
+                                    "display": "Peluqueros, especialistas en tratamientos de belleza y afines"
+                                },
+                                {
+                                    "code": "5142",
+                                    "display": "Acompañantes"
+                                },
+                                {
+                                    "code": "5143",
+                                    "display": "Personal de pompas fúnebres y embalsamadores"
+                                },
+                                {
+                                    "code": "5149",
+                                    "display": "Otros trabajadores de servicios personales a particulares, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "515",
+                            "display": "Astrólogos, adivinadores, quirománticos y afines",
+                            "concept": [
+                                {
+                                    "code": "5150",
+                                    "display": "Astrólogos, adivinadores, quirománticos y afines"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "52",
+                    "display": "PERSONAL DE LOS SERVICIOS DE PROTECCIÓN Y SEGURIDAD",
+                    "concept": [
+                        {
+                            "code": "521",
+                            "display": "Personal de los servicios de protección y seguridad",
+                            "concept": [
+                                {
+                                    "code": "5211",
+                                    "display": "Bomberos y rescatistas"
+                                },
+                                {
+                                    "code": "5212",
+                                    "display": "Agentes y policías de transito"
+                                },
+                                {
+                                    "code": "5213",
+                                    "display": "Guardianes de prisión"
+                                },
+                                {
+                                    "code": "5219",
+                                    "display": "Personal de los servicios de protección y seguridad, no clasificado bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "53",
+                    "display": "MODELOS, VENDEDORES Y DEMOSTRADORES",
+                    "concept": [
+                        {
+                            "code": "531",
+                            "display": "Modelos de modas, arte y publicidad",
+                            "concept": [
+                                {
+                                    "code": "5310",
+                                    "display": "Modelos de modas, arte y publicidad"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "532",
+                            "display": "Vendedores y demostradores de tiendas, almacenes y afines",
+                            "concept": [
+                                {
+                                    "code": "5320",
+                                    "display": "Vendedores y demostradores de tiendas, almacenes y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "533",
+                            "display": "Vendedores en quioscos y puestos fijos de mercado",
+                            "concept": [
+                                {
+                                    "code": "5330",
+                                    "display": "Vendedores en quioscos y puestos fijos de mercado"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "534",
+                            "display": "Vendedores ambulantes, a domicilio y afines",
+                            "concept": [
+                                {
+                                    "code": "5341",
+                                    "display": "Vendedores ambulantes"
+                                },
+                                {
+                                    "code": "5342",
+                                    "display": "Vendedores a domicilio y por teléfono"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "6",
+            "display": "AGRICULTORES, TRABAJADORES Y OBREROS AGROPECUARIOS, FORESTALES Y PESQUEROS",
+            "concept": [
+                {
+                    "code": "61",
+                    "display": "AGRICULTORES Y TRABAJADORES FORESTALES, PECUARIOS Y PESQUEROS",
+                    "concept": [
+                        {
+                            "code": "611",
+                            "display": "Agricultores, trabajadores forestales y agropecuarios",
+                            "concept": [
+                                {
+                                    "code": "6111",
+                                    "display": "Agricultores de cultivos transitorios"
+                                },
+                                {
+                                    "code": "6112",
+                                    "display": "Agricultores de cultivos permanentes (plantaciones de árboles y arbustos)"
+                                },
+                                {
+                                    "code": "6113",
+                                    "display": "Trabajadores de huertas, invernaderos, viveros y jardines"
+                                },
+                                {
+                                    "code": "6114",
+                                    "display": "Trabajadores forestales"
+                                },
+                                {
+                                    "code": "6115",
+                                    "display": "Trabajadores agropecuarios"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "612",
+                            "display": "Trabajadores pecuarios, avicultores, criadores de insectos y afines",
+                            "concept": [
+                                {
+                                    "code": "6121",
+                                    "display": "Criadores de ganado y trabajadores de la cría de animales domésticos diversos"
+                                },
+                                {
+                                    "code": "6122",
+                                    "display": "Avicultores"
+                                },
+                                {
+                                    "code": "6123",
+                                    "display": "Criadores de insectos, apicultores, sericicultores y afines"
+                                },
+                                {
+                                    "code": "6129",
+                                    "display": "Trabajadores pecuarios, avicultores, criadores de insectos y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "613",
+                            "display": "Pescadores, cazadores y tramperos",
+                            "concept": [
+                                {
+                                    "code": "6131",
+                                    "display": "Criadores de especies acuáticas"
+                                },
+                                {
+                                    "code": "6132",
+                                    "display": "Pescadores"
+                                },
+                                {
+                                    "code": "6133",
+                                    "display": "Cazadores y tramperos"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "62",
+                    "display": "OBREROS Y PEONES AGROPECUARIOS, FORESTALES, PESQUEROS Y AFINES",
+                    "concept": [
+                        {
+                            "code": "621",
+                            "display": "Obreros y peones agropecuarios, forestales, pesqueros y afines",
+                            "concept": [
+                                {
+                                    "code": "6211",
+                                    "display": "Obreros y peones agropecuarios de labranza y de invernadero"
+                                },
+                                {
+                                    "code": "6212",
+                                    "display": "Obreros forestales"
+                                },
+                                {
+                                    "code": "6213",
+                                    "display": "Obreros de pesca, caza y trampa"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "7",
+            "display": "OFICIALES, OPERARIOS, ARTESANOS Y TRABAJADORES DE LA INDUSTRIA MANUFACTURERA, DE LA CONSTRUCCIÓN Y DE LA MINERÍA",
+            "concept": [
+                {
+                    "code": "71",
+                    "display": "OFICIALES Y OPERARIOS DE LA INDUSTRIA EXTRACTIVA",
+                    "concept": [
+                        {
+                            "code": "711",
+                            "display": "Mineros, canteros, pegadores y labrantes de piedra",
+                            "concept": [
+                                {
+                                    "code": "7111",
+                                    "display": "Mineros y canteros"
+                                },
+                                {
+                                    "code": "7112",
+                                    "display": "Pegadores cargas explosivas"
+                                },
+                                {
+                                    "code": "7113",
+                                    "display": "Tronzadores, labrantes y grabadores de piedra"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "72",
+                    "display": "OFICIALES Y OPERARIOS DE LA CONSTRUCCIÓN",
+                    "concept": [
+                        {
+                            "code": "721",
+                            "display": "Oficiales y operarios de la construcción en obra negra y afines",
+                            "concept": [
+                                {
+                                    "code": "7211",
+                                    "display": "Albañiles, mamposteros y afines"
+                                },
+                                {
+                                    "code": "7212",
+                                    "display": "Operarios en cemento armado, enfoscadores y afines"
+                                },
+                                {
+                                    "code": "7213",
+                                    "display": "Carpinteros de armar y de blanco"
+                                },
+                                {
+                                    "code": "7219",
+                                    "display": "Oficiales y operarios de la construcción en obra negra y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "722",
+                            "display": "Oficiales y operarios de la construcción en trabajos de acabado y afines",
+                            "concept": [
+                                {
+                                    "code": "7221",
+                                    "display": "Techadores"
+                                },
+                                {
+                                    "code": "7222",
+                                    "display": "Parqueteros y colocadores de suelos"
+                                },
+                                {
+                                    "code": "7223",
+                                    "display": "Instaladores de material aislante y de insonorización"
+                                },
+                                {
+                                    "code": "7224",
+                                    "display": "Cristaleros"
+                                },
+                                {
+                                    "code": "7225",
+                                    "display": "Fontaneros e instaladores de tuberías"
+                                },
+                                {
+                                    "code": "7226",
+                                    "display": "Electricistas de obras y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "723",
+                            "display": "Revocadores, pintores, limpiadores de fachada y afines",
+                            "concept": [
+                                {
+                                    "code": "7231",
+                                    "display": "Revocadores"
+                                },
+                                {
+                                    "code": "7232",
+                                    "display": "Pintores, empapeladores y afines"
+                                },
+                                {
+                                    "code": "7233",
+                                    "display": "Limpiadores de fachadas y deshollinadores"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "73",
+                    "display": "OPERARIOS DE LA METALURGIA Y AFINES",
+                    "concept": [
+                        {
+                            "code": "731",
+                            "display": "Moldeadores, soldadores, chapistas, caldereros, montadores de estructuras metálicas y afines",
+                            "concept": [
+                                {
+                                    "code": "7311",
+                                    "display": "Moldeadores y macheros"
+                                },
+                                {
+                                    "code": "7312",
+                                    "display": "Soldadores y oxicortadores"
+                                },
+                                {
+                                    "code": "7313",
+                                    "display": "Chapistas y caldereros"
+                                },
+                                {
+                                    "code": "7314",
+                                    "display": "Montadores de estructuras metálicas"
+                                },
+                                {
+                                    "code": "7315",
+                                    "display": "Aparejadores y empalmadores de cables"
+                                },
+                                {
+                                    "code": "7316",
+                                    "display": "Pintores,  barnizadores y enlacadores de artículos metálicos y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "732",
+                            "display": "Herreros, herramentistas y afines",
+                            "concept": [
+                                {
+                                    "code": "7321",
+                                    "display": "Herreros y forjadores"
+                                },
+                                {
+                                    "code": "7322",
+                                    "display": "Herramentistas y afines"
+                                },
+                                {
+                                    "code": "7323",
+                                    "display": "Pulidores de metales y afiladores de herramientas"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "74",
+                    "display": "MECÁNICOS Y AJUSTADORES DE MAQUINAS Y EQUIPOS",
+                    "concept": [
+                        {
+                            "code": "741",
+                            "display": "Mecánicos y ajustadores de máquinas",
+                            "concept": [
+                                {
+                                    "code": "7411",
+                                    "display": "Mecánicos y ajustadores de vehículos de motor"
+                                },
+                                {
+                                    "code": "7412",
+                                    "display": "Mecánicos y ajustadores de motores de avión"
+                                },
+                                {
+                                    "code": "7413",
+                                    "display": "Mecánicos y ajustadores de máquinas agrícolas e industriales"
+                                },
+                                {
+                                    "code": "7414",
+                                    "display": "Mecánicos y ajustadores de máquinas herramientas"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "742",
+                            "display": "Mecánicos y ajustadores de equipos eléctricos y electrónicos",
+                            "concept": [
+                                {
+                                    "code": "7421",
+                                    "display": "Mecánicos y ajustadores eléctricos"
+                                },
+                                {
+                                    "code": "7422",
+                                    "display": "Mecánicos, reparadores y ajustadores de aparatos electrónicos"
+                                },
+                                {
+                                    "code": "7423",
+                                    "display": "Instaladores y reparadores de telégrafos, teléfonos y líneas electricas"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "75",
+                    "display": "MECÁNICOS DE PRECISIÓN, OPERARIOS DE LAS ARTES GRAFICAS Y AFINES",
+                    "concept": [
+                        {
+                            "code": "751",
+                            "display": "Mecánicos de precisión en metales y materiales similares",
+                            "concept": [
+                                {
+                                    "code": "7511",
+                                    "display": "Mecánicos y reparadores de instrumentos de precisión"
+                                },
+                                {
+                                    "code": "7512",
+                                    "display": "Fabricantes y afinadores de instrumentos musicales"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "752",
+                            "display": "Oficiales y operarios de las artes graficas y afines",
+                            "concept": [
+                                {
+                                    "code": "7521",
+                                    "display": "Cajistas, tipógrafos y afines"
+                                },
+                                {
+                                    "code": "7522",
+                                    "display": "Estereotipistas y galvanotipistas"
+                                },
+                                {
+                                    "code": "7523",
+                                    "display": "Grabadores de imprenta y fotograbadores"
+                                },
+                                {
+                                    "code": "7524",
+                                    "display": "Operarios de la fotografía y afines"
+                                },
+                                {
+                                    "code": "7525",
+                                    "display": "Encuadernadores y afines"
+                                },
+                                {
+                                    "code": "7526",
+                                    "display": "Impresores de sericigrafía y estampadores a la plancha y en textiles"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "76",
+                    "display": "ARTESANOS",
+                    "concept": [
+                        {
+                            "code": "761",
+                            "display": "Alfareros, operarios de cristalerías y afines",
+                            "concept": [
+                                {
+                                    "code": "7611",
+                                    "display": "Alfareros y afines (barro, arcilla y abrasivos)"
+                                },
+                                {
+                                    "code": "7612",
+                                    "display": "Sopladores, modeladores, laminadores, cortadores y pulidores de vidrio"
+                                },
+                                {
+                                    "code": "7613",
+                                    "display": "Grabadores de vidrio"
+                                },
+                                {
+                                    "code": "7614",
+                                    "display": "Pintores decoradores de vidrio, cerámica y otros materiales"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "762",
+                            "display": "Artesanos de la madera",
+                            "concept": [
+                                {
+                                    "code": "7621",
+                                    "display": "Cesteros, bruceros y afines"
+                                },
+                                {
+                                    "code": "7622",
+                                    "display": "Artesanos de la madera y materiales similares"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "763",
+                            "display": "Artesanos de los tejidos y bordadores",
+                            "concept": [
+                                {
+                                    "code": "7631",
+                                    "display": "Artesanos de los tejidos, el cuero y materiales similares"
+                                },
+                                {
+                                    "code": "7632",
+                                    "display": "Bordadores y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "764",
+                            "display": "Otros artesanos",
+                            "concept": [
+                                {
+                                    "code": "7641",
+                                    "display": "Joyeros, orfebres y plateros"
+                                },
+                                {
+                                    "code": "7642",
+                                    "display": "Floristas y arreglistas florales"
+                                },
+                                {
+                                    "code": "7649",
+                                    "display": "Otros artesanos, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "77",
+                    "display": "OPERARIOS DE ALIMENTOS, TEXTILES, PIELES, MADERAS Y AFINES",
+                    "concept": [
+                        {
+                            "code": "771",
+                            "display": "Operarios del procesamiento de alimentos y afines",
+                            "concept": [
+                                {
+                                    "code": "7711",
+                                    "display": "Carniceros, pescaderos y afines"
+                                },
+                                {
+                                    "code": "7712",
+                                    "display": "Panaderos, pasteleros y confiteros"
+                                },
+                                {
+                                    "code": "7713",
+                                    "display": "Operarios de la elaboración de productos lácteos"
+                                },
+                                {
+                                    "code": "7714",
+                                    "display": "Operarios de la conservación de frutas, legumbres, verduras y afines"
+                                },
+                                {
+                                    "code": "7715",
+                                    "display": "Catadores y clasificadores de alimentos y bebidas"
+                                },
+                                {
+                                    "code": "7716",
+                                    "display": "Preparadores y elaboradores de tabaco y sus productos"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "772",
+                            "display": "Operarios de los textiles y de la confección y afines",
+                            "concept": [
+                                {
+                                    "code": "7721",
+                                    "display": "Preparadores de fibras"
+                                },
+                                {
+                                    "code": "7722",
+                                    "display": "Tejedores con telares o de tejidos de punto y afines"
+                                },
+                                {
+                                    "code": "7723",
+                                    "display": "Sastres, modistos costureros, sombrereros y afines"
+                                },
+                                {
+                                    "code": "7724",
+                                    "display": "Peleteros y afines"
+                                },
+                                {
+                                    "code": "7725",
+                                    "display": "Tapiceros, colchoneros y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "773",
+                            "display": "Operarios de pieles, cuero y calzado",
+                            "concept": [
+                                {
+                                    "code": "7731",
+                                    "display": "Apelambradores, pellejeros y curtidores"
+                                },
+                                {
+                                    "code": "7732",
+                                    "display": "Zapateros y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "774",
+                            "display": "Operarios de la madera",
+                            "concept": [
+                                {
+                                    "code": "7741",
+                                    "display": "Operarios del tratamiento de la madera"
+                                },
+                                {
+                                    "code": "7742",
+                                    "display": "Ebanistas y afines"
+                                },
+                                {
+                                    "code": "7743",
+                                    "display": "Ajustadores y operadores de máquinas de labrar madera"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "8",
+            "display": "OPERADORES DE INSTALACIONES, DE MÁQUINAS Y ENSAMBLADORES",
+            "concept": [
+                {
+                    "code": "81",
+                    "display": "OPERADORES DE INSTALACIONES FIJAS Y AFINES",
+                    "concept": [
+                        {
+                            "code": "811",
+                            "display": "Operadores de instalaciones mineras y de extracción y procesamiento de minerales",
+                            "concept": [
+                                {
+                                    "code": "8111",
+                                    "display": "Operadores de instalaciones mineras"
+                                },
+                                {
+                                    "code": "8112",
+                                    "display": "Operadores de instalaciones de procesamiento de minerales y rocas"
+                                },
+                                {
+                                    "code": "8113",
+                                    "display": "Perforadores y sondistas de pozos y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "812",
+                            "display": "Operadores de instalaciones de procesamiento de metales",
+                            "concept": [
+                                {
+                                    "code": "8121",
+                                    "display": "Operadores de hornos de minerales y de hornos de primera fusión de metales"
+                                },
+                                {
+                                    "code": "8122",
+                                    "display": "Operadores de hornos de segunda fusión, máquinas de colar y moldear metales y trenes de laminación"
+                                },
+                                {
+                                    "code": "8123",
+                                    "display": "Operadores de instalaciones de tratamiento térmico de metales"
+                                },
+                                {
+                                    "code": "8124",
+                                    "display": "Operadores de máquinas trefiladoras y estiradoras de metales"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "813",
+                            "display": "Operadores de instalaciones de vidriería, cerámica y afines",
+                            "concept": [
+                                {
+                                    "code": "8131",
+                                    "display": "Operadores de mezcladoras, de hornos de vidriería  y máquinas afines"
+                                },
+                                {
+                                    "code": "8132",
+                                    "display": "Operadores de mezcladoras, de  hornos de cerámica y máqinas afines"
+                                },
+                                {
+                                    "code": "8139",
+                                    "display": "Operadores de instalaciones de vidriería, cerámica y afines, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "814",
+                            "display": "Operadores de instalaciones de procesamiento de la madera y de la fabricación de papel",
+                            "concept": [
+                                {
+                                    "code": "8141",
+                                    "display": "Operadores de instalaciones de procesamiento de la madera"
+                                },
+                                {
+                                    "code": "8142",
+                                    "display": "Operadores de instalaciones para la preparación de pasta o pulpa de papel"
+                                },
+                                {
+                                    "code": "8143",
+                                    "display": "Operadores de instalaciones para la fabricación de papel"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "815",
+                            "display": "Operadores de instalaciones de tratamientos químicos",
+                            "concept": [
+                                {
+                                    "code": "8151",
+                                    "display": "Operadores de instalaciones quebrantadoras, trituradoras y mezcladoras de sustancias químicas"
+                                },
+                                {
+                                    "code": "8152",
+                                    "display": "Operadores de instalaciones de tratamiento químico térmico"
+                                },
+                                {
+                                    "code": "8153",
+                                    "display": "Operadores de equipos de filtración y separación de sustancias químicas"
+                                },
+                                {
+                                    "code": "8154",
+                                    "display": "Operadores de equipos de destilación y de reacción química (excepto petróleo y gas natural)"
+                                },
+                                {
+                                    "code": "8155",
+                                    "display": "Operadores de instalaciones de refinación de petróleo y gas natural"
+                                },
+                                {
+                                    "code": "8159",
+                                    "display": "Operadores de instalaciones de tratamientos químicos, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "816",
+                            "display": "Operadores de instalaciones de producción de energía, incineradores, refrigeración  y afines",
+                            "concept": [
+                                {
+                                    "code": "8161",
+                                    "display": "Operadores de instalaciones de producción de energía"
+                                },
+                                {
+                                    "code": "8162",
+                                    "display": "Operadores de máquinas de vapor y calderas"
+                                },
+                                {
+                                    "code": "8163",
+                                    "display": "Operadores de incineradores"
+                                },
+                                {
+                                    "code": "8164",
+                                    "display": "Operadores de instalaciones de tratamiento de agua y afines"
+                                },
+                                {
+                                    "code": "8165",
+                                    "display": "Operadores de instalaciones de refrigeración, calefacción y ventilación"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "817",
+                            "display": "Operadores de cadenas de montaje automatizadas, instalaciones mecánicas y de robots industriales",
+                            "concept": [
+                                {
+                                    "code": "8170",
+                                    "display": "Operadores de cadenas de montaje automatizadas e instalaciones mecánicas y de robots industriales"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "82",
+                    "display": "OPERADORES DE MÁQUINAS Y ENSAMBLADORES",
+                    "concept": [
+                        {
+                            "code": "821",
+                            "display": "Operadores de máquinas para trabajar metales y productos minerales",
+                            "concept": [
+                                {
+                                    "code": "8211",
+                                    "display": "Operadores de máquinas herramientas y afines"
+                                },
+                                {
+                                    "code": "8212",
+                                    "display": "Operadores de máquinas para fabricar productos de cemento y otros productos minerales"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "822",
+                            "display": "Operadores de máquinas para fabricar productos químicos",
+                            "concept": [
+                                {
+                                    "code": "8221",
+                                    "display": "Operadores de máquinas para fabricar productos farmacéuticos y cosméticos"
+                                },
+                                {
+                                    "code": "8222",
+                                    "display": "Operadores de máquinas para fabricar municiones y explosivos"
+                                },
+                                {
+                                    "code": "8223",
+                                    "display": "Operadores de máquinas pulidoras, galvanizadoras y recubridoras de metales"
+                                },
+                                {
+                                    "code": "8229",
+                                    "display": "Operadores de máquinas para fabricar productos químicos, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "823",
+                            "display": "Operadores de máquinas para fabricar productos de caucho y de plástico",
+                            "concept": [
+                                {
+                                    "code": "8231",
+                                    "display": "Operadores de máquinas para fabricar productos de caucho"
+                                },
+                                {
+                                    "code": "8232",
+                                    "display": "Operadores de máquinas para fabricar productos de plástico"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "824",
+                            "display": "Operadores de máquinas para fabricar productos de madera",
+                            "concept": [
+                                {
+                                    "code": "8240",
+                                    "display": "Operadores de máquinas para fabricar productos de madera"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "825",
+                            "display": "Operadores de máquinas de imprenta, encuadernación y fabricación de productos de papel",
+                            "concept": [
+                                {
+                                    "code": "8251",
+                                    "display": "Operadores de máquinas de imprenta, reproducción fotográfica y afines"
+                                },
+                                {
+                                    "code": "8252",
+                                    "display": "Operadores de máquinas de encuadernación"
+                                },
+                                {
+                                    "code": "8253",
+                                    "display": "Operadores de máquinas para fabricar productos de papel y afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "826",
+                            "display": "Operadores de máquinas para fabricar productos textiles y artículos de piel y cuero",
+                            "concept": [
+                                {
+                                    "code": "8261",
+                                    "display": "Operadores de máquinas de preparación de fibras, hilado y devanado"
+                                },
+                                {
+                                    "code": "8262",
+                                    "display": "Operadores de telares y otras máquinas tejedoras"
+                                },
+                                {
+                                    "code": "8263",
+                                    "display": "Operadores de máquinas para coser"
+                                },
+                                {
+                                    "code": "8264",
+                                    "display": "Operadores de máquinas de blanqueo, teñido y tintura"
+                                },
+                                {
+                                    "code": "8265",
+                                    "display": "Operadores de máquinas de tratamiento de pieles y cueros"
+                                },
+                                {
+                                    "code": "8266",
+                                    "display": "Operadores de máquinas para la fabricación de calzado y afines"
+                                },
+                                {
+                                    "code": "8267",
+                                    "display": "Patronistas, cortadores de tela, cuero y afines"
+                                },
+                                {
+                                    "code": "8269",
+                                    "display": "Operadores de máquinas para fabricar productos textiles y artículos de piel y cuero, no clasificados bajo otros epígrafes"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "827",
+                            "display": "Operadores de máquinas para elaborar o procesar alimentos y productos afines",
+                            "concept": [
+                                {
+                                    "code": "8271",
+                                    "display": "Operadores de máquinas para procesar carne, pescado y mariscos"
+                                },
+                                {
+                                    "code": "8272",
+                                    "display": "Operadores de máquinas para elaborar productos lácteos"
+                                },
+                                {
+                                    "code": "8273",
+                                    "display": "Operadores de máquinas para moler cereales y especias"
+                                },
+                                {
+                                    "code": "8274",
+                                    "display": "Operadores de máquinas para procesar cereales, productos de panadería, repostería y confitería"
+                                },
+                                {
+                                    "code": "8275",
+                                    "display": "Operadores de máquinas para procesar frutos húmedos, secos y hortalizas"
+                                },
+                                {
+                                    "code": "8276",
+                                    "display": "Operadores de máquinas para fabricar azúcares"
+                                },
+                                {
+                                    "code": "8277",
+                                    "display": "Operadores de máquinas para elaborar té, café y cacao"
+                                },
+                                {
+                                    "code": "8278",
+                                    "display": "Operadores de máquinas para elaborar cerveza, vinos y otras bebidas"
+                                },
+                                {
+                                    "code": "8279",
+                                    "display": "Operadores de máquinas para elaborar productos del tabaco"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "828",
+                            "display": "Ensambladores",
+                            "concept": [
+                                {
+                                    "code": "8281",
+                                    "display": "Ensambladores de mecanismos y elementos mecánicos de máquinas"
+                                },
+                                {
+                                    "code": "8282",
+                                    "display": "Ensambladores de equipos eléctricos"
+                                },
+                                {
+                                    "code": "8283",
+                                    "display": "Ensambladores de equipos electrónicos"
+                                },
+                                {
+                                    "code": "8284",
+                                    "display": "Ensambladores de productos metálicos, de caucho y plástico"
+                                },
+                                {
+                                    "code": "8285",
+                                    "display": "Ensambladores de productos de madera y materiales afines"
+                                },
+                                {
+                                    "code": "8286",
+                                    "display": "Ensambladores de productos de cartón, textiles y materiales afines"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "829",
+                            "display": "Otros operadores de máquinas y ensambladores",
+                            "concept": [
+                                {
+                                    "code": "8290",
+                                    "display": "Otros operadores de máquinas y ensambladores"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "83",
+                    "display": "CONDUCTORES DE VEHÍCULOS Y OPERADORES DE EQUIPOS PESADOS MÓVILES",
+                    "concept": [
+                        {
+                            "code": "831",
+                            "display": "Maquinistas de vehículos por riel y afines",
+                            "concept": [
+                                {
+                                    "code": "8311",
+                                    "display": "Maquinistas de vehículos por riel"
+                                },
+                                {
+                                    "code": "8312",
+                                    "display": "Guardafrenos, guardagujas y agentes de maniobras"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "832",
+                            "display": "Conductores de vehículos de motor",
+                            "concept": [
+                                {
+                                    "code": "8321",
+                                    "display": "Conductores de camionetas y vehículos livianos"
+                                },
+                                {
+                                    "code": "8322",
+                                    "display": "Conductores de taxis"
+                                },
+                                {
+                                    "code": "8323",
+                                    "display": "Conductores de buses, microbuses y colectivos"
+                                },
+                                {
+                                    "code": "8324",
+                                    "display": "Conductores de camiones y vehículos pesados"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "833",
+                            "display": "Operadores de maquinaria agrícola móvil y de otras máquinas móviles",
+                            "concept": [
+                                {
+                                    "code": "8331",
+                                    "display": "Operadores de maquinaria agrícola y forestal motorizada"
+                                },
+                                {
+                                    "code": "8332",
+                                    "display": "Operadores de máquinas de movimiento de tierras, construcción vías y afines"
+                                },
+                                {
+                                    "code": "8333",
+                                    "display": "Operadores de grúas, de aparatos elevadores y afines"
+                                },
+                                {
+                                    "code": "8334",
+                                    "display": "Operadores de carretillas elevadoras"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "834",
+                            "display": "Marineros de cubierta y afines",
+                            "concept": [
+                                {
+                                    "code": "8340",
+                                    "display": "Marineros de cubierta y afines"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "code": "9",
+            "display": "TRABAJADORES NO CALIFICADOS",
+            "concept": [
+                {
+                    "code": "91",
+                    "display": "TRABAJADORES NO CALIFICADOS DE SERVICIOS (EXCEPTO EL PERSONAL DOMÉSTICO Y AFINES)",
+                    "concept": [
+                        {
+                            "code": "911",
+                            "display": "Ayudantes de mecánica",
+                            "concept": [
+                                {
+                                    "code": "9111",
+                                    "display": "Ayudante de taller, mecánica, vehículos de motor y afines"
+                                },
+                                {
+                                    "code": "9112",
+                                    "display": "Ayudantes en reparación y mecánica en general (excepto vehículos de motor)"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "912",
+                            "display": "Limpiabotas y otros trabajadores callejeros",
+                            "concept": [
+                                {
+                                    "code": "9120",
+                                    "display": "Limpiabotas y otros trabajadores callejeros"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "913",
+                            "display": "Mensajeros, porteros, conserjes, vigilantes y afines",
+                            "concept": [
+                                {
+                                    "code": "9131",
+                                    "display": "Mensajeros, porteadores y repartidores"
+                                },
+                                {
+                                    "code": "9132",
+                                    "display": "Porteros , conserjes y afines"
+                                },
+                                {
+                                    "code": "9133",
+                                    "display": "Vigilantes y celadores"
+                                },
+                                {
+                                    "code": "9134",
+                                    "display": "Recolectores y surtidores de aparatos automáticos"
+                                },
+                                {
+                                    "code": "9135",
+                                    "display": "Lectores de medidores"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "914",
+                            "display": "Recolectores de basura y afines",
+                            "concept": [
+                                {
+                                    "code": "9141",
+                                    "display": "Recolectores de basura"
+                                },
+                                {
+                                    "code": "9142",
+                                    "display": "Barrenderos y afines"
+                                },
+                                {
+                                    "code": "9143",
+                                    "display": "Recolectores de material reciclable"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "92",
+                    "display": "PERSONAL DOMÉSTICO, ASEADORES, LAVANDEROS, PLANCHADORES Y AFINES",
+                    "concept": [
+                        {
+                            "code": "921",
+                            "display": "Personal doméstico",
+                            "concept": [
+                                {
+                                    "code": "9210",
+                                    "display": "Personal doméstico"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "922",
+                            "display": "Aseadores, lavanderos y planchadores",
+                            "concept": [
+                                {
+                                    "code": "9221",
+                                    "display": "Aseadores y fumigadores de oficinas, hoteles y otros establecimientos"
+                                },
+                                {
+                                    "code": "9222",
+                                    "display": "Lavanderos y planchadores manuales"
+                                },
+                                {
+                                    "code": "9223",
+                                    "display": "Lavadores de vehículos, ventanas y afines"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "code": "93",
+                    "display": "OBREROS DE LA MINERÍA, LA CONSTRUCCIÓN, LA INDUSTRIA MANUFACTURERA Y EL TRANSPORTE",
+                    "concept": [
+                        {
+                            "code": "931",
+                            "display": "Obreros de la minería y la construcción",
+                            "concept": [
+                                {
+                                    "code": "9311",
+                                    "display": "Obreros de minas y canteras"
+                                },
+                                {
+                                    "code": "9312",
+                                    "display": "Obreros de obras públicas y mantenimiento: carreteras, presas y obras similares"
+                                },
+                                {
+                                    "code": "9313",
+                                    "display": "Obreros de la construcción de edificios"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "932",
+                            "display": "Obreros de la industria manufacturera",
+                            "concept": [
+                                {
+                                    "code": "9321",
+                                    "display": "Obreros de ensamble"
+                                },
+                                {
+                                    "code": "9322",
+                                    "display": "Embaladores manuales y otros obreros de la industria manufacturera"
+                                }
+                            ]
+                        },
+                        {
+                            "code": "933",
+                            "display": "Obreros del transporte",
+                            "concept": [
+                                {
+                                    "code": "9331",
+                                    "display": "Conductores de vehículos accionados a pedal o a brazo"
+                                },
+                                {
+                                    "code": "9332",
+                                    "display": "Conductores de vehículos de tracción animal"
+                                },
+                                {
+                                    "code": "9333",
+                                    "display": "Obreros de carga"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -6,6 +6,24 @@
  */
 
 export const SIN_ASIGNAR_OCUPACION = 'Sin asignar';
+/** Id reservado en [Ocupación]; sin código CIUO — no va al JSON FHIR. */
+export const ID_OCUPACION_SIN_ASIGNAR = 1;
+
+export function isOcupacionSinAsignar(id, text) {
+    const idNum = id != null ? parseInt(String(id).trim(), 10) : NaN;
+    if (Number.isFinite(idNum) && idNum === ID_OCUPACION_SIN_ASIGNAR) return true;
+    const t = String(text || '').trim().toLowerCase();
+    return t === SIN_ASIGNAR_OCUPACION.toLowerCase();
+}
+
+/** Valor a persistir en BD: vacío → Id 1 (Sin asignar). */
+export function resolveIdOcupacionParaGuardar(raw) {
+    const s = raw == null ? '' : String(raw).trim();
+    if (!s) return ID_OCUPACION_SIN_ASIGNAR;
+    const n = parseInt(s, 10);
+    if (!Number.isFinite(n) || n <= 0) return ID_OCUPACION_SIN_ASIGNAR;
+    return n;
+}
 
 /** @type {{ id: string, label: string, required?: boolean, select2?: boolean }[]} */
 export const PACIENTE_DEMOGRAFIA_CAMPOS = [
@@ -99,7 +117,8 @@ export function validarPacienteDemografia() {
         const texto = campo.select2 ? getCampoTexto(campo.id) : valor;
         const textoNorm = String(texto || '').trim().toLowerCase();
         const sinAsignar = campo.id === 'OcupacionBase'
-            && (isEmptyRequiredValue(valor) || textoNorm === SIN_ASIGNAR_OCUPACION.toLowerCase());
+            && (isEmptyRequiredValue(valor)
+                || isOcupacionSinAsignar(valor, texto));
 
         const corrupto = !sinAsignar && (
             isCorruptNullDisplay(valor)
@@ -115,7 +134,7 @@ export function validarPacienteDemografia() {
     return { faltantes, corruptos };
 }
 
-/** Carga ocupación válida o "Sin asignar" (no se envía al JSON FHIR). */
+/** Carga ocupación válida o "Sin asignar" (Id 1; no se envía al JSON FHIR). */
 export function aplicarOcupacionPaciente(text, id) {
     const $el = window.jQuery ? window.jQuery('#OcupacionBase') : null;
     if (!$el || !$el.length) return;
@@ -127,9 +146,14 @@ export function aplicarOcupacionPaciente(text, id) {
     const idOk = Number.isFinite(idNum) && idNum > 0 && !isCorruptNullDisplay(idStr);
     const textOk = textStr && !isCorruptNullDisplay(textStr);
 
-    if (idOk && textOk) {
+    if (idOk && textOk && !isOcupacionSinAsignar(idNum, textStr)) {
         $el.append(new Option(textStr, String(idNum), true, true)).trigger('change');
     } else {
-        $el.append(new Option(SIN_ASIGNAR_OCUPACION, '', true, true)).trigger('change');
+        $el.append(new Option(
+            SIN_ASIGNAR_OCUPACION,
+            String(ID_OCUPACION_SIN_ASIGNAR),
+            true,
+            true
+        )).trigger('change');
     }
 }

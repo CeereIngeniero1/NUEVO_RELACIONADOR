@@ -28,12 +28,13 @@
       const s = String(v).trim().toLowerCase();
       return s === "null" || s === "undefined";
     };
+    const sinAsignar = (idNum === 1) || /^sin\s+asignar$/i.test(textStr);
     const idOk = Number.isFinite(idNum) && idNum > 0 && !isCorrupt(idStr);
     const textOk = textStr && !isCorrupt(textStr);
-    if (idOk && textOk) {
+    if (idOk && textOk && !sinAsignar) {
       $el.append(new Option(textStr, String(idNum), true, true)).trigger("change");
     } else {
-      $el.append(new Option("Sin asignar", "", true, true)).trigger("change");
+      $el.append(new Option("Sin asignar", "1", true, true)).trigger("change");
     }
   }
 

@@ -71,6 +71,7 @@ const {
     validateRdaceCompositionSections,
     logRdaceCompositionSections,
 } = require('../../rda/rdaceCompositionSections');
+const { isOcupacionInformadaParaFhir, normalizeCiou88acCode, sanitizeRdaceOccupationBundle } = require('../../rda/ocupacionFhir');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -1875,13 +1876,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ],
         }) : null;
 
-        const idOcupacionPac = pdem && pdem.IdOcupacion != null
-            ? parseInt(String(pdem.IdOcupacion).trim(), 10)
-            : NaN;
-        const hasOcupacionPac = Number.isFinite(idOcupacionPac) && idOcupacionPac > 0;
-        const ocupacionCodigo = hasOcupacionPac ? str(pdem.CodigoOcupacion) : null;
+        const hasOcupacionPac = isOcupacionInformadaParaFhir({
+            idOcupacion: pdem && pdem.IdOcupacion,
+            codigoOcupacion: pdem && pdem.CodigoOcupacion,
+            ocupacionNombre: pdem && pdem.Ocupacion,
+        });
+        const ocupacionCodigo = hasOcupacionPac ? normalizeCiou88acCode(pdem.CodigoOcupacion) : null;
         const ocupacionNombre = hasOcupacionPac ? str(pdem.Ocupacion) : null;
-        const ocupacionEntry = (ocupacionCodigo || ocupacionNombre) ? makeEntry({
+        const ocupacionEntry = hasOcupacionPac && ocupacionCodigo ? makeEntry({
             resourceType: 'Observation',
             id: 'Observation-1',
             meta: { profile: [`${RDA_SD}/PatientOccupationAtEncounterRDA`] },
@@ -1893,7 +1895,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             valueCodeableConcept: {
                 coding: [{
                     system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/CIUO88AC',
-                    ...(ocupacionCodigo ? { code: ocupacionCodigo } : {}),
+                    code: ocupacionCodigo,
                     ...(ocupacionNombre ? { display: ocupacionNombre } : {}),
                 }],
             },
@@ -2230,6 +2232,10 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ],
         };
         applyEnvCustodianIfConfigured(bundle, ihceAmb, reqBody, { rdace: true });
+        const occSan = sanitizeRdaceOccupationBundle(bundle);
+        if (occSan.removed) {
+            console.warn(`[RDACE FhirBundle id=${id}] Observation ocupación sin código CIUO eliminada (${occSan.removed}); sección 74208-0 con emptyReason.`);
+        }
         return res.json(bundle);
 
     } catch (error) {
@@ -2623,6 +2629,11 @@ router.post(
         }, { rdace: true });
 
         normalizeBundleRefsToHashFragment(bundle);
+
+        const occSan = sanitizeRdaceOccupationBundle(bundle);
+        if (occSan.removed) {
+            console.warn(`[RDACE EnviarIHCE] Observation ocupación sin código CIUO eliminada (${occSan.removed}); sección 74208-0 con emptyReason.`);
+        }
 
         const poolValidate = await poolPromise;
         const medicationCatalogs = await loadRdaceMedicationCatalogs(poolValidate);

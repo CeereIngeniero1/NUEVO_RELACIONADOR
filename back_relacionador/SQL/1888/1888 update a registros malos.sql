@@ -1473,3 +1473,40 @@ BEGIN
     PRINT 'OK: [Tipo de Documento] — descripciones alineadas con ColombianPersonIdentifier (CC, PA, etc.).';
 END
 GO
+
+
+
+
+  BEGIN TRAN;
+
+UPDATE [Ocupación]
+SET [Código Ocupación] = RIGHT('0000' + LTRIM(RTRIM(CAST([Código Ocupación] AS VARCHAR(20)))), 4)
+WHERE [Código Ocupación] IS NOT NULL
+  AND LEN(LTRIM(RTRIM(CAST([Código Ocupación] AS VARCHAR(20))))) = 3
+  AND LTRIM(RTRIM(CAST([Código Ocupación] AS VARCHAR(20)))) NOT LIKE '%[^0-9]%';
+
+SELECT @@ROWCOUNT AS RegistrosActualizados;
+
+-- Revisa cómo quedaron
+SELECT TOP (200)
+    [Id Ocupación],
+    [Código Ocupación],
+    Ocupación,
+    [Descripción Ocupación],
+    [Orden Ocupación],
+    [Id Estado]
+FROM [Ocupación]
+ORDER BY [Orden Ocupación];
+
+-- Si todo está bien:
+COMMIT;
+
+-- Si algo quedó mal, en vez de COMMIT ejecutas:
+-- ROLLBACK;
+
+-- =============================================================================
+-- Ocupación: alinear display con catálogo CIUO88AC (MinSalud)
+-- Ejecutar después del padding de códigos a 4 dígitos (bloque anterior).
+-- Ver: 1888_update_ocupacion_ciuo88ac.sql
+-- Placeholder Sin asignar (Id 1): 1888_ocupacion_sin_asignar.sql
+-- =============================================================================

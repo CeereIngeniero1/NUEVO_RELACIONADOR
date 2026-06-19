@@ -8,7 +8,7 @@
  */
 
 import { getApiBaseUrl } from "../api/apiBaseUrl.js";
-import { validarPacienteDemografia } from "../../shared/pacienteDemografiaValidation.js";
+import { validarPacienteDemografia, resolveIdOcupacionParaGuardar } from "../../shared/pacienteDemografiaValidation.js";
 
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
@@ -209,12 +209,9 @@ function initActualizarPaciente(options = {}) {
             ComunidadEtnica: document.getElementById("ComunidadEtnicaBase").value.trim(),
             IdDiscapacidad: parseInt(document.getElementById("DiscapacidadBase").value) || null,
             Telefono: document.getElementById("TelefonoPaciente").value.trim(),
-            IdOcupacion: (() => {
-                const raw = (document.getElementById("OcupacionBase")?.value ?? "").trim();
-                if (!raw) return null;
-                const n = parseInt(raw, 10);
-                return Number.isFinite(n) && n > 0 ? n : null;
-            })(),
+            IdOcupacion: resolveIdOcupacionParaGuardar(
+                document.getElementById("OcupacionBase")?.value
+            ),
             Alergias: tieneAlergia ? "Si" : "No",
             Alergeno: tieneAlergia ? (alergenoTexto || null) : null
         };

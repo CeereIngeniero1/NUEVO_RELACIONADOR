@@ -684,11 +684,12 @@ SelectPacientes.addEventListener("change", async function (e) {
             const idOcupNum = IdOcupación != null ? parseInt(String(IdOcupación).trim(), 10) : NaN;
             const $ocup = $("#OcupacionBase");
             $ocup.empty();
-            if (Number.isFinite(idOcupNum) && idOcupNum > 0 && textoDescripciónOcupación
-                && String(textoDescripciónOcupación).toLowerCase() !== 'null') {
+            if (Number.isFinite(idOcupNum) && idOcupNum > 1 && textoDescripciónOcupación
+                && String(textoDescripciónOcupación).toLowerCase() !== 'null'
+                && !/^sin\s+asignar$/i.test(String(textoDescripciónOcupación))) {
                 $ocup.append(new Option(textoDescripciónOcupación, idOcupNum, true, true)).trigger('change');
             } else {
-                $ocup.append(new Option('Sin asignar', '', true, true)).trigger('change');
+                $ocup.append(new Option('Sin asignar', '1', true, true)).trigger('change');
             }
         }
 
