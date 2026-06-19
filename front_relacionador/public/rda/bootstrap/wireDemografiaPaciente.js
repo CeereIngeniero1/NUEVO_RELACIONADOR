@@ -8,7 +8,7 @@
  */
 
 import { getApiBaseUrl } from "../api/apiBaseUrl.js";
-import { validarPacienteDemografia, resolveIdOcupacionParaGuardar } from "../../shared/pacienteDemografiaValidation.js";
+import { validarPacienteDemografia, resolveIdOcupacionParaGuardar, registerPacienteEdicionHandlers } from "../../shared/pacienteDemografiaValidation.js";
 
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
@@ -271,6 +271,19 @@ function initActualizarPaciente(options = {}) {
 
     setCamposPacienteDisabled(true);
     modoEdicionPaciente = false;
+
+    function salirModoEdicionPaciente() {
+        if (!modoEdicionPaciente) return;
+        setCamposPacienteDisabled(true);
+        modoEdicionPaciente = false;
+        $("#BtnActualizarPaciente").html('<span class="icon">⟳</span> Actualizar datos paciente');
+    }
+
+    registerPacienteEdicionHandlers({
+        isPendiente: () => modoEdicionPaciente,
+        reset: salirModoEdicionPaciente,
+    });
+    window.resetPacienteEdicionSiActiva = salirModoEdicionPaciente;
 
     const btnActualizar = document.getElementById("BtnActualizarPaciente");
     if (!enableUpdate || !btnActualizar) {

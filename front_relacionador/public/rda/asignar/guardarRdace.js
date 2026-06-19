@@ -15,7 +15,7 @@ import {
     fetchBlobAuthenticated,
 } from '../api/entidad1888.js';
 import { openIhceBundlePreview, openIhceJsonModal, extractIhceMessage } from './ihceAsignar.js';
-import { validarPacienteDemografia } from '../../shared/pacienteDemografiaValidation.js';
+import { validarPacienteDemografia, bloquearSiPacienteSinGuardar } from '../../shared/pacienteDemografiaValidation.js';
 
 function buildDescAntecedenteFamiliar(item) {
     const codigo = (item.codigo || '').trim();
@@ -384,6 +384,8 @@ export async function guardarRDACE() {
         Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA Consulta Externa.' });
         return;
     }
+
+    if (!bloquearSiPacienteSinGuardar()) return;
 
     const { faltantes: missingPaciente, corruptos: corruptosPaciente } = rdaceValidatePacienteForSave();
     if (corruptosPaciente.length) {

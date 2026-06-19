@@ -577,6 +577,10 @@ SelectPacientes.addEventListener("change", async function (e) {
         const CargarDatosPaciente = await DatosPaciente.json();
         console.log('Datos: ', CargarDatosPaciente);
 
+        if (typeof window.resetPacienteEdicionSiActiva === 'function') {
+          window.resetPacienteEdicionSiActiva();
+        }
+
         try {
           const formValuesRda = {
             pacienteId: CargarDatosPaciente[0].IdPaciente || CargarDatosPaciente[0].IdUsuario || undefined,

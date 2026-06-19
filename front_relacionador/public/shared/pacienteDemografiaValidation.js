@@ -25,6 +25,50 @@ export function resolveIdOcupacionParaGuardar(raw) {
     return n;
 }
 
+let _isPacienteEdicionPendiente = () => {
+    const btn = document.getElementById('BtnActualizarPaciente');
+    if (!btn) return false;
+    const text = (btn.textContent || btn.innerText || '').trim();
+    return /guardar\s*cambios/i.test(text);
+};
+
+let _resetPacienteEdicion = null;
+
+/** Registra estado de edición (wireDemografiaPaciente). */
+export function registerPacienteEdicionHandlers({ isPendiente, reset } = {}) {
+    if (typeof isPendiente === 'function') _isPacienteEdicionPendiente = isPendiente;
+    if (typeof reset === 'function') _resetPacienteEdicion = reset;
+}
+
+export function isPacienteEdicionPendiente() {
+    return _isPacienteEdicionPendiente();
+}
+
+/** Sale del modo edición al cargar otro paciente (descarta cambios locales). */
+export function resetPacienteEdicionSiActiva() {
+    if (typeof _resetPacienteEdicion === 'function') _resetPacienteEdicion();
+}
+
+/**
+ * Bloquea guardar/enviar RDA si el botón está en «Guardar cambios».
+ * @returns {boolean} true si puede continuar
+ */
+export function bloquearSiPacienteSinGuardar() {
+    if (!isPacienteEdicionPendiente()) return true;
+    const html = 'Tiene cambios en <b>Datos del paciente</b> sin guardar. '
+        + 'Haga clic en <b>Guardar cambios</b> antes de guardar o enviar el RDA.';
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            icon: 'warning',
+            title: 'Cambios del paciente sin guardar',
+            html,
+        });
+    } else {
+        alert('Tiene cambios en Datos del paciente sin guardar. Haga clic en Guardar cambios antes de guardar o enviar el RDA.');
+    }
+    return false;
+}
+
 /** @type {{ id: string, label: string, required?: boolean, select2?: boolean }[]} */
 export const PACIENTE_DEMOGRAFIA_CAMPOS = [
     { id: 'TipoDocumentoBase', label: 'Tipo Documento', required: true, select2: true },

@@ -143,6 +143,27 @@ function parseDuplicateEncounter(text) {
     return lines.join('\n');
 }
 
+function issueSearchText(issue) {
+    if (issue == null) return '';
+    if (typeof issue === 'string') return issue.trim();
+    if (typeof issue !== 'object') return String(issue).trim();
+    return [
+        issueToText(issue),
+        issue.diagnostics,
+        ...(Array.isArray(issue.location) ? issue.location : []),
+        ...(Array.isArray(issue.expression) ? issue.expression : []),
+    ].filter(Boolean).join(' ');
+}
+
+/** IHCE: Patient.telecom inválido (cardinality 0..0 con valor no conforme). */
+function parsePatientTelecomInvalid(text) {
+    const t = String(text || '');
+    if (!/Patient\.telecom/i.test(t)) return null;
+    if (!/cardinality|0\.\.0|Instance count/i.test(t)) return null;
+    return 'Falta el teléfono del paciente o el teléfono no es válido. '
+        + 'Revise el campo Teléfono en Datos del paciente (celular colombiano de 10 dígitos, ejemplo: 3001234567).';
+}
+
 /** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.). */
 export function extractIhceMessage(data) {
     if (data == null) return '';
@@ -159,6 +180,8 @@ export function extractIhceMessage(data) {
 
     const formatIssue = (i, idx) => {
         if (typeof i === 'string') {
+            const telecomMsg = parsePatientTelecomInvalid(i);
+            if (telecomMsg) return [telecomMsg];
             const dup = parseDuplicateRdaHistoria(i);
             if (dup) return [dup];
             const dupEncounter = parseDuplicateEncounter(i);
@@ -167,6 +190,8 @@ export function extractIhceMessage(data) {
             return t ? [t] : [];
         }
         if (!i || typeof i !== 'object') return [];
+        const telecomObj = parsePatientTelecomInvalid(issueSearchText(i));
+        if (telecomObj) return [telecomObj];
         const dupObj = parseDuplicateRdaHistoria(issueToText(i));
         if (dupObj) return [dupObj];
         const dupEncounterObj = parseDuplicateEncounter(issueToText(i));
@@ -195,6 +220,8 @@ export function extractIhceMessage(data) {
 
     if (data.resourceType === 'OperationOutcome' && Array.isArray(data.issue)) {
         for (let idx = 0; idx < data.issue.length; idx++) {
+            const telecomMsg = parsePatientTelecomInvalid(issueSearchText(data.issue[idx]));
+            if (telecomMsg) return telecomMsg;
             const dup = parseDuplicateRdaHistoria(data.issue[idx]);
             if (dup) return dup;
         }
@@ -234,6 +261,9 @@ export function extractIhceMessage(data) {
     if (!lines.length && typeof data.raw === 'string' && data.raw.trim()) {
         return data.raw.trim();
     }
+
+    const friendlyTelecom = parsePatientTelecomInvalid(lines.join('\n'));
+    if (friendlyTelecom) return friendlyTelecom;
 
     return lines.join('\n');
 }

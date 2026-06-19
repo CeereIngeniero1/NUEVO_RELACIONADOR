@@ -72,6 +72,11 @@ const {
     logRdaceCompositionSections,
 } = require('../../rda/rdaceCompositionSections');
 const { isOcupacionInformadaParaFhir, normalizeCiou88acCode, sanitizeRdaceOccupationBundle } = require('../../rda/ocupacionFhir');
+const {
+    telefonoPacienteParaFhir,
+    mensajeErrorTelefonoPacienteIhce,
+    isTelefonoPacienteValidoParaFhir,
+} = require('../../rda/pacienteTelecomFhir');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -191,7 +196,15 @@ function sanitizeOptionalPatientFields(patient) {
     }
 
     if (Array.isArray(patient.telecom)) {
-        patient.telecom = patient.telecom.filter((t) => t && String(t.value || '').trim() !== '');
+        patient.telecom = patient.telecom
+            .map((t) => {
+                if (!t || typeof t !== 'object') return null;
+                const normalized = telefonoPacienteParaFhir(t.value);
+                if (!normalized) return null;
+                return { ...t, value: normalized };
+            })
+            .filter(Boolean);
+        if (!patient.telecom.length) delete patient.telecom;
     }
 
     if (Array.isArray(patient.address)) {
@@ -243,6 +256,11 @@ function validateRequiredForIhceCeBundle(bundle, options = {}) {
         : '';
     if (!ethnicityExt || !ethnicityCode || ethnicityCode === '7' || /sin\s*asignar/i.test(ethnicityDisplay)) {
         return 'La etnia del paciente es obligatoria para envío IHCE y no puede estar en "Sin asignar".';
+    }
+
+    const telecomPhone = patient.telecom && patient.telecom[0] && patient.telecom[0].value;
+    if (!isTelefonoPacienteValidoParaFhir(telecomPhone)) {
+        return mensajeErrorTelefonoPacienteIhce();
     }
 
     const custRef = String(composition.custodian.reference || '').trim().replace(/^#/, '');
@@ -1465,6 +1483,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         if (!pacienteId) {
             return res.status(400).json({ ok: false, error: 'Faltan tipo y número de documento del paciente en base de datos' });
         }
+        const telefonoFhir = telefonoPacienteParaFhir(pdem.TelefonoCelular);
         const patientResource = {
             resourceType: 'Patient',
             id: pacienteId,
@@ -1479,7 +1498,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ...(bioGender  ? { _gender: { extension: [{ url: `${RDA_SD}/ExtensionBiologicalGender`, valueCoding: { system: 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianGenderGroup', code: bioGender.code, display: bioGender.display } }] } } : {}),
             ...(toIsoDate(pdem.FechaNacimiento) ? { birthDate: toIsoDate(pdem.FechaNacimiento) } : {}),
             deceasedBoolean: false,
-            ...(str(pdem.TelefonoCelular) ? { telecom: [{ system: 'phone', value: str(pdem.TelefonoCelular) }] } : {}),
+            ...(telefonoFhir ? { telecom: [{ system: 'phone', value: telefonoFhir }] } : {}),
             ...(homeAddr    ? { address: [homeAddr] } : {}),
             ...(eapbOrgEntry ? { managingOrganization: { reference: refOf(eapbOrgEntry), display: str(head.NombreAdminPlanBeneficios) || undefined } } : {}),
         };

@@ -36,6 +36,11 @@ const {
     normalizeDivipolaMunicipalityCode,
     buildRdaPersonName,
 } = require('../../rda/fhirColombiaFormat');
+const {
+    telefonoPacienteParaFhir,
+    mensajeErrorTelefonoPacienteIhce,
+    isTelefonoPacienteValidoParaFhir,
+} = require('../../rda/pacienteTelecomFhir');
 const { createHash } = require('crypto');
 const { classifyIcdCode, isIcd10Code } = require('../../rda/icdCodeKind');
 
@@ -89,7 +94,15 @@ function sanitizeOptionalPatientFields(patient) {
     }
 
     if (Array.isArray(patient.telecom)) {
-        patient.telecom = patient.telecom.filter((t) => t && String(t.value || '').trim() !== '');
+        patient.telecom = patient.telecom
+            .map((t) => {
+                if (!t || typeof t !== 'object') return null;
+                const normalized = telefonoPacienteParaFhir(t.value);
+                if (!normalized) return null;
+                return { ...t, value: normalized };
+            })
+            .filter(Boolean);
+        if (!patient.telecom.length) delete patient.telecom;
     }
 
     if (Array.isArray(patient.address)) {
@@ -141,6 +154,11 @@ function validateRequiredForIhcePatientBundle(bundle) {
         : '';
     if (!ethnicityExt || !ethnicityCode || ethnicityCode === '7' || /sin\s*asignar/i.test(ethnicityDisplay)) {
         return 'La etnia del paciente es obligatoria para envío IHCE y no puede estar en "Sin asignar".';
+    }
+
+    const telecomPhone = patient.telecom && patient.telecom[0] && patient.telecom[0].value;
+    if (!isTelefonoPacienteValidoParaFhir(telecomPhone)) {
+        return mensajeErrorTelefonoPacienteIhce();
     }
 
     const custRef = String(composition.custodian.reference || '').trim().replace(/^#/, '');
@@ -1438,7 +1456,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
             })() : null;
 
             // Telecom
-            const phoneVal = str(h.TelefonoCelular);
+            const phoneVal = telefonoPacienteParaFhir(h.TelefonoCelular);
 
             // Compose resource
             return {

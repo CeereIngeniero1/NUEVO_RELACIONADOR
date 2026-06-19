@@ -41,6 +41,10 @@
   function aplicarDatosPacienteV3(row) {
     if (!row) return;
 
+    if (typeof window.resetPacienteEdicionSiActiva === "function") {
+      window.resetPacienteEdicionSiActiva();
+    }
+
     const nombrePaciente = document.getElementById("NombrePaciente");
     const documentoPaciente = document.getElementById("DocumentoPaciente");
     const edadPaciente = document.getElementById("EdadPaciente");

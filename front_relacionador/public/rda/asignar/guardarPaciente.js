@@ -7,7 +7,7 @@ import {
     postAntecedenteFamPac,
     postAntecedenteFarmPac,
 } from '../api/entidad1888.js';
-import { validarPacienteDemografia } from '../../shared/pacienteDemografiaValidation.js';
+import { validarPacienteDemografia, bloquearSiPacienteSinGuardar } from '../../shared/pacienteDemografiaValidation.js';
 
 function rdaSelect2Value(selectId) {
     const el = document.getElementById(selectId);
@@ -55,6 +55,8 @@ export async function guardarRDAPaciente() {
         Swal.fire({ icon: 'warning', title: 'Dato requerido', text: 'Seleccione un paciente antes de guardar el RDA.' });
         return;
     }
+
+    if (!bloquearSiPacienteSinGuardar()) return;
 
     const { faltantes: missingPaciente, corruptos: corruptosPaciente } = rdaValidatePacienteForSave();
     if (corruptosPaciente.length) {
