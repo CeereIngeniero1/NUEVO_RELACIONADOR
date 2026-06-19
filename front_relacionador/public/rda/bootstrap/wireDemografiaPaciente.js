@@ -8,6 +8,7 @@
  */
 
 import { getApiBaseUrl } from "../api/apiBaseUrl.js";
+import { validarPacienteDemografia } from "../../shared/pacienteDemografiaValidation.js";
 
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
@@ -208,44 +209,31 @@ function initActualizarPaciente(options = {}) {
             ComunidadEtnica: document.getElementById("ComunidadEtnicaBase").value.trim(),
             IdDiscapacidad: parseInt(document.getElementById("DiscapacidadBase").value) || null,
             Telefono: document.getElementById("TelefonoPaciente").value.trim(),
-            IdOcupacion: parseInt(document.getElementById("OcupacionBase").value) || null,
+            IdOcupacion: (() => {
+                const raw = (document.getElementById("OcupacionBase")?.value ?? "").trim();
+                if (!raw) return null;
+                const n = parseInt(raw, 10);
+                return Number.isFinite(n) && n > 0 ? n : null;
+            })(),
             Alergias: tieneAlergia ? "Si" : "No",
             Alergeno: tieneAlergia ? (alergenoTexto || null) : null
         };
     }
 
-    function esValorVacio(v) {
-        if (v == null) return true;
-        const s = String(v).trim().toLowerCase();
-        return s === "" || s === "null" || s === "undefined";
-    }
-
     function validarObligatoriosPaciente() {
-        const required = [
-            { id: "TipoDocumentoBase", label: "Tipo Documento" },
-            { id: "DocumentoPaciente", label: "Número Documento" },
-            { id: "PrimerApellidoBase", label: "Primer Apellido" },
-            { id: "PrimerNombreBase", label: "Primer Nombre" },
-            { id: "FechaNacimientoBase", label: "Fecha y Hora Nacimiento" },
-            { id: "SexoPaciente", label: "Sexo Biológico" },
-            { id: "SelectNombrePaisNacionalidadBase", label: "Nacionalidad (País)" },
-            { id: "SelectNombrePaisResidenciaBase", label: "País Residencia" },
-            { id: "SelectNombreMunicipioResidenciaBase", label: "Municipio Residencia" },
-            { id: "ListaZonaTerritorialBase", label: "Zona Territorial" },
-            { id: "EtniaBase", label: "Etnia" },
-            { id: "DiscapacidadBase", label: "Discapacidad" }
-        ];
-
-        const faltantes = [];
-        required.forEach(({ id, label }) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const v = (el.value ?? "").toString();
-            const invalido = esValorVacio(v);
-            el.classList.toggle("is-invalid", invalido);
-            if (invalido) faltantes.push(label);
-        });
-        return faltantes;
+        const { faltantes, corruptos } = validarPacienteDemografia();
+        if (corruptos.length) {
+            alert(
+                "Hay campos con valor «null» (dato inválido de la base de datos). Corríjalos antes de guardar:\n- "
+                + corruptos.join("\n- ")
+            );
+            return ["__corrupt__"];
+        }
+        if (faltantes.length) {
+            alert(`Completa los campos obligatorios antes de guardar:\n- ${faltantes.join("\n- ")}`);
+            return faltantes;
+        }
+        return [];
     }
 
     async function guardarPaciente() {
@@ -258,7 +246,6 @@ function initActualizarPaciente(options = {}) {
 
         const faltantes = validarObligatoriosPaciente();
         if (faltantes.length > 0) {
-            alert(`Completa los campos obligatorios antes de guardar:\n- ${faltantes.join("\n- ")}`);
             return;
         }
 

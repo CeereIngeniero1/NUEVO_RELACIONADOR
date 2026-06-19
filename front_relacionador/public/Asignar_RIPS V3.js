@@ -673,13 +673,24 @@ SelectPacientes.addEventListener("change", async function (e) {
         // console.log(CargarDatosPaciente[0].IdOcupación);
         // console.log(CargarDatosPaciente[0].DescripciónOcupación);
 
-        const IdOcupación = CargarDatosPaciente[0].IdOcupación;
-        const textoDescripciónOcupación = CargarDatosPaciente[0].DescripciónOcupación;
-        console.log(IdOcupación);
-        console.log(textoDescripciónOcupación);
-        const selectocupacionBase = $("#OcupacionBase");
-        const optionOcupacionBase = new Option(textoDescripciónOcupación, IdOcupación, true, true);
-        selectocupacionBase.append(optionOcupacionBase).trigger('change');
+        if (typeof setOcupacionPacienteV3 === 'function') {
+            setOcupacionPacienteV3(
+                CargarDatosPaciente[0].DescripciónOcupación,
+                CargarDatosPaciente[0].IdOcupación
+            );
+        } else {
+            const IdOcupación = CargarDatosPaciente[0].IdOcupación;
+            const textoDescripciónOcupación = CargarDatosPaciente[0].DescripciónOcupación;
+            const idOcupNum = IdOcupación != null ? parseInt(String(IdOcupación).trim(), 10) : NaN;
+            const $ocup = $("#OcupacionBase");
+            $ocup.empty();
+            if (Number.isFinite(idOcupNum) && idOcupNum > 0 && textoDescripciónOcupación
+                && String(textoDescripciónOcupación).toLowerCase() !== 'null') {
+                $ocup.append(new Option(textoDescripciónOcupación, idOcupNum, true, true)).trigger('change');
+            } else {
+                $ocup.append(new Option('Sin asignar', '', true, true)).trigger('change');
+            }
+        }
 
 
 

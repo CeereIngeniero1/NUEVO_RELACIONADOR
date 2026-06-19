@@ -3,11 +3,38 @@
  */
 (function (global) {
   function setSelect2Option(selector, text, id) {
-    if (text == null || text === "" || id == null || id === "") return;
+    if (id == null || id === "") return;
+    const idStr = String(id).trim();
+    if (!idStr || idStr.toLowerCase() === "null" || idStr.toLowerCase() === "undefined") return;
+    const n = parseInt(idStr, 10);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const textStr = text == null ? "" : String(text).trim();
+    if (!textStr || textStr.toLowerCase() === "null" || textStr.toLowerCase() === "undefined") return;
     const $el = $(selector);
     if (!$el.length) return;
-    const opt = new Option(String(text), id, true, true);
+    const opt = new Option(textStr, idStr, true, true);
     $el.append(opt).trigger("change");
+  }
+
+  function setOcupacionPaciente(text, id) {
+    const $el = $("#OcupacionBase");
+    if (!$el.length) return;
+    $el.empty();
+    const idStr = id != null ? String(id).trim() : "";
+    const idNum = parseInt(idStr, 10);
+    const textStr = text != null ? String(text).trim() : "";
+    const isCorrupt = (v) => {
+      if (v == null) return false;
+      const s = String(v).trim().toLowerCase();
+      return s === "null" || s === "undefined";
+    };
+    const idOk = Number.isFinite(idNum) && idNum > 0 && !isCorrupt(idStr);
+    const textOk = textStr && !isCorrupt(textStr);
+    if (idOk && textOk) {
+      $el.append(new Option(textStr, String(idNum), true, true)).trigger("change");
+    } else {
+      $el.append(new Option("Sin asignar", "", true, true)).trigger("change");
+    }
   }
 
   function aplicarDatosPacienteV3(row) {
@@ -65,11 +92,7 @@
       row.DescripcionDiscapacidad,
       row.IdDiscapacidad
     );
-    setSelect2Option(
-      "#OcupacionBase",
-      row.DescripciónOcupación,
-      row.IdOcupación
-    );
+    setOcupacionPaciente(row.DescripciónOcupación, row.IdOcupación);
     setSelect2Option(
       "#TipoDocumentoBase",
       row.DescripciTipoDocumento,
@@ -139,5 +162,6 @@
   }
 
   global.aplicarDatosPacienteV3 = aplicarDatosPacienteV3;
+  global.setOcupacionPacienteV3 = setOcupacionPaciente;
   global.limpiarDatosPacienteV3 = limpiarDatosPacienteV3;
 })(window);

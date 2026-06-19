@@ -7,18 +7,7 @@ import {
     postAntecedenteFamPac,
     postAntecedenteFarmPac,
 } from '../api/entidad1888.js';
-
-function rdaMarkFieldInvalid(id, invalid) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle('is-invalid', !!invalid);
-}
-
-function rdaIsMissingRequired(v) {
-    if (v == null) return true;
-    const s = String(v).trim().toLowerCase();
-    return s === '' || s === 'null' || s === 'undefined';
-}
+import { validarPacienteDemografia } from '../../shared/pacienteDemografiaValidation.js';
 
 function rdaSelect2Value(selectId) {
     const el = document.getElementById(selectId);
@@ -33,30 +22,8 @@ function rdaSelect2Value(selectId) {
     return el.value || null;
 }
 
-function rdaValidatePacienteRequiredForSave() {
-    const required = [
-        { id: 'TipoDocumentoBase', label: 'Tipo Documento' },
-        { id: 'DocumentoPaciente', label: 'Número Documento' },
-        { id: 'PrimerApellidoBase', label: 'Primer Apellido' },
-        { id: 'PrimerNombreBase', label: 'Primer Nombre' },
-        { id: 'FechaNacimientoBase', label: 'Fecha y Hora Nacimiento' },
-        { id: 'SexoPaciente', label: 'Sexo Biológico' },
-        { id: 'SelectNombrePaisNacionalidadBase', label: 'Nacionalidad (País)' },
-        { id: 'SelectNombrePaisResidenciaBase', label: 'País Residencia' },
-        { id: 'SelectNombreMunicipioResidenciaBase', label: 'Municipio Residencia' },
-        { id: 'ListaZonaTerritorialBase', label: 'Zona Territorial' },
-        { id: 'EtniaBase', label: 'Etnia' },
-        { id: 'DiscapacidadBase', label: 'Discapacidad' },
-    ];
-    const missing = [];
-    required.forEach(({ id, label }) => {
-        const el = document.getElementById(id);
-        const value = el ? el.value : null;
-        const bad = rdaIsMissingRequired(value);
-        rdaMarkFieldInvalid(id, bad);
-        if (bad) missing.push(label);
-    });
-    return missing;
+function rdaValidatePacienteForSave() {
+    return validarPacienteDemografia();
 }
 
 export function wireGuardarPaciente() {
@@ -89,7 +56,17 @@ export async function guardarRDAPaciente() {
         return;
     }
 
-    const missingPaciente = rdaValidatePacienteRequiredForSave();
+    const { faltantes: missingPaciente, corruptos: corruptosPaciente } = rdaValidatePacienteForSave();
+    if (corruptosPaciente.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Datos del paciente inválidos',
+            html: 'Hay campos con valor <b>null</b> (dato corrupto de la base de datos).'
+                + ' Use <b>Actualizar datos paciente</b> para corregirlos antes de guardar o enviar.<br><br><b>Revisar:</b><br> - '
+                + corruptosPaciente.join('<br> - '),
+        });
+        return;
+    }
     if (missingPaciente.length) {
         Swal.fire({
             icon: 'warning',

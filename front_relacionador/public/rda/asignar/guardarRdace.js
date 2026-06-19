@@ -15,6 +15,7 @@ import {
     fetchBlobAuthenticated,
 } from '../api/entidad1888.js';
 import { openIhceBundlePreview, openIhceJsonModal, extractIhceMessage } from './ihceAsignar.js';
+import { validarPacienteDemografia } from '../../shared/pacienteDemografiaValidation.js';
 
 function buildDescAntecedenteFamiliar(item) {
     const codigo = (item.codigo || '').trim();
@@ -140,29 +141,8 @@ function rdaceIsMissingRequired(v) {
     return s === '' || s === 'null' || s === 'undefined';
 }
 
-function rdaceValidatePacienteRequiredForSave() {
-    const requiredPaciente = [
-        { id: 'TipoDocumentoBase', label: 'Tipo Documento', getValue: () => rdaceGetInputValue('TipoDocumentoBase') },
-        { id: 'DocumentoPaciente', label: 'Número Documento', getValue: () => rdaceGetInputValue('DocumentoPaciente') },
-        { id: 'PrimerApellidoBase', label: 'Primer Apellido', getValue: () => rdaceGetInputValue('PrimerApellidoBase') },
-        { id: 'PrimerNombreBase', label: 'Primer Nombre', getValue: () => rdaceGetInputValue('PrimerNombreBase') },
-        { id: 'FechaNacimientoBase', label: 'Fecha y Hora Nacimiento', getValue: () => rdaceGetInputValue('FechaNacimientoBase') },
-        { id: 'SexoPaciente', label: 'Sexo Biológico', getValue: () => rdaceGetInputValue('SexoPaciente') },
-        { id: 'SelectNombrePaisNacionalidadBase', label: 'Nacionalidad (País)', getValue: () => rdaceGetInputValue('SelectNombrePaisNacionalidadBase') },
-        { id: 'SelectNombrePaisResidenciaBase', label: 'País Residencia', getValue: () => rdaceGetInputValue('SelectNombrePaisResidenciaBase') },
-        { id: 'SelectNombreMunicipioResidenciaBase', label: 'Municipio Residencia', getValue: () => rdaceGetInputValue('SelectNombreMunicipioResidenciaBase') },
-        { id: 'ListaZonaTerritorialBase', label: 'Zona Territorial', getValue: () => rdaceGetInputValue('ListaZonaTerritorialBase') },
-        { id: 'EtniaBase', label: 'Etnia', getValue: () => rdaceGetInputValue('EtniaBase') },
-        { id: 'DiscapacidadBase', label: 'Discapacidad', getValue: () => rdaceGetInputValue('DiscapacidadBase') },
-    ];
-    const missing = [];
-    requiredPaciente.forEach((f) => {
-        const v = f.getValue();
-        const isMissing = rdaceIsMissingRequired(v);
-        rdaceMarkFieldInvalid(f.id, isMissing);
-        if (isMissing) missing.push(f.label);
-    });
-    return missing;
+function rdaceValidatePacienteForSave() {
+    return validarPacienteDemografia();
 }
 
 function rdaceAttachDigitsOnlyFilter(inputId) {
@@ -405,12 +385,22 @@ export async function guardarRDACE() {
         return;
     }
 
-    const missingPaciente = rdaceValidatePacienteRequiredForSave();
+    const { faltantes: missingPaciente, corruptos: corruptosPaciente } = rdaceValidatePacienteForSave();
+    if (corruptosPaciente.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Datos del paciente inválidos',
+            html: 'Hay campos con valor <b>null</b> (dato corrupto de la base de datos).'
+                + ' Use <b>Actualizar datos paciente</b> para corregirlos antes de guardar o enviar.<br><br><b>Revisar:</b><br> - '
+                + corruptosPaciente.join('<br> - '),
+        });
+        return;
+    }
     if (missingPaciente.length) {
         Swal.fire({
             icon: 'warning',
             title: 'Campos obligatorios del paciente pendientes',
-            html: 'Complete los campos del paciente marcados con asterisco antes de guardar.<br><br><b>Faltan:</b><br> - '
+            html: 'Complete los campos del paciente marcados con asterisco antes de guardar o enviar.<br><br><b>Faltan:</b><br> - '
                 + missingPaciente.join('<br> - '),
         });
         return;

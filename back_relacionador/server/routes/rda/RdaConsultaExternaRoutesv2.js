@@ -19,6 +19,10 @@ const {
     PersonIdentifierDisplayError,
     normalizeDocTypeCode,
 } = require('../../rda/colombianPersonIdentifierCatalog');
+const {
+    logRdaceCompositionSections,
+    validateRdaceCompositionSections,
+} = require('../../rda/rdaceCompositionSections');
 
 const router = Router();
 
@@ -581,7 +585,11 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
                 entry: [{ reference: `#${observation.id}` }],
             };
         } else {
-            section = null;
+            section = emptySection(
+                'Otros datos demográficos',
+                '74208-0',
+                'Demographic information + History of occupation Document'
+            );
         }
 
         return res.json({
@@ -592,7 +600,7 @@ router.post('/RdaConsultaExterna/Seccion2OtrosDemograficos', async (req, res) =>
             section,
             resources,
             notes: !resources.length
-                ? ['Ocupación omitida: Id Ocupación no informado o sin código/nombre (sección opcional 0..1).']
+                ? ['Ocupación no informada: sección 74208-0 con emptyReason (slice obligatorio 1..1, entry 0..1).']
                 : [],
         });
     } catch (e) {
@@ -2007,6 +2015,16 @@ router.post(['/RdaConsultaExterna/JsonCompleto', '/RdaConsultaExterna/JsonComple
                 ...finalResources.map((r) => ({ resource: r })),
             ],
         };
+
+        const sectionErr = logRdaceCompositionSections(sections, `[RDACE JsonCompleto id=${id}]`);
+        if (sectionErr) {
+            return res.status(400).json({
+                ok: false,
+                code: 'RDACE_COMPOSITION_SECTIONS',
+                error: sectionErr,
+                sectionCount: sections.length,
+            });
+        }
 
         return res.json({
             ok: true,

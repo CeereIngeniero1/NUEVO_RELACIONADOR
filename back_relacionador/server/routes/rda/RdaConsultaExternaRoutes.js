@@ -64,6 +64,13 @@ const {
     PersonIdentifierDisplayError,
     normalizeDocTypeCode,
 } = require('../../rda/colombianPersonIdentifierCatalog');
+const {
+    emptyRdaceSection,
+    buildRdaceOccupationSection,
+    sectionTextDiv,
+    validateRdaceCompositionSections,
+    logRdaceCompositionSections,
+} = require('../../rda/rdaceCompositionSections');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -446,6 +453,11 @@ function validateRequiredForIhceCeBundle(bundle, options = {}) {
     const badSection = sections.find((s) => Array.isArray(s && s.entry) && s.entry.length > 0 && s.emptyReason);
     if (badSection) {
         return 'Una sección Composition contiene entry y emptyReason al mismo tiempo, lo cual es inválido.';
+    }
+
+    const sectionCardinalityErr = validateRdaceCompositionSections(sections);
+    if (sectionCardinalityErr) {
+        return sectionCardinalityErr;
     }
 
     return '';
@@ -2129,16 +2141,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         });
 
         // Composition (CompositionAmbulatoryRDA) — cmp-1: toda sección debe tener text, entry o subsection (narrativa mínima)
-        const sectionTextDiv = (msg) => ({
-            status: 'generated',
-            div: `<div xmlns="http://www.w3.org/1999/xhtml">${msg}</div>`,
-        });
-        const emptySection = (title, loinc, display) => ({
-            title,
-            code: { coding: [{ system: 'http://loinc.org', code: loinc, display }] },
-            text: sectionTextDiv('Sin información registrada'),
-            emptyReason: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/list-empty-reason', code: 'nilknown', display: 'Nil Known' }], text: 'Sin información registrada' },
-        });
+        const emptySection = emptyRdaceSection;
 
         const allServiceEntries = [...serviceRequestEntries, ...otrasTecEntries];
 
@@ -2146,9 +2149,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             eapbOrgEntry
                 ? { title: 'Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', code: { coding: [{ system: 'http://loinc.org', code: '48768-6', display: 'Payment sources Document' }] }, entry: [{ reference: refOf(eapbOrgEntry) }] }
                 : emptySection('Entidad(es) responsable(s) por el plan de beneficios en salud (consulta)', '48768-6', 'Payment sources Document'),
-            ...(ocupacionEntry
-                ? [{ title: 'Otros datos demográficos', code: { coding: [{ system: 'http://loinc.org', code: '74208-0', display: 'Demographic information + History of occupation Document' }] }, entry: [{ reference: refOf(ocupacionEntry) }] }]
-                : []),
+            buildRdaceOccupationSection(ocupacionEntry, refOf),
             incapacidadEntry
                 ? { title: 'Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', code: { coding: [{ system: 'http://loinc.org', code: '105583-9', display: 'Worker Sick leave form' }] }, entry: [{ reference: refOf(incapacidadEntry) }] }
                 : emptySection('Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', '105583-9', 'Worker Sick leave form'),
@@ -2195,6 +2196,16 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             } }],
             section: sections,
         });
+
+        const sectionErr = logRdaceCompositionSections(sections, `[RDACE FhirBundle id=${id}]`);
+        if (sectionErr) {
+            return res.status(400).json({
+                ok: false,
+                code: 'RDACE_COMPOSITION_SECTIONS',
+                error: sectionErr,
+                sectionCount: sections.length,
+            });
+        }
 
         const bundle = {
             resourceType: 'Bundle',
