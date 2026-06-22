@@ -30,6 +30,8 @@ const {
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
 const {
     toFhirDateTimeColombia,
+    toFhirDateTimeColombiaNow,
+    colombiaDateTimeToMssqlDate,
     toFhirBirthTimeColombia,
     hasBirthTimeColombia,
     normalizePatientBirthTimeExtension,
@@ -41,6 +43,7 @@ const {
     mensajeErrorTelefonoPacienteIhce,
     isTelefonoPacienteValidoParaFhir,
 } = require('../../rda/pacienteTelecomFhir');
+const { archiveRdaEnvioJson } = require('../../rda/rdaEnvioJsonArchive');
 const { createHash } = require('crypto');
 const { classifyIcdCode, isIcd10Code } = require('../../rda/icdCodeKind');
 
@@ -279,11 +282,7 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
     }
 
     // Convierte un string de fecha en objeto Date; null si no es válido
-    const toDate = (str) => {
-        if (!str) return null;
-        const d = new Date(str);
-        return isNaN(d.getTime()) ? null : d;
-    };
+    const toDate = (str) => colombiaDateTimeToMssqlDate(str);
 
     try {
         const pool = await poolPromise;
@@ -687,7 +686,7 @@ router.post('/RdaPaciente/FhirBundle', async (req, res) => {
     }) => {
         const patientEntry = makeEntry(paciente.resource);
         const patientId = patientEntry.resource.id;
-        const compositionDateIso = toFhirDtCo(head && head.FechaRDA) || toFhirDtCo(new Date());
+        const compositionDateIso = toFhirDtCo(head && head.FechaRDA) || toFhirDateTimeColombiaNow();
 
         const conditionEntries = (antecedents || []).map((item, idx) =>
             makeEntry({
@@ -2152,6 +2151,13 @@ router.post(
         // 3) Enviar a IHCE
         const sendUrl = `${baseUrl.replace(/\/$/, '')}/Composition/$enviar-rda-paciente`;
         const sendBody = JSON.stringify(bundle);
+        archiveRdaEnvioJson({
+            bundle,
+            bundleJson: sendBody,
+            ambiente: effectiveAmb,
+            tipo: 'paciente',
+            idEvaluacion: id,
+        });
         const sendResp = await httpJson(sendUrl, {
             method: 'POST',
             headers: {

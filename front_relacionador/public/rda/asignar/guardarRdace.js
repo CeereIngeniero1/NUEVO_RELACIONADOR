@@ -278,7 +278,9 @@ async function rdaceGuardarPacienteDesdeConsulta({ documento, fhRdace }) {
         }
     }
 
-    const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const ahora = typeof window.colombiaDateTimeNowSql === 'function'
+        ? window.colombiaDateTimeNowSql()
+        : new Date().toISOString().slice(0, 19).replace('T', ' ');
     let cie11Termino = null;
     try {
         const $ = window.jQuery;
@@ -408,7 +410,9 @@ export async function guardarRDACE() {
         return;
     }
 
-    const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const ahora = typeof window.colombiaDateTimeNowSql === 'function'
+        ? window.colombiaDateTimeNowSql()
+        : new Date().toISOString().slice(0, 19).replace('T', ' ');
     let cie11TerminoCE = null;
     try {
         const $ = window.jQuery;
@@ -503,7 +507,9 @@ export async function guardarRDACE() {
 
         const medic = (window.RDA?.getMedicamentosCE?.() || []);
         for (const item of medic) {
-            const desc = item.nombre + (item.observacion ? ' (' + item.observacion + ')' : '');
+            const obs = (item.observacion || '').trim();
+            const base = (item.codigo ? item.codigo + ' - ' : '') + (item.nombre || '');
+            const desc = obs ? `${base} (${obs})` : base;
             await postAntecedenteFarmCE({
                 IdEvaluacionEntidadRDACE: idCE,
                 DocumentoEntidad: documento,

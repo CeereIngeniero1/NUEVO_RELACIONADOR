@@ -21,10 +21,14 @@ function getPdfKitCtor() {
 
 const str = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
 
+const { toFhirDateTimeColombia } = require('./fhirColombiaFormat');
+
 function fmtDateTime(v) {
     if (!v) return '—';
+    const fhir = toFhirDateTimeColombia(v);
+    if (fhir) return fhir.replace(/-05:00$/, '').replace('T', ' ');
     const d = new Date(v);
-    return isNaN(d.getTime()) ? '—' : d.toLocaleString('es-CO', { hour12: false });
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString('es-CO', { hour12: false, timeZone: 'America/Bogota' });
 }
 
 function fmtDate(v) {

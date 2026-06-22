@@ -301,15 +301,35 @@ export function initListasConsultaExterna() {
 
     btnMedCEAnt?.addEventListener("click", () => {
         let nombre = "";
+        let codigo = "";
         if (selectDCICE && typeof $ !== "undefined") {
             const selData = $(selectDCICE).select2("data")[0];
-            nombre = selData ? selData.text : ($(selectDCICE).val() || "");
+            if (selData) {
+                codigo = (selData.codigo || "").trim();
+                const label = (selData.text || "").trim();
+                if (label) {
+                    const m = label.match(/^(\S+)\s*-\s*(.+)$/);
+                    if (m) {
+                        codigo = codigo || m[1].trim();
+                        nombre = m[2].trim();
+                    } else {
+                        nombre = label;
+                    }
+                }
+            }
+            if (!nombre) {
+                nombre = selData ? (selData.text || $(selectDCICE).val() || "") : "";
+            }
         } else {
             nombre = selectDCICE?.value || "";
         }
         if (!nombre || !String(nombre).trim()) return;
 
-        addMedicamentoCE({ nombre: String(nombre).trim(), observacion: inputObsCE?.value || "" });
+        addMedicamentoCE({
+            codigo,
+            nombre: String(nombre).trim(),
+            observacion: inputObsCE?.value || "",
+        });
         rerender(contMedCEAnt, getMedicamentosCE(), "medicamento");
 
         clearSelect2("#RDACE_MedicamentoDCI");

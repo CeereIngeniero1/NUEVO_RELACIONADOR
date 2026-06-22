@@ -100,6 +100,79 @@ const toTrimmedOrNull = (v) => {
     return s;
 };
 
+async function contarRdaEnRango(pool, { tabla, rango, ambiente }) {
+    const enviadoCol = ambiente === 'prod' ? '[Enviado]' : '[Enviado pruebas]';
+    const result = await pool
+        .request()
+        .input('Desde', sql.DateTime2, rango.desde)
+        .input('HastaExcl', sql.DateTime2, rango.hastaExclusivo)
+        .query(`
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN ISNULL(e.${enviadoCol}, 0) = 1 THEN 1 ELSE 0 END) AS enviados,
+                SUM(CASE WHEN ISNULL(e.${enviadoCol}, 0) = 0 THEN 1 ELSE 0 END) AS pendientes
+            FROM ${tabla} e
+            WHERE e.[Fecha RDA] >= @Desde
+              AND e.[Fecha RDA] < @HastaExcl
+        `);
+    const row = (result.recordset && result.recordset[0]) || {};
+    return {
+        total: Number(row.total) || 0,
+        enviados: Number(row.enviados) || 0,
+        pendientes: Number(row.pendientes) || 0,
+    };
+}
+
+router.get('/RdaEnvioMasivo/dashboard', async (req, res) => {
+    try {
+        const ambiente = normalizeAmbiente(req.query.ambiente);
+        const rango = parseFechaRango(req.query.fechaDesde, req.query.fechaHasta);
+        if (!rango) {
+            return res.status(400).json({
+                ok: false,
+                error: 'fechaDesde y fechaHasta requeridos (formato fecha válido); fechaDesde ≤ fechaHasta.',
+            });
+        }
+        const pool = await poolPromise;
+        const [paciente, ce] = await Promise.all([
+            contarRdaEnRango(pool, {
+                tabla: '[dbo].[Evaluacion Entidad RDA]',
+                rango,
+                ambiente,
+            }),
+            contarRdaEnRango(pool, {
+                tabla: '[dbo].[Evaluacion Entidad RDA Consulta Externa]',
+                rango,
+                ambiente,
+            }),
+        ]);
+        const combinado = {
+            total: paciente.total + ce.total,
+            enviados: paciente.enviados + ce.enviados,
+            pendientes: paciente.pendientes + ce.pendientes,
+        };
+        return res.json({
+            ok: true,
+            ambiente,
+            ambienteLabel: ambiente === 'prod' ? 'Producción' : 'Sandbox (pruebas)',
+            fechaDesde: req.query.fechaDesde,
+            fechaHasta: req.query.fechaHasta,
+            columnaEnvio: ambiente === 'prod' ? 'Enviado' : 'Enviado pruebas',
+            config: {
+                ihceForceSandboxOnly: FORCE_SANDBOX_ONLY,
+                ihceForceProdOnly: FORCE_PROD_ONLY,
+                envioMasivoVersion: rdaEnvioMasivoVersion(),
+            },
+            paciente,
+            ce,
+            combinado,
+        });
+    } catch (err) {
+        console.error('❌ [RdaEnvioMasivo] dashboard:', err);
+        return res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+});
+
 router.get('/RdaEnvioMasivo/paciente/pendientes', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente(req.query.ambiente);

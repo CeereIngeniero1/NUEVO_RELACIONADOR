@@ -2,6 +2,9 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
     buildRdaceOccupationSection,
+    buildRdaceMedicationsSection,
+    buildRdaceProblemsSection,
+    buildAntecedentesFarmacologicosNarrative,
     emptyRdaceSection,
     validateRdaceCompositionSections,
     REQUIRED_RDACE_SECTION_LOINCS,
@@ -44,5 +47,58 @@ describe('rdaceCompositionSections', () => {
             emptyRdaceSection('T', loinc, 'D')
         );
         assert.equal(validateRdaceCompositionSections(nine), '');
+    });
+
+    it('buildRdaceMedicationsSection antecedentes solo narrativa sin MedicationRequest', () => {
+        const sec = buildRdaceMedicationsSection({
+            prescriptionMedEntries: [],
+            antecedentMedRows: [{ codigo: '10001', nombre: 'EPROCICLOVIR', observacion: '2 dosis' }],
+            refOf: () => '#x',
+            emptyRdaceSection,
+        });
+        assert.equal(sec.code.coding[0].code, '10160-0');
+        assert.ok(sec.text);
+        assert.equal(sec.entry, undefined);
+        assert.match(sec.text.div, /EPROCICLOVIR/);
+    });
+
+    it('buildRdaceMedicationsSection prescripción con entry y antecedente con text', () => {
+        const medEntry = { resource: { id: 'MedicationRequest-0' } };
+        const sec = buildRdaceMedicationsSection({
+            prescriptionMedEntries: [medEntry],
+            antecedentMedRows: [{ nombre: 'Ibuprofeno' }],
+            refOf: () => '#MedicationRequest-0',
+            emptyRdaceSection,
+        });
+        assert.equal(sec.entry.length, 1);
+        assert.ok(sec.text);
+    });
+
+    it('buildRdaceProblemsSection antecedentes salud y familiares como narrativa', () => {
+        const condEntry = { resource: { id: 'Condition-0' } };
+        const sec = buildRdaceProblemsSection({
+            conditionEntries: [condEntry],
+            antecedentSaludRows: [{ descripcion: 'P001 - FETO AFECTADO' }],
+            antecedentFamRows: [{ parentescoLabel: 'Madre', descripcion: 'E10 - DIABETES' }],
+            refOf: () => '#Condition-0',
+            emptyRdaceSection,
+        });
+        assert.equal(sec.code.coding[0].code, '11450-4');
+        assert.equal(sec.entry.length, 1);
+        assert.ok(sec.text);
+        assert.match(sec.text.div, /personales de salud/i);
+        assert.match(sec.text.div, /familiares/i);
+        assert.match(sec.text.div, /Madre/);
+    });
+
+    it('buildRdaceProblemsSection solo narrativa sin Condition', () => {
+        const sec = buildRdaceProblemsSection({
+            conditionEntries: [],
+            antecedentFamRows: [{ parentescoLabel: 'Padre', descripcion: 'I10 - HTA' }],
+            refOf: () => '#x',
+            emptyRdaceSection,
+        });
+        assert.equal(sec.entry, undefined);
+        assert.match(sec.text.div, /Padre/);
     });
 });

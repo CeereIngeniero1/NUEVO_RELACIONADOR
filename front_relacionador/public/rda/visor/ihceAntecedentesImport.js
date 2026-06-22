@@ -125,6 +125,115 @@ function mapMedicationToAntecedente(ms) {
     };
 }
 
+function parseMedicationNarrativeLine(line) {
+    const cleaned = getText(line).replace(/^\d+\.\s*/, "").trim();
+    if (!cleaned) return null;
+    let base = cleaned;
+    let observacion = "";
+    const obsMatch = cleaned.match(/^(.+?)\s+\(([^)]+)\)\s*$/);
+    if (obsMatch) {
+        base = obsMatch[1].trim();
+        observacion = obsMatch[2].trim();
+    }
+    const codeDesc = base.match(/^(\S+)\s*-\s*(.+)$/);
+    if (codeDesc) {
+        return {
+            codigo: codeDesc[1].trim(),
+            nombre: codeDesc[2].trim(),
+            observacion,
+        };
+    }
+    return { codigo: "", nombre: base, observacion };
+}
+
+function parseNarrativeLineNumbered(line) {
+    return getText(line).replace(/^\d+\.\s*/, "").trim();
+}
+
+function parseCompositionSectionNarrativeBlocks(composition, loincCode) {
+    const sec = safeArr(composition?.section).find((s) =>
+        safeArr(s?.code?.coding).some((c) => getText(c?.code) === loincCode)
+    );
+    const rawDiv = getText(sec?.text?.div);
+    if (!rawDiv) return [];
+    try {
+        const doc = new DOMParser().parseFromString(rawDiv, "text/html");
+        const blocks = [];
+        doc.querySelectorAll("p").forEach((p) => {
+            const heading = getText(p.textContent).replace(/:+\s*$/, "");
+            if (!heading) return;
+            const sibling = p.nextElementSibling;
+            const items =
+                sibling && sibling.tagName === "UL"
+                    ? [...sibling.querySelectorAll("li")]
+                          .map((li) => parseNarrativeLineNumbered(li.textContent))
+                          .filter(Boolean)
+                    : [];
+            blocks.push({ heading, items });
+        });
+        return blocks;
+    } catch (_) {
+        return [];
+    }
+}
+
+function findNarrativeBlock(blocks, pattern) {
+    const re = pattern instanceof RegExp ? pattern : new RegExp(pattern, "i");
+    return safeArr(blocks).find((b) => re.test(b.heading || "")) || null;
+}
+
+function parseSaludNarrativeLine(line) {
+    const cleaned = parseNarrativeLineNumbered(line);
+    if (!cleaned) return null;
+    const codeDesc = cleaned.match(/^(\S+)\s*-\s*(.+)$/);
+    if (codeDesc) {
+        return { codigo: codeDesc[1].trim(), descripcion: codeDesc[2].trim() };
+    }
+    return { codigo: cleaned, descripcion: cleaned };
+}
+
+function parseFamiliarNarrativeLine(line) {
+    const cleaned = parseNarrativeLineNumbered(line);
+    if (!cleaned) return null;
+    const withParentesco = cleaned.match(/^([^:]+):\s*(.+)$/);
+    if (withParentesco) {
+        const parentescoText = withParentesco[1].trim();
+        const rest = withParentesco[2].trim();
+        const codeDesc = rest.match(/^(\S+)\s*-\s*(.+)$/);
+        if (codeDesc) {
+            return {
+                parentesco: parentescoText,
+                textoParentesco: parentescoText,
+                codigo: codeDesc[1].trim(),
+                descripcion: codeDesc[2].trim(),
+            };
+        }
+        return {
+            parentesco: parentescoText,
+            textoParentesco: parentescoText,
+            codigo: "",
+            descripcion: rest,
+        };
+    }
+    return parseSaludNarrativeLine(cleaned);
+}
+
+function extractMedicamentosFromSectionNarrative(composition) {
+    const sec = safeArr(composition?.section).find((s) =>
+        safeArr(s?.code?.coding).some((c) => getText(c?.code) === "10160-0")
+    );
+    const rawDiv = getText(sec?.text?.div);
+    if (!rawDiv) return [];
+    try {
+        const doc = new DOMParser().parseFromString(rawDiv, "text/html");
+        return [...doc.querySelectorAll("li")]
+            .map((li) => parseMedicationNarrativeLine(li.textContent))
+            .filter(Boolean);
+    } catch (_) {
+        return [];
+    }
+}
+
 function extractAntecedentesFromCompositionEntry(entry, bundle) {
     const composition = entry?.resource;
     if (!composition || composition.resourceType !== "Composition") {
@@ -136,14 +245,31 @@ function extractAntecedentesFromCompositionEntry(entry, bundle) {
     let allergySectionIds = collectSectionReferenceIds(composition, "alerg");
     if (allergySectionIds.size === 0) allergySectionIds = sectionIds;
 
+    const problemBlocks = parseCompositionSectionNarrativeBlocks(composition, "11450-4");
+    const saludBlock = findNarrativeBlock(problemBlocks, /personales de salud/i);
+    const famBlock = findNarrativeBlock(problemBlocks, /familiares/i);
+
+    const saludFromNarrative = safeArr(saludBlock?.items)
+        .map(parseSaludNarrativeLine)
+        .filter(Boolean);
+    const famFromNarrative = safeArr(famBlock?.items)
+        .map(parseFamiliarNarrativeLine)
+        .filter(Boolean);
+
     const conditions = safeArr(refs.conditions).filter((c) => sectionIds.has(c?.id));
     const family = safeArr(refs.familyMemberHistories).filter((f) => sectionIds.has(f?.id));
     const meds = safeArr(refs.medicationStatements).filter((m) => sectionIds.has(m?.id));
     const allergies = safeArr(refs.allergyIntolerances).filter((a) => allergySectionIds.has(a?.id));
 
-    const salud = conditions.map(mapConditionToAntecedente).filter(Boolean);
-    const familiares = family.map(mapFamilyMemberToAntecedente).filter(Boolean);
-    const medicamentos = meds.map(mapMedicationToAntecedente).filter(Boolean);
+    const salud = saludFromNarrative.length
+        ? saludFromNarrative
+        : conditions.map(mapConditionToAntecedente).filter(Boolean);
+    const familiares = famFromNarrative.length
+        ? famFromNarrative
+        : family.map(mapFamilyMemberToAntecedente).filter(Boolean);
+    const medsFromStatement = meds.map(mapMedicationToAntecedente).filter(Boolean);
+    const medsFromNarrative = extractMedicamentosFromSectionNarrative(composition);
+    const medicamentos = medsFromStatement.length ? medsFromStatement : medsFromNarrative;
     const alergia = pickPrimaryAllergy(allergies);
 
     return { salud, familiares, medicamentos, alergia };

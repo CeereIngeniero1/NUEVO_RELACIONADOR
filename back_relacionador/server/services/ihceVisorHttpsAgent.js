@@ -38,6 +38,7 @@ function requestLikeFetch(urlString, options = {}) {
                         status,
                         statusText: res.statusMessage || '',
                         headers: res.headers,
+                        buffer: async () => bodyBuf,
                         text: async () => bodyStr,
                         json: async () => JSON.parse(bodyStr),
                     });

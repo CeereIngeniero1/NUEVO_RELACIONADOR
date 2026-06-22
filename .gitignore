@@ -65,3 +65,6 @@ Thumbs.db
 
 # Se excluye archivo del nombre del servidor
 front_relacionador/public/NombreEquipoServidor.js
+
+# JSON locales de envío IHCE (control, no versionar)
+back_relacionador/jsons/

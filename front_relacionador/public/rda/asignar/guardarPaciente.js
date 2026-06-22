@@ -101,7 +101,9 @@ export async function guardarRDAPaciente() {
         return;
     }
 
-    const ahora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const ahora = typeof window.colombiaDateTimeNowSql === 'function'
+        ? window.colombiaDateTimeNowSql()
+        : new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     const $ = window.jQuery;
     let cie11Termino = null;

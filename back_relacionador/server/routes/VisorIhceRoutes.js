@@ -310,4 +310,50 @@ router.get('/VisorIHCE/pagina', async (req, res) => {
     }
 });
 
+/**
+ * GET /apiV3/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis
+ * Proxy de descarga PDF epicrisis desde IHCE (visor ministerio v3).
+ * Query: ambiente=sandbox|prod
+ */
+router.get('/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis', async (req, res) => {
+    try {
+        const ambiente = normalizeAmbiente(req.body, req.query);
+        const creds = resolveIhceEnv(ambiente);
+        assertIhceBase(creds);
+
+        const docId = String(req.params.id || '').trim();
+        if (!docId) {
+            return res.status(400).json({ error: 'ID de DocumentReference requerido' });
+        }
+
+        const httpsAgent = createIhceHttpsAgent(ambiente);
+        const token = await httpsAgent.getAccessToken();
+        const url = `${creds.baseUrl.replace(/\/$/, '')}/DocumentReference/${encodeURIComponent(docId)}/0/descargar-rda-epicrisis`;
+
+        const response = await httpsAgent.authenticatedRequest(url, token, creds.subscriptionKey, {
+            headers: { Accept: 'application/pdf' },
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(response.status).json({
+                error: 'Error descargando documento PDF desde IHCE',
+                details: errText,
+            });
+        }
+
+        const buffer = await response.buffer();
+        const contentType = (response.headers && response.headers['content-type']) || 'application/pdf';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="rda-${docId}.pdf"`);
+        res.send(buffer);
+    } catch (error) {
+        console.error('❌ Error VisorIHCE descargar PDF:', error);
+        const status = error.status || 500;
+        res.status(status).json({
+            error: error.message || 'Error interno al descargar PDF',
+        });
+    }
+});
+
 module.exports = router;

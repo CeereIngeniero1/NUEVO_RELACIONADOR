@@ -90,7 +90,98 @@
         envioProgreso: document.getElementById('envioProgreso'),
         envioBarWrap: document.getElementById('envioBarWrap'),
         envioBar: document.getElementById('envioBar'),
+        dashAmbienteBadge: document.getElementById('dashAmbienteBadge'),
+        dashAmbienteTexto: document.getElementById('dashAmbienteTexto'),
+        dashRangoTexto: document.getElementById('dashRangoTexto'),
+        dashColumnaTexto: document.getElementById('dashColumnaTexto'),
+        dashActualizado: document.getElementById('dashActualizado'),
+        dashBlockPaciente: document.getElementById('dashBlockPaciente'),
+        dashBlockCe: document.getElementById('dashBlockCe'),
+        dashPacTotal: document.getElementById('dashPacTotal'),
+        dashPacEnviados: document.getElementById('dashPacEnviados'),
+        dashPacPendientes: document.getElementById('dashPacPendientes'),
+        dashCeTotal: document.getElementById('dashCeTotal'),
+        dashCeEnviados: document.getElementById('dashCeEnviados'),
+        dashCePendientes: document.getElementById('dashCePendientes'),
+        dashCombTotal: document.getElementById('dashCombTotal'),
+        dashCombEnviados: document.getElementById('dashCombEnviados'),
+        dashCombPendientes: document.getElementById('dashCombPendientes'),
     };
+
+    function fmtNum(n) {
+        const v = Number(n);
+        return Number.isFinite(v) ? String(v) : '0';
+    }
+
+    function syncDashTipoActivo() {
+        if (el.dashBlockPaciente) {
+            el.dashBlockPaciente.classList.toggle('rda-dash-block--active', state.tipo === 'paciente');
+        }
+        if (el.dashBlockCe) {
+            el.dashBlockCe.classList.toggle('rda-dash-block--active', state.tipo === 'ce');
+        }
+    }
+
+    function renderDashboard(data) {
+        if (!data || !data.ok) return;
+        const prod = data.ambiente === 'prod';
+        if (el.dashAmbienteBadge) {
+            el.dashAmbienteBadge.classList.toggle('rda-dash-ambiente--prod', prod);
+            el.dashAmbienteBadge.classList.toggle('rda-dash-ambiente--sandbox', !prod);
+            const icon = el.dashAmbienteBadge.querySelector('i');
+            if (icon) {
+                icon.className = prod ? 'ri-shield-check-line' : 'ri-cloud-line';
+            }
+        }
+        if (el.dashAmbienteTexto) el.dashAmbienteTexto.textContent = data.ambienteLabel || (prod ? 'Producción' : 'Sandbox (pruebas)');
+        if (el.dashRangoTexto) {
+            el.dashRangoTexto.textContent = `Período: ${data.fechaDesde || '—'} a ${data.fechaHasta || '—'}`;
+        }
+        if (el.dashColumnaTexto) {
+            el.dashColumnaTexto.textContent = `Criterio de envío: [${data.columnaEnvio || (prod ? 'Enviado' : 'Enviado pruebas')}] = 1`;
+        }
+        const p = data.paciente || {};
+        const c = data.ce || {};
+        const comb = data.combinado || {};
+        if (el.dashPacTotal) el.dashPacTotal.textContent = fmtNum(p.total);
+        if (el.dashPacEnviados) el.dashPacEnviados.textContent = fmtNum(p.enviados);
+        if (el.dashPacPendientes) el.dashPacPendientes.textContent = fmtNum(p.pendientes);
+        if (el.dashCeTotal) el.dashCeTotal.textContent = fmtNum(c.total);
+        if (el.dashCeEnviados) el.dashCeEnviados.textContent = fmtNum(c.enviados);
+        if (el.dashCePendientes) el.dashCePendientes.textContent = fmtNum(c.pendientes);
+        if (el.dashCombTotal) el.dashCombTotal.textContent = fmtNum(comb.total);
+        if (el.dashCombEnviados) el.dashCombEnviados.textContent = fmtNum(comb.enviados);
+        if (el.dashCombPendientes) el.dashCombPendientes.textContent = fmtNum(comb.pendientes);
+        if (el.dashActualizado) {
+            el.dashActualizado.textContent = `Actualizado: ${new Date().toLocaleString('es-CO')}`;
+        }
+        syncDashTipoActivo();
+    }
+
+    async function cargarDashboard() {
+        if (!el.fechaDesde || !el.fechaHasta || !el.selAmbiente) return;
+        const fd = el.fechaDesde.value;
+        const fh = el.fechaHasta.value;
+        const ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
+        if (!fd || !fh) return;
+        try {
+            const q = new URLSearchParams({ fechaDesde: fd, fechaHasta: fh, ambiente });
+            const resp = await fetch(`${apiBase()}/apiV3/RdaEnvioMasivo/dashboard?${q}`, {
+                headers: authHeaders(),
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) {
+                throw new Error(data.error || resp.statusText || 'No se pudo cargar el resumen');
+            }
+            state.ambiente = data.ambiente === 'prod' ? 'prod' : 'sandbox';
+            renderDashboard(data);
+        } catch (err) {
+            console.error('[EnvioRdaPendientes] dashboard:', err);
+            if (el.dashActualizado) {
+                el.dashActualizado.textContent = 'No se pudo actualizar el resumen.';
+            }
+        }
+    }
 
     function syncThead() {
         const ce = state.tipo === 'ce';
@@ -338,6 +429,7 @@
             }
             state.filas = data.filas || [];
             renderTabla();
+            await cargarDashboard();
         } catch (err) {
             console.error('[EnvioRdaPendientes] buscar:', err);
             swalErr('Error', err.message || String(err));
@@ -424,7 +516,23 @@
                 } catch (_) {
                     parsedSent = { raw: t };
                 }
-                openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsedSent, null, 2), 860);
+                if (parsedSent && parsedSent.ok === false && parsedSent.error) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se pudo generar el JSON',
+                        html: escapeHtml(parsedSent.error).replace(/\n/g, '<br>'),
+                    });
+                    return;
+                }
+                const warn = r.headers.get('X-RDA-Validation-Warning');
+                const jsonText = JSON.stringify(parsedSent, null, 2);
+                openJsonModal(
+                    warn ? 'JSON generado para envío IHCE (con advertencias)' : 'JSON generado para envío IHCE',
+                    warn
+                        ? `/* Advertencia: ${warn} */\n\n${jsonText}`
+                        : jsonText,
+                    860
+                );
             } catch (err) {
                 Swal.fire({ icon: 'error', title: 'No se pudo cargar JSON enviado', text: err.message || String(err) });
             }
@@ -551,7 +659,23 @@
                             } catch (_) {
                                 parsed = { raw: txt };
                             }
-                            openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsed, null, 2), 860);
+                            if (parsed && parsed.ok === false && parsed.error) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'No se pudo generar el JSON',
+                                    html: escapeHtml(parsed.error).replace(/\n/g, '<br>'),
+                                });
+                                return;
+                            }
+                            const warn = resp.headers.get('X-RDA-Validation-Warning');
+                            const jsonText = JSON.stringify(parsed, null, 2);
+                            openJsonModal(
+                                warn ? 'JSON generado para envío IHCE (con advertencias)' : 'JSON generado para envío IHCE',
+                                warn
+                                    ? `/* Advertencia: ${warn} */\n\n${jsonText}`
+                                    : jsonText,
+                                860
+                            );
                         } catch (err) {
                             Swal.fire({
                                 icon: 'error',
@@ -643,6 +767,7 @@
             el.envioBar.style.width = '100%';
             el.envioProgreso.textContent = `Listo: ${list.length} respuesta(s) recibidas.`;
             mostrarResumenLote(list);
+            await cargarDashboard();
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Envío', text: err.message || String(err) });
         } finally {
@@ -682,11 +807,13 @@
                 state.ambiente = 'sandbox';
             }
             syncThead();
+            syncDashTipoActivo();
 
             el.selTipo.addEventListener('change', () => {
                 state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
                 state.filas = [];
                 syncThead();
+                syncDashTipoActivo();
                 wireSortHeaders();
                 const colspan = state.tipo === 'ce' ? 8 : 9;
                 const colspanFix = 11;
@@ -697,6 +824,14 @@
 
             el.btnBuscar.addEventListener('click', buscar);
             el.btnEnviar.addEventListener('click', enviarLote);
+            el.selAmbiente.addEventListener('change', () => {
+                state.ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
+                cargarDashboard();
+            });
+            el.fechaDesde.addEventListener('change', cargarDashboard);
+            el.fechaHasta.addEventListener('change', cargarDashboard);
+
+            cargarDashboard();
 
             el.chkTodos.addEventListener('change', () => {
                 const on = el.chkTodos.checked;

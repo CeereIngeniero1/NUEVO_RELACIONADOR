@@ -50,6 +50,8 @@ const {
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
 const {
     toFhirDateTimeColombia,
+    toFhirDateTimeColombiaNow,
+    colombiaDateTimeToMssqlDate,
     normalizePatientBirthTimeExtension,
     normalizeDivipolaMunicipalityCode,
     buildRdaPersonName,
@@ -67,16 +69,23 @@ const {
 const {
     emptyRdaceSection,
     buildRdaceOccupationSection,
+    buildRdaceMedicationsSection,
+    buildRdaceProblemsSection,
     sectionTextDiv,
     validateRdaceCompositionSections,
     logRdaceCompositionSections,
 } = require('../../rda/rdaceCompositionSections');
 const { isOcupacionInformadaParaFhir, normalizeCiou88acCode, sanitizeRdaceOccupationBundle } = require('../../rda/ocupacionFhir');
 const {
+    collectMedicationRequestIssues,
+    collectRdaceBundleIhceIssues,
+} = require('../../rda/rdaceBundleIhceValidation');
+const {
     telefonoPacienteParaFhir,
     mensajeErrorTelefonoPacienteIhce,
     isTelefonoPacienteValidoParaFhir,
 } = require('../../rda/pacienteTelecomFhir');
+const { archiveRdaEnvioJson } = require('../../rda/rdaEnvioJsonArchive');
 
 /**
  * PDF RDACE (pdfkit) — carga perezosa para que el server arranque si falta `pdfkit` en node_modules.
@@ -434,39 +443,15 @@ function validateRequiredForIhceCeBundle(bundle, options = {}) {
         return 'La sección de Historial de medicamentos tiene entry pero no hay MedicationRequest en el bundle.';
     }
 
-    const medReqInvalid = entries.find((e) => {
+    for (let i = 0; i < entries.length; i += 1) {
+        const e = entries[i];
         const r = e && e.resource;
-        if (!r || r.resourceType !== 'MedicationRequest') return false;
-        if (!r.subject || !r.encounter || !r.requester || !r.authoredOn) return true;
-        if (!Array.isArray(r.reasonCode) || r.reasonCode.length === 0) return true;
-        if (!Array.isArray(r.dosageInstruction) || r.dosageInstruction.length === 0) return true;
-        const di = r.dosageInstruction[0];
-        const routeOk = di && di.route && Array.isArray(di.route.coding) && di.route.coding.length > 0;
-        const timing = di && di.timing;
-        const repeat = timing && timing.repeat;
-        const dar = di && Array.isArray(di.doseAndRate) ? di.doseAndRate[0] : null;
-        return !(
-            routeOk &&
-            repeat && repeat.duration != null && repeat.durationUnit &&
-            timing.code &&
-            dar && dar.doseQuantity && dar.rateQuantity
-        );
-    });
-    if (medReqInvalid) {
-        return 'MedicationRequestRDA incompleto: requiere reasonCode, dosageInstruction, subject, encounter, requester y authoredOn.';
-    }
-
-    const medTimeInvalid = entries.find((e) => {
-        const r = e && e.resource;
-        if (!r || r.resourceType !== 'MedicationRequest') return false;
-        const di = Array.isArray(r.dosageInstruction) ? r.dosageInstruction[0] : null;
-        const err = validateMedicationDosageFromCatalogs(di, options.medicationCatalogs || {});
-        return Boolean(err);
-    });
-    if (medTimeInvalid) {
-        const di = medTimeInvalid.resource.dosageInstruction[0];
-        const err = validateMedicationDosageFromCatalogs(di, options.medicationCatalogs || {});
-        return err || 'MedicationRequest dosageInstruction inválido respecto a catálogos BD.';
+        if (!r || r.resourceType !== 'MedicationRequest') continue;
+        const medIssues = collectMedicationRequestIssues(r, i, options);
+        if (medIssues.length) {
+            const detail = medIssues[0].message;
+            return `MedicationRequestRDA (${r.id || i}): ${detail}`;
+        }
     }
 
     const badSection = sections.find((s) => Array.isArray(s && s.entry) && s.entry.length > 0 && s.emptyReason);
@@ -509,11 +494,7 @@ const router = Router();
 // ---------------------------------------------------------------------------
 // Helper: convierte string a Date para DateTime2 (devuelve null si inválido)
 // ---------------------------------------------------------------------------
-const toDateTimeRDACE = (str) => {
-    if (!str) return null;
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
-};
+const toDateTimeRDACE = (str) => colombiaDateTimeToMssqlDate(str);
 
 // ---------------------------------------------------------------------------
 // Helper: solo enteros en string (devuelve null si inválido)
@@ -579,6 +560,41 @@ const parseParentescoFromText = (raw) => {
     if (m) return { code: String(parseInt(m[1], 10)).padStart(2, '0'), display: m[2].trim() || null };
     if (/^\d{1,2}$/.test(s)) return { code: String(parseInt(s, 10)).padStart(2, '0'), display: null };
     return { code: null, display: s };
+};
+
+const parseCodigoDescripcion = (text) => {
+    const s = (text ?? '').toString().trim();
+    if (!s) return { codigo: '', descripcion: '' };
+    const parts = s.split(' - ');
+    if (parts.length >= 2) {
+        return {
+            codigo: (parts[0] ?? '').trim(),
+            descripcion: parts.slice(1).join(' - ').trim(),
+        };
+    }
+    return { codigo: s, descripcion: '' };
+};
+
+/** Formato BD antecedente farmacológico: `codigo - nombre (observacion)` o variantes. */
+const parseMedicamentoDescripcion = (text) => {
+    const s = (text ?? '').toString().trim();
+    if (!s) return { codigo: '', nombre: '', observacion: '' };
+    let base = s;
+    let observacion = '';
+    const obsMatch = s.match(/^(.+?)\s+\(([^)]+)\)\s*$/);
+    if (obsMatch) {
+        base = obsMatch[1].trim();
+        observacion = obsMatch[2].trim();
+    }
+    const codeDesc = parseCodigoDescripcion(base);
+    if (codeDesc.descripcion) {
+        return {
+            codigo: codeDesc.codigo,
+            nombre: codeDesc.descripcion,
+            observacion,
+        };
+    }
+    return { codigo: '', nombre: base, observacion };
 };
 
 // ===========================================================================
@@ -1136,9 +1152,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
 
     const nowIso        = new Date().toISOString();
     const str           = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
-    const toIsoDateTime = (v) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString(); };
     const toIsoDate     = (v) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0]; };
-    const toFhirDtCo    = (v) => toFhirDateTimeColombia(v) || toIsoDateTime(v);
+    const toFhirDtCo    = (v) => toFhirDateTimeColombia(v);
 
     const RDA_SD       = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
     const CS_GRUPO_SVC = 'https://fhir.minsalud.gov.co/rda/CodeSystem/GrupoServicios';
@@ -1253,8 +1268,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const procPrescripciones = aggregate.procPrescripciones;
         const otrasTecnologias = aggregate.otrasTecnologias;
         const antecedentesSalud = aggregate.antecedentesSalud || [];
-        // Antecedentes familiares y farmacológicos: persistidos en BD para UI/PDF;
-        // no se incluyen como FamilyMemberHistory ni MedicationRequest en RDA CE (slicing cerrado).
+        const antecedentesFamiliares = aggregate.antecedentesFamiliares || [];
+        const antecedentesFarmacologicos = aggregate.antecedentesFarmacologicos || [];
         const empresaIps = aggregate.empresaIps || null;
         const reqBody = req.body || {};
         const { loadDotEnvFromCandidates } = require('../../config/envLoader');
@@ -1738,9 +1753,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             return key;
         };
 
-        // MedicationRequestRDA — solo si hay medicamentos; sección 10160-0 usa emptyReason si no hay ninguno.
+        // MedicationRequestRDA — solo prescripciones con dosificación estructurada (catálogos BD).
+        // Antecedentes farmacológicos: narrativa en Composition.section 10160-0 (sin MedicationRequest).
         let medSeq = 0;
-        const allMedEntries = medicationSourceRows.map((m) => {
+        const antecedentMedRows = antecedentesFarmacologicos
+            .map((r) => parseMedicamentoDescripcion(r && r.Descripcion))
+            .filter((m) => str(m.codigo) || str(m.nombre));
+
+        const prescriptionMedEntries = medicationSourceRows.map((m) => {
             const medCode = str(m.CodigoMedicamento);
             const medDisplay = resolveMipresDisplay(
                 medCode,
@@ -1778,6 +1798,8 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 dosageInstruction: [dosageInstruction],
             });
         }).filter(Boolean);
+
+        const allMedEntries = prescriptionMedEntries;
 
         // ServiceRequest: procedimientos + otras tecnologías con secuencia global (BUNDLE-005: id = ServiceRequest-<n>)
         let serviceSeq = 0;
@@ -1922,6 +1944,24 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         }) : null;
 
         // Encounter (EncounterAmbulatoryRDA) — OBLIGATORIO en RDA Consulta
+        const antecedentSaludRows = antecedentesSalud
+            .map((a) => ({ descripcion: str(a && a.Descripcion) }))
+            .filter((r) => r.descripcion);
+
+        const antecedentFamRows = antecedentesFamiliares
+            .map((a) => {
+                const parsedParentesco = parseParentescoFromText(a && a.Parentesco);
+                const parentescoLabel = parsedParentesco.display
+                    || (parsedParentesco.code ? `Parentesco ${parsedParentesco.code}` : '')
+                    || str(a && a.Parentesco);
+                return {
+                    parentesco: str(a && a.Parentesco),
+                    parentescoLabel,
+                    descripcion: str(a && a.Descripcion),
+                };
+            })
+            .filter((r) => r.descripcion || r.parentesco);
+
         const allConditionEntries = [
             ...(condPrincipalEntry ? [condPrincipalEntry] : []),
             ...condRelacionadasEntries,
@@ -2071,7 +2111,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             ...(ipsOrgEntry ? { serviceProvider: { reference: `#${codPrest}` } } : {}),
         });
 
-        const compositionDateIso = toFhirDtCo(head.FechaRDA) || toFhirDtCo(new Date());
+        const compositionDateIso = toFhirDtCo(head.FechaRDA) || toFhirDateTimeColombiaNow();
 
         let attachmentPdfBase64;
         try {
@@ -2174,18 +2214,25 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             incapacidadEntry
                 ? { title: 'Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', code: { coding: [{ system: 'http://loinc.org', code: '105583-9', display: 'Worker Sick leave form' }] }, entry: [{ reference: refOf(incapacidadEntry) }] }
                 : emptySection('Datos incapacidad (SIPE – Sistema de Incapacidades y Prestaciones Economicas)', '105583-9', 'Worker Sick leave form'),
-            allConditionEntries.length > 0
-                ? { title: 'Historial de diagnósticos de problemas de salud', code: { coding: [{ system: 'http://loinc.org', code: '11450-4', display: 'Problem list - Reported' }] }, entry: allConditionEntries.map((c) => ({ reference: refOf(c) })) }
-                : emptySection('Historial de diagnósticos de problemas de salud', '11450-4', 'Problem list - Reported'),
+            buildRdaceProblemsSection({
+                conditionEntries: allConditionEntries,
+                antecedentSaludRows,
+                antecedentFamRows,
+                refOf,
+                emptyRdaceSection: emptySection,
+            }),
             allergyEntry
                 ? { title: 'Historial de alergias, intolerancias y reacciones adversas', code: { coding: [{ system: 'http://loinc.org', code: '48765-2', display: 'Allergies and adverse reactions Document' }] }, entry: [{ reference: refOf(allergyEntry) }] }
                 : emptySection('Historial de alergias, intolerancias y reacciones adversas', '48765-2', 'Allergies and adverse reactions Document'),
             riskEntry
                 ? { title: 'Factores de riesgo', code: { coding: [{ system: 'http://loinc.org', code: '75492-9', display: 'Risk assessment and screening note' }] }, entry: [{ reference: refOf(riskEntry) }] }
                 : emptySection('Factores de riesgo', '75492-9', 'Risk assessment and screening note'),
-            allMedEntries.length > 0
-                ? { title: 'Historial de medicamentos', code: { coding: [{ system: 'http://loinc.org', code: '10160-0', display: 'History of Medication use Narrative' }] }, entry: allMedEntries.map((m) => ({ reference: refOf(m) })) }
-                : emptySection('Historial de medicamentos', '10160-0', 'History of Medication use Narrative'),
+            buildRdaceMedicationsSection({
+                prescriptionMedEntries: allMedEntries,
+                antecedentMedRows,
+                refOf,
+                emptyRdaceSection: emptySection,
+            }),
             allServiceEntries.length > 0
                 ? { title: 'Órdenes, prescripciones o solicitudes de servicio', code: { coding: [{ system: 'http://loinc.org', code: '61146-1', display: 'Orders for services Document' }] }, entry: allServiceEntries.map((s) => ({ reference: refOf(s) })) }
                 : emptySection('Órdenes, prescripciones o solicitudes de servicio', '61146-1', 'Orders for services Document'),
@@ -2658,18 +2705,14 @@ router.post(
         const medicationCatalogs = await loadRdaceMedicationCatalogs(poolValidate);
         const bundleValidateOpts = { medicationCatalogs };
 
-        // Mismo cuerpo que JSON.stringify(bundle) en POST a IHCE; sin token ni llamada remota
+        // Preview: mismo JSON que POST a IHCE, sin bloquear por obligatorios (igual que RdaPaciente/JsonEnviarIHCE).
         const isBundlePayloadPreview = /\/Json/i.test(req.path)
             || /BundlePayloadIHCE/i.test(req.path)
             || /PayloadParaIHCE/i.test(req.path);
         if (isBundlePayloadPreview) {
             const previewErr = validateRequiredForIhceCeBundle(bundle, bundleValidateOpts);
             if (previewErr) {
-                return res.status(400).json({
-                    ok: false,
-                    code: 'RDACE_VALIDACION_OBLIGATORIOS',
-                    error: previewErr,
-                });
+                res.set('X-RDA-Validation-Warning', previewErr);
             }
             return res.type('application/fhir+json').json(bundle);
         }
@@ -2744,6 +2787,13 @@ router.post(
         // 5) Enviar a IHCE — operación $enviar-rda-consulta (distinta de $enviar-rda-paciente)
         const sendUrl  = `${baseUrl.replace(/\/$/, '')}/Composition/$enviar-rda-consulta`;
         const sendBody = JSON.stringify(bundle);
+        archiveRdaEnvioJson({
+            bundle,
+            bundleJson: sendBody,
+            ambiente: effectiveAmb,
+            tipo: 'ce',
+            idEvaluacion: id,
+        });
         const sendResp = await httpJson(sendUrl, {
             method: 'POST',
             headers: {

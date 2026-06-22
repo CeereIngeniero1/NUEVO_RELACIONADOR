@@ -75,6 +75,13 @@ function visorAuthHeaders(includeJsonContentType) {
   return h;
 }
 
+function visorAuthHeadersForPdf() {
+  const h = { Accept: 'application/pdf' };
+  const t = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  if (t) h.Authorization = t;
+  return h;
+}
+
 const ROLES_ORG = {
   IPS: 'Organizacion prestadora de salud',
   EPS: 'EPS',
@@ -329,6 +336,59 @@ const FHIRUtils = {
     return ids;
   },
 
+  getSectionByLoinc(composition, loincCode) {
+    const code = Utils.getText(loincCode);
+    return Utils.safeArray(composition?.section).find((sec) =>
+      Utils.safeArray(sec?.code?.coding).some((c) => Utils.getText(c?.code) === code)
+    ) || null;
+  },
+
+  /** Antecedentes CE: bloques narrativos en Composition.section (p + ul). */
+  parseCompositionSectionNarrativeBlocks(section) {
+    const rawDiv = section && section.text && Utils.getText(section.text.div);
+    if (!rawDiv) return [];
+    try {
+      const doc = new DOMParser().parseFromString(rawDiv, 'text/html');
+      const blocks = [];
+      doc.querySelectorAll('p').forEach((p) => {
+        const heading = (p.textContent || '').trim().replace(/:+\s*$/, '');
+        if (!heading) return;
+        let sibling = p.nextElementSibling;
+        const items = sibling && sibling.tagName === 'UL'
+          ? [...sibling.querySelectorAll('li')].map((li) => li.textContent.trim()).filter(Boolean)
+          : [];
+        blocks.push({ heading, items });
+      });
+      return blocks;
+    } catch (_) {
+      const items = FHIRUtils.parseMedicationSectionNarrative(section);
+      return items.length ? [{ heading: 'Narrativa', items }] : [];
+    }
+  },
+
+  findNarrativeBlock(blocks, pattern) {
+    const re = pattern instanceof RegExp ? pattern : new RegExp(pattern, 'i');
+    return Utils.safeArray(blocks).find((b) => re.test(b.heading || '')) || null;
+  },
+
+  /** Antecedentes farmacológicos CE: narrativa en Composition.section 10160-0 (sin MedicationRequest). */
+  parseMedicationSectionNarrative(section) {
+    const rawDiv = section && section.text && Utils.getText(section.text.div);
+    if (!rawDiv) return [];
+    try {
+      const doc = new DOMParser().parseFromString(rawDiv, 'text/html');
+      const items = [...doc.querySelectorAll('li')]
+        .map((li) => li.textContent.trim())
+        .filter(Boolean);
+      if (items.length) return items;
+      const plain = doc.body?.textContent?.trim();
+      return plain ? [plain] : [];
+    } catch (_) {
+      const stripped = rawDiv.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return stripped ? [stripped] : [];
+    }
+  },
+
   extraerMensajeFHIR(responseJson) {
     try {
       if (!responseJson) return null;
@@ -365,6 +425,39 @@ const FHIRUtils = {
     
     const [, orgId] = ref.split('/');
     return resultado?.referencedResources?.organizations?.find((o) => o?.id === orgId) || null;
+  },
+
+  findDocumentPdfUrlForComposition(composition, referencedResources) {
+    const r = composition;
+    if (!r) return '';
+    const refs = this.ensureRefArrays(referencedResources || {});
+    const docRef = refs.documentReferences.find((doc) => {
+      const url = Utils.getText(doc?.content?.[0]?.attachment?.url);
+      if (!url) return false;
+
+      const hasDirectRef = Utils.safeArray(r.section).some((section) =>
+        Utils.safeArray(section?.entry).some((e) => {
+          const ref = Utils.getText(e?.reference);
+          return ref.includes(doc.id) || doc.id.includes(ref.replace(/^#/, ''));
+        })
+      );
+
+      const docEncounters = Utils.safeArray(doc?.context?.encounter);
+      const matchEncounter = docEncounters.some((enc) => {
+        const dRef = Utils.getText(enc?.reference);
+        const eRef = Utils.getText(r?.encounter?.reference);
+        return dRef && eRef && (dRef.includes(eRef) || eRef.includes(dRef));
+      });
+
+      return hasDirectRef || matchEncounter || doc.id === r.id;
+    });
+
+    return docRef ? Utils.getText(docRef?.content?.[0]?.attachment?.url) : '';
+  },
+
+  isFhirPdfUrl(urlPDF) {
+    const u = Utils.getText(urlPDF);
+    return u.includes('/DocumentReference/') || u.includes('/descargar-rda');
   }
 };
 
@@ -511,6 +604,31 @@ const APIService = {
     }
 
     return await response.json();
+  },
+
+  async obtenerPDF(rutaDocumento) {
+    const ruta = Utils.getText(rutaDocumento);
+    const match = ruta.match(/DocumentReference\/([^/?#]+)/);
+    if (!match) {
+      throw new Error('No se pudo extraer el ID del DocumentReference: ' + ruta);
+    }
+    const docId = match[1];
+    const url =
+      `${getVisorApiBase()}/DocumentReference/${encodeURIComponent(docId)}/0/descargar-rda-epicrisis` +
+      `?ambiente=${encodeURIComponent(CONFIG.ambiente)}`;
+
+    const response = await fetch(url, { headers: visorAuthHeadersForPdf() });
+    if (!response.ok) {
+      const text = await response.text();
+      let msg = text;
+      try {
+        const j = JSON.parse(text);
+        msg = j.error || j.details || text;
+      } catch (_) { /* noop */ }
+      throw new Error(`Error ${response.status}: ${msg}`);
+    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
   }
 };
 
@@ -1901,6 +2019,7 @@ const UIRenderers = {
           <th>Región</th>
           <th>Autor</th>
           <th>Fecha Bundle</th>
+          <th>Epicrisis / PDF</th>
           <th>Origen</th>
           <th class="text-center" title="Ver detalle">Ver</th>
         </tr>
@@ -1920,22 +2039,47 @@ const UIRenderers = {
       const badgeIcon = origen === 'rda-paciente' ? '👤' : '🏥';
       const badgeText = origen === 'rda-paciente' ? 'Paciente' : 'Encuentros';
 
-      const org = AppState.datosGlobalesFHIR ? 
+      const org = AppState.datosGlobalesFHIR ?
         FHIRUtils.obtenerOrganizacionDelRDA(r, AppState.datosGlobalesFHIR) : null;
+
+      const urlPDF = AppState.datosGlobalesFHIR
+        ? FHIRUtils.findDocumentPdfUrlForComposition(r, AppState.datosGlobalesFHIR.referencedResources)
+        : '';
 
       const tr = document.createElement('tr');
       tr.setAttribute('data-source', origen);
       tr.style.cursor = 'pointer';
       tr.title = 'Clic para ver el detalle del RDA';
+
+      const tdPdf = document.createElement('td');
+      tdPdf.className = 'text-center';
+      if (urlPDF && FHIRUtils.isFhirPdfUrl(urlPDF)) {
+        const btnPdf = document.createElement('button');
+        btnPdf.type = 'button';
+        btnPdf.className = 'btn btn-sm btn-danger';
+        btnPdf.title = 'Ver PDF epicrisis';
+        btnPdf.innerHTML = '<i class="bx bxs-file-pdf"></i>';
+        btnPdf.addEventListener('click', (e) => {
+          e.stopPropagation();
+          PDFViewerService.mostrar(urlPDF);
+        });
+        tdPdf.appendChild(btnPdf);
+      } else {
+        tdPdf.innerHTML = '<span class="text-muted small">—</span>';
+      }
+
       tr.innerHTML = `
         <td>${index + 1}</td>
-        <td>${r.title || 'RDA'}</td>
-        <td>${FHIRUtils.getRegionFromOrg(org)}</td>
-        <td>${org?.name || 'N/A'}</td>
-        <td>${r.date || r.meta?.lastUpdated || 'Sin fecha'}</td>
-        <td><span class="badge ${badgeColor}" title="${origenLabel}">${badgeIcon} ${badgeText}</span></td>
+        <td>${Utils.escapeHtml(r.title || 'RDA')}</td>
+        <td>${Utils.escapeHtml(FHIRUtils.getRegionFromOrg(org))}</td>
+        <td>${Utils.escapeHtml(org?.name || 'N/A')}</td>
+        <td>${Utils.escapeHtml(r.date || r.meta?.lastUpdated || 'Sin fecha')}</td>
+        <td></td>
+        <td><span class="badge ${badgeColor}" title="${Utils.escapeHtml(origenLabel)}">${badgeIcon} ${badgeText}</span></td>
         <td class="text-center"><i class="fa-solid fa-eye btn-ver-rda" aria-hidden="true"></i><span class="visually-hidden">Ver detalle</span></td>
       `;
+      tr.children[5].replaceWith(tdPdf);
+
       tr.addEventListener('click', () => ModalService.mostrarDetalle(entry));
       tbody.appendChild(tr);
     });
@@ -2299,10 +2443,91 @@ const ModalService = {
       html += this.renderPractitioners(resources.practitioners);
     }
 
+    // Antecedentes narrativos (RDA CE — salud/familiares en 11450-4, farmacológicos en 10160-0)
+    html += this.renderAntecedentesNarrative(entry?.resource);
+
     // Recursos relacionados
     html += this.renderRelatedResources(resources);
 
     return html;
+  },
+
+  renderNarrativeListCard(title, items, { headerClass = 'bg-secondary text-white', icon = 'bx-list-ul', hint = '' } = {}) {
+    if (!items || !items.length) return '';
+    const listHtml = items
+      .map((line, idx) => `<li><span class="badge bg-secondary me-1">#${idx + 1}</span>${Utils.escapeHtml(line)}</li>`)
+      .join('');
+    return `
+      <div class="card mb-3 shadow-sm">
+        <div class="card-header ${headerClass}">
+          <h4 class="mb-0">
+            <i class="bx ${icon}"></i>
+            ${Utils.escapeHtml(title)} (${items.length})
+          </h4>
+        </div>
+        <div class="card-body">
+          ${hint ? `<p class="text-muted small mb-2">${Utils.escapeHtml(hint)}</p>` : ''}
+          <ul class="mb-0">${listHtml}</ul>
+        </div>
+      </div>
+    `;
+  },
+
+  renderAntecedentesNarrative(composition) {
+    let html = '';
+
+    const problemsSection = FHIRUtils.getSectionByLoinc(composition, '11450-4');
+    const problemBlocks = FHIRUtils.parseCompositionSectionNarrativeBlocks(problemsSection);
+    const saludBlock = FHIRUtils.findNarrativeBlock(problemBlocks, /personales de salud/i);
+    const famBlock = FHIRUtils.findNarrativeBlock(problemBlocks, /familiares/i);
+
+    html += this.renderNarrativeListCard(
+      'Antecedentes personales de salud',
+      saludBlock?.items || [],
+      {
+        headerClass: 'bg-info text-white',
+        icon: 'bx-heart',
+        hint: 'Registrados como narrativa en Historial de diagnósticos (RDA Consulta Externa).',
+      }
+    );
+
+    html += this.renderNarrativeListCard(
+      'Antecedentes familiares',
+      famBlock?.items || [],
+      {
+        headerClass: 'bg-primary text-white',
+        icon: 'bx-group',
+        hint: 'Registrados como narrativa en Historial de diagnósticos (RDA Consulta Externa).',
+      }
+    );
+
+    const medsSection = FHIRUtils.getSectionByLoinc(composition, '10160-0');
+    const medItems = FHIRUtils.parseMedicationSectionNarrative(medsSection);
+    html += this.renderNarrativeListCard(
+      'Antecedentes farmacológicos',
+      medItems,
+      {
+        headerClass: 'bg-warning text-dark',
+        icon: 'bx-capsule',
+        hint: 'Registrados como narrativa en Historial de medicamentos (RDA Consulta Externa).',
+      }
+    );
+
+    return html;
+  },
+
+  renderMedicamentosNarrative(composition) {
+    const medsSection = FHIRUtils.getSectionByLoinc(composition, '10160-0');
+    const items = FHIRUtils.parseMedicationSectionNarrative(medsSection);
+    return this.renderNarrativeListCard(
+      'Antecedentes farmacológicos',
+      items,
+      {
+        headerClass: 'bg-warning text-dark',
+        icon: 'bx-capsule',
+        hint: 'Registrados como narrativa en Historial de medicamentos (RDA Consulta Externa).',
+      }
+    );
   },
 
   renderEncounter(enc, orgRDA) {
@@ -3660,6 +3885,118 @@ const ModalService = {
       `;
     }
 
+    if (resources.documentReferences?.length > 0) {
+      html += `
+            <div class="card mb-3 shadow-sm">
+              <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0"><i class="bx bx-file"></i> Documentos Clínicos (${resources.documentReferences.length})</h4>
+              </div>
+              <div class="card-body">
+          `;
+
+      resources.documentReferences.forEach((doc, idx) => {
+        const d = DataMappers.extractDocumentReferenceData(doc);
+        if (!d) return;
+
+        const statusBadge = (() => {
+          const s = (d.status || '').toLowerCase();
+          if (s === 'current') return ['bg-success', '✅ Actual'];
+          if (s === 'superseded') return ['bg-warning text-dark', '⚠️ Reemplazado'];
+          if (s === 'entered-in-error') return ['bg-danger', '❌ Error'];
+          return d.status ? ['bg-secondary', d.status] : null;
+        })();
+
+        html += `
+              ${idx > 0 ? '<hr class="my-3">' : ''}
+              <div class="document-item ${idx > 0 ? 'mt-3' : ''}">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-1 mb-3">
+                  <h5 class="mb-0">
+                    <span class="badge bg-secondary me-1">#${idx + 1}</span>
+                    <i class="bx bx-file-blank me-1"></i>
+                    ${Utils.escapeHtml(d.tipo?.display || 'Documento')}
+                  </h5>
+                  <div class="d-flex flex-wrap gap-1">
+                    ${statusBadge ? `<span class="badge ${statusBadge[0]}">${statusBadge[1]}</span>` : ''}
+                    ${d.confidencialidad.length > 0 ? `<span class="badge bg-danger">🔒 ${Utils.escapeHtml(d.confidencialidad[0])}</span>` : ''}
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    ${d.categoria ? `<p class="mb-2"><strong>Categoría:</strong> ${Utils.escapeHtml(d.categoria.display)}</p>` : ''}
+                    ${d.fecha ? `<p class="mb-2"><strong>Fecha:</strong> ${Utils.escapeHtml(Utils.formatearFecha(d.fecha))}</p>` : ''}
+                  </div>
+                  <div class="col-12 col-md-6">
+                    ${d.periodoContexto ? `<p class="mb-2"><strong>Período:</strong> ${d.periodoContexto.inicio ? Utils.escapeHtml(Utils.formatearFecha(d.periodoContexto.inicio)) : '?'} → ${d.periodoContexto.fin ? Utils.escapeHtml(Utils.formatearFecha(d.periodoContexto.fin)) : '?'}</p>` : ''}
+                  </div>
+                </div>
+                ${d.descripcion ? `<div class="mt-2"><p class="mb-1"><strong>Descripción:</strong></p><p class="text-muted small mb-0">${Utils.escapeHtml(d.descripcion)}</p></div>` : ''}
+                ${d.contenidos.length > 0 ? `
+                  <div class="mt-3">
+                    <p class="mb-2 fw-bold">Adjuntos (${d.contenidos.length}):</p>
+                    <div class="list-group">
+                      ${d.contenidos.map((c, cidx) => {
+          const ruta = Utils.getText(c.url);
+          const contentType = Utils.getText(c.contentType).toLowerCase();
+          const titulo = c.titulo || `Archivo ${cidx + 1}`;
+          const esPDF =
+            contentType.includes('pdf') ||
+            ruta.toLowerCase().includes('.pdf') ||
+            ruta.includes('/DocumentReference/') ||
+            ruta.includes('/descargar') ||
+            c.tieneData === true;
+
+          let botonAccion = '';
+
+          if (esPDF) {
+            if (FHIRUtils.isFhirPdfUrl(ruta)) {
+              botonAccion = `
+                              <button type="button" class="btn btn-sm btn-danger"
+                                      onclick="PDFViewerService.mostrar('${ruta.replace(/'/g, "\\'")}')"
+                                      title="Ver PDF en visor">
+                                <i class="bx bxs-file-pdf"></i> Ver PDF
+                              </button>`;
+            } else if (c.tieneData) {
+              botonAccion = '<button type="button" class="btn btn-sm btn-secondary" disabled title="Contenido embebido (base64)">Base64</button>';
+            } else if (ruta) {
+              botonAccion = `<a href="${Utils.escapeHtml(ruta)}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">
+                                             <i class="bx bx-link-external"></i> Abrir
+                                           </a>`;
+            }
+          } else if (ruta) {
+            botonAccion = `<a href="${Utils.escapeHtml(ruta)}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">
+                                           <i class="bx bx-link-external"></i> Abrir
+                                         </a>`;
+          }
+
+          return `
+                          <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                              <div>
+                                <h6 class="mb-1">
+                                  <i class="bx ${esPDF ? 'bxs-file-pdf text-danger' : 'bx-file'} me-1"></i>
+                                  ${Utils.escapeHtml(titulo)}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                  ${contentType ? `Tipo: <code>${Utils.escapeHtml(c.contentType)}</code>` : ''}
+                                  ${c.formato ? ` • Formato: ${Utils.escapeHtml(c.formato)}` : ''}
+                                  ${c.tamanio ? ` • Tamaño: ${(c.tamanio / 1024).toFixed(1)} KB` : ''}
+                                </p>
+                              </div>
+                              ${botonAccion}
+                            </div>
+                          </div>
+                        `;
+        }).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+      });
+
+      html += '</div></div>';
+    }
+
    
     const tieneExtras = Object.values(resources).some(arr => arr?.length > 0);
 
@@ -3675,6 +4012,262 @@ const ModalService = {
     return html;
   }
 };
+
+// ============================================================================
+// 12b. SERVICIO VISOR PDF (ministerio IHCE v3)
+// ============================================================================
+
+const PDFViewerService = {
+  _objectUrl: null,
+  _pdfDoc: null,
+  _currentPage: 1,
+  _totalPages: 0,
+  _scale: 1.2,
+  _rendering: false,
+
+  ensureViewer() {
+    let overlay = document.getElementById('pdfViewerOverlay');
+    if (overlay) return overlay;
+
+    overlay = document.createElement('div');
+    overlay.id = 'pdfViewerOverlay';
+    overlay.style.cssText = `
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 20000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background: #2d2d2d;
+        width: 90vw;
+        height: 90vh;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      ">
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 16px;
+          background: #343a40;
+          color: #fff;
+          flex-shrink: 0;
+        ">
+          <span id="pdfViewerTitle" style="font-size:14px; font-weight:600;">
+            <i class="bx bxs-file-pdf" style="color:#e74c3c;"></i> Documento PDF
+          </span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="pdfPrevPage" class="btn btn-sm btn-outline-light" title="Página anterior">
+              <i class="bx bx-chevron-left"></i>
+            </button>
+            <span style="color:#fff; font-size:13px;">
+              Página <span id="pdfCurrentPage">1</span> de <span id="pdfTotalPages">-</span>
+            </span>
+            <button type="button" id="pdfNextPage" class="btn btn-sm btn-outline-light" title="Página siguiente">
+              <i class="bx bx-chevron-right"></i>
+            </button>
+            <span style="width:1px; background:#666; height:20px; display:inline-block; margin:0 4px;"></span>
+            <button type="button" id="pdfZoomOut" class="btn btn-sm btn-outline-light" title="Alejar">
+              <i class="bx bx-zoom-out"></i>
+            </button>
+            <button type="button" id="pdfZoomIn" class="btn btn-sm btn-outline-light" title="Acercar">
+              <i class="bx bx-zoom-in"></i>
+            </button>
+            <span style="width:1px; background:#666; height:20px; display:inline-block; margin:0 4px;"></span>
+            <button type="button" id="pdfViewerClose" class="btn btn-sm btn-outline-light" title="Cerrar">
+              <i class="bx bx-x"></i> Cerrar
+            </button>
+          </div>
+        </div>
+        <div id="pdfViewerLoader" style="
+          display: flex;
+          flex: 1;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          color: #aaa;
+          gap: 10px;
+        ">
+          <i class="bx bx-loader-alt bx-spin" style="font-size:28px;"></i>
+          Cargando documento...
+        </div>
+        <div id="pdfCanvasContainer" style="
+          display: none;
+          flex: 1;
+          overflow: auto;
+          background: #525659;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 20px;
+        ">
+          <canvas id="pdfCanvas" style="
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            background: white;
+            display: block;
+          "></canvas>
+        </div>
+        <div id="pdfViewerError" style="
+          display: none;
+          flex: 1;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 12px;
+          color: #dc3545;
+          font-size: 16px;
+          padding: 20px;
+          text-align: center;
+        ">
+          <i class="bx bx-error-circle" style="font-size:48px;"></i>
+          <span id="pdfViewerErrorMsg">No se pudo cargar el documento.</span>
+          <button type="button" id="pdfViewerErrorClose" class="btn btn-sm btn-secondary mt-2">Cerrar</button>
+        </div>
+      </div>
+    `;
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this.cerrar();
+    });
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('pdfPrevPage').addEventListener('click', () => this.cambiarPagina(-1));
+    document.getElementById('pdfNextPage').addEventListener('click', () => this.cambiarPagina(1));
+    document.getElementById('pdfZoomIn').addEventListener('click', () => this.cambiarZoom(0.2));
+    document.getElementById('pdfZoomOut').addEventListener('click', () => this.cambiarZoom(-0.2));
+    document.getElementById('pdfViewerClose').addEventListener('click', () => this.cerrar());
+    document.getElementById('pdfViewerErrorClose').addEventListener('click', () => this.cerrar());
+
+    return overlay;
+  },
+
+  async cargarPDFJS() {
+    if (window.pdfjsLib) return;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  },
+
+  async mostrar(ruta) {
+    const overlay = this.ensureViewer();
+    const loader = document.getElementById('pdfViewerLoader');
+    const container = document.getElementById('pdfCanvasContainer');
+    const errorDiv = document.getElementById('pdfViewerError');
+    const errorMsg = document.getElementById('pdfViewerErrorMsg');
+    const titleEl = document.getElementById('pdfViewerTitle');
+
+    overlay.style.display = 'flex';
+    loader.style.display = 'flex';
+    container.style.display = 'none';
+    errorDiv.style.display = 'none';
+
+    const segmentos = Utils.getText(ruta).split('/').filter(Boolean);
+    const idxDocRef = segmentos.indexOf('DocumentReference');
+    const nombreDoc = idxDocRef !== -1
+      ? `RDA – ${segmentos[idxDocRef + 1]?.slice(0, 8) ?? ''}…`
+      : 'Documento PDF';
+    titleEl.innerHTML = `<i class="bx bxs-file-pdf" style="color:#e74c3c;"></i> ${Utils.escapeHtml(nombreDoc)}`;
+
+    if (this._objectUrl) {
+      URL.revokeObjectURL(this._objectUrl);
+      this._objectUrl = null;
+    }
+
+    try {
+      await this.cargarPDFJS();
+
+      const objectUrl = await APIService.obtenerPDF(ruta);
+      this._objectUrl = objectUrl;
+
+      const loadingTask = window.pdfjsLib.getDocument(objectUrl);
+      this._pdfDoc = await loadingTask.promise;
+      this._totalPages = this._pdfDoc.numPages;
+      this._currentPage = 1;
+      this._scale = 1.2;
+
+      document.getElementById('pdfTotalPages').textContent = String(this._totalPages);
+
+      loader.style.display = 'none';
+      container.style.display = 'flex';
+
+      await this.renderPagina(this._currentPage);
+    } catch (e) {
+      console.error('Error cargando PDF:', e);
+      loader.style.display = 'none';
+      errorMsg.textContent = e?.message || 'No se pudo cargar el documento.';
+      errorDiv.style.display = 'flex';
+    }
+  },
+
+  async renderPagina(num) {
+    if (this._rendering || !this._pdfDoc) return;
+    this._rendering = true;
+
+    try {
+      const page = await this._pdfDoc.getPage(num);
+      const canvas = document.getElementById('pdfCanvas');
+      const ctx = canvas.getContext('2d');
+      const viewport = page.getViewport({ scale: this._scale });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      document.getElementById('pdfCurrentPage').textContent = String(num);
+      document.getElementById('pdfPrevPage').disabled = num <= 1;
+      document.getElementById('pdfNextPage').disabled = num >= this._totalPages;
+    } finally {
+      this._rendering = false;
+    }
+  },
+
+  async cambiarPagina(delta) {
+    const nueva = this._currentPage + delta;
+    if (nueva < 1 || nueva > this._totalPages) return;
+    this._currentPage = nueva;
+    await this.renderPagina(nueva);
+  },
+
+  async cambiarZoom(delta) {
+    this._scale = Math.min(3, Math.max(0.5, this._scale + delta));
+    await this.renderPagina(this._currentPage);
+  },
+
+  cerrar() {
+    const overlay = document.getElementById('pdfViewerOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    this._pdfDoc = null;
+    this._currentPage = 1;
+    this._totalPages = 0;
+    this._rendering = false;
+
+    if (this._objectUrl) {
+      URL.revokeObjectURL(this._objectUrl);
+      this._objectUrl = null;
+    }
+  },
+};
+
+window.PDFViewerService = PDFViewerService;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') PDFViewerService.cerrar();
+});
 
 // ============================================================================
 // 13. CONTROLADORES PRINCIPALES

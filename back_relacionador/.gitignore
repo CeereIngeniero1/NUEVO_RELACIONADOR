@@ -121,5 +121,8 @@ tmp/
 # Custom
 public/
 
+# Archivos JSON de envío IHCE (control local, no versionar)
+jsons/
+
 #
 pruebas.js

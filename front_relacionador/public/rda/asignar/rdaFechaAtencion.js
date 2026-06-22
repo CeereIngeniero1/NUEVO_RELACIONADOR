@@ -1,6 +1,22 @@
 /**
  * @param {string} prefix "RDA_" o "RDACE_"
  */
+function colombiaDateTimeNowSql() {
+    const fp = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+        hour12: false,
+    }).formatToParts(new Date());
+    const g = (t) => (fp.find((x) => x.type === t) || {}).value;
+    return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}:${g('second')}`;
+}
+
 export function wireRdaFechaAtencionGlobal() {
     const g = window;
     g.rdaParseFechaHorasAtencion = function (prefix) {
@@ -25,8 +41,8 @@ export function wireRdaFechaAtencionGlobal() {
         }
         const t1 = normTime(hi);
         const t2 = normTime(hf);
-        const inicioStr = f + 'T' + t1;
-        const finStr = f + 'T' + t2;
+        const inicioStr = `${f}T${t1}:00-05:00`;
+        const finStr = `${f}T${t2}:00-05:00`;
         const d1 = new Date(inicioStr);
         const d2 = new Date(finStr);
         if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
@@ -37,4 +53,6 @@ export function wireRdaFechaAtencionGlobal() {
         }
         return { ok: true, inicio: inicioStr, fin: finStr };
     };
+
+    window.colombiaDateTimeNowSql = colombiaDateTimeNowSql;
 }

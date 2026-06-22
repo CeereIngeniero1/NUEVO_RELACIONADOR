@@ -31,11 +31,139 @@ const REQUIRED_RDACE_SECTION_LOINCS = [
     RDACE_SECTION_LOINC.SUPPORT_DOCS,
 ];
 
+function escapeXhtmlText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function sectionTextDiv(msg) {
     return {
         status: 'generated',
         div: `<div xmlns="http://www.w3.org/1999/xhtml">${msg}</div>`,
     };
+}
+
+/**
+ * Narrativa de antecedentes farmacológicos para sección 10160-0.
+ * IHCE exige route/timing/doseAndRate en cada MedicationRequestRDA; sin esos datos en BD
+ * los antecedentes van como texto narrativo, no como MedicationRequest.
+ * @param {Array<{ codigo?: string, nombre?: string, observacion?: string }>} rows
+ */
+function buildAntecedentesSaludNarrative(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return '';
+    const items = list.map((row, i) => {
+        const desc = String(row && row.descripcion ? row.descripcion : '').trim();
+        return `<li>${i + 1}. ${escapeXhtmlText(desc || 'Sin descripción')}</li>`;
+    });
+    return `<p>Antecedentes personales de salud reportados:</p><ul>${items.join('')}</ul>`;
+}
+
+function buildAntecedentesFamiliaresNarrative(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return '';
+    const items = list.map((row, i) => {
+        const parentesco = String(row && row.parentescoLabel ? row.parentescoLabel : row.parentesco || '').trim();
+        const desc = String(row && row.descripcion ? row.descripcion : '').trim();
+        const prefix = parentesco ? `${escapeXhtmlText(parentesco)}: ` : '';
+        return `<li>${i + 1}. ${prefix}${escapeXhtmlText(desc || 'Sin descripción')}</li>`;
+    });
+    return `<p>Antecedentes familiares reportados:</p><ul>${items.join('')}</ul>`;
+}
+
+function buildProblemsSectionNarrative(antecedentSaludRows = [], antecedentFamRows = []) {
+    const parts = [
+        buildAntecedentesSaludNarrative(antecedentSaludRows),
+        buildAntecedentesFamiliaresNarrative(antecedentFamRows),
+    ].filter(Boolean);
+    return parts.join('');
+}
+
+/**
+ * Sección 11450-4: Condition (dx consulta + antecedentes con CIE-10); antecedentes sin FMH como narrativa.
+ */
+function buildRdaceProblemsSection({
+    conditionEntries = [],
+    antecedentSaludRows = [],
+    antecedentFamRows = [],
+    refOf,
+    emptyRdaceSection: emptySectionFn = emptyRdaceSection,
+}) {
+    const hasCond = Array.isArray(conditionEntries) && conditionEntries.length > 0;
+    const narrative = buildProblemsSectionNarrative(antecedentSaludRows, antecedentFamRows);
+    const loinc = RDACE_SECTION_LOINC.PROBLEMS;
+    const display = 'Problem list - Reported';
+
+    if (!hasCond && !narrative) {
+        return emptySectionFn('Historial de diagnósticos de problemas de salud', loinc, display);
+    }
+
+    const section = {
+        title: 'Historial de diagnósticos de problemas de salud',
+        code: { coding: [{ system: 'http://loinc.org', code: loinc, display }] },
+    };
+
+    if (narrative) {
+        section.text = sectionTextDiv(narrative);
+    }
+
+    if (hasCond) {
+        section.entry = conditionEntries.map((c) => ({ reference: refOf(c) }));
+    }
+
+    return section;
+}
+
+function buildAntecedentesFarmacologicosNarrative(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return '';
+    const items = list.map((m, i) => {
+        const code = String(m && m.codigo ? m.codigo : '').trim();
+        const name = String(m && m.nombre ? m.nombre : '').trim();
+        const obs = String(m && m.observacion ? m.observacion : '').trim();
+        const medLabel = name || code || 'Medicamento';
+        const codePart = code ? `${escapeXhtmlText(code)} - ` : '';
+        const obsPart = obs ? ` (${escapeXhtmlText(obs)})` : '';
+        return `<li>${i + 1}. ${codePart}${escapeXhtmlText(medLabel)}${obsPart}</li>`;
+    });
+    return `<p>Antecedentes farmacológicos reportados:</p><ul>${items.join('')}</ul>`;
+}
+
+/**
+ * Sección 10160-0: prescripciones como MedicationRequest; antecedentes solo narrativa.
+ */
+function buildRdaceMedicationsSection({
+    prescriptionMedEntries = [],
+    antecedentMedRows = [],
+    refOf,
+    emptyRdaceSection: emptySectionFn = emptyRdaceSection,
+}) {
+    const hasRx = Array.isArray(prescriptionMedEntries) && prescriptionMedEntries.length > 0;
+    const hasAnt = Array.isArray(antecedentMedRows) && antecedentMedRows.length > 0;
+    const loinc = RDACE_SECTION_LOINC.MEDICATIONS;
+    const display = 'History of Medication use Narrative';
+
+    if (!hasRx && !hasAnt) {
+        return emptySectionFn('Historial de medicamentos', loinc, display);
+    }
+
+    const section = {
+        title: 'Historial de medicamentos',
+        code: { coding: [{ system: 'http://loinc.org', code: loinc, display }] },
+    };
+
+    if (hasAnt) {
+        section.text = sectionTextDiv(buildAntecedentesFarmacologicosNarrative(antecedentMedRows));
+    }
+
+    if (hasRx) {
+        section.entry = prescriptionMedEntries.map((m) => ({ reference: refOf(m) }));
+    }
+
+    return section;
 }
 
 function emptyRdaceSection(title, loinc, display) {
@@ -127,6 +255,13 @@ module.exports = {
     RDACE_MAX_SECTIONS,
     REQUIRED_RDACE_SECTION_LOINCS,
     sectionTextDiv,
+    escapeXhtmlText,
+    buildAntecedentesSaludNarrative,
+    buildAntecedentesFamiliaresNarrative,
+    buildProblemsSectionNarrative,
+    buildRdaceProblemsSection,
+    buildAntecedentesFarmacologicosNarrative,
+    buildRdaceMedicationsSection,
     emptyRdaceSection,
     buildRdaceOccupationSection,
     loincFromSection,

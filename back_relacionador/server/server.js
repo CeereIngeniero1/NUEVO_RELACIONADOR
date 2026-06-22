@@ -5,6 +5,8 @@ const path = require('path');
 
 const { ensureBackendEnv } = require('./config/envLoader');
 ensureBackendEnv();
+const { ensureRdaEnvioJsonDirs } = require('./rda/rdaEnvioJsonArchive');
+ensureRdaEnvioJsonDirs();
 const { Worker } = require('worker_threads');  // Importa Worker para trabajar en un hilo diferente
 const compression = require('compression'); //Comprime las respuestas HTTP que se envían al cliente
 

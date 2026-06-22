@@ -354,7 +354,12 @@ export function openIhceBundlePreview(kind, id, ambienteUi) {
     })
         .then(function (r) {
             return r.text().then(function (t) {
-                return { ok: r.ok, status: r.status, text: t };
+                return {
+                    ok: r.ok,
+                    status: r.status,
+                    text: t,
+                    validationWarning: r.headers.get('X-RDA-Validation-Warning'),
+                };
             });
         })
         .then(function (out) {
@@ -364,7 +369,21 @@ export function openIhceBundlePreview(kind, id, ambienteUi) {
             } catch (e) {
                 parsed = { raw: out.text };
             }
-            openJsonModal('JSON generado para envío IHCE', JSON.stringify(parsed, null, 2), 'min(95vw, 860px)');
+            if (parsed && parsed.ok === false && parsed.error) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No se pudo generar el JSON',
+                    text: parsed.error,
+                });
+                return;
+            }
+            const warn = out.validationWarning;
+            const jsonText = JSON.stringify(parsed, null, 2);
+            openJsonModal(
+                warn ? 'JSON generado para envío IHCE (con advertencias)' : 'JSON generado para envío IHCE',
+                warn ? `/* Advertencia: ${warn} */\n\n${jsonText}` : jsonText,
+                'min(95vw, 860px)'
+            );
         })
         .catch(function (err) {
             Swal.fire({
@@ -461,7 +480,12 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
                     })
                         .then(function (r) {
                             return r.text().then(function (t) {
-                                return { ok: r.ok, status: r.status, text: t };
+                                return {
+                                    ok: r.ok,
+                                    status: r.status,
+                                    text: t,
+                                    validationWarning: r.headers.get('X-RDA-Validation-Warning'),
+                                };
                             });
                         })
                         .then(function (out) {
@@ -471,8 +495,21 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
                             } catch (e) {
                                 parsed = { raw: out.text };
                             }
+                            if (parsed && parsed.ok === false && parsed.error) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'No se pudo generar el JSON',
+                                    text: parsed.error,
+                                });
+                                return;
+                            }
+                            const warn = out.validationWarning;
                             const bundleStr = JSON.stringify(parsed, null, 2);
-                            openJsonModal('Bundle FHIR generado (mismo que se envió)', bundleStr, 'min(95vw, 860px)');
+                            openJsonModal(
+                                warn ? 'Bundle FHIR generado (con advertencias)' : 'Bundle FHIR generado (mismo que se envió)',
+                                warn ? `/* Advertencia: ${warn} */\n\n${bundleStr}` : bundleStr,
+                                'min(95vw, 860px)'
+                            );
                         })
                         .catch(function (err) {
                             Swal.fire({
