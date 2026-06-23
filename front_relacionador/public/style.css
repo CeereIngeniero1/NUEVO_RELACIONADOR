@@ -557,10 +557,36 @@ body {
     text-align: center;
 }
 
-/* Fila seleccionada */
-.seleccionada,
-.cr-table tbody tr.seleccionada {
+.cr-table tbody tr.seleccionada,
+.cr-table tbody tr.cr-row-selected {
     background-color: var(--color-selected) !important;
+}
+
+.rips-panel-subtitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary, #007E82);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.rips-panel-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.rips-panel-table tbody tr {
+    cursor: pointer;
+}
+
+.rips-panel-empty {
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.rips-panel-table .btn-ver-factura {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.45rem;
 }
 
 /* ── Radio buttons visuales en tabla (generados por RIPS.js) ── */
@@ -808,6 +834,78 @@ body {
 .valorTotal {
     display: grid;
     text-align: center;
+}
+
+/* Modal detalle de factura (RIPS) — legible en tema claro y oscuro */
+#exampleModal .modal-body.moodal {
+    background-color: #ffffff;
+    color: #1d2020;
+    min-height: 280px;
+}
+
+#exampleModal .moodal .primeraParte,
+#exampleModal .moodal .segundaParte,
+#exampleModal .moodal .terceraParte,
+#exampleModal .moodal .cuartaParte {
+    position: relative;
+    z-index: 2;
+}
+
+#exampleModal .moodal label,
+#exampleModal .moodal span {
+    color: #1d2020;
+}
+
+#exampleModal .moodal .asteriscos1 {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] #exampleModal .modal-content {
+    background-color: var(--color-bg-row);
+    border: 1px solid var(--color-border-input, #334155);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] #exampleModal .modal-header,
+[data-theme="dark"] #exampleModal .modal-footer {
+    background-color: var(--color-header-bg);
+    border-color: var(--color-border-input, #334155);
+}
+
+[data-theme="dark"] #exampleModal .modal-title {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] #exampleModal .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+[data-theme="dark"] #exampleModal .modal-body.moodal {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #exampleModal .moodal label,
+[data-theme="dark"] #exampleModal .moodal span {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #exampleModal .moodal .modalEmpresa label {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] #exampleModal .moodal .asteriscos1 {
+    color: #64748b;
+}
+
+[data-theme="dark"] #exampleModal .moodal img {
+    opacity: 0.12;
+}
+
+[data-theme="dark"] #exampleModal .modal-footer .btn-secondary {
+    background-color: #334155;
+    border-color: #475569;
+    color: #f8fafc;
 }
 
 /* ── SweetAlert / notificaciones ── */

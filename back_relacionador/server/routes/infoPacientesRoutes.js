@@ -204,6 +204,66 @@ router.get('/evaluaciones/:documento/:fechaInicio/:fechaFin', (req, res) => {
     connection.execSql(request);
 });
 
+router.get('/facturasRango/:fechaInicio/:fechaFin/:documentoEmpresa', (req, res) => {
+    const fechaInicio = req.params.fechaInicio;
+    const fechaFin = req.params.fechaFin;
+    const documentoEmpresa = req.params.documentoEmpresa;
+    const facturasData = [];
+
+    const request = new Request(`SELECT
+        fc.[Id Factura],
+        fc.[No Factura],
+        fc.[Total Factura],
+        emV.[Prefijo Resolución Facturación EmpresaV] AS [Prefijo],
+        fc.[Fecha Factura],
+        fc.[Documento Paciente],
+        en.[Nombre Completo Entidad] AS [Nombre Paciente],
+        EntidadUsr.[Nombre Completo Entidad] AS [Nombre Usuario]
+    FROM Factura AS fc
+    INNER JOIN EmpresaV AS emV ON fc.[Id EmpresaV] = emV.[Id EmpresaV]
+    INNER JOIN Empresa AS em ON em.[Documento Empresa] = emV.[Documento Empresa]
+    INNER JOIN Entidad AS en ON fc.[Documento Paciente] = en.[Documento Entidad]
+    INNER JOIN Entidad AS EntidadUsr ON fc.[Documento Usuario] = EntidadUsr.[Documento Entidad]
+    WHERE em.[Documento Empresa] = @documentoEmpresa
+        AND CONVERT(DATE, fc.[Fecha Factura], 101) BETWEEN @FechaInicio AND @FechaFin
+        AND NOT EXISTS (
+            SELECT 1 FROM dbo.[Evaluación Entidad Rips] AS ap
+            WHERE fc.[Id Factura] = ap.[Id Factura]
+        )
+    ORDER BY fc.[Fecha Factura] DESC`, (err, rowCount) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta de facturas por rango:', err.message);
+            res.status(500).json({ error: 'Error al obtener facturas del rango' });
+        } else {
+            console.log(`Consulta facturasRango ejecutada con éxito. Filas: ${rowCount}`);
+            res.json(facturasData.map((row) => ({
+                idFactura: row['Id Factura'],
+                noFactura: row['No Factura'],
+                totalFactura: row['Total Factura'],
+                prefijo: row.Prefijo,
+                fechaFactura: row['Fecha Factura'],
+                documentoPaciente: row['Documento Paciente'],
+                nombrePaciente: row['Nombre Paciente'],
+                nombreUsuario: row['Nombre Usuario'],
+            })));
+        }
+    });
+
+    request.addParameter('FechaInicio', TYPES.DateTime, fechaInicio);
+    request.addParameter('FechaFin', TYPES.DateTime, fechaFin);
+    request.addParameter('documentoEmpresa', TYPES.VarChar, documentoEmpresa);
+
+    request.on('row', (columns) => {
+        const factura = {};
+        columns.forEach((column) => {
+            factura[column.metadata.colName] = column.value;
+        });
+        facturasData.push(factura);
+    });
+
+    connection.execSql(request);
+});
+
 router.get('/facturas/:documento', (req, res) => {
     const documento = req.params.documento;
     const facturasData = []; // Crear un array para almacenar los resultados

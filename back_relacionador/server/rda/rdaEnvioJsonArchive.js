@@ -71,6 +71,93 @@ function buildPatientArchiveDirName(documento, nombrePaciente) {
     return sanitizeFilePart(`${doc}_${nombre}`);
 }
 
+function extractCedulaFromBundle(bundle) {
+    const documento = extractDocumentoFromBundle(bundle);
+    const fromTypedId = documento.match(/^[A-Za-z]+_(\d+[\w]*)$/);
+    if (fromTypedId) return sanitizeFilePart(fromTypedId[1]);
+
+    const identifiers = [];
+    if (bundle && Array.isArray(bundle.entry)) {
+        const patient = bundle.entry.find((e) => e?.resource?.resourceType === 'Patient')?.resource;
+        if (patient && Array.isArray(patient.identifier)) {
+            for (const ident of patient.identifier) {
+                const val = ident?.value != null ? String(ident.value).trim() : '';
+                if (val) identifiers.push(val);
+            }
+        }
+    }
+
+    const numeric = identifiers.find((v) => /^\d+$/.test(v));
+    if (numeric) return sanitizeFilePart(numeric);
+
+    const digits = documento.replace(/\D/g, '');
+    return sanitizeFilePart(digits || documento);
+}
+
+/**
+ * Fecha/hora del RDA desde Composition.date (fallback Encounter.period.start).
+ * @returns {string|null} YYYYMMDD_HHMMSS en hora del instante FHIR
+ */
+function extractRdaDateTimeFromBundle(bundle) {
+    if (!bundle || !Array.isArray(bundle.entry)) return null;
+
+    const composition = bundle.entry.find((e) => e?.resource?.resourceType === 'Composition')?.resource;
+    const fromComposition = formatFhirDateTimeForFileName(composition?.date);
+    if (fromComposition) return fromComposition;
+
+    const encounter = bundle.entry.find((e) => e?.resource?.resourceType === 'Encounter')?.resource;
+    const fromEncounter = formatFhirDateTimeForFileName(encounter?.period?.start);
+    if (fromEncounter) return fromEncounter;
+
+    return null;
+}
+
+function formatFhirDateTimeForFileName(value) {
+    const s = String(value || '').trim();
+    if (!s) return null;
+
+    const withTime = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (withTime) {
+        const [, y, mo, d, h, mi, se = '00'] = withTime;
+        return `${y}${mo}${d}_${h}${mi}${se}`;
+    }
+
+    const dateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateOnly) {
+        const [, y, mo, d] = dateOnly;
+        return `${y}${mo}${d}_000000`;
+    }
+
+    return null;
+}
+
+function resolveTipoRdaLabel(tipo) {
+    const t = String(tipo || '').trim().toLowerCase();
+    if (t === 'ce' || t === 'consulta-externa' || t === 'rdace') return 'CE';
+    return 'PAC';
+}
+
+function buildArchiveFileName({ bundle, tipo, idEvaluacion }) {
+    const cedula = extractCedulaFromBundle(bundle);
+    const tipoLabel = resolveTipoRdaLabel(tipo);
+    const rdaDateTime = extractRdaDateTimeFromBundle(bundle) || formatTimestampColombia();
+    return `${cedula}_${tipoLabel}_${rdaDateTime}.json`;
+}
+
+function uniqueFilePath(folder, fileName) {
+    let candidate = path.join(folder, fileName);
+    if (!fs.existsSync(candidate)) return candidate;
+
+    const ext = path.extname(fileName);
+    const base = path.basename(fileName, ext);
+    let n = 2;
+    while (fs.existsSync(candidate) && n < 100) {
+        candidate = path.join(folder, `${base}_${n}${ext}`);
+        n += 1;
+    }
+    return candidate;
+}
+
 function formatTimestampColombia(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'America/Bogota',
@@ -111,11 +198,8 @@ function archiveRdaEnvioJson({ bundle, bundleJson, ambiente, tipo, idEvaluacion 
         const patientDir = buildPatientArchiveDirName(documento, nombrePaciente);
         const folder = path.join(baseFolder, patientDir);
         fs.mkdirSync(folder, { recursive: true });
-        const tipoLabel = (tipo === 'ce' || tipo === 'consulta-externa' || tipo === 'rdace') ? 'CE' : 'PAC';
-        const ts = formatTimestampColombia();
-        const idPart = idEvaluacion != null && Number.isFinite(Number(idEvaluacion)) ? `_id${idEvaluacion}` : '';
-        const fileName = `${documento}_${tipoLabel}${idPart}_${ts}.json`;
-        const filePath = path.join(folder, fileName);
+        const fileName = buildArchiveFileName({ bundle, tipo, idEvaluacion });
+        const filePath = uniqueFilePath(folder, fileName);
         const text = bundleJson != null ? prettyJsonText(bundleJson) : prettyJsonText(bundle);
         fs.writeFileSync(filePath, text, 'utf8');
         console.log(`[RDA archive] JSON IHCE guardado: ${filePath}`);
@@ -133,7 +217,10 @@ module.exports = {
     ensureRdaEnvioJsonDirs,
     archiveRdaEnvioJson,
     extractDocumentoFromBundle,
+    extractCedulaFromBundle,
     extractNombrePacienteFromBundle,
+    extractRdaDateTimeFromBundle,
+    buildArchiveFileName,
     buildPatientArchiveDirName,
     sanitizeFilePart,
 };

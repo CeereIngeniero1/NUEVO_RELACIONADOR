@@ -18,40 +18,306 @@ $(document).ready(function (e) {
 const checkboxParticular = document.getElementById('checkbox1')
 const checkboxPrepagada = document.getElementById('checkbox2')
 const span_paciente = document.getElementById('span_paciente')
-const tabla = document.querySelector('.tabla')
-const listasPrepagada = document.querySelector('.listasPrepagada')
 const facturaCero = document.querySelector('.facturaCero')
+const asignarFacturaManualBtn = document.getElementById('AsignarFacturaManual')
+const ripsSelectCol = document.getElementById('ripsSelectCol')
+const labelBuscarRips = document.getElementById('labelBuscarRips')
+const tablaPanelIzquierdo = document.getElementById('tablaPanelIzquierdo')
+const tablaPanelDerecho = document.getElementById('tablaPanelDerecho')
+const emptyPanelIzquierdo = document.getElementById('emptyPanelIzquierdo')
+const emptyPanelDerecho = document.getElementById('emptyPanelDerecho')
+const tituloPanelIzquierdo = document.getElementById('tituloPanelIzquierdo')
+const tituloPanelDerecho = document.getElementById('tituloPanelDerecho')
+const theadPanelIzquierdo = document.getElementById('theadPanelIzquierdo')
+
+const ripsUiState = {
+    leftRows: [],
+    selectedLeftKey: null,
+    selectedLeftData: null,
+    filterText: '',
+};
+
+function formatFechaRips(value) {
+    if (!value) return '—';
+    try {
+        return new Date(value).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    } catch (_) {
+        return String(value);
+    }
+}
+
+function clearPanelDerecho(mensaje = 'Seleccione una atención o factura a la izquierda.') {
+    if (tablaPanelDerecho) tablaPanelDerecho.innerHTML = '';
+    if (emptyPanelDerecho) {
+        emptyPanelDerecho.textContent = mensaje;
+        emptyPanelDerecho.classList.remove('d-none');
+    }
+}
+
+function clearPanels() {
+    ripsUiState.leftRows = [];
+    ripsUiState.selectedLeftKey = null;
+    ripsUiState.selectedLeftData = null;
+    if (tablaPanelIzquierdo) tablaPanelIzquierdo.innerHTML = '';
+    if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
+    clearPanelDerecho();
+}
+
+function applyModoUI() {
+    const prepagada = checkboxPrepagada.checked;
+    if (ripsSelectCol) ripsSelectCol.style.display = prepagada ? '' : 'none';
+    if (facturaCero) facturaCero.style.display = prepagada ? 'none' : 'flex';
+    if (asignarFacturaManualBtn) asignarFacturaManualBtn.style.display = prepagada ? 'none' : '';
+    if (labelBuscarRips) {
+        labelBuscarRips.textContent = prepagada ? 'Buscar atención' : 'Buscar factura';
+    }
+    if (tituloPanelIzquierdo) {
+        tituloPanelIzquierdo.textContent = prepagada
+            ? 'Atenciones / Pacientes en factura'
+            : 'Facturas del rango';
+    }
+    if (tituloPanelDerecho) {
+        tituloPanelDerecho.textContent = prepagada
+            ? 'Historias clínicas RIPS'
+            : 'Historias clínicas RIPS pendientes';
+    }
+    if (theadPanelIzquierdo) {
+        theadPanelIzquierdo.innerHTML = prepagada
+            ? '<tr><th>PLAN / PACIENTE</th><th>DOCUMENTO</th><th>ESTADO HC</th></tr>'
+            : '<tr><th>ID</th><th>PACIENTE</th><th>FACTURA</th><th>VER</th></tr>';
+    }
+    clearPanels();
+}
+
+function rowMatchesFilter(text) {
+    const q = (ripsUiState.filterText || '').trim().toLowerCase();
+    if (!q) return true;
+    return String(text || '').toLowerCase().includes(q);
+}
+
+function markSelectedLeftRow(key) {
+    ripsUiState.selectedLeftKey = key;
+    if (!tablaPanelIzquierdo) return;
+    tablaPanelIzquierdo.querySelectorAll('tr').forEach((tr) => {
+        tr.classList.toggle('cr-row-selected', tr.dataset.rowKey === key);
+    });
+}
+
+function renderPanelIzquierdoParticular(facturas) {
+    ripsUiState.leftRows = Array.isArray(facturas) ? facturas : [];
+    if (!tablaPanelIzquierdo) return;
+    tablaPanelIzquierdo.innerHTML = '';
+
+    const visibles = ripsUiState.leftRows.filter((f) => {
+        const blob = `${f.idFactura} ${f.nombrePaciente} ${f.documentoPaciente} ${f.prefijo} ${f.noFactura}`;
+        return rowMatchesFilter(blob);
+    });
+
+    if (!visibles.length) {
+        if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
+        return;
+    }
+    if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
+
+    visibles.forEach((f) => {
+        const tr = document.createElement('tr');
+        const key = `fac-${f.idFactura}`;
+        tr.dataset.rowKey = key;
+        tr.dataset.modo = 'particular';
+        if (ripsUiState.selectedLeftKey === key) tr.classList.add('cr-row-selected');
+
+        const fechaTxt = formatFechaRips(f.fechaFactura);
+        const detalle = `${f.prefijo || ''} No. ${f.noFactura} — $${f.totalFactura} — ${fechaTxt}`;
+
+        tr.innerHTML = `
+            <td>${f.idFactura}</td>
+            <td>${f.nombrePaciente || '—'}<br><small class="text-muted">${f.documentoPaciente || ''}</small></td>
+            <td>${detalle}</td>
+            <td><button type="button" class="btn btn-sm btn-outline-secondary btn-ver-factura">Ver</button></td>
+        `;
+
+        tr.addEventListener('click', (ev) => {
+            if (ev.target.closest('.btn-ver-factura')) return;
+            onLeftRowClickParticular(f, key);
+        });
+        tr.querySelector('.btn-ver-factura')?.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            fetch(`${window.getApiBaseUrl()}/api/usuarios/factura/${f.idFactura}`)
+                .then((r) => r.json())
+                .then((data) => { llenarModal(data); $('#exampleModal').modal('show'); })
+                .catch((err) => console.error('Error al obtener datos de factura:', err));
+        });
+
+        tablaPanelIzquierdo.appendChild(tr);
+    });
+}
+
+function renderPanelIzquierdoPrepagada(pacientes) {
+    ripsUiState.leftRows = Array.isArray(pacientes) ? pacientes : [];
+    if (!tablaPanelIzquierdo) return;
+    tablaPanelIzquierdo.innerHTML = '';
+
+    const visibles = ripsUiState.leftRows.filter((p) => {
+        const blob = `${p.NombrePaciente} ${p.DocumentoPaciente} ${p.Idtratamiento}`;
+        return rowMatchesFilter(blob);
+    });
+
+    if (!visibles.length) {
+        if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
+        return;
+    }
+    if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
+
+    visibles.forEach((p) => {
+        const key = `${p.DocumentoPaciente}|${p.DocumentoEps}|${p.Idtratamiento}`;
+        const tr = document.createElement('tr');
+        tr.dataset.rowKey = key;
+        tr.dataset.modo = 'prepagada';
+        if (ripsUiState.selectedLeftKey === key) tr.classList.add('cr-row-selected');
+
+        const estado = (p.NombrePaciente || '').includes('NO TIENE') ? 'Sin HC relacionada' : 'Con HC';
+        tr.innerHTML = `
+            <td>${p.NombrePaciente || '—'}</td>
+            <td>${p.DocumentoPaciente || '—'}</td>
+            <td>${estado}</td>
+        `;
+        tr.addEventListener('click', () => onLeftRowClickPrepagada(p, key));
+        tablaPanelIzquierdo.appendChild(tr);
+    });
+}
+
+function renderPanelDerechoRips(items, modo) {
+    if (!tablaPanelDerecho) return;
+    tablaPanelDerecho.innerHTML = '';
+
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+        clearPanelDerecho('No hay historias clínicas RIPS para esta selección.');
+        return;
+    }
+    if (emptyPanelDerecho) emptyPanelDerecho.classList.add('d-none');
+
+    list.forEach((item) => {
+        const tr = document.createElement('tr');
+        const idRips = item.idEveRips ?? item.idEvaluacion;
+        const realizadoPor = item.nombreUsuario || item.TipoEvaluacion || '—';
+        const detalle = item.fechaEveRips
+            ? item.fechaEveRips
+            : `Fecha: ${formatFechaRips(item.fechaEvaluacion)}`;
+
+        tr.innerHTML = `
+            <td class="ColumnaCheckBox"><input type="checkbox" class="checkboxColumn rips-check-derecho" value="${idRips}"></td>
+            <td>${idRips}</td>
+            <td>${realizadoPor}</td>
+            <td>${detalle}</td>
+        `;
+        tablaPanelDerecho.appendChild(tr);
+    });
+
+    tablaPanelDerecho.querySelectorAll('.rips-check-derecho').forEach((chk) => {
+        chk.addEventListener('change', () => {
+            if (!chk.checked) return;
+            tablaPanelDerecho.querySelectorAll('.rips-check-derecho').forEach((other) => {
+                if (other !== chk) other.checked = false;
+            });
+        });
+    });
+}
+
+async function onLeftRowClickParticular(factura, key) {
+    markSelectedLeftRow(key);
+    ripsUiState.selectedLeftData = factura;
+    clearPanelDerecho('Cargando historias clínicas...');
+    try {
+        const doc = factura.documentoPaciente;
+        const response = await fetch(`${window.getApiBaseUrl()}/api/evaluaciones/${doc}/${fechaInicio}/${fechaFin}`);
+        if (!response.ok) throw new Error(response.statusText);
+        const evaluaciones = await response.json();
+        renderPanelDerechoRips(evaluaciones, 'particular');
+    } catch (ex) {
+        console.error(ex);
+        clearPanelDerecho(`Error: ${ex.message}`);
+    }
+}
+
+async function onLeftRowClickPrepagada(paciente, key) {
+    markSelectedLeftRow(key);
+    ripsUiState.selectedLeftData = paciente;
+    clearPanelDerecho('Cargando historias clínicas...');
+    try {
+        await getHistoriasEPSPanel(
+            paciente.DocumentoPaciente,
+            paciente.DocumentoEps,
+            paciente.Idtratamiento
+        );
+    } catch (ex) {
+        console.error(ex);
+        clearPanelDerecho(`Error: ${ex.message}`);
+    }
+}
+
+function obtenerRipsSeleccionadoDerecho() {
+    const chk = tablaPanelDerecho?.querySelector('.rips-check-derecho:checked');
+    return chk ? chk.value : null;
+}
+
+function obtenerDetalleRipsSeleccionadoDerecho() {
+    const chk = tablaPanelDerecho?.querySelector('.rips-check-derecho:checked');
+    if (!chk) return null;
+    const tr = chk.closest('tr');
+    return tr?.querySelector('td:nth-child(4)')?.textContent?.trim() || null;
+}
+
+function refrescarTrasRelacionar() {
+    if (checkboxPrepagada.checked) {
+        const idFactura = document.getElementById('listaPaciente')?.value;
+        if (idFactura && idFactura !== 'Sin Seleccionar') {
+            getPacientesEPS(idFactura);
+            if (ripsUiState.selectedLeftData) {
+                const p = ripsUiState.selectedLeftData;
+                getHistoriasEPSPanel(p.DocumentoPaciente, p.DocumentoEps, p.Idtratamiento);
+            }
+        }
+    } else if (fechaInicio && fechaFin && documentoEmpresaSeleccionada) {
+        getFacturasRango(fechaInicio, fechaFin, documentoEmpresaSeleccionada);
+        if (ripsUiState.selectedLeftData) {
+            onLeftRowClickParticular(ripsUiState.selectedLeftData, ripsUiState.selectedLeftKey);
+        }
+    }
+}
 
 checkboxParticular.addEventListener('change', () => {
     if (checkboxParticular.checked) {
         checkboxPrepagada.checked = false;
-        span_paciente.textContent = 'Seleccionar paciente:';
-        tabla.style.display = 'flex';
-        listasPrepagada.style.display = 'none';
-        facturaCero.style.display = 'flex';
+        applyModoUI();
         alerta();
     }
 });
 
 checkboxPrepagada.addEventListener('change', () => {
     if (checkboxPrepagada.checked) {
-        checkboxParticular.checked = false
-        span_paciente.textContent = 'Seleccionar EPS:'
+        checkboxParticular.checked = false;
+        span_paciente.textContent = 'Seleccionar factura prepagada / EPS:';
+        applyModoUI();
         alerta();
-        tabla.style.display = 'none';
-        listasPrepagada.style.display = 'flex';
-        facturaCero.style.display = 'none';
     }
-})
+});
 
 if (checkboxPrepagada.checked) {
-    tabla.style.display = 'none';
-    facturaCero.style.display = 'none';
+    applyModoUI();
+} else {
+    applyModoUI();
 }
 
-if (checkboxParticular.checked) {
-
-}
+document.getElementById('documentoInput')?.addEventListener('input', (ev) => {
+    ripsUiState.filterText = ev.target.value || '';
+    if (checkboxPrepagada.checked) {
+        buscarPacientePorDocumento();
+        renderPanelIzquierdoPrepagada(ripsUiState.leftRows);
+    } else {
+        renderPanelIzquierdoParticular(ripsUiState.leftRows);
+    }
+});
 
 // const updatePacientesSelect = (pacientes) => {
 //     const selectPaciente = document.querySelector('#listaPaciente');
@@ -97,6 +363,28 @@ const updatePacientesSelect = (pacientes) => {
         option.text = opcion.text;
         selectPaciente.appendChild(option);
     });
+};
+
+const getFacturasRango = async (fInicio, fFin, docEmpresa) => {
+    try {
+        const response = await fetch(`${window.getApiBaseUrl()}/api/facturasRango/${fInicio}/${fFin}/${docEmpresa}`);
+        if (!response.ok) {
+            throw new Error(`Error al obtener facturas: ${response.statusText}`);
+        }
+        const facturas = await response.json();
+        ripsUiState.selectedLeftKey = null;
+        ripsUiState.selectedLeftData = null;
+        renderPanelIzquierdoParticular(facturas);
+        clearPanelDerecho();
+        Swal.close();
+        if (!facturas.length) {
+            Swal.fire({ icon: 'info', text: 'No hay facturas pendientes de relacionar en el rango seleccionado.' });
+        }
+    } catch (ex) {
+        Swal.close();
+        console.error(ex);
+        alert(`Error: ${ex.message}`);
+    }
 };
 
 const getPacientes = async (fechaInicio, fechaFin) => {
@@ -270,30 +558,25 @@ const selectPaciente = document.querySelector('#listaPaciente');
 // });
 
 $(document).ready(function () {
-
     $('#listaPaciente').on('change', async function () {
-        const documentoSeleccionado = $(this).val(); // Obtener el valor seleccionado
-        console.log(documentoSeleccionado);
-
-        // Usar .prop() para acceder a la propiedad checked
-        if ($('#checkboxParticular').prop('checked', true)) {
-            console.log("ESTA MARCADOOO");
-            await getEvaluaciones(documentoSeleccionado, fechaInicio, fechaFin);
-            await getFacturas(documentoSeleccionado);
-            document.querySelector('#documentoInput').value = '';
-        } else {
-            console.log("NO ESTA MARCADOOO");
+        const idFactura = $(this).val();
+        if (!idFactura || idFactura === 'Sin Seleccionar') {
+            clearPanels();
+            return;
         }
-
-        if ($('#checkboxPrepagada').prop('checked', true)) {
-            await getPacientesEPS(documentoSeleccionado);
+        if (checkboxPrepagada.checked) {
+            await getPacientesEPS(idFactura);
         }
     });
 });
 
 
 const relacionarDatosFacturaCero = async () => {
-    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaFilas');
+    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaPanelDerecho');
+    if (!evaluacionesSeleccionadas.length) {
+        alert('Seleccione una historia clínica RIPS en el panel derecho.');
+        return;
+    }
 
     try {
         const response = await fetch(`${window.getApiBaseUrl()}/api/facturaCero/${documentoEmpresaSeleccionada}`, {
@@ -302,7 +585,7 @@ const relacionarDatosFacturaCero = async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                evaluacion: evaluacionesSeleccionadas[0], // Tomar solo la primera evaluación seleccionada (puedes ajustar según tus necesidades)
+                evaluacion: evaluacionesSeleccionadas[0],
             }),
         });
 
@@ -312,17 +595,12 @@ const relacionarDatosFacturaCero = async () => {
             throw new Error(`Error al relacionar datos: ${data.error}`);
         }
 
-        // Lógica adicional después de la inserción (si es necesaria)
-
         Swal.fire({
             text: "Datos relacionados correctamente",
             icon: "success",
             confirmButtonText: "OK"
-        }).then((result) => {
-
-            if (result.isConfirmed) {
-                location.reload();
-            }
+        }).then(() => {
+            refrescarTrasRelacionar();
         });
     } catch (ex) {
         console.error(ex);
@@ -364,15 +642,15 @@ function obtenerIdSeleccionado(idTabla) {
     return id;
 }
 
-// Función para enviar la petición al servidor y hacer la relación de facturas
 const relacionarDatos = async () => {
+    const idEveRips = obtenerRipsSeleccionadoDerecho();
+    const idFactura = ripsUiState.selectedLeftData?.idFactura;
 
-    // Obtener las filas seleccionadas de la tabla de evaluaciones
-    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaFilas');
-    // Obtener las filas seleccionadas de la tabla de facturas
-    const facturasSeleccionadas = obtenerFilasSeleccionadas('#tablaFilasFacturas');
+    if (!idEveRips || !idFactura) {
+        alert('Seleccione una factura a la izquierda y un RIPS a la derecha.');
+        return;
+    }
 
-    // Realizar la solicitud al servidor para relacionar evaluaciones y facturas
     try {
         const response = await fetch(`${window.getApiBaseUrl()}/api/relacionar`, {
             method: 'POST',
@@ -380,8 +658,8 @@ const relacionarDatos = async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                evaluacion: evaluacionesSeleccionadas[0], // Tomar solo la primera evaluación seleccionada (puedes ajustar según tus necesidades)
-                factura: facturasSeleccionadas[0], // Tomar solo la primera factura seleccionada (puedes ajustar según tus necesidades)
+                evaluacion: idEveRips,
+                factura: idFactura,
             }),
         });
 
@@ -393,10 +671,8 @@ const relacionarDatos = async () => {
             text: "Datos relacionados correctamente",
             icon: "success",
             confirmButtonText: "OK"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                location.reload();
-            }
+        }).then(() => {
+            refrescarTrasRelacionar();
         });
     } catch (ex) {
         console.error(ex);
@@ -405,13 +681,14 @@ const relacionarDatos = async () => {
 }
 
 const relacionarFacturaManual = async () => {
+    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaPanelDerecho');
+    const facturasSeleccionadas = document.getElementById('selectBuscarFacturas').value;
 
-    // Obtener las filas seleccionadas de la tabla de evaluaciones
-    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaFilas');
-    // Obtener las filas seleccionadas de la tabla de facturas
-    const facturasSeleccionadas = document.getElementById('selectBuscarFacturas').value
+    if (!evaluacionesSeleccionadas.length || !facturasSeleccionadas) {
+        alert('Seleccione un RIPS en el panel derecho y una factura en el modal.');
+        return;
+    }
 
-    // Realizar la solicitud al servidor para relacionar evaluaciones y facturas
     try {
         const response = await fetch(`${window.getApiBaseUrl()}/api/relacionar`, {
             method: 'POST',
@@ -419,7 +696,7 @@ const relacionarFacturaManual = async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                evaluacion: evaluacionesSeleccionadas[0], // Tomar solo la primera evaluación seleccionada (puedes ajustar según tus necesidades)
+                evaluacion: evaluacionesSeleccionadas[0],
                 factura: facturasSeleccionadas,
             }),
         });
@@ -432,10 +709,8 @@ const relacionarFacturaManual = async () => {
             text: "Datos relacionados correctamente",
             icon: "success",
             confirmButtonText: "OK"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                location.reload();
-            }
+        }).then(() => {
+            refrescarTrasRelacionar();
         });
     } catch (ex) {
         console.error(ex);
@@ -443,32 +718,26 @@ const relacionarFacturaManual = async () => {
     }
 }
 
-// BUTTON RELACIONAR TABLAS =>
+// BUTTON RELACIONAR =>
 btnRelacionar.addEventListener('click', async () => {
-    // Obtener las filas seleccionadas de la tabla de evaluaciones
-    const evaluacionesSeleccionadas = obtenerFilasSeleccionadas('#tablaFilas');
-    // Obtener las filas seleccionadas de la tabla de facturas
-    const facturasSeleccionadas = obtenerFilasSeleccionadas('#tablaFilasFacturas');
+    const swalWithBootstrapButtons = Swal.mixin({
+        customClass: {
+            confirmButton: "btn btn-success",
+            cancelButton: "btn btn-danger",
+            htmlContainer: "html-container-custom"
+        },
+        buttonsStyling: false
+    });
 
     if (checkboxFacturaCero.checked) {
-
-        const swalWithBootstrapButtons = Swal.mixin({
-            customClass: {
-                confirmButton: "btn btn-success",
-                cancelButton: "btn btn-danger",
-                // Agrega una clase personalizada para cambiar el color del texto en HTML
-                htmlContainer: "html-container-custom"
-            },
-            buttonsStyling: false
-        });
-
-        // Construir el mensaje con los textos seleccionados y aplicar estilos
-        const evaluacionSeleccionadaText = obtenerIdSeleccionado('#tablaFilas')
-        const mensaje = `<span style="color: #fff;">La Historia con (${evaluacionSeleccionadaText}) con una Factura en 0?</span>`;
-
+        const detalleHc = obtenerDetalleRipsSeleccionadoDerecho();
+        if (!detalleHc) {
+            alert('Seleccione una historia clínica RIPS en el panel derecho.');
+            return;
+        }
+        const mensaje = `<span style="color: #fff;">La Historia (${detalleHc}) con una Factura en 0?</span>`;
         const result = await swalWithBootstrapButtons.fire({
             title: "¿Está seguro de querer relacionar?",
-            // Usar el formato HTML para aplicar estilos
             html: mensaje,
             icon: "warning",
             showCancelButton: true,
@@ -476,121 +745,62 @@ btnRelacionar.addEventListener('click', async () => {
             confirmButtonText: "Sí, realizar la relación de RIPS",
             reverseButtons: true
         });
-
         if (result.isConfirmed) {
-            // Llamar a la función para realizar la inserción en la tabla
             await relacionarDatosFacturaCero();
-
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            swalWithBootstrapButtons.fire({
-                title: "Cancelado",
-                text: "La relación de RIPS ha sido cancelada.",
-                icon: "error"
-            });
         }
+        return;
     }
 
-    else {
+    if (checkboxPrepagada.checked) {
+        const idFactura = document.getElementById('listaPaciente').value;
+        const idEveRips = obtenerRipsSeleccionadoDerecho();
+        const paciente = ripsUiState.selectedLeftData;
+        const IdTratamiento = paciente?.Idtratamiento;
 
-        if (checkboxPrepagada.checked) {
-            const idFactura = document.getElementById('listaPaciente').value
-            const idEveRips2 = document.getElementById('listaHistoriaClinica')
-            const idEveRips = document.getElementById('listaHistoriaClinica').value
-            const textoSeleccionadoHistoriaClinica = idEveRips2.selectedOptions[0].textContent;
-
-            const selectHistoriaClinicaEPS = document.getElementById('listaPacientePrepagada');
-            const documentoPacienteSeleccionado = selectHistoriaClinicaEPS.value;
-            const [documentoPaciente, documentoEps, IdTratamiento] = documentoPacienteSeleccionado.split('|');
-
-
-
-
-
-            const swalWithBootstrapButtons = Swal.mixin({
-                customClass: {
-                    confirmButton: "btn btn-success",
-                    cancelButton: "btn btn-danger",
-                    // Agrega una clase personalizada para cambiar el color del texto en HTML
-                    htmlContainer: "html-container-custom"
-                },
-                buttonsStyling: false
-            });
-
-            // Construir el mensaje con los textos seleccionados y aplicar estilos
-            const mensaje = `<span style="color: #fff;">La Factura (${idFactura}) con la historia del (${textoSeleccionadoHistoriaClinica})?</span>`;
-
-            const result = await swalWithBootstrapButtons.fire({
-                title: "¿Está seguro de querer relacionar?",
-                // Usar el formato HTML para aplicar estilos
-                html: mensaje,
-                icon: "warning",
-                showCancelButton: true,
-                cancelButtonText: "No relacionar",
-                confirmButtonText: "Sí, realizar la relación de RIPS",
-                reverseButtons: true
-            });
-
-            if (result.isConfirmed) {
-
-                await relacionarRIPSEPS(idFactura, idEveRips, IdTratamiento)
-
-            } else if (result.dismiss === Swal.DismissReason.cancel) {
-                swalWithBootstrapButtons.fire({
-                    title: "Cancelado",
-                    text: "La relación de RIPS ha sido cancelada.",
-                    icon: "error"
-                });
-            }
-        } else {
-
-            // Verificar si al menos una evaluación y una factura están seleccionadas
-            if (evaluacionesSeleccionadas.length === 0 || facturasSeleccionadas.length === 0) {
-                alert('Por favor, selecciona al menos una evaluación y una factura para relacionar.');
-                return;
-            } else {
-                const idHC = obtenerIdSeleccionado('#tablaFilas'); // Reemplaza '#tablaFilas' con el selector adecuado
-                const idFactura = obtenerIdSeleccionado('#tablaFilasFacturas'); // Reemplaza '#tablaFilasFacturas' con el selector adecuado
-
-                const swalWithBootstrapButtons = Swal.mixin({
-                    customClass: {
-                        confirmButton: "btn btn-success",
-                        cancelButton: "btn btn-danger",
-                        // Agrega una clase personalizada para cambiar el color del texto en HTML
-                        htmlContainer: "html-container-custom"
-                    },
-                    buttonsStyling: false
-                });
-
-                // Construir el mensaje con los textos seleccionados y aplicar estilos
-                const mensaje = `<span style="color: #fff;">La Factura (${idFactura}) con la historia del (${idHC})?</span>`;
-
-                const result = await swalWithBootstrapButtons.fire({
-                    title: "¿Está seguro de querer relacionar?",
-                    // Usar el formato HTML para aplicar estilos
-                    html: mensaje,
-                    icon: "warning",
-                    showCancelButton: true,
-                    cancelButtonText: "No relacionar",
-                    confirmButtonText: "Sí, realizar la relación de RIPS",
-                    reverseButtons: true
-                });
-
-                if (result.isConfirmed) {
-
-                    await relacionarDatos();
-
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    swalWithBootstrapButtons.fire({
-                        title: "Cancelado",
-                        text: "La relación de RIPS ha sido cancelada.",
-                        icon: "error"
-                    });
-                }
-            }
+        if (!idFactura || idFactura === 'Sin Seleccionar' || !idEveRips || !IdTratamiento) {
+            alert('Seleccione factura EPS, una atención a la izquierda y un RIPS a la derecha.');
+            return;
         }
 
+        const textoHc = obtenerDetalleRipsSeleccionadoDerecho();
+        const mensaje = `<span style="color: #fff;">La Factura (${idFactura}) con la historia (${textoHc})?</span>`;
+        const result = await swalWithBootstrapButtons.fire({
+            title: "¿Está seguro de querer relacionar?",
+            html: mensaje,
+            icon: "warning",
+            showCancelButton: true,
+            cancelButtonText: "No relacionar",
+            confirmButtonText: "Sí, realizar la relación de RIPS",
+            reverseButtons: true
+        });
+        if (result.isConfirmed) {
+            await relacionarRIPSEPS(idFactura, idEveRips, IdTratamiento);
+        }
+        return;
     }
 
+    const idEveRips = obtenerRipsSeleccionadoDerecho();
+    const factura = ripsUiState.selectedLeftData;
+    if (!idEveRips || !factura?.idFactura) {
+        alert('Seleccione una factura a la izquierda y un RIPS a la derecha.');
+        return;
+    }
+
+    const detalleHc = obtenerDetalleRipsSeleccionadoDerecho();
+    const detalleFac = `${factura.prefijo || ''} No. ${factura.noFactura}`;
+    const mensaje = `<span style="color: #fff;">La Factura (${detalleFac}) con la historia (${detalleHc})?</span>`;
+    const result = await swalWithBootstrapButtons.fire({
+        title: "¿Está seguro de querer relacionar?",
+        html: mensaje,
+        icon: "warning",
+        showCancelButton: true,
+        cancelButtonText: "No relacionar",
+        confirmButtonText: "Sí, realizar la relación de RIPS",
+        reverseButtons: true
+    });
+    if (result.isConfirmed) {
+        await relacionarDatos();
+    }
 })
 
 //Yeison dejo eso asi y eso no esta definido en ningun lado
@@ -647,16 +857,24 @@ const getBuscarFacturas = async (documento) => {
 const btnBuscar = document.querySelector('#btnBuscar');
 
 btnBuscar.addEventListener('click', async () => {
-    const pacienteSeleccionado = selectPaciente.value;
-    // Validar que se hayan seleccionado todos los valores necesarios
-    if (pacienteSeleccionado !== "Sin Seleccionar") {
-        // Llamar a la función para realizar la inserción en la tabla
+    const docFromPanel = ripsUiState.selectedLeftData?.documentoPaciente;
+    const pacienteSeleccionado = docFromPanel || selectPaciente.value;
+    if (pacienteSeleccionado && pacienteSeleccionado !== 'Sin Seleccionar') {
         await getBuscarFacturas(pacienteSeleccionado);
     } else {
-        // Mostrar un mensaje si falta alguna selección
-        Swal.fire("Por favor, seleccione un paciente");
+        alert('Seleccione primero una factura en el panel izquierdo (o un paciente).');
     }
 });
+
+const modalFacturaManual = document.getElementById('miModal');
+if (modalFacturaManual) {
+    modalFacturaManual.addEventListener('show.bs.modal', async () => {
+        const doc = ripsUiState.selectedLeftData?.documentoPaciente;
+        if (doc) {
+            await getBuscarFacturas(doc);
+        }
+    });
+}
 
 let fechaInicio;
 let fechaFin;
@@ -667,7 +885,9 @@ const alerta = async () => {
     const storedFechaFin = localStorage.getItem("fechaFin");
 
     const { value: formValues } = await Swal.fire({
-        title: "Seleccione el rango de fecha para cargar los pacientes",
+        title: checkboxParticular.checked
+            ? "Seleccione el rango de fecha para cargar las facturas"
+            : "Seleccione el rango de fecha para cargar las facturas EPS",
         html: `
             <label style="color: white;">FECHA INICIO</label>
             <input type="date" id="swal-input1" class="swal2-input" value="${storedFechaInicio || ''}">
@@ -687,11 +907,8 @@ const alerta = async () => {
                 localStorage.setItem("fechaFin", fechaFin);
 
                 if (checkboxParticular.checked) {
-
-                    await MensajeDeCarga('Cargando Pacientes')
-                    // Llamar a la función getPacientes con el rango de fechas seleccionado
-                    getPacientes(fechaInicio, fechaFin);
-
+                    await MensajeDeCarga('Cargando facturas');
+                    getFacturasRango(fechaInicio, fechaFin, documentoEmpresaSeleccionada);
                 }
 
                 if (checkboxPrepagada.checked) {
@@ -710,8 +927,6 @@ const alerta = async () => {
     //     Swal.fire("Pacientes Cargados correctamente");
     // }
 };
-
-document.getElementById("documentoInput").addEventListener("input", buscarPacientePorDocumento);
 
 function buscarPacientePorDocumento() {
     var inputDocumento = document.getElementById("documentoInput").value;
@@ -1709,24 +1924,7 @@ document.getElementById('DescargarXMLS').addEventListener('click', async () => {
 })
 /* FIN FIN FIN FIN FIN FIN FIN */
 
-document.getElementById('tablaFilasFacturas').addEventListener('click', (event) => {
-    const target = event.target;
-    if (target.tagName === 'BUTTON' && target.textContent === 'Factura') {
-        const fila = target.closest('tr');
-        const idFactura = fila.querySelector('td:nth-child(2)').textContent; // Ajusta según la posición de la columna del ID de factura
-
-        // Hacer la solicitud al nuevo endpoint
-        fetch(`${window.getApiBaseUrl()}/api/usuarios/factura/${idFactura}`)
-            .then(response => response.json())
-            .then(data => {
-                // Llenar el modal con los datos obtenidos
-                llenarModal(data);
-                // Mostrar el modal
-                $('#exampleModal').modal('show');
-            })
-            .catch(error => console.error('Error al obtener datos de factura:', error));
-    }
-});
+// Ver factura: manejado en renderPanelIzquierdoParticular (btn-ver-factura)
 
 function llenarModal(data) {
     // Obtener elementos del modal
@@ -1799,93 +1997,44 @@ const getEPS = async (fechaInicio, fechaFin) => {
 };
 
 const updatePacientesEPS = (pacientesPre) => {
-    const listaPacientePrepagada = document.querySelector('#listaPacientePrepagada');
-    listaPacientePrepagada.innerHTML = ""; // Limpiar opciones antiguas
-
-    // Agregar opción "Sin Seleccionar" al principio
-    const optionSinSeleccionar = document.createElement("option");
-    optionSinSeleccionar.value = "Sin Seleccionar";
-    optionSinSeleccionar.text = "Sin Seleccionar";
-    listaPacientePrepagada.appendChild(optionSinSeleccionar);
-
-    // Agregar opciones al select
-    pacientesPre.forEach((PacientePre) => {
-        const option = document.createElement("option");
-        option.value = `${PacientePre.DocumentoPaciente}|${PacientePre.DocumentoEps}|${PacientePre.Idtratamiento}`;
-        option.text = `${PacientePre.NombrePaciente}`;
-        listaPacientePrepagada.appendChild(option);
-    });
+    ripsUiState.selectedLeftKey = null;
+    ripsUiState.selectedLeftData = null;
+    renderPanelIzquierdoPrepagada(pacientesPre);
+    clearPanelDerecho();
 };
 
 const getPacientesEPS = async (idFacturaEPS) => {
     try {
-        // const response = await fetch(`${window.getApiBaseUrl()}/api/pacientesEPS/${idFacturaEPS}`);
         const response = await fetch(`${window.getApiBaseUrl()}/api/PacientesTratamientosFacturaEps/${idFacturaEPS}`);
         if (!response.ok) {
             throw new Error(`Error al obtener los datos de evaluaciones: ${response.statusText}`);
         }
 
         const pacientesPre = await response.json();
-        console.log(pacientesPre);
-        updatePacientesEPS(pacientesPre); // Llama a la función para actualizar la tabla
-
+        updatePacientesEPS(pacientesPre);
     } catch (ex) {
         console.error(ex);
         alert(`Error: ${ex.message}`);
     }
 };
 
-const updateHistoriasEPS = (historiasPre) => {
-    const listaHistoriaClinica = document.querySelector('#listaHistoriaClinica');
-    listaHistoriaClinica.innerHTML = ""; // Limpiar opciones antiguas
-
-    // Agregar opción "Sin Seleccionar" al principio
-    const optionSinSeleccionar = document.createElement("option");
-    optionSinSeleccionar.value = "Sin Seleccionar";
-    optionSinSeleccionar.text = "Sin Seleccionar";
-    listaHistoriaClinica.appendChild(optionSinSeleccionar);
-
-    // Agregar opciones al select
-    historiasPre.forEach((historiaPre) => {
-        const option = document.createElement("option");
-        option.value = historiaPre.idEveRips;
-        option.text = `${historiaPre.TipoEvaluacion} ${historiaPre.fechaEveRips}`;
-        listaHistoriaClinica.appendChild(option);
-    });
+const getHistoriasEPSPanel = async (documentoPacienteEPS, DocumentoEPS, IdTratamiento) => {
+    const response = await fetch(`${window.getApiBaseUrl()}/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}/${IdTratamiento}`);
+    if (!response.ok) {
+        throw new Error(`Error al obtener historias clínicas EPS: ${response.statusText}`);
+    }
+    const historiaPre = await response.json();
+    renderPanelDerechoRips(historiaPre, 'prepagada');
 };
 
 const getHistoriasEPS = async (documentoPacienteEPS, DocumentoEPS, IdTratamiento) => {
     try {
-        // const response = await fetch(`${window.getApiBaseUrl()}/api/hcPacientesEPS/${documentoPacienteEPS}`);
-        const response = await fetch(`${window.getApiBaseUrl()}/api/RipsPacientesTratamientosEps/${documentoPacienteEPS}/${DocumentoEPS}/${IdTratamiento}`);
-        if (!response.ok) {
-            throw new Error(`Error al obtener los datos de las historias clinicas EPS: ${response.statusText}`);
-        }
-
-        const historiaPre = await response.json();
-
-        updateHistoriasEPS(historiaPre);
-
+        await getHistoriasEPSPanel(documentoPacienteEPS, DocumentoEPS, IdTratamiento);
     } catch (ex) {
         console.error(ex);
         alert(`Error: ${ex.message}`);
     }
 };
-
-document.getElementById('listaPacientePrepagada').addEventListener('change', async () => {
-    const selectHistoriaClinicaEPS = document.getElementById('listaPacientePrepagada');
-    const documentoPacienteSeleccionado = selectHistoriaClinicaEPS.value;
-
-    console.log(documentoPacienteSeleccionado);
-
-    const [documentoPaciente, documentoEps, IdTratamiento] = documentoPacienteSeleccionado.split('|');
-
-    console.log("Documento del Paciente:", documentoPaciente);
-    console.log("Documento de la EPS:", documentoEps);
-    console.log("Tratamiento:", IdTratamiento);
-
-    await getHistoriasEPS(documentoPaciente, documentoEps, IdTratamiento);
-});
 
 const relacionarRIPSEPS = async (idFactura, idEveRips, IdTratamiento) => {
 
@@ -1906,16 +2055,14 @@ const relacionarRIPSEPS = async (idFactura, idEveRips, IdTratamiento) => {
             text: "Datos relacionados correctamente",
             icon: "success",
             confirmButtonText: "OK"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                location.reload();
-            }
+        }).then(() => {
+            refrescarTrasRelacionar();
         });
     } catch (ex) {
         console.error(ex);
         alert(`Error: ${ex.message}`);
     }
-}
+};
 
 // Verifica el token al cargar la página
 const isTokenValid = () => {
@@ -2105,7 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Construir el mensaje con los textos seleccionados y aplicar estilos
-        const evaluacionSeleccionadaText = obtenerIdSeleccionado('#tablaFilas')
+        const evaluacionSeleccionadaText = obtenerDetalleRipsSeleccionadoDerecho() || '—';
         const selectElement = document.getElementById('selectBuscarFacturas');
         const selectedOptionText = selectElement.options[selectElement.selectedIndex].text;
 
@@ -2137,14 +2284,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const ripsParticular = async () => {
-    checkboxPrepagada.checked = false
-    // checkboxParticular.checked = true
-    span_paciente.textContent = 'Seleccionar paciente:'
-    tabla.style.display = 'flex';
-    listasPrepagada.style.display = 'none';
-    facturaCero.style.display = 'flex';
-    // alerta();
-}
+    checkboxPrepagada.checked = false;
+    checkboxParticular.checked = true;
+    applyModoUI();
+};
 
 async function EmpresaATrabajar() {
     try {

@@ -103,17 +103,17 @@
                         </label>
                     </div>
 
-                    <!-- Buscador + Select Paciente -->
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-5">
-                            <label class="cr-form-label">Buscar Paciente</label>
+                    <!-- Buscador (filtro panel izquierdo) + Select factura EPS (solo Prepagada) -->
+                    <div id="ripsSelectorSuperior" class="row g-3 align-items-end">
+                        <div class="col-md-5" id="ripsBuscarCol">
+                            <label class="cr-form-label" id="labelBuscarRips">Buscar en listado</label>
                             <div class="cr-input-icon-wrapper">
                                 <i class="ri-search-line cr-input-icon"></i>
                                 <input type="text" id="documentoInput" class="form-control cr-input-with-icon"
-                                    placeholder="Nombre o documento...">
+                                    placeholder="Nombre, documento o factura...">
                             </div>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-7" id="ripsSelectCol">
                             <label class="cr-form-label" id="span_paciente">Seleccionar paciente:</label>
                             <select name="" id="listaPaciente" class="form-select cr-select">
                                 <option value="" selected>Sin Seleccionar</option>
@@ -121,70 +121,55 @@
                         </div>
                     </div>
 
-                    <!-- Listas Prepagada (Aparecen al dar click en 'Prepagada' mediante display:flex por JS) -->
-                    <div class="listasPrepagada mt-3 w-100 flex-column" style="display: none;">
-                        <div class="row g-3 w-100 m-0">
-                            <div class="col-md-6 ps-0">
-                                <label class="cr-form-label" id="span_paciente">Seleccionar paciente:</label>
-                                <select name="" id="listaPacientePrepagada" class="form-select cr-select w-100">
-                                    <option value="" selected>Sin Seleccionar</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 pe-0">
-                                <label class="cr-form-label" id="span_paciente">Seleccionar Historia Clinica:</label>
-                                <select name="" id="listaHistoriaClinica" class="form-select cr-select w-100">
-                                    <option value="" selected>Sin Seleccionar</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
             <!-- ═══════════════════════════════════════════
-                 TARJETA 2: Tablas HC + Facturas
+                 TARJETA 2: Paneles izquierdo / derecho
             ═══════════════════════════════════════════ -->
-            <div class="cr-card mb-4">
-                <!-- Header de la tarjeta -->
+            <div class="cr-card mb-4" id="ripsPanelesCard">
                 <div class="cr-table-card-header">
                     <h5 class="cr-table-card-title">Relación Historia Clínica y Facturación</h5>
                 </div>
 
                 <div class="row g-0">
-                    <!-- Tabla Historias Clínicas -->
                     <div class="col-md-6 cr-table-pane">
-                        <div class="tabla tablaHC table-responsive">
-                            <table class="table cr-table mb-0">
-                                <thead>
+                        <p class="rips-panel-subtitle mb-2 px-3 pt-2" id="tituloPanelIzquierdo">Facturas</p>
+                        <div class="tabla table-responsive rips-panel-scroll">
+                            <table class="table cr-table mb-0 rips-panel-table">
+                                <thead id="theadPanelIzquierdo">
                                     <tr>
-                                        <th class="ColumnaCheckBox">SEL.</th>
-                                        <th>ID HC</th>
-                                        <th>HC REALIZADA POR</th>
-                                        <th>HISTORIA CLÍNICA A RELACIONAR</th>
+                                        <th>ID</th>
+                                        <th>PACIENTE</th>
+                                        <th>DETALLE</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tablaFilas"></tbody>
+                                <tbody id="tablaPanelIzquierdo"></tbody>
                             </table>
                         </div>
+                        <p class="rips-panel-empty px-3 py-4 text-muted d-none" id="emptyPanelIzquierdo">
+                            No hay registros para mostrar.
+                        </p>
                     </div>
 
-                    <!-- Tabla Facturas -->
                     <div class="col-md-6 cr-table-pane cr-table-pane-divider">
-                        <div class="tabla tablaFactura table-responsive">
-                            <table class="table cr-table mb-0">
-                                <thead>
+                        <p class="rips-panel-subtitle mb-2 px-3 pt-2" id="tituloPanelDerecho">Historias clínicas RIPS</p>
+                        <div class="tabla table-responsive rips-panel-scroll">
+                            <table class="table cr-table mb-0 rips-panel-table">
+                                <thead id="theadPanelDerecho">
                                     <tr>
                                         <th class="ColumnaCheckBox">SEL.</th>
-                                        <th>ID FACTURA</th>
-                                        <th>FACTURA REALIZADA POR</th>
-                                        <th>FACTURA A RELACIONAR</th>
-                                        <th>VER</th>
+                                        <th>ID RIPS</th>
+                                        <th>REALIZADA POR</th>
+                                        <th>HISTORIA CLÍNICA</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tablaFilasFacturas"></tbody>
+                                <tbody id="tablaPanelDerecho"></tbody>
                             </table>
                         </div>
+                        <p class="rips-panel-empty px-3 py-4 text-muted" id="emptyPanelDerecho">
+                            Seleccione una atención o factura a la izquierda.
+                        </p>
                     </div>
                 </div>
             </div>
