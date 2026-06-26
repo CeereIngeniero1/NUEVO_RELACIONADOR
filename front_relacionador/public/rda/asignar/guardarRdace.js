@@ -46,32 +46,27 @@ function rdaceDigitsOnly(value) {
     return String(value).replace(/\D+/g, '');
 }
 
-/** Prescripción procedimientos CE: lista en memoria, o CUPS del formulario RDACE / RIPS si aún no se agregó a la lista. */
+/** Ítem de procedimiento listo para BD/FHIR (ServiceRequest 0..* — solo si está completo). */
+function rdaceProcItemComplete(p) {
+    return p
+        && p.codigo != null && String(p.codigo).trim() !== ''
+        && p.finalidad != null && String(p.finalidad).trim() !== '';
+}
+
+/** Prescripción procedimientos CE: lista en memoria o fila del formulario solo si CUPS + finalidad están diligenciados. */
 function resolvePrescripcionProcedimientosCE() {
-    const lista = (window.RDA?.getPrescripcionProcedimientos?.() || []);
+    const lista = (window.RDA?.getPrescripcionProcedimientos?.() || []).filter(rdaceProcItemComplete);
     if (lista.length) return lista;
 
     const codigoRdace = rdaceSelect2Value('RDACE_CodigoProcedimiento') || rdaceGetInputValue('RDACE_CodigoProcedimiento');
-    if (codigoRdace) {
+    const finalidad = rdaceSelect2Value('RDACE_FinalidadTecSaludProc') || rdaceGetInputValue('RDACE_FinalidadTecSaludProc');
+    if (codigoRdace && finalidad) {
         return [{
             tipo: 'Procedimiento',
             codigo: codigoRdace,
             nombre: rdaceGetInputValue('RDACE_NombreProcedimiento') || '',
-            finalidad: rdaceSelect2Value('RDACE_FinalidadTecSaludProc') || rdaceGetInputValue('RDACE_FinalidadTecSaludProc') || null,
+            finalidad,
             fechaPrescripcion: rdaceGetInputValue('RDACE_FechaPrescripcionProc') || null,
-        }];
-    }
-
-    const ripSel = document.getElementById('SelectProcedimientoRIPSAP1');
-    const codigoRips = ripSel && ripSel.value && ripSel.value !== 'Sin Seleccionar' ? String(ripSel.value).trim() : '';
-    if (codigoRips) {
-        const opt = ripSel.options[ripSel.selectedIndex];
-        return [{
-            tipo: 'Procedimiento',
-            codigo: codigoRips,
-            nombre: opt ? String(opt.text || '').trim() : '',
-            finalidad: null,
-            fechaPrescripcion: null,
         }];
     }
 
@@ -119,18 +114,6 @@ function rdaceValidateRequiredForSave() {
         rdaceMarkFieldInvalid(f.id, isMissing);
         if (isMissing) missing.push(f.label);
     });
-
-    const procItems = resolvePrescripcionProcedimientosCE();
-    const procCodigo = procItems.length && procItems.some((p) => p.codigo && String(p.codigo).trim());
-    const procFinalidad = procItems.length && procItems.some((p) => p.finalidad && String(p.finalidad).trim());
-    rdaceMarkFieldInvalid('RDACE_CodigoProcedimiento', !procCodigo);
-    rdaceMarkFieldInvalid('RDACE_FinalidadTecSaludProc', !procFinalidad);
-    if (!procCodigo) {
-        missing.push('Código procedimiento (CUPS) — obligatorio para envío IHCE');
-    }
-    if (procCodigo && !procFinalidad) {
-        missing.push('Finalidad tecnología salud del procedimiento — obligatoria para envío IHCE');
-    }
 
     return missing;
 }

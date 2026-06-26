@@ -127,6 +127,37 @@ function ethnicityFromDb(codigoEtnia, textoEtnia) {
     return { code, display: display || undefined };
 }
 
+/** CUPS del servicio prestado (Encounter.serviceType 1..1), distinto de ServiceRequest 0..* (órdenes). */
+function resolveRdaceEncounterCupsService(procPrescripciones, cupsFromRips) {
+    const trim = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : '');
+    const procOrden = (procPrescripciones || []).find((p) => {
+        const code = trim(p.CodigoProcedimiento);
+        const fin = trim(p.Finalidad) || trim(p.FinalidadCodigo);
+        return code && fin;
+    });
+    const code = trim(procOrden && procOrden.CodigoProcedimiento)
+        || trim(cupsFromRips && cupsFromRips.CodigoCups)
+        || trim(process.env.IHCE_RDACE_DEFAULT_ENCOUNTER_CUPS_CODE)
+        || '890201';
+    const display = trim(procOrden && procOrden.NombreProcedimiento)
+        || trim(cupsFromRips && cupsFromRips.NombreCups)
+        || trim(process.env.IHCE_RDACE_DEFAULT_ENCOUNTER_CUPS_DISPLAY)
+        || 'CONSULTA DE PRIMERA VEZ POR MEDICINA GENERAL';
+    return { code, display };
+}
+
+function parseFhirBundleBuildError(bundleResp) {
+    const status = bundleResp && bundleResp.status ? bundleResp.status : 0;
+    let code = '';
+    let error = `No se pudo construir el Bundle local (status ${status})`;
+    try {
+        const parsed = JSON.parse(String(bundleResp && bundleResp.body ? bundleResp.body : '{}'));
+        if (parsed && parsed.error) error = String(parsed.error);
+        if (parsed && parsed.code) code = String(parsed.code);
+    } catch (_) { /* noop */ }
+    return { error, code, details: bundleResp && bundleResp.body };
+}
+
 async function saveIhceTraceConsultaExterna({
     idEvaluacionEntidadRDACE,
     ambiente,
@@ -2043,11 +2074,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         if (entorno) {
             encounterTypes.push({ coding: [{ system: CS_ENTORNO, code: entorno, display: str(head.NombreEntornoAtencion) || undefined }] });
         }
-        const procConCups = (procPrescripciones || []).find((p) => str(p.CodigoProcedimiento));
-        const cupsSvcCode = str(procConCups && procConCups.CodigoProcedimiento)
-            || str(cupsFromRips && cupsFromRips.CodigoCups);
-        const cupsSvcDispRaw = str(procConCups && procConCups.NombreProcedimiento)
-            || str(cupsFromRips && cupsFromRips.NombreCups);
+        const procConCups = resolveRdaceEncounterCupsService(procPrescripciones, cupsFromRips);
+        const cupsSvcCode = procConCups.code;
+        const cupsSvcDispRaw = procConCups.display;
         const serviceTypeObj = cupsSvcCode ? {
             coding: [{ system: CS_CUPS, code: cupsSvcCode, display: cupsSvcDispRaw || undefined }],
         } : null;
@@ -2055,8 +2084,9 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             return res.status(400).json({
                 ok: false,
                 code: 'RDACE_CUPS_SERVICE_TYPE_REQUERIDO',
-                error: 'Encounter.serviceType (1..1) requiere un código CUPS del servicio prestado (ej. 890201 consulta medicina general). '
-                    + 'No confundir con el diagnóstico CIE-11 de ingreso: el CIE-11 va en Condition/diagnosis; el CUPS va en Prescripción de procedimientos del formulario RDACE o en el RIPS de la historia clínica.',
+                error: 'Encounter.serviceType (1..1) requiere CUPS del servicio prestado. '
+                    + 'Regístrelo en el RIPS de la consulta (código CUPS en AC) o en prescripción de procedimientos RDACE. '
+                    + 'Opcional: IHCE_RDACE_DEFAULT_ENCOUNTER_CUPS_CODE en .env (ej. 890201).',
             });
         }
 
@@ -2551,7 +2581,13 @@ router.post(
             req3.end();
         });
         if (bundleResp.status < 200 || bundleResp.status >= 300) {
-            return res.status(500).json({ ok: false, error: `No se pudo construir el Bundle local (status ${bundleResp.status})`, details: bundleResp.body });
+            const buildErr = parseFhirBundleBuildError(bundleResp);
+            return res.status(500).json({
+                ok: false,
+                code: buildErr.code || 'RDACE_BUNDLE_BUILD',
+                error: buildErr.error,
+                details: buildErr.details,
+            });
         }
         const bundle = JSON.parse(bundleResp.body);
 
@@ -2559,7 +2595,7 @@ router.post(
         //    RDA Paciente lo elimina; aquí NO se quita.
         if (bundle && Array.isArray(bundle.entry)) {
             // En modo modular los flags controlan qué tipos opcionales se incluyen.
-            // ServiceRequest no es excluible: la Composition RDACE exige al menos un entry en la sección de órdenes (61146-1).
+            // ServiceRequest 0..* (IG): si no hay órdenes, la sección 61146-1 va con emptyReason sin recurso en el bundle.
             const isModular = /Modular$/i.test(req.path);
             // DocumentReference: sección Composition «Documentos de soporte» (55107-7) exige entry 1..1 y prohíbe emptyReason (IG / validador IHCE).
             const alwaysKeep = new Set(['Composition', 'Patient', 'Encounter', 'Practitioner', 'Organization', 'Location', 'DocumentReference']);
