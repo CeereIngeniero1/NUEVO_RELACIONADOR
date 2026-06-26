@@ -5904,6 +5904,9 @@ async function AgregarOpcionPorDefecto(Select) {
         setInput("RDACE_IdGrupoServicios", ce["Id Grupo Servicios"]);
         setInput("RDACE_IdViaIngresoUsuario", ce["Id Via Ingreso Usuario"]);
         setInput("RDACE_IdCausaMotivoAtencion", ce["Id Causa Motivo Atencion"]);
+        setSelect2OrInput("RDACE_EntornoAtencion", ce["Entorno Atencion"], ce["Entorno Atencion"]);
+        setSelect2OrInput("RDACE_TipoFactorRiesgo", ce["Tipo Factor Riesgo"], ce["Tipo Factor Riesgo"]);
+        setInput("RDACE_NombreFactorRiesgo", ce["Nombre Factor Riesgo"]);
       }
 
       Swal.fire({

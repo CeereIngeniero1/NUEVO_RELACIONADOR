@@ -1164,6 +1164,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
     const CS_EGRESO    = 'https://fhir.minsalud.gov.co/rda/CodeSystem/CondicionyDestinoUsuarioEgreso';
     const CS_TIPO_ALERGIA = 'https://fhir.minsalud.gov.co/rda/CodeSystem/TipoAlergia';
     const CS_FACTOR_RIESGO_IG = 'https://fhir.minsalud.gov.co/rda/CodeSystem/FactorRiesgo';
+    const FACTOR_RIESGO_DISPLAY = Object.freeze({
+        '01': 'Químicos',
+        '02': 'Físicos',
+        '03': 'Biomecánicos',
+        '04': 'Psicosociales',
+        '05': 'Biológicos',
+        '06': 'Otro',
+    });
     const CS_CUPS = 'https://fhir.minsalud.gov.co/rda/CodeSystem/CUPS';
     const CS_UMM = 'https://fhir.minsalud.gov.co/rda/CodeSystem/UMM';
     const CS_COLOMBIAN_LICENSE_SCOPE = 'https://fhir.minsalud.gov.co/rda/CodeSystem/ColombianLicenseScope';
@@ -1614,9 +1622,10 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             encounter: { reference: refOf('Encounter-0', 'Encounter') },
         }) : null;
 
-        // RiskAssessment — RiskFactorRDA: status registered (fijo); encounter 1..1; FactorRiesgo + texto obligatorio
+        // RiskAssessment — RiskFactorRDA: coding = tipo (FactorRiesgo); code.text = descripción libre (anexo 1888).
         const tipoRiesgo   = str(head.TipoFactorRiesgo);
         const nombreRiesgo = str(head.NombreFactorRiesgo);
+        const tipoRiesgoDisplay = FACTOR_RIESGO_DISPLAY[tipoRiesgo] || undefined;
         const riskEntry    = tipoRiesgo ? makeEntry({
             resourceType: 'RiskAssessment',
             id: 'RiskAssessment-0',
@@ -1625,8 +1634,12 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             encounter: { reference: refOf('Encounter-0', 'Encounter') },
             subject: { reference: refOf(patientEntry) },
             code: {
-                coding: [{ system: CS_FACTOR_RIESGO_IG, code: tipoRiesgo, display: nombreRiesgo || undefined }],
-                text: nombreRiesgo || tipoRiesgo,
+                coding: [{
+                    system: CS_FACTOR_RIESGO_IG,
+                    code: tipoRiesgo,
+                    display: tipoRiesgoDisplay,
+                }],
+                text: nombreRiesgo || tipoRiesgoDisplay || tipoRiesgo,
             },
             prediction: [],
         }) : null;

@@ -411,7 +411,6 @@ function initRdaceCatalogSelect2(selector, claveCatalogo, placeholderText) {
 
 function initFactorDeRiesgoSelect2() {
     const $tipo = $("#RDACE_TipoFactorRiesgo");
-    const $nombre = $("#RDACE_NombreFactorRiesgo");
     if ($tipo.data("select2")) return;
     $tipo.select2({
         placeholder: "Buscar tipo de factor de riesgo...",
@@ -444,15 +443,6 @@ function initFactorDeRiesgoSelect2() {
                 };
             }
         }
-    });
-    $tipo.on("select2:select", function (e) {
-        const d = e.params.data;
-        if ($nombre.length && d.descripcion != null) {
-            $nombre.val(d.descripcion);
-        }
-    });
-    $tipo.on("select2:clear", function () {
-        if ($nombre.length) $nombre.val("");
     });
 }
 
