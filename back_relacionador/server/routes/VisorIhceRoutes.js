@@ -331,7 +331,8 @@ router.get('/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis', async (
         const url = `${creds.baseUrl.replace(/\/$/, '')}/DocumentReference/${encodeURIComponent(docId)}/0/descargar-rda-epicrisis`;
 
         const response = await httpsAgent.authenticatedRequest(url, token, creds.subscriptionKey, {
-            headers: { Accept: 'application/pdf' },
+            // IHCE devuelve 406 si Accept es application/pdf; acepta application/json o application/fhir+json.
+            headers: { Accept: 'application/fhir+json' },
         });
 
         if (!response.ok) {
