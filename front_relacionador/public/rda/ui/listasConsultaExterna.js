@@ -341,6 +341,14 @@ export function initListasConsultaExterna() {
     const contDiagRel = document.getElementById("RDACE_ListaDiagRelacionados");
 
     btnDiagRel?.addEventListener("click", () => {
+        if (getDiagRelacionados().length >= 3) {
+            alert(
+                "El IG IHCE admite máximo 3 diagnósticos relacionados en el encuentro (Comorbidity-1..3). " +
+                "Elimine uno antes de agregar otro."
+            );
+            return;
+        }
+
         const codCIE10 = document.getElementById("RDACE_DiagRelacionadoCIE10Codigo")?.value?.trim() || "";
         const codCIE11 = document.getElementById("RDACE_DiagRelacionadoCIE11Codigo")?.value?.trim() || "";
 
