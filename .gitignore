@@ -33,9 +33,12 @@ bower_components/
 
 # dotenv environment files
 .env
+.env.*
+.env copy
 .env.test
 .env.local
 back_relacionador/.env cliniq
+back_relacionador/.env copy
 back_relacionador/envcliniq.json
 
 # Build output
