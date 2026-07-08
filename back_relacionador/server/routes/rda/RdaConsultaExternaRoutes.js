@@ -77,6 +77,12 @@ const {
 } = require('../../rda/rdaceCompositionSections');
 const { isOcupacionInformadaParaFhir, normalizeCiou88acCode, sanitizeRdaceOccupationBundle } = require('../../rda/ocupacionFhir');
 const {
+    buildRdaceConditionEntries,
+    buildEncounterDiagnosisEntries,
+    validateEncounterDiagnosisInBundle,
+    MAX_ENCOUNTER_COMORBIDITIES,
+} = require('../../rda/rdaceDiagnosisBuilder');
+const {
     collectMedicationRequestIssues,
     collectRdaceBundleIhceIssues,
 } = require('../../rda/rdaceBundleIhceValidation');
@@ -334,15 +340,8 @@ function validateRequiredForIhceCeBundle(bundle, options = {}) {
         return 'Falta recurso Encounter (EncounterAmbulatoryRDA).';
     }
     if (encounter && Array.isArray(encounter.diagnosis)) {
-        if (encounter.diagnosis.length > 1) {
-            return 'Encounter.diagnosis debe contener solo el diagnóstico principal (Condition-0).';
-        }
-        const mainRef = encounter.diagnosis[0]
-            && encounter.diagnosis[0].condition
-            && encounter.diagnosis[0].condition.reference;
-        if (mainRef && refIdFromBundleReference(mainRef) !== 'Condition-0') {
-            return 'Encounter.diagnosis[0] debe referenciar Condition-0.';
-        }
+        const dxErr = validateEncounterDiagnosisInBundle(encounter, refIdFromBundleReference);
+        if (dxErr) return dxErr;
     }
 
     const svcType = encounter.serviceType;
@@ -419,16 +418,6 @@ function validateRequiredForIhceCeBundle(bundle, options = {}) {
 
     if (entries.some((e) => e && e.resource && e.resource.resourceType === 'MedicationStatement')) {
         return 'RDA Consulta Externa no permite MedicationStatement: use MedicationRequestRDA.';
-    }
-
-    const hasIcd11Condition = entries.some((e) => {
-        const r = e && e.resource;
-        if (!r || r.resourceType !== 'Condition') return false;
-        const codings = r.code && Array.isArray(r.code.coding) ? r.code.coding : [];
-        return codings.some((c) => String(c && c.system ? c.system : '').trim() === 'http://hl7.org/fhir/sid/icd-11');
-    });
-    if (hasIcd11Condition) {
-        return 'ConditionRDA en RDACE debe usar CIE-10; no envíe codificaciones ICD-11 en Condition.';
     }
 
     const idSet = new Set(
@@ -806,9 +795,31 @@ router.post('/EvaluacionEntidadRDACE/AntecedentesFarmacologicos', async (req, re
 router.post('/EvaluacionEntidadRDACE/DiagnosticosRelacionados', async (req, res) => {
     const { IdEvaluacionEntidadRDACE, CodigoCIE10, NombreCIE10, CodigoCIE11, TerminoCIE11, IdEstado } = req.body;
     try {
+        const idRdace = parseInt(IdEvaluacionEntidadRDACE, 10);
+        if (!Number.isFinite(idRdace)) {
+            return res.status(400).json({ ok: false, error: 'IdEvaluacionEntidadRDACE requerido (number)' });
+        }
         const pool = await poolPromise;
+        const countRs = await pool.request()
+            .input('IdRDACE', sql.Int, idRdace)
+            .query(`
+                SELECT COUNT(*) AS cnt
+                FROM [dbo].[Evaluacion Entidad RDA CE Diagnosticos Relacionados]
+                WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @IdRDACE
+                  AND [Id Estado] = 1
+            `);
+        const activeCount = countRs.recordset && countRs.recordset[0]
+            ? parseInt(countRs.recordset[0].cnt, 10) || 0
+            : 0;
+        if (activeCount >= MAX_ENCOUNTER_COMORBIDITIES) {
+            return res.status(400).json({
+                ok: false,
+                code: 'RDACE_DIAG_RELACIONADOS_MAX',
+                error: `Máximo ${MAX_ENCOUNTER_COMORBIDITIES} diagnósticos relacionados por consulta (IG EncounterAmbulatoryRDA).`,
+            });
+        }
         await pool.request()
-            .input('IdRDACE', sql.Int, parseInt(IdEvaluacionEntidadRDACE, 10))
+            .input('IdRDACE', sql.Int, idRdace)
             .input('CodigoCIE10', sql.NVarChar, CodigoCIE10 || null)
             .input('NombreCIE10', sql.NVarChar, NombreCIE10 || null)
             .input('CodigoCIE11', sql.NVarChar, CodigoCIE11 || null)
@@ -1249,43 +1260,6 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         letraSexo: str(pdem.SexoPaciente),
         descripcionSexo: str(pdem.Sexo),
     });
-    const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
-    const ICD11_SYSTEM = 'http://hl7.org/fhir/sid/icd-11';
-
-    /** ConditionRDA: un solo sistema por recurso (no mezclar CIE-10 y CIE-11 en el mismo coding). */
-    const buildConditionRdaCode = ({ cie10Code, cie10Display, cie11Code, cie11Display }) => {
-        const c10 = str(cie10Code);
-        const d10 = str(cie10Display);
-        const c11 = str(cie11Code);
-        const d11 = str(cie11Display);
-        if (c10) {
-            return {
-                coding: [{ system: ICD10_SYSTEM, code: c10, display: d10 || undefined }],
-                text: d10 || c10,
-            };
-        }
-        if (c11) {
-            return {
-                coding: [{ system: ICD11_SYSTEM, code: c11, display: d11 || undefined }],
-                text: d11 || c11,
-            };
-        }
-        return null;
-    };
-
-    // Perfil IG RDA Consulta: ConditionRDA (https://vulcano.ihcecol.gov.co/RDA-consulta)
-    // ConditionStatementRDA corresponde al RDA Paciente y no está permitido en $enviar-rda-consulta.
-    const CONDITION_RDA_BASE = {
-        clinicalStatus: {
-            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active', display: 'Active' }],
-        },
-        verificationStatus: {
-            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: 'confirmed', display: 'Confirmed' }],
-        },
-        category: [{
-            coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis', display: 'Encounter Diagnosis' }],
-        }],
-    };
 
     try {
         const pool = await poolPromise;
@@ -1582,57 +1556,22 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         });
         const practitionerRef = { reference: refOf(practitionerEntry) };
 
-        // Condition principal (solo CIE-10) + antecedentes de salud/relacionados como Conditions adicionales.
-        let conditionSeq = 0;
-        const principalCode = buildConditionRdaCode({
-            cie10Code: head.DiagPrincipalCIE10Codigo,
-            cie10Display: head.DiagPrincipalCIE10Nombre,
+        // Condition principal + relacionados + antecedentes de salud (rdaceDiagnosisBuilder).
+        const {
+            condPrincipalEntry,
+            condRelacionadasForEncounter,
+            condAntecedentesSaludEntries,
+            allConditionEntries,
+        } = buildRdaceConditionEntries({
+            head,
+            diagRelacionados,
+            antecedentesSalud,
+            makeEntry,
+            refOf,
+            patientEntry,
+            RDA_SD,
+            parseIcd10FromText,
         });
-        let condPrincipalEntry = principalCode ? makeEntry({
-            resourceType: 'Condition',
-            id: `Condition-${conditionSeq++}`,
-            meta: { profile: [`${RDA_SD}/ConditionRDA`] },
-            ...CONDITION_RDA_BASE,
-            subject: { reference: refOf(patientEntry) },
-            code: principalCode,
-        }) : null;
-
-        // Diagnósticos relacionados (solo CIE-10 para ConditionRDA).
-        const condRelacionadasEntries = diagRelacionados.map((r) => {
-            const code = buildConditionRdaCode({
-                cie10Code: r.CodigoCIE10,
-                cie10Display: r.NombreCIE10,
-            });
-            if (!code) return null;
-            return makeEntry({
-                resourceType: 'Condition',
-                id: `Condition-${conditionSeq++}`,
-                meta: { profile: [`${RDA_SD}/ConditionRDA`] },
-                ...CONDITION_RDA_BASE,
-                subject: { reference: refOf(patientEntry) },
-                code,
-            });
-        }).filter(Boolean);
-
-        const condAntecedentesSaludEntries = antecedentesSalud.map((a) => {
-            const parsed = parseIcd10FromText(a && a.Descripcion);
-            if (!parsed.code) return null;
-            return makeEntry({
-                resourceType: 'Condition',
-                id: `Condition-${conditionSeq++}`,
-                meta: { profile: [`${RDA_SD}/ConditionRDA`] },
-                ...CONDITION_RDA_BASE,
-                subject: { reference: refOf(patientEntry) },
-                code: {
-                    coding: [{
-                        system: 'http://hl7.org/fhir/sid/icd-10',
-                        code: parsed.code,
-                        display: parsed.display || undefined,
-                    }],
-                    text: parsed.display || parsed.code,
-                },
-            });
-        }).filter(Boolean);
 
         // AllergyIntoleranceRDA (CE): sin verificationStatus; encounter obligatorio en guía.
         const tipoAlergiaCode = str(head.TipoAlergia);
@@ -2006,11 +1945,6 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
             })
             .filter((r) => r.descripcion || r.parentesco);
 
-        const allConditionEntries = [
-            ...(condPrincipalEntry ? [condPrincipalEntry] : []),
-            ...condRelacionadasEntries,
-            ...condAntecedentesSaludEntries,
-        ];
         const condicionEgreso     = str(head.CondicionDestinoEgreso);
         const codPrestRemite      = str(head.CodigoPrestadorRemite);
         const encounterExt        = [];
@@ -2105,6 +2039,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         }) : null;
 
         const viaIngresoCode = str(head.CodigoViaIngreso);
+        const encounterDiagnosis = buildEncounterDiagnosisEntries({
+            condPrincipalEntry,
+            condRelacionadasForEncounter,
+            head,
+            refOf,
+            RDA_SD,
+            CS_TIPO_DIAG,
+        });
         const encounterEntry = makeEntry({
             resourceType: 'Encounter',
             id: 'Encounter-0',
@@ -2144,13 +2086,7 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
                 code: str(head.CodigoCausaMotivo),
                 display: str(head.NombreCausaMotivo) || undefined,
             }] }] } : {}),
-            ...(condPrincipalEntry ? { diagnosis: [{
-                id: 'MainDiagnosis',
-                ...(str(head.TipoDiagnosticoPrincipal) ? { extension: [{ url: `${RDA_SD}/ExtensionDiagnosisType`, valueCoding: { system: CS_TIPO_DIAG, code: str(head.TipoDiagnosticoPrincipal), display: str(head.NombreTipoDiagnosticoPrincipal) || undefined } }] } : {}),
-                condition: { reference: refOf(condPrincipalEntry) },
-                use: { coding: [{ system: CS_DIAG_ROLE, code: '8319008', display: 'diagnóstico primario' }] },
-                rank: 1,
-            }] } : {}),
+            ...(encounterDiagnosis ? { diagnosis: encounterDiagnosis } : {}),
             ...(ipsOrgEntry ? { serviceProvider: { reference: `#${codPrest}` } } : {}),
         });
 
@@ -2613,6 +2549,23 @@ router.post(
                 const rt = e.resource.resourceType;
                 return alwaysKeep.has(rt) || optFlags[rt] === true;
             });
+
+            const availResourceIds = new Set(
+                bundle.entry.map((e) => e && e.resource && e.resource.id).filter(Boolean)
+            );
+            bundle.entry
+                .filter((e) => e && e.resource && e.resource.resourceType === 'Encounter')
+                .forEach((e) => {
+                    if (!Array.isArray(e.resource.diagnosis)) return;
+                    e.resource.diagnosis = e.resource.diagnosis.filter((d) => {
+                        const ref = d && d.condition && d.condition.reference;
+                        const rid = refIdFromBundleReference(ref);
+                        return rid && availResourceIds.has(rid);
+                    });
+                    if (!e.resource.diagnosis.length) {
+                        delete e.resource.diagnosis;
+                    }
+                });
 
             // Reconstruir secciones de Composition conservando solo refs a entries presentes.
             const compEntry = bundle.entry.find((e) => e && e.resource && e.resource.resourceType === 'Composition');

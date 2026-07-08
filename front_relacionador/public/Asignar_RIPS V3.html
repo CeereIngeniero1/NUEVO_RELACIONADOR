@@ -1597,6 +1597,87 @@
                                         </div>
                                     </div>
 
+                                    <!-- Diagnósticos CIE-10: principal + relacionados -->
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-12">
+                                            <div class="card p-2 border-secondary rdace-diag-rel-card">
+                                                <h6 class="text-muted">Diagnósticos
+                                                    (CIE-10)</h6>
+                                                <div class="row g-2 align-items-end">
+                                                    <div class="col-md-4">
+                                                        <label>Código diagnóstico principal
+                                                            CIE-10<span class="text-danger" aria-hidden="true">*</span>:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagPrincipalCIE10Codigo">
+                                                            <option value="">Buscar CIE-10...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <label>Nombre diagnóstico principal
+                                                            CIE-10:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_DiagPrincipalCIE10Nombre"
+                                                            placeholder="Nombre del diagnóstico" readonly>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label>Tipo diagnóstico principal<span class="text-danger" aria-hidden="true">*</span>:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_TipoDiagPrincipalCIE10">
+                                                            <option value="">Buscar tipo de diagnóstico...</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <hr class="my-2">
+                                                <p class="small text-muted mb-2 fw-semibold">Diagnósticos relacionados
+                                                    <span class="fw-normal">(máx. 3 — Comorbidity IG)</span>
+                                                </p>
+                                                <div class="row g-2 align-items-end">
+                                                    <div class="col-md-6" style="min-width: 0;">
+                                                        <label>Código diag. relacionado
+                                                            CIE-10:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE10Codigo">
+                                                            <option value="">Seleccionar CIE-10</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6" style="min-width: 0;">
+                                                        <label>Nombre diag. relacionado
+                                                            CIE-10:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE10Nombre" placeholder="Nombre"
+                                                            readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="row g-2 align-items-end mt-2">
+                                                    <div class="col-md-7" style="min-width: 0;">
+                                                        <label>Término diag. CIE-11:</label>
+                                                        <select class="form-select-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE11Termino">
+                                                            <option value="">Busque un diagnóstico CIE-11...</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label>Código diag. CIE-11:</label>
+                                                        <input type="text"
+                                                            class="form-control-sm border border-secondary w-100"
+                                                            id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11" readonly>
+                                                    </div>
+                                                    <div class="col-md-2 d-grid">
+                                                        <label class="form-label mb-1">&nbsp;</label>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            id="RDACE_BtnAgregarDiagRelacionado">+
+                                                            Agregar</button>
+                                                    </div>
+                                                </div>
+                                                <div id="RDACE_ListaDiagRelacionados" class="mt-2">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Antecedentes de Salud -->
                                     <div class="row g-2 mt-3">
                                         <div class="col-md-12">
@@ -1747,93 +1828,6 @@
                                                             placeholder="Ej: TABACO, hipertensión arterial, ruido industrial"
                                                             maxlength="300">
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Diagnóstico Principal CIE-10 -->
-                                    <div class="row g-2 mt-2">
-                                        <div class="col-md-12">
-                                            <div class="card p-2 border-secondary">
-                                                <h6 class="text-muted">Diagnóstico Principal
-                                                    (CIE-10)</h6>
-                                                <div class="row g-2 align-items-end">
-                                                    <div class="col-md-4">
-                                                        <label>Código diagnóstico principal
-                                                            CIE-10<span class="text-danger" aria-hidden="true">*</span>:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            id="RDACE_DiagPrincipalCIE10Codigo">
-                                                            <option value="">Buscar CIE-10...</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-5">
-                                                        <label>Nombre diagnóstico principal
-                                                            CIE-10:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagPrincipalCIE10Nombre"
-                                                            placeholder="Nombre del diagnóstico" readonly>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Tipo diagnóstico principal<span class="text-danger" aria-hidden="true">*</span>:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            id="RDACE_TipoDiagPrincipalCIE10">
-                                                            <option value="">Buscar tipo de diagnóstico...</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Diagnósticos Relacionados (lista dinámica) -->
-                                    <div class="row g-2 mt-2">
-                                        <div class="col-md-12">
-                                            <div class="card p-2 border-secondary rdace-diag-rel-card">
-                                                <h6 class="text-muted">Diagnósticos Relacionados
-                                                </h6>
-                                                <div class="row g-2 align-items-end">
-                                                    <div class="col-md-6" style="min-width: 0;">
-                                                        <label>Código diag. relacionado
-                                                            CIE-10:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE10Codigo">
-                                                            <option value="">Seleccionar CIE-10</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-6" style="min-width: 0;">
-                                                        <label>Nombre diag. relacionado
-                                                            CIE-10:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE10Nombre" placeholder="Nombre"
-                                                            readonly>
-                                                    </div>
-                                                </div>
-                                                <div class="row g-2 align-items-end mt-2">
-                                                    <div class="col-md-7" style="min-width: 0;">
-                                                        <label>Término diag. CIE-11:</label>
-                                                        <select class="form-select-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE11Termino">
-                                                            <option value="">Busque un diagnóstico CIE-11...</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Código diag. CIE-11:</label>
-                                                        <input type="text"
-                                                            class="form-control-sm border border-secondary w-100"
-                                                            id="RDACE_DiagRelacionadoCIE11Codigo" placeholder="CIE-11" readonly>
-                                                    </div>
-                                                    <div class="col-md-2 d-grid">
-                                                        <label class="form-label mb-1">&nbsp;</label>
-                                                        <button type="button"
-                                                            class="btn btn-sm btn-outline-primary"
-                                                            id="RDACE_BtnAgregarDiagRelacionado">+
-                                                            Agregar</button>
-                                                    </div>
-                                                </div>
-                                                <div id="RDACE_ListaDiagRelacionados" class="mt-2">
                                                 </div>
                                             </div>
                                         </div>

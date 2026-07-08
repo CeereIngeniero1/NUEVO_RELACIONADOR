@@ -408,6 +408,14 @@
         var contDiagRel = document.getElementById("RDACE_ListaDiagRelacionados");
 
         btnDiagRel?.addEventListener("click", function () {
+            if (listaDiagRelacionados.length >= 3) {
+                alert(
+                    "El IG IHCE admite máximo 3 diagnósticos relacionados en el encuentro (Comorbidity-1..3). " +
+                    "Elimine uno antes de agregar otro."
+                );
+                return;
+            }
+
             var codCIE10 = inputDiagCIE10Cod?.value?.trim() || "";
             var codCIE11 = inputDiagCIE11Cod?.value?.trim() || "";
 

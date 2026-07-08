@@ -24,6 +24,7 @@ const {
     validateRdaceCompositionSections,
 } = require('../../rda/rdaceCompositionSections');
 const { isOcupacionInformadaParaFhir, normalizeCiou88acCode } = require('../../rda/ocupacionFhir');
+const { buildConditionResourcesForPreview } = require('../../rda/rdaceDiagnosisBuilder');
 
 const router = Router();
 
@@ -840,82 +841,14 @@ router.post('/RdaConsultaExterna/Seccion4Diagnosticos', async (req, res) => {
 
         const docPaciente = str(head.DocumentoEntidad);
         const patientRef = str(req.body && req.body.patientReference) || (docPaciente ? `#CC-${docPaciente}` : '');
+        const RDA_SD = 'https://fhir.minsalud.gov.co/rda/StructureDefinition';
 
-        const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
-        const ICD11_SYSTEM = 'http://id.who.int/icd/release/11/mms';
-        const CONDITION_PROFILE = 'https://fhir.minsalud.gov.co/rda/StructureDefinition/ConditionRDA';
-
-        const conditionBase = {
-            clinicalStatus: {
-                coding: [{
-                    system: 'http://terminology.hl7.org/CodeSystem/condition-clinical',
-                    code: 'active',
-                    display: 'Active',
-                }],
-            },
-            verificationStatus: {
-                coding: [{
-                    system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
-                    code: 'confirmed',
-                    display: 'Confirmed',
-                }],
-            },
-            category: [{
-                coding: [{
-                    system: 'http://terminology.hl7.org/CodeSystem/condition-category',
-                    code: 'encounter-diagnosis',
-                    display: 'Encounter Diagnosis',
-                }],
-            }],
-        };
-
-        const resources = [];
-        let seq = 0;
-
-        // OPCIONAL (BD): diagnóstico principal; si existe, se agrega como primer Condition.
-        const pC10 = str(head.DiagPrincipalCIE10Codigo);
-        const pN10 = str(head.DiagPrincipalCIE10Nombre);
-        const pC11 = str(head.DiagnosticoIngresoCIE11Codigo);
-        const pN11 = str(head.DiagnosticoIngresoCIE11Termino);
-        if (pC10 || pC11) {
-            resources.push({
-                resourceType: 'Condition',
-                id: `Condition-${seq++}`,
-                meta: { profile: [CONDITION_PROFILE] },
-                ...conditionBase,
-                ...(patientRef ? { subject: { reference: patientRef } } : {}),
-                code: {
-                    coding: [
-                        ...(pC10 ? [{ system: ICD10_SYSTEM, code: pC10, display: pN10 || undefined }] : []),
-                        ...(pC11 ? [{ system: ICD11_SYSTEM, code: pC11, display: pN11 || undefined }] : []),
-                    ],
-                    text: pN10 || pN11 || pC10 || pC11 || undefined,
-                },
-            });
-        }
-
-        // OPCIONAL (BD): diagnósticos relacionados; se agregan como Condition adicionales.
-        for (const r of relacionados) {
-            const c10 = str(r.CodigoCIE10);
-            const n10 = str(r.NombreCIE10);
-            const c11 = str(r.CodigoCIE11);
-            const n11 = str(r.TerminoCIE11);
-            if (!c10 && !c11) continue;
-            resources.push({
-                resourceType: 'Condition',
-                id: `Condition-${seq++}`,
-                meta: { profile: [CONDITION_PROFILE] },
-                ...conditionBase,
-                ...(patientRef ? { subject: { reference: patientRef } } : {}),
-                code: {
-                    coding: [
-                        ...(c10 ? [{ system: ICD10_SYSTEM, code: c10, display: n10 || undefined }] : []),
-                        ...(c11 ? [{ system: ICD11_SYSTEM, code: c11, display: n11 || undefined }] : []),
-                    ],
-                    text: n10 || n11 || c10 || c11 || undefined,
-                },
-            });
-        }
+        const resources = buildConditionResourcesForPreview({
+            head,
+            diagRelacionados: relacionados,
+            patientRef,
+            RDA_SD,
+        });
 
         const section = resources.length
             ? {
