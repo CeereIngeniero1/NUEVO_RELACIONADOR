@@ -6,11 +6,13 @@
  * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
  *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
-import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js';
+import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260722c';
 
 (function () {
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
+    // Señal de versión en consola para verificar que no hay JS cacheado viejo.
+    try { console.info('[EnvioRdaPendientes] build 20260722c — mensajes IHCE amigables activos'); } catch (_) {}
 
     const SWAL_PRE =
         'text-align:left;font-size:0.72rem;max-height:70vh;overflow:auto;white-space:pre-wrap;' +
@@ -466,13 +468,56 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         };
     }
 
+    function formatIsoLocal(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso);
+        return d.toLocaleString('es-CO', {
+            timeZone: 'America/Bogota',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        }) + ' (hora Colombia)';
+    }
+
+    /** Fallback local si el módulo importado viene cacheado/viejo. */
+    function mensajeYaExisteLocal(text) {
+        const t = String(text || '');
+        if (!/already\s*exist/i.test(t)) return null;
+        const dates = [];
+        const re = /(?:period|date)='([^']+)'/gi;
+        let m;
+        while ((m = re.exec(t)) !== null) dates.push(m[1]);
+        const tipo = /Composition/i.test(t)
+            ? 'historia clínica (Composition)'
+            : (/Encounter/i.test(t) ? 'encuentro (Encounter)' : 'recurso');
+        const lines = [
+            'Ya existe un RDA / ' + tipo + ' en IHCE para este paciente en ese horario.',
+            'No se puede volver a enviar con la misma fecha y rango de atención.',
+            '',
+            'Los UUID de IHCE pueden cambiar; lo importante es el periodo.',
+            'El registro se marca NO reenviable (Enviado*=2) y no aparecerá en pendientes.',
+            '',
+        ];
+        if (dates.length >= 2) {
+            lines.push('Fecha y rango horario detectados por IHCE:');
+            lines.push('• Inicio: ' + formatIsoLocal(dates[0]));
+            lines.push('• Fin: ' + formatIsoLocal(dates[1]));
+        } else if (dates.length === 1) {
+            lines.push('Periodo IHCE: ' + formatIsoLocal(dates[0]));
+        }
+        return lines.join('\n');
+    }
+
     function resumenIhceDesdeResultado(res) {
         const body = res.cuerpoTextoTruncado || '';
         const opts = { periodContext: periodContextFromFila(res.id) };
         let parsed = null;
         try {
             parsed = JSON.parse(body);
-            // A veces el body viene doble-encodeado como string JSON.
             if (typeof parsed === 'string') {
                 try {
                     parsed = JSON.parse(parsed);
@@ -484,15 +529,28 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             parsed = body && String(body).trim() ? { raw: String(body).trim() } : null;
         }
 
-        let msg = extractIhceMessage(parsed, opts);
-        if (!msg || /^[\s\S]*"resourceType"\s*:\s*"OperationOutcome"/i.test(msg)) {
-            // Evitar mostrar JSON crudo: forzar lectura amigable del texto completo.
-            msg = extractIhceMessage(String(body || ''), opts) || msg;
+        let msg = '';
+        try {
+            msg = extractIhceMessage(parsed, opts) || '';
+        } catch (e) {
+            console.warn('[EnvioRdaPendientes] extractIhceMessage falló:', e);
         }
-        if (msg && !/^[\s\S]*"resourceType"\s*:\s*"OperationOutcome"/i.test(msg)) return msg;
-        if (typeof body === 'string' && /already\s*exist/i.test(body)) {
-            return extractIhceMessage(body, opts) || msg || body.slice(0, 700);
+
+        // Si el resumen sigue siendo JSON crudo u OperationOutcome, forzar mensaje amigable.
+        const looksLikeRawJson = /"resourceType"\s*:\s*"OperationOutcome"/i.test(String(msg || body));
+        if (!msg || looksLikeRawJson) {
+            const local = mensajeYaExisteLocal(body)
+                || mensajeYaExisteLocal(typeof msg === 'string' ? msg : '')
+                || (parsed && Array.isArray(parsed.issue)
+                    ? mensajeYaExisteLocal(parsed.issue.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('\n'))
+                    : null);
+            if (local) return local;
+            try {
+                const again = extractIhceMessage(String(body || ''), opts);
+                if (again && !/"resourceType"\s*:\s*"OperationOutcome"/i.test(again)) return again;
+            } catch (_) { /* ignore */ }
         }
+        if (msg && !/"resourceType"\s*:\s*"OperationOutcome"/i.test(msg)) return msg;
         if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 700);
         return res.ok ? 'Envío finalizado correctamente.' : `Error HTTP ${res.httpStatus}`;
     }

@@ -139,10 +139,25 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Middleware para servir archivos estáticos — SIN caché en desarrollo
+app.use((req, res, next) => {
+    if (/\.(?:js|mjs|css|html)$/i.test(req.path) || req.path === '/' || req.path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: 0,
-    etag: true,
+    etag: false,
     lastModified: true,
+    setHeaders: (res, filePath) => {
+        if (/\.(?:js|mjs|css|html)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    },
 }));
 
 let connections = [];
