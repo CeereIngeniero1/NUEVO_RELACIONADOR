@@ -468,14 +468,31 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
 
     function resumenIhceDesdeResultado(res) {
         const body = res.cuerpoTextoTruncado || '';
+        const opts = { periodContext: periodContextFromFila(res.id) };
         let parsed = null;
         try {
             parsed = JSON.parse(body);
+            // A veces el body viene doble-encodeado como string JSON.
+            if (typeof parsed === 'string') {
+                try {
+                    parsed = JSON.parse(parsed);
+                } catch (_) {
+                    parsed = { raw: parsed };
+                }
+            }
         } catch (_) {
             parsed = body && String(body).trim() ? { raw: String(body).trim() } : null;
         }
-        const msg = extractIhceMessage(parsed, { periodContext: periodContextFromFila(res.id) });
-        if (msg) return msg;
+
+        let msg = extractIhceMessage(parsed, opts);
+        if (!msg || /^[\s\S]*"resourceType"\s*:\s*"OperationOutcome"/i.test(msg)) {
+            // Evitar mostrar JSON crudo: forzar lectura amigable del texto completo.
+            msg = extractIhceMessage(String(body || ''), opts) || msg;
+        }
+        if (msg && !/^[\s\S]*"resourceType"\s*:\s*"OperationOutcome"/i.test(msg)) return msg;
+        if (typeof body === 'string' && /already\s*exist/i.test(body)) {
+            return extractIhceMessage(body, opts) || msg || body.slice(0, 700);
+        }
         if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 700);
         return res.ok ? 'Envío finalizado correctamente.' : `Error HTTP ${res.httpStatus}`;
     }
@@ -493,7 +510,11 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         const yaRegistrado = !ok && isIhceYaRegistradoMessage(resumen);
 
         const showJsonRespuesta = () => {
-            openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
+            let jsonText = pretty;
+            if (!jsonText || !String(jsonText).trim()) {
+                jsonText = body || '(sin cuerpo de respuesta)';
+            }
+            openJsonModal('JSON recibido de IHCE (respuesta)', jsonText, 860);
         };
 
         const showJsonTokenOAuth = () => {
@@ -552,7 +573,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 const warn = r.headers.get('X-RDA-Validation-Warning');
                 const jsonText = JSON.stringify(parsedSent, null, 2);
                 openJsonModal(
-                    warn ? 'JSON generado para envío IHCE (con advertencias)' : 'JSON generado para envío IHCE',
+                    warn ? 'JSON enviado a IHCE (con advertencias)' : 'JSON enviado a IHCE',
                     warn
                         ? `/* Advertencia: ${warn} */\n\n${jsonText}`
                         : jsonText,
@@ -567,21 +588,32 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             ? '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonTokenReq">Solicitud token</button>'
             : '';
 
+        const esErrorComun = yaRegistrado || /periodo|fecha del encuentro|telecom|teléfono/i.test(resumen);
+        const ayudaHtml = ok
+            ? ''
+            : (esErrorComun
+                ? '<p class="small text-start mt-2 mb-0 text-warning">Error común interpretado. El JSON técnico recibido queda en el botón de abajo.</p>'
+                : '<p class="small text-start mt-2 mb-0 text-muted">Error no tipificado: revise el JSON recibido para el detalle técnico.</p>');
+
         Swal.fire({
             icon: ok ? 'success' : (yaRegistrado ? 'warning' : 'error'),
             title: ok
                 ? 'Respuesta IHCE'
                 : (yaRegistrado ? 'IHCE — RDA ya registrado / no reenviable' : `Error HTTP ${res.httpStatus}`),
             html:
-                '<p class="small text-start mb-2">Resumen del mensaje:</p>' +
+                '<p class="small text-start mb-2">Resumen legible:</p>' +
                 `<div style="${SWAL_PRE}">${escapeHtml(resumen).replace(/\n/g, '<br>')}</div>` +
+                ayudaHtml +
                 '<div class="d-flex flex-wrap gap-2 justify-content-center mt-3">' +
+                '<button type="button" class="btn btn-sm btn-warning" id="btnJsonResp">Ver JSON recibido</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonEnviado">Ver JSON enviado</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonResp">Ver JSON de la respuesta</button>' +
                 tokenBtnHtml +
                 '</div>',
             width: 780,
             confirmButtonText: 'Cerrar',
+            showDenyButton: true,
+            denyButtonText: 'Ver JSON recibido',
+            denyButtonColor: '#f0ad4e',
             didOpen: function (popup) {
                 const bResp = popup.querySelector('#btnJsonResp');
                 const bSent = popup.querySelector('#btnJsonEnviado');
@@ -590,6 +622,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 if (bSent) bSent.addEventListener('click', showJsonEnviado);
                 if (bTok) bTok.addEventListener('click', showJsonTokenOAuth);
             },
+        }).then(function (r) {
+            if (r.isDenied) showJsonRespuesta();
         });
     }
 
@@ -635,8 +669,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 `<select id="selDetalleLote" class="form-select form-select-sm">${optionsHtml}</select>` +
                 '<div class="d-flex flex-wrap gap-2 justify-content-center mt-3">' +
                 '<button type="button" class="btn btn-sm btn-outline-warning" id="btnLoteMsgLegible">Ver mensaje legible</button>' +
+                '<button type="button" class="btn btn-sm btn-warning" id="btnLoteJsonResp">Ver JSON recibido</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonEnviado">Ver JSON enviado</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonResp">Ver JSON de la respuesta</button>' +
                 tokenBtnLoteHtml +
                 '</div>',
             width: 780,
@@ -668,7 +702,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                         try {
                             pretty = JSON.stringify(JSON.parse(body), null, 2);
                         } catch (_) {}
-                        openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
+                        openJsonModal('JSON recibido de IHCE (respuesta)', pretty, 860);
                     });
                 }
                 if (bSent) {

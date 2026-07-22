@@ -210,39 +210,49 @@ function issueSearchText(issue) {
 /** IHCE: Composition ya existe para el mismo subject/period (historia duplicada). */
 function parseDuplicateRdaHistoria(text) {
     const t = issueToText(text);
-    if (!t || !/already exist/i.test(t) || !/Composition/i.test(t)) return null;
-
-    const periods = extractPeriodsFromText(t);
-    const lines = [
-        'Ya se registró un RDA (historia clínica) para este paciente en ese horario o rango horario.',
-        'No puede volverse a diligenciar ni enviarse nuevamente con el mismo periodo.',
-        '',
-        'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
-        '',
-    ];
-    const block = formatPeriodBlock(periods, resolvePeriodContext());
-    if (block.length) lines.push(...block);
-    else lines.push('Revise la fecha y las horas de inicio/fin de la atención.');
-    return lines.join('\n');
+    if (!t || !/already\s*exist/i.test(t) || !/Composition/i.test(t)) return null;
+    return buildYaRegistradoMessage('historia clínica (Composition)', t);
 }
 
 /** IHCE: Encounter ya existe para mismo paciente/fecha-hora (episodio duplicado). */
 function parseDuplicateEncounter(text) {
     const t = issueToText(text);
-    if (!t || !(/Resource type\s+'Encounter'/i.test(t) || /\bEncounter\b/i.test(t)) || !/already exist/i.test(t)) return null;
+    // Los UUID (Encounter id, subject, service-provider) cambian; solo importa el patrón.
+    if (!t || !/already\s*exist/i.test(t)) return null;
+    if (!(/Encounter/i.test(t) || /Resource type\s*['"]?Encounter['"]?/i.test(t))) return null;
+    return buildYaRegistradoMessage('encuentro (Encounter)', t);
+}
 
-    const periods = extractPeriodsFromText(t);
+function buildYaRegistradoMessage(tipoLabel, text) {
+    const periods = extractPeriodsFromText(text);
     const lines = [
-        'Ya se registró un RDA (encuentro) para este paciente en ese horario o rango horario.',
-        'Para enviar nuevamente, cambie la fecha/hora del encuentro o valide el registro existente en IHCE.',
+        'Ya existe un RDA / ' + tipoLabel + ' en IHCE para este paciente en ese horario.',
+        'No se puede volver a enviar con la misma fecha y rango de atención.',
         '',
-        'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
+        'Los identificadores técnicos de IHCE (UUID) pueden variar; lo que importa es el periodo.',
+        '',
+        'El registro local se marca como NO reenviable (Enviado*=2) y no aparecerá en pendientes.',
         '',
     ];
     const block = formatPeriodBlock(periods, resolvePeriodContext());
-    if (block.length) lines.push(...block);
-    else lines.push('Revise la fecha y las horas de inicio/fin de la atención.');
+    if (block.length) {
+        lines.push(...block);
+    } else {
+        lines.push('Revise la fecha y las horas de inicio/fin usadas en el envío.');
+    }
     return lines.join('\n');
+}
+
+/**
+ * Detecta “already exist” aunque el payload venga como string JSON crudo
+ * (sin depender de UUIDs concretos: subject, Encounter id, service-provider).
+ */
+function parseAlreadyExistsFromAnyText(text) {
+    const t = String(text || '');
+    if (!t || !/already\s*exist/i.test(t)) return null;
+    if (/Composition/i.test(t)) return parseDuplicateRdaHistoria(t) || buildYaRegistradoMessage('historia clínica (Composition)', t);
+    if (/Encounter/i.test(t)) return parseDuplicateEncounter(t) || buildYaRegistradoMessage('encuentro (Encounter)', t);
+    return buildYaRegistradoMessage('recurso', t);
 }
 
 /**
@@ -308,13 +318,36 @@ export function extractIhceMessage(data, opts) {
 }
 
 export function isIhceYaRegistradoMessage(msg) {
-    return /Ya se registró un RDA|ya fue registrada en IHCE|NO reenviable/i.test(String(msg || ''));
+    return /Ya existe un RDA|Ya se registró un RDA|ya fue registrada en IHCE|NO reenviable|already\s*exist/i.test(String(msg || ''));
 }
 
 function extractIhceMessageInner(data) {
     if (data == null) return '';
-    if (typeof data === 'string') return data.trim();
+
+    // String crudo: intentar JSON; si no, parsers de duplicado/periodo.
+    if (typeof data === 'string') {
+        const raw = data.trim();
+        if (!raw) return '';
+        try {
+            const asJson = JSON.parse(raw);
+            if (asJson && typeof asJson === 'object') {
+                const nested = extractIhceMessageInner(asJson);
+                if (nested) return nested;
+            }
+        } catch (_) { /* no es JSON */ }
+        const dupAny = parseAlreadyExistsFromAnyText(raw);
+        if (dupAny) return dupAny;
+        const periodMsg = parseEncounterPeriodRejected(raw);
+        if (periodMsg) return periodMsg;
+        return raw;
+    }
     if (typeof data !== 'object') return String(data);
+
+    // Si vino envuelto como { raw: "..." } (JSON inválido/truncado), priorizar mensaje amigable.
+    if (typeof data.raw === 'string' && data.raw.trim() && !data.resourceType && !data.issue) {
+        const fromRaw = extractIhceMessageInner(data.raw);
+        if (fromRaw) return fromRaw;
+    }
 
     const lines = [];
 
@@ -330,10 +363,8 @@ function extractIhceMessageInner(data) {
             if (telecomMsg) return [telecomMsg];
             const periodMsg = parseEncounterPeriodRejected(i);
             if (periodMsg) return [periodMsg];
-            const dup = parseDuplicateRdaHistoria(i);
-            if (dup) return [dup];
-            const dupEncounter = parseDuplicateEncounter(i);
-            if (dupEncounter) return [dupEncounter];
+            const dupAny = parseAlreadyExistsFromAnyText(i);
+            if (dupAny) return [dupAny];
             const t = i.trim();
             return t ? [t] : [];
         }
@@ -342,10 +373,8 @@ function extractIhceMessageInner(data) {
         if (telecomObj) return [telecomObj];
         const periodObj = parseEncounterPeriodRejected(i);
         if (periodObj) return [periodObj];
-        const dupObj = parseDuplicateRdaHistoria(issueToText(i));
-        if (dupObj) return [dupObj];
-        const dupEncounterObj = parseDuplicateEncounter(issueToText(i));
-        if (dupEncounterObj) return [dupEncounterObj];
+        const dupAnyObj = parseAlreadyExistsFromAnyText(issueSearchText(i));
+        if (dupAnyObj) return [dupAnyObj];
         const out = [];
         const n = idx != null ? ` [${idx + 1}]` : '';
         if (i.severity) out.push(`severity${n}: ${i.severity}`);
@@ -374,15 +403,18 @@ function extractIhceMessageInner(data) {
             if (telecomMsg) return telecomMsg;
             const periodMsg = parseEncounterPeriodRejected(data.issue[idx]);
             if (periodMsg) return periodMsg;
-            const dup = parseDuplicateRdaHistoria(data.issue[idx]);
-            if (dup) return dup;
-            const dupEncounter = parseDuplicateEncounter(data.issue[idx]);
-            if (dupEncounter) return dupEncounter;
+            const dupAny = parseAlreadyExistsFromAnyText(issueSearchText(data.issue[idx]) || issueToText(data.issue[idx]));
+            if (dupAny) return dupAny;
         }
         data.issue.forEach((i, idx) => {
             formatIssue(i, idx).forEach((l) => lines.push(l));
         });
     }
+
+    // Barrido final por si el OperationOutcome vino raro pero el texto completo tiene already exist.
+    const blob = [lines.join('\n'), typeof data.raw === 'string' ? data.raw : '', JSON.stringify(data)].join('\n');
+    const dupBlob = parseAlreadyExistsFromAnyText(blob);
+    if (dupBlob) return dupBlob;
 
     if (data.resourceType === 'Bundle' && Array.isArray(data.entry)) {
         const statuses = [];
@@ -407,13 +439,15 @@ function extractIhceMessageInner(data) {
             }).length;
             lines.push(`HTTP por entry: ${statuses.join(', ')} (${okN}/${statuses.length} éxito)`);
         }
+        const dupBundle = parseAlreadyExistsFromAnyText(lines.join('\n'));
+        if (dupBundle) return dupBundle;
     }
 
     if (!lines.length && data.resourceType) {
         lines.push('IHCE respondió recurso FHIR tipo «' + data.resourceType + '».');
     }
     if (!lines.length && typeof data.raw === 'string' && data.raw.trim()) {
-        return data.raw.trim();
+        return extractIhceMessageInner(data.raw);
     }
 
     const friendlyTelecom = parsePatientTelecomInvalid(lines.join('\n'));
