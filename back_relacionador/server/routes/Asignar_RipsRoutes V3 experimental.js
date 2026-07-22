@@ -12,9 +12,12 @@ class ICD11_API {
         this.token = null;
         this.tokenExpiry = null;
         this.baseUrl = 'https://id.who.int/icd/release/11/2024-01/mms';
+        // Desactivado: usar dbo.CIE11_Codigos (ICD11CO). Guía: docs/CIE11-API-OMS-Guia-Referencia.md
+        this.whoApiEnabled = String(process.env.ICD11_WHO_API_ENABLED || '').trim() === '1';
     }
 
     async getAccessToken() {
+        if (!this.whoApiEnabled) return null;
         if (this.token && Date.now() < this.tokenExpiry) {
             return this.token;
         }
@@ -45,7 +48,9 @@ class ICD11_API {
     }
 
     async search(query) {
+        if (!this.whoApiEnabled) return [];
         const token = await this.getAccessToken();
+        if (!token) return [];
 
         try {
             const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`, {
@@ -64,9 +69,10 @@ class ICD11_API {
     }
 
     async findByCode(code) {
+        if (!this.whoApiEnabled) return null;
         const token = await this.getAccessToken();
         const q = String(code || '').trim();
-        if (!q) return null;
+        if (!q || !token) return null;
         try {
             const headers = {
                 'Authorization': `Bearer ${token}`,
@@ -103,13 +109,7 @@ const icd11 = new ICD11_API(
     'BG8b5btjWH12ePWemxjurAfyOLXTllz7HL4C2BpohUk='
 );
 
-const defaultCIE11 = [
-    { theCode: '1B10', title: 'Tuberculosis de los pulmones' },
-    { theCode: '5A11', title: 'Diabetes mellitus tipo 2' },
-    { theCode: 'BA41', title: 'Insuficiencia cardíaca' },
-    { theCode: '1D0Z', title: 'Infección viral de sitio no especificado' },
-    { theCode: '6D70', title: 'Trastorno de ansiedad generalizada' }
-];
+const defaultCIE11 = [];
 
 const router = Router();
 
@@ -127,50 +127,9 @@ router.get('/icd11/code/:code', async (req, res) => {
 
 router.get('/icd11/search/:query?', async (req, res) => {
     try {
-        const query = req.params.query;
-        if (!query || query.trim() === "" || query === "undefined") {
-            return res.json(defaultCIE11);
-        }
-        const results = await icd11.search(query);
-        const arr = Array.isArray(results) ? results : [];
-        if (!arr.length && query) {
-            const direct = await icd11.findByCode(query);
-            if (direct) return res.json([direct]);
-        }
-        const needle = String(query || '').trim().toUpperCase();
-        const looksLikeCode = /^[A-Z0-9][A-Z0-9.\-]{1,15}$/i.test(needle);
-        if (needle) {
-            let ranked = arr
-                .map((x) => ({ item: x, code: String(x && x.theCode ? x.theCode : '').toUpperCase() }))
-                .sort((a, b) => {
-                    const aStarts = a.code.startsWith(needle) ? 1 : 0;
-                    const bStarts = b.code.startsWith(needle) ? 1 : 0;
-                    if (aStarts !== bStarts) return bStarts - aStarts;
-                    return a.code.localeCompare(b.code);
-                })
-                .map((x) => x.item);
-            if (looksLikeCode && ranked.length === 0) {
-                const probes = Array.from(new Set([
-                    needle.slice(0, 1).toLowerCase(),
-                    needle.slice(0, 2).toLowerCase(),
-                    needle.replace(/\./g, '').slice(0, 2).toLowerCase(),
-                ].filter(Boolean)));
-                for (const p of probes) {
-                    const bucket = await icd11.search(p);
-                    const list = Array.isArray(bucket) ? bucket : [];
-                    const filtered = list.filter((x) => {
-                        const c = String(x && x.theCode ? x.theCode : '').toUpperCase();
-                        return c.startsWith(needle) || c.startsWith(needle.replace(/\./g, ''));
-                    });
-                    if (filtered.length) {
-                        ranked = filtered;
-                        break;
-                    }
-                }
-            }
-            return res.json(ranked);
-        }
-        res.json(arr);
+        // Experimental: OMS desactivada. Sin catálogo local aquí → lista vacía.
+        // Usar rutas de Asignar_RipsRoutes V3.js (dbo.CIE11_Codigos).
+        return res.json([]);
     } catch (error) {
         console.error('Error en ruta de búsqueda CIE-11:', error);
         res.status(500).send(error.message);

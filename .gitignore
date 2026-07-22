@@ -35,10 +35,12 @@ bower_components/
 .env
 .env.*
 .env copy
+.env ac
 .env.test
 .env.local
 back_relacionador/.env cliniq
 back_relacionador/.env copy
+back_relacionador/.env ac
 back_relacionador/envcliniq.json
 
 # Build output

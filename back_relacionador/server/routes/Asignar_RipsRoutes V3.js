@@ -47,6 +47,10 @@ class ICD11_API {
         this.whoToken = null;
         this.whoTokenExpiry = null;
         this.baseUrl = 'https://id.who.int/icd/release/11/2024-01/mms';
+        // Desactivado: MinSalud limita CIE-11 a ICD11CO (~1004) en dbo.CIE11_Codigos.
+        // Guía histórica: back_relacionador/docs/CIE11-API-OMS-Guia-Referencia.md
+        // Reactivar solo con ICD11_WHO_API_ENABLED=1 (no usar en producción RDA).
+        this.whoApiEnabled = String(process.env.ICD11_WHO_API_ENABLED || '').trim() === '1';
         this.ihceCatalogCache = null;
         this.ihceCatalogExpiry = 0;
         this.ihceToken = null;
@@ -60,6 +64,7 @@ class ICD11_API {
     }
 
     async getWhoAccessToken() {
+        if (!this.whoApiEnabled) return null;
         if (this.whoToken && Date.now() < this.whoTokenExpiry) {
             return this.whoToken;
         }
@@ -388,22 +393,10 @@ class ICD11_API {
     }
 
     async resolveCatalogForUse(forceRefresh = false) {
-        // 1) BD (fuente principal)
+        // Solo ICD11CO local. No rellenar desde IHCE/OMS/mapping (contaminaría el catálogo MinSalud).
         const dbList = await this.loadCatalogFromDb(forceRefresh);
         if (Array.isArray(dbList) && dbList.length) {
             return { list: dbList, source: 'db' };
-        }
-        // 2) IHCE prod (si disponible), y persistir a BD
-        const ihceList = await this.getIhceCatalog(forceRefresh);
-        if (Array.isArray(ihceList) && ihceList.length) {
-            await this.replaceCatalogInDb(ihceList, 'ihce-prod');
-            return { list: ihceList, source: 'ihce-prod' };
-        }
-        // 3) Mapping local como bootstrap de BD
-        const localList = this.loadLocalCatalogFromMapping(forceRefresh);
-        if (Array.isArray(localList) && localList.length) {
-            await this.replaceCatalogInDb(localList, 'mapping-local');
-            return { list: localList, source: 'mapping-local' };
         }
         return { list: [], source: 'none' };
     }
@@ -411,7 +404,7 @@ class ICD11_API {
     async search(query) {
         const q = String(query || '').trim();
 
-        // Fuente principal: tabla local 1888 (dbo.CIE11_Codigos).
+        // Única fuente: dbo.CIE11_Codigos (ICD11CO).
         try {
             await this.ensureDbCatalogTable();
             const pool = await poolPromise;
@@ -422,53 +415,30 @@ class ICD11_API {
                     ORDER BY Codigo
                 `);
                 const topRows = Array.isArray(topRs.recordset) ? topRs.recordset : [];
-                if (topRows.length) {
-                    return topRows.map((r) => ({
-                        theCode: String(r.Codigo || '').trim(),
-                        title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
-                    })).filter((x) => x.theCode);
-                }
-            } else {
-                const rs = await pool.request()
-                    .input('q', sql.NVarChar(200), `%${q}%`)
-                    .query(`
-                        SELECT TOP (120) Codigo, Nombre
-                        FROM dbo.CIE11_Codigos WITH (NOLOCK)
-                        WHERE Codigo LIKE @q
-                           OR Nombre LIKE @q
-                        ORDER BY
-                            CASE WHEN Codigo LIKE REPLACE(@q, '%', '') + '%' THEN 0 ELSE 1 END,
-                            Codigo
-                    `);
-                const rows = Array.isArray(rs.recordset) ? rs.recordset : [];
-                if (rows.length) {
-                    return rows.map((r) => ({
-                        theCode: String(r.Codigo || '').trim(),
-                        title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
-                    })).filter((x) => x.theCode);
-                }
+                return topRows.map((r) => ({
+                    theCode: String(r.Codigo || '').trim(),
+                    title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
+                })).filter((x) => x.theCode);
             }
+
+            const rs = await pool.request()
+                .input('q', sql.NVarChar(200), `%${q}%`)
+                .query(`
+                    SELECT TOP (120) Codigo, Nombre
+                    FROM dbo.CIE11_Codigos WITH (NOLOCK)
+                    WHERE Codigo LIKE @q
+                       OR Nombre LIKE @q
+                    ORDER BY
+                        CASE WHEN Codigo LIKE REPLACE(@q, '%', '') + '%' THEN 0 ELSE 1 END,
+                        Codigo
+                `);
+            const rows = Array.isArray(rs.recordset) ? rs.recordset : [];
+            return rows.map((r) => ({
+                theCode: String(r.Codigo || '').trim(),
+                title: String(r.Nombre || '').trim() || String(r.Codigo || '').trim(),
+            })).filter((x) => x.theCode);
         } catch (dbErr) {
             console.error('Error buscando CIE-11 en tabla dbo.CIE11_Codigos:', dbErr);
-        }
-
-        // Fallback: API OMS si la tabla no tiene datos.
-        const token = await this.getWhoAccessToken();
-        if (!token || !q) return [];
-        try {
-            const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(q)}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                    'Accept-Language': 'es',
-                    'API-Version': 'v2'
-                }
-            });
-            if (!response.ok) return [];
-            const data = await response.json();
-            return Array.isArray(data && data.destinationEntities) ? data.destinationEntities : [];
-        } catch (error) {
-            console.error('Error en la búsqueda CIE-11 (OMS):', error);
             return [];
         }
     }
@@ -477,7 +447,7 @@ class ICD11_API {
         const q = String(code || '').trim();
         if (!q) return null;
 
-        // Fuente principal: tabla local 1888 (dbo.CIE11_Codigos).
+        // Única fuente: dbo.CIE11_Codigos (ICD11CO).
         try {
             await this.ensureDbCatalogTable();
             const pool = await poolPromise;
@@ -496,42 +466,9 @@ class ICD11_API {
                     title: String(row.Nombre || '').trim() || codeResolved,
                 };
             }
+            return null;
         } catch (dbErr) {
             console.error('Error validando CIE-11 en tabla dbo.CIE11_Codigos:', dbErr);
-        }
-
-        // Fallback: API OMS.
-        const token = await this.getWhoAccessToken();
-        if (!token) return null;
-        try {
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json',
-                'Accept-Language': 'es',
-                'API-Version': 'v2'
-            };
-            const response = await fetch(`${this.baseUrl}/codeinfo/${encodeURIComponent(q)}`, {
-                headers
-            });
-            if (!response.ok) return null;
-            const info = await response.json();
-            const stemId = info && info.stemId ? String(info.stemId).trim() : '';
-            let title = '';
-            if (stemId) {
-                const stemResp = await fetch(stemId.replace('http://', 'https://'), { headers });
-                if (stemResp.ok) {
-                    const stem = await stemResp.json();
-                    const t = stem && stem.title;
-                    title = typeof t === 'string' ? t : (t && (t['@value'] || t.value) ? (t['@value'] || t.value) : '');
-                }
-            }
-            const codeResolved = (info && info.code ? String(info.code).trim() : q).toUpperCase();
-            return {
-                theCode: codeResolved,
-                title: title || codeResolved
-            };
-        } catch (error) {
-            console.error('Error buscando CIE-11 por código (OMS):', error);
             return null;
         }
     }
@@ -587,8 +524,7 @@ router.get('/icd11/catalog', async (req, res) => {
         if (!Array.isArray(list) || !list.length) {
             return res.status(503).json({
                 ok: false,
-                error: 'No se pudo cargar el catálogo ICD11 Colombia desde BD, IHCE o mapping local.',
-                details: icd11.lastIhceError || undefined,
+                error: 'No hay datos en dbo.CIE11_Codigos. Cargue el catálogo ICD11CO en esa tabla.',
             });
         }
         return res.json({ ok: true, source, total: list.length, items: list });
@@ -604,7 +540,7 @@ router.get('/icd11/catalog.txt', async (req, res) => {
         const resolved = await icd11.resolveCatalogForUse(forceRefresh);
         const list = Array.isArray(resolved.list) ? resolved.list : [];
         if (!list.length) {
-            return res.status(503).send('No fue posible obtener catalogo ICD11 Colombia.');
+            return res.status(503).send('No hay datos en dbo.CIE11_Codigos.');
         }
         const lines = ['Codigo\tTitulo'];
         list.forEach((x) => {
