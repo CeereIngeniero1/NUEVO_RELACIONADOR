@@ -6,6 +6,8 @@
  * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
  *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
+import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js';
+
 (function () {
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
@@ -442,30 +444,53 @@
         return Array.from(el.tbody.querySelectorAll('.chk-fila:checked')).map((c) => parseInt(c.value, 10));
     }
 
-    function mostrarDetalle(res) {
+    function periodContextFromFila(id) {
+        const fila = (state.filas || []).find((f) => Number(f.id) === Number(id));
+        if (!fila) return null;
+        const startRaw = fila.fechaHoraInicioAtencion;
+        const endRaw = fila.fechaHoraFinAtencion;
+        const start = startRaw ? new Date(startRaw) : null;
+        const end = endRaw ? new Date(endRaw) : null;
+        const fmtDate = (d) => (d && !isNaN(d.getTime())
+            ? d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' })
+            : '');
+        const fmtTime = (d) => (d && !isNaN(d.getTime())
+            ? d.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false })
+            : '');
+        return {
+            fecha: fmtDate(start) || fmtDate(end) || null,
+            horaInicio: fmtTime(start) || null,
+            horaFin: fmtTime(end) || null,
+            startIso: start && !isNaN(start.getTime()) ? start.toISOString() : null,
+            endIso: end && !isNaN(end.getTime()) ? end.toISOString() : null,
+        };
+    }
+
+    function resumenIhceDesdeResultado(res) {
         const body = res.cuerpoTextoTruncado || '';
-        let pretty = body;
         let parsed = null;
         try {
             parsed = JSON.parse(body);
-            pretty = JSON.stringify(parsed, null, 2);
+        } catch (_) {
+            parsed = body && String(body).trim() ? { raw: String(body).trim() } : null;
+        }
+        const msg = extractIhceMessage(parsed, { periodContext: periodContextFromFila(res.id) });
+        if (msg) return msg;
+        if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 700);
+        return res.ok ? 'Envío finalizado correctamente.' : `Error HTTP ${res.httpStatus}`;
+    }
+
+    function mostrarDetalle(res) {
+        const body = res.cuerpoTextoTruncado || '';
+        let pretty = body;
+        try {
+            pretty = JSON.stringify(JSON.parse(body), null, 2);
         } catch (e) {
             /* texto plano */
         }
         const ok = res.ok;
-        const resumen = (() => {
-            if (parsed && parsed.resourceType === 'OperationOutcome' && Array.isArray(parsed.issue)) {
-                const issues = parsed.issue
-                    .map((it) => {
-                        const txt = (it && it.details && it.details.text) || it.diagnostics || '';
-                        return String(txt || '').trim();
-                    })
-                    .filter(Boolean);
-                if (issues.length) return issues.join('\n');
-            }
-            if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 700);
-            return ok ? 'Envío finalizado correctamente.' : `Error HTTP ${res.httpStatus}`;
-        })();
+        const resumen = resumenIhceDesdeResultado(res);
+        const yaRegistrado = !ok && isIhceYaRegistradoMessage(resumen);
 
         const showJsonRespuesta = () => {
             openJsonModal('Respuesta IHCE (JSON)', pretty, 780);
@@ -543,8 +568,10 @@
             : '';
 
         Swal.fire({
-            icon: ok ? 'success' : 'error',
-            title: ok ? 'Respuesta IHCE' : `Error HTTP ${res.httpStatus}`,
+            icon: ok ? 'success' : (yaRegistrado ? 'warning' : 'error'),
+            title: ok
+                ? 'Respuesta IHCE'
+                : (yaRegistrado ? 'IHCE — RDA ya registrado / no reenviable' : `Error HTTP ${res.httpStatus}`),
             html:
                 '<p class="small text-start mb-2">Resumen del mensaje:</p>' +
                 `<div style="${SWAL_PRE}">${escapeHtml(resumen).replace(/\n/g, '<br>')}</div>` +
@@ -569,9 +596,14 @@
     function mostrarResumenLote(list) {
         if (!Array.isArray(list) || list.length === 0) return;
         const okN = list.filter((r) => r && r.ok).length;
-        const errN = list.length - okN;
+        const yaN = list.filter((r) => r && !r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r))).length;
+        const errN = list.length - okN - yaN;
         const optionsHtml = list
-            .map((r) => `<option value="${r.id}">ID ${r.id} — ${r.ok ? 'OK' : 'Error ' + r.httpStatus}</option>`)
+            .map((r) => {
+                const ya = !r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r));
+                const label = r.ok ? 'OK' : (ya ? 'Ya en IHCE' : 'Error ' + r.httpStatus);
+                return `<option value="${r.id}">ID ${r.id} — ${label}</option>`;
+            })
             .join('');
 
         const showJsonTokenOAuthLote = () => {
@@ -592,13 +624,17 @@
             : '';
 
         Swal.fire({
-            icon: errN === 0 ? 'success' : 'warning',
+            icon: errN === 0 ? (yaN > 0 ? 'warning' : 'success') : 'warning',
             title: 'Resumen envío masivo',
             html:
-                `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · Error: <b>${errN}</b></p>` +
+                `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · Ya en IHCE: <b>${yaN}</b> · Error: <b>${errN}</b></p>` +
+                (yaN
+                    ? '<p class="small text-start text-warning mb-2">Los «Ya en IHCE» se marcaron como no reenviables (Enviado*=2) y salen de pendientes.</p>'
+                    : '') +
                 '<label class="form-label small mb-1">Seleccione un registro para inspeccionar:</label>' +
                 `<select id="selDetalleLote" class="form-select form-select-sm">${optionsHtml}</select>` +
                 '<div class="d-flex flex-wrap gap-2 justify-content-center mt-3">' +
+                '<button type="button" class="btn btn-sm btn-outline-warning" id="btnLoteMsgLegible">Ver mensaje legible</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonEnviado">Ver JSON enviado</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-light" id="btnLoteJsonResp">Ver JSON de la respuesta</button>' +
                 tokenBtnLoteHtml +
@@ -612,10 +648,17 @@
                     if (!Number.isFinite(id)) return null;
                     return list.find((r) => r.id === id) || null;
                 };
+                const bLegible = popup.querySelector('#btnLoteMsgLegible');
                 const bResp = popup.querySelector('#btnLoteJsonResp');
                 const bSent = popup.querySelector('#btnLoteJsonEnviado');
                 const bTok = popup.querySelector('#btnLoteJsonTokenReq');
                 if (bTok) bTok.addEventListener('click', showJsonTokenOAuthLote);
+                if (bLegible) {
+                    bLegible.addEventListener('click', function () {
+                        const r = getSelected();
+                        if (r) mostrarDetalle(r);
+                    });
+                }
                 if (bResp) {
                     bResp.addEventListener('click', function () {
                         const r = getSelected();
@@ -735,10 +778,16 @@
                 if (row) {
                     const cel = row.querySelector('.celda-resultado');
                     const celCorregir = row.querySelector('.celda-corregir');
+                    const resumen = resumenIhceDesdeResultado(r);
+                    const yaRegistrado = !r.ok && isIhceYaRegistradoMessage(resumen);
                     if (cel) {
                         if (r.ok) {
                             cel.innerHTML =
                                 '<span class="badge bg-success">Enviado OK</span> ' +
+                                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
+                        } else if (yaRegistrado) {
+                            cel.innerHTML =
+                                '<span class="badge bg-warning text-dark">Ya en IHCE (no pendiente)</span> ' +
                                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
                         } else {
                             cel.innerHTML =
@@ -752,7 +801,7 @@
                     }
                     if (celCorregir) {
                         const esProd = state.ambiente === 'prod';
-                        if (r.ok) {
+                        if (r.ok || yaRegistrado) {
                             celCorregir.innerHTML = '<span class="text-muted">—</span>';
                         } else if (!esProd) {
                             celCorregir.innerHTML = '<span class="badge bg-secondary">Solo producción</span>';
@@ -768,6 +817,8 @@
             el.envioProgreso.textContent = `Listo: ${list.length} respuesta(s) recibidas.`;
             mostrarResumenLote(list);
             await cargarDashboard();
+            // Refrescar listado: los marcados Enviado*=2 (ya en IHCE) salen de pendientes.
+            await buscar();
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Envío', text: err.message || String(err) });
         } finally {

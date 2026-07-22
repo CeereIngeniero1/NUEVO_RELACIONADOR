@@ -167,12 +167,20 @@ function formatPeriodBlock(periodsFromIhce, formPeriod) {
 
 function extractPeriodsFromText(text) {
     const periods = [];
-    const re = /period='([^']+)'/gi;
+    // IHCE usa period='...' (Composition) o date='...' (Encounter 409).
+    const re = /(?:period|date)='([^']+)'/gi;
     let m;
     while ((m = re.exec(String(text || ''))) !== null) {
         periods.push(m[1]);
     }
     return periods;
+}
+
+/** Override opcional (p. ej. fila de pendientes) para armar el bloque de fecha/hora. */
+let periodContextOverride = null;
+
+function resolvePeriodContext() {
+    return periodContextOverride || getFormEncounterPeriod();
 }
 
 function issueToText(issue) {
@@ -212,16 +220,16 @@ function parseDuplicateRdaHistoria(text) {
         'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
         '',
     ];
-    const block = formatPeriodBlock(periods, getFormEncounterPeriod());
+    const block = formatPeriodBlock(periods, resolvePeriodContext());
     if (block.length) lines.push(...block);
-    else lines.push('Revise la fecha y las horas de inicio/fin de la atención en el formulario.');
+    else lines.push('Revise la fecha y las horas de inicio/fin de la atención.');
     return lines.join('\n');
 }
 
 /** IHCE: Encounter ya existe para mismo paciente/fecha-hora (episodio duplicado). */
 function parseDuplicateEncounter(text) {
     const t = issueToText(text);
-    if (!t || !/Resource type\s+'Encounter'/i.test(t) || !/already exist/i.test(t)) return null;
+    if (!t || !(/Resource type\s+'Encounter'/i.test(t) || /\bEncounter\b/i.test(t)) || !/already exist/i.test(t)) return null;
 
     const periods = extractPeriodsFromText(t);
     const lines = [
@@ -231,9 +239,9 @@ function parseDuplicateEncounter(text) {
         'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
         '',
     ];
-    const block = formatPeriodBlock(periods, getFormEncounterPeriod());
+    const block = formatPeriodBlock(periods, resolvePeriodContext());
     if (block.length) lines.push(...block);
-    else lines.push('Revise la fecha y las horas de inicio/fin de la atención en el formulario.');
+    else lines.push('Revise la fecha y las horas de inicio/fin de la atención.');
     return lines.join('\n');
 }
 
@@ -254,7 +262,7 @@ function parseEncounterPeriodRejected(issueOrText) {
     if (!isPeriodInvariant) return null;
 
     const periods = extractPeriodsFromText(t);
-    const formPeriod = getFormEncounterPeriod();
+    const formPeriod = resolvePeriodContext();
     const lines = [
         'Ya se registró un RDA para este paciente en ese horario o rango horario,',
         'o el periodo enviado no es aceptado por IHCE para un nuevo envío.',
@@ -269,7 +277,7 @@ function parseEncounterPeriodRejected(issueOrText) {
     if (block.length) {
         lines.push(...block);
     } else {
-        lines.push('No se pudo leer el rango horario del formulario; revise Fecha / Hora inicio / Hora fin.');
+        lines.push('No se pudo leer el rango horario; revise Fecha / Hora inicio / Hora fin.');
     }
     lines.push('');
     lines.push('Detalle IHCE: La fecha del encuentro (inicio y fin) no puede ser mayor a la fecha actual,');
@@ -286,8 +294,24 @@ function parsePatientTelecomInvalid(text) {
         + 'Revise el campo Teléfono en Datos del paciente (celular colombiano de 10 dígitos, ejemplo: 3001234567).';
 }
 
-/** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.). */
-export function extractIhceMessage(data) {
+/** Texto legible completo a partir de la respuesta IHCE (OperationOutcome, Bundle, etc.).
+ * @param {*} data
+ * @param {{ periodContext?: { fecha?: string, horaInicio?: string, horaFin?: string, startIso?: string, endIso?: string } }} [opts]
+ */
+export function extractIhceMessage(data, opts) {
+    periodContextOverride = opts && opts.periodContext ? opts.periodContext : null;
+    try {
+        return extractIhceMessageInner(data);
+    } finally {
+        periodContextOverride = null;
+    }
+}
+
+export function isIhceYaRegistradoMessage(msg) {
+    return /Ya se registró un RDA|ya fue registrada en IHCE|NO reenviable/i.test(String(msg || ''));
+}
+
+function extractIhceMessageInner(data) {
     if (data == null) return '';
     if (typeof data === 'string') return data.trim();
     if (typeof data !== 'object') return String(data);
