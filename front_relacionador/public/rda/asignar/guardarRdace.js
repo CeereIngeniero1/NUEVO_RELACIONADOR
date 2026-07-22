@@ -633,14 +633,21 @@ export async function guardarRDACE() {
 
                 const okPac = unifiedSend && !!(pacienteOut && pacienteOut.ok);
                 const okCe = !!(ceOut && ceOut.ok);
+                const msgPac = unifiedSend && pacienteOut ? extractIhceMessage(pacienteOut.data) : '';
+                const msgCe = ceOut ? extractIhceMessage(ceOut.data) : '';
+                const yaRegistrado = /Ya se registró un RDA|ya fue registrada en IHCE/i.test(String(msgPac || '') + '\n' + String(msgCe || ''));
                 const icon = unifiedSend
                     ? ((okPac && okCe) ? 'success' : ((okPac || okCe) ? 'warning' : 'error'))
                     : (okCe ? 'success' : 'error');
                 const title = unifiedSend
                     ? ((okPac && okCe)
                         ? 'Envio IHCE completado'
-                        : ((okPac || okCe) ? 'Envio IHCE parcial' : 'Envio IHCE con errores'))
-                    : (okCe ? 'Envio IHCE completado' : 'Envio IHCE con errores');
+                        : (yaRegistrado
+                            ? 'IHCE — RDA ya registrado / periodo no válido'
+                            : ((okPac || okCe) ? 'Envio IHCE parcial' : 'Envio IHCE con errores')))
+                    : (okCe
+                        ? 'Envio IHCE completado'
+                        : (yaRegistrado ? 'IHCE — RDA ya registrado / periodo no válido' : 'Envio IHCE con errores'));
 
                 const htmlResumen = unifiedSend
                     ? '<div class="text-start">' +

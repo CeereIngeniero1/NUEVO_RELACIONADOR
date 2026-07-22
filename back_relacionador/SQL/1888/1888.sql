@@ -1914,9 +1914,12 @@ GO
 
 
 -- -----------------------------------------------------------------------------
--- RDA Paciente: marcas de envío exitoso a IHCE (ver RdaPacienteRoutes EnviarIHCE)
---   [Enviado]          = 1 si el envío fue en ambiente producción
---   [Enviado pruebas]  = 1 si el envío fue en sandbox / preproducción
+-- RDA Paciente: marcas de envío a IHCE (ver RdaPacienteRoutes EnviarIHCE / rdaEnvioEstado.js)
+--   [Enviado] / [Enviado pruebas]:
+--     0 = Pendiente (aparece en RDA pendientes)
+--     1 = Enviado OK a IHCE
+--     2 = Guardado, NO reenviable (ya existe en IHCE / periodo no válido) → no aparece en pendientes
+--   No usar [Id Estado] para este flujo: los listados miran solo Enviado*.
 -- -----------------------------------------------------------------------------
 IF NOT EXISTS (
     SELECT 1 FROM sys.columns
@@ -1935,7 +1938,7 @@ IF NOT EXISTS (
 GO
 
 -- -----------------------------------------------------------------------------
--- RDA Consulta Externa: marcas de envío exitoso a IHCE (ver RdaConsultaExternaRoutes EnviarIHCE)
+-- RDA Consulta Externa: mismas marcas 0/1/2 (ver RdaConsultaExternaRoutes EnviarIHCE)
 -- -----------------------------------------------------------------------------
 IF NOT EXISTS (
     SELECT 1 FROM sys.columns

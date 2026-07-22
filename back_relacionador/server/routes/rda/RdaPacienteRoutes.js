@@ -7,7 +7,7 @@
  *  POST  /EvaluacionEntidadRDA/AntecedentesFamiliares  — tabla hija
  *  POST  /EvaluacionEntidadRDA/AntecedentesFarmacologicos — tabla hija
  *  POST  /RdaPaciente/FhirBundle                       — construcción Bundle FHIR
- *  POST  /RdaPaciente/EnviarIHCE (+ variantes)         — envío a IHCE (sandbox/prod); OK IHCE → [Enviado pruebas] o [Enviado] en BD
+ *  POST  /RdaPaciente/EnviarIHCE (+ variantes)         — envío a IHCE (sandbox/prod); OK → [Enviado*]=1; duplicado/periodo → =2 (no pendiente)
  *
  * Montaje en el router principal:
  *   router.use(require('./rda/RdaPacienteRoutes'));
@@ -28,6 +28,12 @@ const {
     normalizeDocTypeCode,
 } = require('../../rda/colombianPersonIdentifierCatalog');
 const { patientGenderFromCatalog } = require('../../rda/patientGenderMap');
+const {
+    RDA_ENVIO_OK,
+    RDA_ENVIO_NO_REENVIBLE,
+    isIhceNoReenviableResponse,
+    setRdaEnvioMarca,
+} = require('../../rda/rdaEnvioEstado');
 const {
     toFhirDateTimeColombia,
     toFhirDateTimeColombiaNow,
@@ -2185,20 +2191,35 @@ router.post(
             try {
                 const pool = await poolPromise;
                 const isProd = envPrefix === 'IHCE_PROD_';
-                const setSql = isProd
-                    ? `UPDATE [dbo].[Evaluacion Entidad RDA]
-                       SET [Enviado] = 1
-                       WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA`
-                    : `UPDATE [dbo].[Evaluacion Entidad RDA]
-                       SET [Enviado pruebas] = 1
-                       WHERE [Id Evaluacion Entidad RDA] = @IdEvaluacionEntidadRDA`;
-                await pool
-                    .request()
-                    .input('IdEvaluacionEntidadRDA', sql.Int, id)
-                    .query(setSql);
+                await setRdaEnvioMarca({
+                    pool,
+                    sql,
+                    kind: 'paciente',
+                    id,
+                    ambiente: isProd ? 'prod' : 'sandbox',
+                    valor: RDA_ENVIO_OK,
+                });
             } catch (dbErr) {
                 console.error(
                     '❌ [RDA] IHCE aceptó el envío pero no se pudo marcar envío en BD:',
+                    dbErr && dbErr.message ? dbErr.message : dbErr
+                );
+            }
+        } else if (isIhceNoReenviableResponse(sendResp.body)) {
+            try {
+                const pool = await poolPromise;
+                const isProd = envPrefix === 'IHCE_PROD_';
+                await setRdaEnvioMarca({
+                    pool,
+                    sql,
+                    kind: 'paciente',
+                    id,
+                    ambiente: isProd ? 'prod' : 'sandbox',
+                    valor: RDA_ENVIO_NO_REENVIBLE,
+                });
+            } catch (dbErr) {
+                console.error(
+                    '❌ [RDA] No se pudo marcar RDA como no reenviable (Enviado*=2):',
                     dbErr && dbErr.message ? dbErr.message : dbErr
                 );
             }

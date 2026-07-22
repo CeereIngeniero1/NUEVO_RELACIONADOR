@@ -87,6 +87,12 @@ const {
     collectRdaceBundleIhceIssues,
 } = require('../../rda/rdaceBundleIhceValidation');
 const {
+    RDA_ENVIO_OK,
+    RDA_ENVIO_NO_REENVIBLE,
+    isIhceNoReenviableResponse,
+    setRdaEnvioMarca,
+} = require('../../rda/rdaEnvioEstado');
+const {
     telefonoPacienteParaFhir,
     mensajeErrorTelefonoPacienteIhce,
     isTelefonoPacienteValidoParaFhir,
@@ -2823,20 +2829,35 @@ router.post(
             try {
                 const pool = await poolPromise;
                 const isProd = envPrefix === 'IHCE_PROD_';
-                const setSql = isProd
-                    ? `UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
-                       SET [Enviado] = 1
-                       WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @IdEvaluacionEntidadRDACE`
-                    : `UPDATE [dbo].[Evaluacion Entidad RDA Consulta Externa]
-                       SET [Enviado pruebas] = 1
-                       WHERE [Id Evaluacion Entidad RDA Consulta Externa] = @IdEvaluacionEntidadRDACE`;
-                await pool
-                    .request()
-                    .input('IdEvaluacionEntidadRDACE', sql.Int, id)
-                    .query(setSql);
+                await setRdaEnvioMarca({
+                    pool,
+                    sql,
+                    kind: 'rdace',
+                    id,
+                    ambiente: isProd ? 'prod' : 'sandbox',
+                    valor: RDA_ENVIO_OK,
+                });
             } catch (dbErr) {
                 console.error(
                     '❌ [RDACE] IHCE aceptó el envío pero no se pudo marcar envío en BD:',
+                    dbErr && dbErr.message ? dbErr.message : dbErr
+                );
+            }
+        } else if (isIhceNoReenviableResponse(sendResp.body)) {
+            try {
+                const pool = await poolPromise;
+                const isProd = envPrefix === 'IHCE_PROD_';
+                await setRdaEnvioMarca({
+                    pool,
+                    sql,
+                    kind: 'rdace',
+                    id,
+                    ambiente: isProd ? 'prod' : 'sandbox',
+                    valor: RDA_ENVIO_NO_REENVIBLE,
+                });
+            } catch (dbErr) {
+                console.error(
+                    '❌ [RDACE] No se pudo marcar RDA CE como no reenviable (Enviado*=2):',
                     dbErr && dbErr.message ? dbErr.message : dbErr
                 );
             }

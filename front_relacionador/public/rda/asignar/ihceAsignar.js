@@ -78,6 +78,103 @@ function formatIsoPeriod(iso) {
     }) + ' (hora Colombia)';
 }
 
+function formatFechaSolo(isoOrDate) {
+    if (!isoOrDate) return '—';
+    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    if (isNaN(d.getTime())) return String(isoOrDate);
+    return d.toLocaleDateString('es-CO', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+}
+
+function formatHoraSolo(isoOrDate) {
+    if (!isoOrDate) return '—';
+    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    if (isNaN(d.getTime())) return String(isoOrDate);
+    return d.toLocaleTimeString('es-CO', {
+        timeZone: 'America/Bogota',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }) + ' (hora Colombia)';
+}
+
+/** Periodo del formulario RDA (Paciente / Consulta Externa) en pantalla Asignar. */
+function getFormEncounterPeriod() {
+    const read = (ids) => {
+        for (const id of ids) {
+            const el = typeof document !== 'undefined' ? document.getElementById(id) : null;
+            const v = el && el.value != null ? String(el.value).trim() : '';
+            if (v) return v;
+        }
+        return '';
+    };
+    const fecha = read(['RDACE_FechaAtencion', 'RDA_FechaAtencion']);
+    const horaIni = read(['RDACE_HoraInicioAtencion', 'RDA_HoraInicioAtencion']);
+    const horaFin = read(['RDACE_HoraFinAtencion', 'RDA_HoraFinAtencion']);
+    if (!fecha && !horaIni && !horaFin) return null;
+
+    let startIso = null;
+    let endIso = null;
+    if (fecha && horaIni) {
+        const s = new Date(`${fecha}T${horaIni.length === 5 ? horaIni + ':00' : horaIni}`);
+        if (!isNaN(s.getTime())) startIso = s.toISOString();
+    }
+    if (fecha && horaFin) {
+        const e = new Date(`${fecha}T${horaFin.length === 5 ? horaFin + ':00' : horaFin}`);
+        if (!isNaN(e.getTime())) endIso = e.toISOString();
+    }
+    return {
+        fecha: fecha || null,
+        horaInicio: horaIni || null,
+        horaFin: horaFin || null,
+        startIso,
+        endIso,
+    };
+}
+
+function formatPeriodBlock(periodsFromIhce, formPeriod) {
+    const lines = [];
+    if (periodsFromIhce && periodsFromIhce.length >= 2) {
+        lines.push('Fecha y rango horario detectados por IHCE:');
+        lines.push('• Fecha: ' + formatFechaSolo(periodsFromIhce[0]));
+        lines.push('• Hora inicio: ' + formatHoraSolo(periodsFromIhce[0]));
+        lines.push('• Hora fin: ' + formatHoraSolo(periodsFromIhce[1]));
+        lines.push('• Inicio completo: ' + formatIsoPeriod(periodsFromIhce[0]));
+        lines.push('• Fin completo: ' + formatIsoPeriod(periodsFromIhce[1]));
+        return lines;
+    }
+    if (periodsFromIhce && periodsFromIhce.length === 1) {
+        lines.push('Periodo detectado por IHCE: ' + formatIsoPeriod(periodsFromIhce[0]));
+        return lines;
+    }
+    if (formPeriod && (formPeriod.fecha || formPeriod.horaInicio || formPeriod.horaFin)) {
+        lines.push('Fecha y rango horario utilizados en el envío:');
+        lines.push('• Fecha: ' + (formPeriod.fecha || '—'));
+        lines.push('• Hora inicio: ' + (formPeriod.horaInicio || '—') + (formPeriod.horaInicio ? ' (hora Colombia)' : ''));
+        lines.push('• Hora fin: ' + (formPeriod.horaFin || '—') + (formPeriod.horaFin ? ' (hora Colombia)' : ''));
+        if (formPeriod.startIso || formPeriod.endIso) {
+            lines.push('• Inicio completo: ' + formatIsoPeriod(formPeriod.startIso));
+            lines.push('• Fin completo: ' + formatIsoPeriod(formPeriod.endIso));
+        }
+        return lines;
+    }
+    return lines;
+}
+
+function extractPeriodsFromText(text) {
+    const periods = [];
+    const re = /period='([^']+)'/gi;
+    let m;
+    while ((m = re.exec(String(text || ''))) !== null) {
+        periods.push(m[1]);
+    }
+    return periods;
+}
+
 function issueToText(issue) {
     if (issue == null) return '';
     if (typeof issue === 'string') return issue.trim();
@@ -85,62 +182,6 @@ function issueToText(issue) {
     if (issue.details && issue.details.text) return String(issue.details.text).trim();
     if (issue.diagnostics) return String(issue.diagnostics).trim();
     return '';
-}
-
-/** IHCE: Composition ya existe para el mismo subject/period (historia duplicada). */
-function parseDuplicateRdaHistoria(text) {
-    const t = issueToText(text);
-    if (!t || !/already exist/i.test(t) || !/Composition/i.test(t)) return null;
-
-    const periods = [];
-    const re = /period='([^']+)'/gi;
-    let m;
-    while ((m = re.exec(t)) !== null) {
-        periods.push(m[1]);
-    }
-
-    const lines = [
-        'Esta historia clínica ya fue registrada en IHCE para este paciente y periodo de atención.',
-        'No puede volverse a diligenciar ni enviarse nuevamente.',
-    ];
-    if (periods.length >= 2) {
-        lines.push('');
-        lines.push('Periodo de la historia ya existente:');
-        lines.push('• Inicio: ' + formatIsoPeriod(periods[0]));
-        lines.push('• Fin: ' + formatIsoPeriod(periods[1]));
-    } else if (periods.length === 1) {
-        lines.push('');
-        lines.push('Periodo de la historia ya existente: ' + formatIsoPeriod(periods[0]));
-    }
-    return lines.join('\n');
-}
-
-/** IHCE: Encounter ya existe para mismo paciente/fecha-hora (episodio duplicado). */
-function parseDuplicateEncounter(text) {
-    const t = issueToText(text);
-    if (!t || !/Resource type\s+'Encounter'/i.test(t) || !/already exist/i.test(t)) return null;
-
-    const periods = [];
-    const re = /period='([^']+)'/gi;
-    let m;
-    while ((m = re.exec(t)) !== null) {
-        periods.push(m[1]);
-    }
-
-    const lines = [
-        'Ya existe una historia clínica (encuentro) registrada en IHCE para ese paciente en esa fecha/hora.',
-        'Para enviar nuevamente, cambie la fecha/hora del encuentro o valide si corresponde a otro registro.',
-    ];
-    if (periods.length >= 2) {
-        lines.push('');
-        lines.push('Periodo del encuentro ya existente:');
-        lines.push('• Inicio: ' + formatIsoPeriod(periods[0]));
-        lines.push('• Fin: ' + formatIsoPeriod(periods[1]));
-    } else if (periods.length === 1) {
-        lines.push('');
-        lines.push('Periodo del encuentro ya existente: ' + formatIsoPeriod(periods[0]));
-    }
-    return lines.join('\n');
 }
 
 function issueSearchText(issue) {
@@ -152,7 +193,88 @@ function issueSearchText(issue) {
         issue.diagnostics,
         ...(Array.isArray(issue.location) ? issue.location : []),
         ...(Array.isArray(issue.expression) ? issue.expression : []),
+        ...(issue.details && Array.isArray(issue.details.coding)
+            ? issue.details.coding.map((c) => [c && c.system, c && c.code, c && c.display].filter(Boolean).join(' '))
+            : []),
     ].filter(Boolean).join(' ');
+}
+
+/** IHCE: Composition ya existe para el mismo subject/period (historia duplicada). */
+function parseDuplicateRdaHistoria(text) {
+    const t = issueToText(text);
+    if (!t || !/already exist/i.test(t) || !/Composition/i.test(t)) return null;
+
+    const periods = extractPeriodsFromText(t);
+    const lines = [
+        'Ya se registró un RDA (historia clínica) para este paciente en ese horario o rango horario.',
+        'No puede volverse a diligenciar ni enviarse nuevamente con el mismo periodo.',
+        '',
+        'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
+        '',
+    ];
+    const block = formatPeriodBlock(periods, getFormEncounterPeriod());
+    if (block.length) lines.push(...block);
+    else lines.push('Revise la fecha y las horas de inicio/fin de la atención en el formulario.');
+    return lines.join('\n');
+}
+
+/** IHCE: Encounter ya existe para mismo paciente/fecha-hora (episodio duplicado). */
+function parseDuplicateEncounter(text) {
+    const t = issueToText(text);
+    if (!t || !/Resource type\s+'Encounter'/i.test(t) || !/already exist/i.test(t)) return null;
+
+    const periods = extractPeriodsFromText(t);
+    const lines = [
+        'Ya se registró un RDA (encuentro) para este paciente en ese horario o rango horario.',
+        'Para enviar nuevamente, cambie la fecha/hora del encuentro o valide el registro existente en IHCE.',
+        '',
+        'El RDA queda guardado y se marca como NO reenviable (Enviado*=2); no aparecerá en pendientes.',
+        '',
+    ];
+    const block = formatPeriodBlock(periods, getFormEncounterPeriod());
+    if (block.length) lines.push(...block);
+    else lines.push('Revise la fecha y las horas de inicio/fin de la atención en el formulario.');
+    return lines.join('\n');
+}
+
+/**
+ * IHCE: invariante de periodo (Composition/Encounter).
+ * Incluye el caso de fechas futuras y deja el rango usado bien organizado.
+ */
+function parseEncounterPeriodRejected(issueOrText) {
+    const t = issueSearchText(issueOrText);
+    if (!t) return null;
+
+    const isPeriodInvariant =
+        /inv-enc-period-valid-range/i.test(t)
+        || (/start\s*<=\s*now\(\)/i.test(t) && /end\s*<=\s*now\(\)/i.test(t))
+        || /fecha del encuentro.*no puede ser mayor a la fecha actual/i.test(t)
+        || (/start\.exists\(\)/i.test(t) && /end\.exists\(\)/i.test(t) && /start\s*<=\s*end/i.test(t));
+
+    if (!isPeriodInvariant) return null;
+
+    const periods = extractPeriodsFromText(t);
+    const formPeriod = getFormEncounterPeriod();
+    const lines = [
+        'Ya se registró un RDA para este paciente en ese horario o rango horario,',
+        'o el periodo enviado no es aceptado por IHCE para un nuevo envío.',
+        '',
+        'No puede enviarse nuevamente con la misma fecha y horas de atención.',
+        '',
+        'El RDA queda guardado en el Relacionador y se marca como NO reenviable',
+        '(Enviado / Enviado pruebas = 2), por lo que no aparecerá en RDA pendientes.',
+        '',
+    ];
+    const block = formatPeriodBlock(periods, formPeriod);
+    if (block.length) {
+        lines.push(...block);
+    } else {
+        lines.push('No se pudo leer el rango horario del formulario; revise Fecha / Hora inicio / Hora fin.');
+    }
+    lines.push('');
+    lines.push('Detalle IHCE: La fecha del encuentro (inicio y fin) no puede ser mayor a la fecha actual,');
+    lines.push('y el periodo debe ser válido (inicio ≤ fin). Ajuste el rango o verifique el RDA ya enviado.');
+    return lines.join('\n');
 }
 
 /** IHCE: Patient.telecom inválido (cardinality 0..0 con valor no conforme). */
@@ -182,6 +304,8 @@ export function extractIhceMessage(data) {
         if (typeof i === 'string') {
             const telecomMsg = parsePatientTelecomInvalid(i);
             if (telecomMsg) return [telecomMsg];
+            const periodMsg = parseEncounterPeriodRejected(i);
+            if (periodMsg) return [periodMsg];
             const dup = parseDuplicateRdaHistoria(i);
             if (dup) return [dup];
             const dupEncounter = parseDuplicateEncounter(i);
@@ -192,6 +316,8 @@ export function extractIhceMessage(data) {
         if (!i || typeof i !== 'object') return [];
         const telecomObj = parsePatientTelecomInvalid(issueSearchText(i));
         if (telecomObj) return [telecomObj];
+        const periodObj = parseEncounterPeriodRejected(i);
+        if (periodObj) return [periodObj];
         const dupObj = parseDuplicateRdaHistoria(issueToText(i));
         if (dupObj) return [dupObj];
         const dupEncounterObj = parseDuplicateEncounter(issueToText(i));
@@ -222,8 +348,12 @@ export function extractIhceMessage(data) {
         for (let idx = 0; idx < data.issue.length; idx++) {
             const telecomMsg = parsePatientTelecomInvalid(issueSearchText(data.issue[idx]));
             if (telecomMsg) return telecomMsg;
+            const periodMsg = parseEncounterPeriodRejected(data.issue[idx]);
+            if (periodMsg) return periodMsg;
             const dup = parseDuplicateRdaHistoria(data.issue[idx]);
             if (dup) return dup;
+            const dupEncounter = parseDuplicateEncounter(data.issue[idx]);
+            if (dupEncounter) return dupEncounter;
         }
         data.issue.forEach((i, idx) => {
             formatIssue(i, idx).forEach((l) => lines.push(l));
@@ -424,7 +554,7 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
 
     if (isSandbox) {
         let msg = extractIhceMessage(data);
-        const historiaDuplicada = Boolean(msg && msg.includes('ya fue registrada en IHCE'));
+        const historiaDuplicada = Boolean(msg && /Ya se registró un RDA|ya fue registrada en IHCE/i.test(msg));
         if (!msg) {
             msg = resp.ok
                 ? 'El envío a IHCE (sandbox) finalizó correctamente. Use los botones de abajo para ver JSON de respuesta o el Bundle enviado.'
@@ -442,7 +572,7 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
             icon: icon,
             title: resp.ok
                 ? 'IHCE — Sandbox'
-                : (historiaDuplicada ? 'IHCE — Historia ya registrada' : 'IHCE — Sandbox (error)'),
+                : (historiaDuplicada ? 'IHCE — RDA ya registrado / periodo no válido' : 'IHCE — Sandbox (error)'),
             html:
                 '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
                 '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +
@@ -531,7 +661,7 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
     const msgProd = extractIhceMessage(data) || (resp.ok
         ? 'Envío a IHCE (producción) finalizado.'
         : 'IHCE respondió con error HTTP ' + resp.status + '.');
-    const historiaDuplicadaProd = Boolean(msgProd && msgProd.includes('ya fue registrada en IHCE'));
+    const historiaDuplicadaProd = Boolean(msgProd && /Ya se registró un RDA|ya fue registrada en IHCE/i.test(msgProd));
     const jsonBtnProdHtml =
         bundleCtx && bundleCtx.id != null
             ? '<p class="mt-3 mb-0 text-center"><button type="button" class="btn btn-sm btn-outline-light" id="rda-ihce-btn-json-enviado">Ver JSON enviado</button></p>'
@@ -540,7 +670,7 @@ export function swalRespuestaIhce(resp, data, ambienteUi, bundleCtx) {
         icon: resp.ok ? 'success' : (historiaDuplicadaProd ? 'warning' : 'error'),
         title: resp.ok
             ? 'IHCE — Producción'
-            : (historiaDuplicadaProd ? 'IHCE — Historia ya registrada' : 'IHCE — Producción (error)'),
+            : (historiaDuplicadaProd ? 'IHCE — RDA ya registrado / periodo no válido' : 'IHCE — Producción (error)'),
         html:
             '<p class="small text-start mb-2" style="' + RDA_IHCE_SWAL_LABEL_STYLE + '">Resumen de la respuesta (IHCE / FHIR):</p>' +
             '<div style="' + RDA_IHCE_SWAL_PANEL_STYLE + '">' +
