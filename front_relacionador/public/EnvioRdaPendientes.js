@@ -6,13 +6,13 @@
  * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
  *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
-import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260727b';
+import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260727c';
 
 (function () {
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
     // Señal de versión en consola para verificar que no hay JS cacheado viejo.
-    try { console.info('[EnvioRdaPendientes] build 20260727b — OK / OK ya existía / Error'); } catch (_) {}
+    try { console.info('[EnvioRdaPendientes] build 20260727c — Ver detalle en errores tras refresco'); } catch (_) {}
 
     /**
      * Tri-estado del envío masivo:
@@ -37,6 +37,70 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         if (estado === 'ok') return 'OK';
         if (estado === 'ya_existia') return 'OK ya existía';
         return 'Error';
+    }
+
+    /** HTML de la celda Resultado + Corregir según el tri-estado del envío. */
+    function htmlCeldasEnvio(r) {
+        const estado = clasificarResultado(r);
+        let resultadoHtml;
+        if (estado === 'ok') {
+            resultadoHtml =
+                '<span class="badge bg-success">OK</span> ' +
+                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
+        } else if (estado === 'ya_existia') {
+            resultadoHtml =
+                '<span class="badge bg-info text-dark">OK ya existía</span> ' +
+                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
+        } else {
+            resultadoHtml =
+                '<span class="badge bg-danger">Error</span> ' +
+                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
+        }
+
+        let corregirHtml = '<span class="text-muted">—</span>';
+        if (estado === 'error') {
+            const esProd = state.ambiente === 'prod';
+            if (!esProd) {
+                corregirHtml = '<span class="badge bg-secondary">Solo producción</span>';
+            } else {
+                const tipoParam = state.tipo === 'ce' ? 'ce' : 'paciente';
+                corregirHtml =
+                    `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
+            }
+        }
+        return { estado, resultadoHtml, corregirHtml };
+    }
+
+    function aplicarResultadoEnFila(row, r) {
+        if (!row || !r) return;
+        const { estado, resultadoHtml, corregirHtml } = htmlCeldasEnvio(r);
+        const cel = row.querySelector('.celda-resultado');
+        const celCorregir = row.querySelector('.celda-corregir');
+        if (cel) {
+            cel.classList.remove('text-muted');
+            cel.innerHTML = resultadoHtml;
+            const btn = cel.querySelector('.btn-detalle');
+            if (btn) btn.addEventListener('click', () => mostrarDetalle(r));
+        }
+        if (celCorregir) {
+            celCorregir.classList.remove('text-muted');
+            celCorregir.innerHTML = corregirHtml;
+        }
+        if (estado === 'ok' || estado === 'ya_existia') {
+            row.classList.add('table-secondary');
+            const chk = row.querySelector('.chk-fila');
+            if (chk) {
+                chk.checked = false;
+                chk.disabled = true;
+            }
+        }
+    }
+
+    function podarResultadosPorFilas() {
+        const ids = new Set((state.filas || []).map((f) => Number(f.id)));
+        Object.keys(state.resultadosPorId || {}).forEach((k) => {
+            if (!ids.has(Number(k))) delete state.resultadosPorId[k];
+        });
     }
 
     const SWAL_PRE =
@@ -331,7 +395,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         }));
         sortFilasInPlace();
         wireSortHeaders();
-        state.resultadosPorId = {};
+        // Conservar resultados de errores del último lote; solo podar ids que ya no están.
+        podarResultadosPorFilas();
         el.chkTodos.checked = false;
         if (!state.filas.length) {
             const colspan = 11;
@@ -343,6 +408,13 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
 
         const rows = state.filas.map((f) => {
             const id = f.id;
+            const prev = state.resultadosPorId[id] || state.resultadosPorId[String(id)];
+            const celdasEnvio = prev
+                ? htmlCeldasEnvio(prev)
+                : {
+                    resultadoHtml: '<span class="text-muted">—</span>',
+                    corregirHtml: '<span class="text-muted">—</span>',
+                };
             const baseCells =
                 state.tipo === 'paciente'
                     ? `<td>${escapeHtml(f.documento)}</td>
@@ -362,8 +434,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 <td><input type="checkbox" class="form-check-input chk-fila" value="${id}"></td>
                 <td>${id}</td>
                 ${baseCells}
-                <td class="celda-resultado text-muted">—</td>
-                <td class="celda-corregir text-muted">—</td>
+                <td class="celda-resultado">${celdasEnvio.resultadoHtml}</td>
+                <td class="celda-corregir">${celdasEnvio.corregirHtml}</td>
             </tr>`;
         });
         el.tbody.innerHTML = rows.join('');
@@ -373,6 +445,14 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             cb.addEventListener('change', () => {
                 el.chkTodos.checked = Array.from(el.tbody.querySelectorAll('.chk-fila')).every((c) => c.checked);
             });
+        });
+        // Reenganchar «Ver detalle» en filas con resultado (errores que siguen en pendientes).
+        el.tbody.querySelectorAll('tr[data-id]').forEach((row) => {
+            const id = parseInt(row.getAttribute('data-id'), 10);
+            const r = state.resultadosPorId[id] || state.resultadosPorId[String(id)];
+            if (!r) return;
+            const btn = row.querySelector('.btn-detalle');
+            if (btn) btn.addEventListener('click', () => mostrarDetalle(r));
         });
     }
 
@@ -410,9 +490,13 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         });
     }
 
-    async function buscar() {
+    async function buscar(opts) {
+        const keepResultados = Boolean(opts && opts.keepResultados);
         try {
-            state.ihceTokenRequestDebug = null;
+            if (!keepResultados) {
+                state.ihceTokenRequestDebug = null;
+                state.resultadosPorId = {};
+            }
             if (!el.btnBuscar || !el.selTipo || !el.fechaDesde || !el.fechaHasta || !el.selAmbiente) {
                 swalErr('Interfaz', 'Faltan controles en la página. Recargue (Ctrl+F5).');
                 return;
@@ -897,63 +981,27 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             state.ihceTokenRequestDebug = data.ihceTokenRequestDebug || null;
             const list = data.resultados || [];
             list.forEach((r) => {
-                state.resultadosPorId[r.id] = r;
-                const row = el.tbody.querySelector(`tr[data-id="${r.id}"]`);
-                if (row) {
-                    const cel = row.querySelector('.celda-resultado');
-                    const celCorregir = row.querySelector('.celda-corregir');
-                    const estado = clasificarResultado(r);
-                    if (cel) {
-                        if (estado === 'ok') {
-                            cel.innerHTML =
-                                '<span class="badge bg-success">OK</span> ' +
-                                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
-                        } else if (estado === 'ya_existia') {
-                            cel.innerHTML =
-                                '<span class="badge bg-info text-dark">OK ya existía</span> ' +
-                                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
-                        } else {
-                            cel.innerHTML =
-                                '<span class="badge bg-danger">Error</span> ' +
-                                '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
-                        }
-                        const btn = cel.querySelector('.btn-detalle');
-                        if (btn) {
-                            btn.addEventListener('click', () => mostrarDetalle(r));
-                        }
-                    }
-                    if (celCorregir) {
-                        const esProd = state.ambiente === 'prod';
-                        if (estado === 'ok' || estado === 'ya_existia') {
-                            celCorregir.innerHTML = '<span class="text-muted">—</span>';
-                        } else if (!esProd) {
-                            celCorregir.innerHTML = '<span class="badge bg-secondary">Solo producción</span>';
-                        } else {
-                            const tipoParam = state.tipo === 'ce' ? 'ce' : 'paciente';
-                            celCorregir.innerHTML =
-                                `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
-                        }
-                    }
-                    // OK y OK ya existía: salen de pendientes (Enviado*=1 o 2).
-                    if (estado === 'ok' || estado === 'ya_existia') {
-                        row.classList.add('table-secondary');
-                        const chk = row.querySelector('.chk-fila');
-                        if (chk) {
-                            chk.checked = false;
-                            chk.disabled = true;
-                        }
-                    }
+                const estado = clasificarResultado(r);
+                // OK / OK ya existía: no guardar (desaparecen del listado).
+                // Error: conservar para el botón «Ver detalle» tras refrescar.
+                if (estado === 'error') {
+                    state.resultadosPorId[r.id] = r;
+                } else {
+                    delete state.resultadosPorId[r.id];
                 }
+                const row = el.tbody.querySelector(`tr[data-id="${r.id}"]`);
+                if (row) aplicarResultadoEnFila(row, r);
             });
             el.envioBar.style.width = '100%';
             const yaN = list.filter((r) => clasificarResultado(r) === 'ya_existia').length;
-            el.envioProgreso.textContent = yaN
-                ? `Listo: ${list.length} respuesta(s). ${yaN} OK ya existía(n) y salen de pendientes.`
+            const errN = list.filter((r) => clasificarResultado(r) === 'error').length;
+            el.envioProgreso.textContent = yaN || errN
+                ? `Listo: ${list.length}. OK ya existía: ${yaN} (salen). Error: ${errN} (siguen con Ver detalle).`
                 : `Listo: ${list.length} respuesta(s) recibidas.`;
             mostrarResumenLote(list);
             await cargarDashboard();
-            // Refrescar listado: Enviado*=2 (already exist) ya no debe aparecer.
-            await buscar();
+            // Refresco: ya_existia/OK salen; errores se quedan con su botón Ver detalle.
+            await buscar({ keepResultados: true });
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Envío', text: err.message || String(err) });
         } finally {
@@ -998,6 +1046,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             el.selTipo.addEventListener('change', () => {
                 state.tipo = el.selTipo.value === 'ce' ? 'ce' : 'paciente';
                 state.filas = [];
+                state.resultadosPorId = {};
+                state.ihceTokenRequestDebug = null;
                 syncThead();
                 syncDashTipoActivo();
                 wireSortHeaders();
