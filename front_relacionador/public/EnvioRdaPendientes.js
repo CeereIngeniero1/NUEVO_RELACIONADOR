@@ -6,13 +6,38 @@
  * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
  *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
-import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260727a';
+import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260727b';
 
 (function () {
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
     // Señal de versión en consola para verificar que no hay JS cacheado viejo.
-    try { console.info('[EnvioRdaPendientes] build 20260727a — already exist sale de pendientes'); } catch (_) {}
+    try { console.info('[EnvioRdaPendientes] build 20260727b — OK / OK ya existía / Error'); } catch (_) {}
+
+    /**
+     * Tri-estado del envío masivo:
+     *   ok          → enviado bien
+     *   ya_existia  → already exist en IHCE (Enviado*=2, sale de pendientes)
+     *   error       → falla corregible / reintentable
+     */
+    function clasificarResultado(r) {
+        if (!r) return 'error';
+        if (r.estado === 'ok' || r.estado === 'ya_existia' || r.estado === 'error') return r.estado;
+        if (r.ok) return 'ok';
+        if (r.noReenviable) return 'ya_existia';
+        const cuerpo = String(r.cuerpoTextoTruncado || '');
+        if (/already\s*exist/i.test(cuerpo)) return 'ya_existia';
+        try {
+            if (isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r))) return 'ya_existia';
+        } catch (_) { /* ignore */ }
+        return 'error';
+    }
+
+    function etiquetaEstado(estado) {
+        if (estado === 'ok') return 'OK';
+        if (estado === 'ya_existia') return 'OK ya existía';
+        return 'Error';
+    }
 
     const SWAL_PRE =
         'text-align:left;font-size:0.72rem;max-height:70vh;overflow:auto;white-space:pre-wrap;' +
@@ -563,9 +588,10 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         } catch (e) {
             /* texto plano */
         }
-        const ok = res.ok;
+        const estado = clasificarResultado(res);
         const resumen = resumenIhceDesdeResultado(res);
-        const yaRegistrado = !ok && isIhceYaRegistradoMessage(resumen);
+        const yaExistia = estado === 'ya_existia';
+        const ok = estado === 'ok';
 
         const showJsonRespuesta = () => {
             let jsonText = pretty;
@@ -646,18 +672,24 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             ? '<button type="button" class="btn btn-sm btn-outline-light" id="btnJsonTokenReq">Solicitud token</button>'
             : '';
 
-        const esErrorComun = yaRegistrado || /periodo|fecha del encuentro|telecom|teléfono/i.test(resumen);
+        const esErrorComun = yaExistia || /periodo|fecha del encuentro|telecom|teléfono/i.test(resumen);
         const ayudaHtml = ok
             ? ''
-            : (esErrorComun
-                ? '<p class="small text-start mt-2 mb-0 text-warning">Error común interpretado. El JSON técnico recibido queda en el botón de abajo.</p>'
-                : '<p class="small text-start mt-2 mb-0 text-muted">Error no tipificado: revise el JSON recibido para el detalle técnico.</p>');
+            : (yaExistia
+                ? '<p class="small text-start mt-2 mb-0 text-success">Tratado como <b>OK ya existía</b>: se marcó Enviado*=2 y ya no aparece en pendientes.</p>'
+                : (esErrorComun
+                    ? '<p class="small text-start mt-2 mb-0 text-warning">Error común interpretado. El JSON técnico recibido queda en el botón de abajo.</p>'
+                    : '<p class="small text-start mt-2 mb-0 text-muted">Error no tipificado: revise el JSON recibido para el detalle técnico.</p>'));
+
+        const titleDetalle = ok
+            ? 'OK — enviado a IHCE'
+            : (yaExistia
+                ? 'OK ya existía — sale de pendientes'
+                : `Error HTTP ${res.httpStatus}`);
 
         Swal.fire({
-            icon: ok ? 'success' : (yaRegistrado ? 'warning' : 'error'),
-            title: ok
-                ? 'Respuesta IHCE'
-                : (yaRegistrado ? 'IHCE — RDA ya registrado / no reenviable' : `Error HTTP ${res.httpStatus}`),
+            icon: ok ? 'success' : (yaExistia ? 'info' : 'error'),
+            title: titleDetalle,
             html:
                 '<p class="small text-start mb-2">Resumen legible:</p>' +
                 `<div style="${SWAL_PRE}">${escapeHtml(resumen).replace(/\n/g, '<br>')}</div>` +
@@ -687,19 +719,13 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
 
     function mostrarResumenLote(list) {
         if (!Array.isArray(list) || list.length === 0) return;
-        const okN = list.filter((r) => r && r.ok).length;
-        const yaN = list.filter((r) => r && (
-            r.noReenviable
-            || (!r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r)))
-            || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')))
-        )).length;
-        const errN = list.length - okN - yaN;
+        const okN = list.filter((r) => clasificarResultado(r) === 'ok').length;
+        const yaN = list.filter((r) => clasificarResultado(r) === 'ya_existia').length;
+        const errN = list.filter((r) => clasificarResultado(r) === 'error').length;
         const optionsHtml = list
             .map((r) => {
-                const ya = r.noReenviable
-                    || (!r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r)))
-                    || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')));
-                const label = r.ok ? 'OK' : (ya ? 'Ya en IHCE' : 'Error ' + r.httpStatus);
+                const estado = clasificarResultado(r);
+                const label = etiquetaEstado(estado) + (estado === 'error' ? ' ' + r.httpStatus : '');
                 return `<option value="${r.id}">ID ${r.id} — ${label}</option>`;
             })
             .join('');
@@ -722,12 +748,12 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             : '';
 
         Swal.fire({
-            icon: errN === 0 ? (yaN > 0 ? 'warning' : 'success') : 'warning',
+            icon: errN === 0 ? (yaN > 0 ? 'info' : 'success') : 'warning',
             title: 'Resumen envío masivo',
             html:
-                `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · Ya en IHCE: <b>${yaN}</b> · Error: <b>${errN}</b></p>` +
+                `<p class="small text-start mb-2">Procesados: <b>${list.length}</b> · OK: <b>${okN}</b> · OK ya existía: <b>${yaN}</b> · Error: <b>${errN}</b></p>` +
                 (yaN
-                    ? '<p class="small text-start text-warning mb-2">Los «Ya en IHCE» se marcaron como no reenviables (Enviado*=2) y salen de pendientes.</p>'
+                    ? '<p class="small text-start text-success mb-2">Los «OK ya existía» se marcaron Enviado*=2 y <b>ya no aparecen en pendientes</b>.</p>'
                     : '') +
                 '<label class="form-label small mb-1">Seleccione un registro para inspeccionar:</label>' +
                 `<select id="selDetalleLote" class="form-select form-select-sm">${optionsHtml}</select>` +
@@ -876,18 +902,15 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 if (row) {
                     const cel = row.querySelector('.celda-resultado');
                     const celCorregir = row.querySelector('.celda-corregir');
-                    const resumen = resumenIhceDesdeResultado(r);
-                    const yaRegistrado = Boolean(r.noReenviable)
-                        || (!r.ok && isIhceYaRegistradoMessage(resumen))
-                        || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')));
+                    const estado = clasificarResultado(r);
                     if (cel) {
-                        if (r.ok) {
+                        if (estado === 'ok') {
                             cel.innerHTML =
-                                '<span class="badge bg-success">Enviado OK</span> ' +
+                                '<span class="badge bg-success">OK</span> ' +
                                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
-                        } else if (yaRegistrado) {
+                        } else if (estado === 'ya_existia') {
                             cel.innerHTML =
-                                '<span class="badge bg-warning text-dark">Ya en IHCE (sale de pendientes)</span> ' +
+                                '<span class="badge bg-info text-dark">OK ya existía</span> ' +
                                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
                         } else {
                             cel.innerHTML =
@@ -901,7 +924,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                     }
                     if (celCorregir) {
                         const esProd = state.ambiente === 'prod';
-                        if (r.ok || yaRegistrado) {
+                        if (estado === 'ok' || estado === 'ya_existia') {
                             celCorregir.innerHTML = '<span class="text-muted">—</span>';
                         } else if (!esProd) {
                             celCorregir.innerHTML = '<span class="badge bg-secondary">Solo producción</span>';
@@ -911,8 +934,8 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                                 `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
                         }
                     }
-                    // Quitar de la vista de pendientes de inmediato (también se refresca con buscar).
-                    if (r.ok || yaRegistrado) {
+                    // OK y OK ya existía: salen de pendientes (Enviado*=1 o 2).
+                    if (estado === 'ok' || estado === 'ya_existia') {
                         row.classList.add('table-secondary');
                         const chk = row.querySelector('.chk-fila');
                         if (chk) {
@@ -923,9 +946,9 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 }
             });
             el.envioBar.style.width = '100%';
-            const yaN = list.filter((r) => r && (r.noReenviable || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || ''))))).length;
+            const yaN = list.filter((r) => clasificarResultado(r) === 'ya_existia').length;
             el.envioProgreso.textContent = yaN
-                ? `Listo: ${list.length} respuesta(s). ${yaN} ya existían en IHCE y salen de pendientes.`
+                ? `Listo: ${list.length} respuesta(s). ${yaN} OK ya existía(n) y salen de pendientes.`
                 : `Listo: ${list.length} respuesta(s) recibidas.`;
             mostrarResumenLote(list);
             await cargarDashboard();

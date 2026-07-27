@@ -347,12 +347,15 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
                     ambiente,
                     bodyText: sendResp.body,
                 });
+            const yaExistia = Boolean(marca.noReenviable);
+            // Tri-estado para UI: ok | ya_existia | error (ya_existia ⇒ Enviado*=2, sale de pendientes)
             resultados.push({
                 id,
                 ok,
+                estado: ok ? 'ok' : (yaExistia ? 'ya_existia' : 'error'),
                 httpStatus: sendResp.status,
                 cuerpoTextoTruncado,
-                noReenviable: Boolean(marca.noReenviable),
+                noReenviable: yaExistia,
                 marcadoNoReenviable: Boolean(marca.marcado),
             });
         }
@@ -412,12 +415,14 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
                     ambiente,
                     bodyText: sendResp.body,
                 });
+            const yaExistia = Boolean(marca.noReenviable);
             resultados.push({
                 id,
                 ok,
+                estado: ok ? 'ok' : (yaExistia ? 'ya_existia' : 'error'),
                 httpStatus: sendResp.status,
                 cuerpoTextoTruncado,
-                noReenviable: Boolean(marca.noReenviable),
+                noReenviable: yaExistia,
                 marcadoNoReenviable: Boolean(marca.marcado),
             });
         }
