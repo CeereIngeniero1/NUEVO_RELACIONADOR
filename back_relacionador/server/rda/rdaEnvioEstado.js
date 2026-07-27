@@ -34,7 +34,7 @@ function isIhceNoReenviableResponse(body) {
     const t = responseBodyToText(body);
     if (!t) return false;
 
-    if (/already exist/i.test(t) && (/Composition/i.test(t) || /Encounter/i.test(t))) {
+    if (/already\s*exist/i.test(t) && (/Composition/i.test(t) || /Encounter/i.test(t))) {
         return true;
     }
     if (/inv-enc-period-valid-range/i.test(t)) return true;
