@@ -9,6 +9,11 @@ const Router = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const { loadDotEnvFromCandidates } = require('../../config/envLoader');
 const { buildIhceTokenRequestDebug } = require('../../services/ihceTokenDebug');
+const {
+    RDA_ENVIO_NO_REENVIBLE,
+    isIhceNoReenviableResponse,
+    setRdaEnvioMarca,
+} = require('../../rda/rdaEnvioEstado');
 
 const router = Router();
 
@@ -32,6 +37,34 @@ function rdaEnvioMasivoVersion() {
         .trim()
         .toLowerCase();
     return v === 'v2' ? 'v2' : 'legacy';
+}
+
+/**
+ * Si IHCE responde already exist / periodo inválido, marcar Enviado*=2
+ * para que no vuelva a salir en pendientes (independiente de legacy/v2).
+ */
+async function marcarNoReenviableSiAplica({ kind, id, ambiente, bodyText }) {
+    if (!isIhceNoReenviableResponse(bodyText)) {
+        return { noReenviable: false, marcado: false };
+    }
+    try {
+        const pool = await poolPromise;
+        await setRdaEnvioMarca({
+            pool,
+            sql,
+            kind,
+            id,
+            ambiente,
+            valor: RDA_ENVIO_NO_REENVIBLE,
+        });
+        return { noReenviable: true, marcado: true };
+    } catch (err) {
+        console.error(
+            `❌ [RdaEnvioMasivo] No se pudo marcar ${kind} id=${id} como no reenviable:`,
+            err && err.message ? err.message : err
+        );
+        return { noReenviable: true, marcado: false, error: err.message || String(err) };
+    }
 }
 
 const internalPort = () => parseInt(process.env.BACK_PORT || process.env.PORT || '3000', 10);
@@ -306,11 +339,21 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
             if (cuerpoTextoTruncado.length > BODY_TRUNC) {
                 cuerpoTextoTruncado = `${cuerpoTextoTruncado.slice(0, BODY_TRUNC)}…`;
             }
+            const marca = ok
+                ? { noReenviable: false, marcado: false }
+                : await marcarNoReenviableSiAplica({
+                    kind: 'paciente',
+                    id,
+                    ambiente,
+                    bodyText: sendResp.body,
+                });
             resultados.push({
                 id,
                 ok,
                 httpStatus: sendResp.status,
                 cuerpoTextoTruncado,
+                noReenviable: Boolean(marca.noReenviable),
+                marcadoNoReenviable: Boolean(marca.marcado),
             });
         }
         return res.json({ ok: true, ambiente, ihceTokenRequestDebug, resultados });
@@ -361,11 +404,21 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
             if (cuerpoTextoTruncado.length > BODY_TRUNC) {
                 cuerpoTextoTruncado = `${cuerpoTextoTruncado.slice(0, BODY_TRUNC)}…`;
             }
+            const marca = ok
+                ? { noReenviable: false, marcado: false }
+                : await marcarNoReenviableSiAplica({
+                    kind: 'rdace',
+                    id,
+                    ambiente,
+                    bodyText: sendResp.body,
+                });
             resultados.push({
                 id,
                 ok,
                 httpStatus: sendResp.status,
                 cuerpoTextoTruncado,
+                noReenviable: Boolean(marca.noReenviable),
+                marcadoNoReenviable: Boolean(marca.marcado),
             });
         }
         return res.json({ ok: true, ambiente, ihceTokenRequestDebug, resultados });

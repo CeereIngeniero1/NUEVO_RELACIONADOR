@@ -6,13 +6,13 @@
  * - El envío en serie lo hace el backend; modo V2 interno se activa con env `RDA_ENVIO_MASIVO_VERSION=v2`
  *   (no confundir con `localStorage.RDA_API_VERSION`, que solo aplica a `rda/index.js` en Asignar).
  */
-import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260722c';
+import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihceAsignar.js?v=20260727a';
 
 (function () {
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
     // Señal de versión en consola para verificar que no hay JS cacheado viejo.
-    try { console.info('[EnvioRdaPendientes] build 20260722c — mensajes IHCE amigables activos'); } catch (_) {}
+    try { console.info('[EnvioRdaPendientes] build 20260727a — already exist sale de pendientes'); } catch (_) {}
 
     const SWAL_PRE =
         'text-align:left;font-size:0.72rem;max-height:70vh;overflow:auto;white-space:pre-wrap;' +
@@ -688,11 +688,17 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
     function mostrarResumenLote(list) {
         if (!Array.isArray(list) || list.length === 0) return;
         const okN = list.filter((r) => r && r.ok).length;
-        const yaN = list.filter((r) => r && !r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r))).length;
+        const yaN = list.filter((r) => r && (
+            r.noReenviable
+            || (!r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r)))
+            || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')))
+        )).length;
         const errN = list.length - okN - yaN;
         const optionsHtml = list
             .map((r) => {
-                const ya = !r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r));
+                const ya = r.noReenviable
+                    || (!r.ok && isIhceYaRegistradoMessage(resumenIhceDesdeResultado(r)))
+                    || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')));
                 const label = r.ok ? 'OK' : (ya ? 'Ya en IHCE' : 'Error ' + r.httpStatus);
                 return `<option value="${r.id}">ID ${r.id} — ${label}</option>`;
             })
@@ -871,7 +877,9 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                     const cel = row.querySelector('.celda-resultado');
                     const celCorregir = row.querySelector('.celda-corregir');
                     const resumen = resumenIhceDesdeResultado(r);
-                    const yaRegistrado = !r.ok && isIhceYaRegistradoMessage(resumen);
+                    const yaRegistrado = Boolean(r.noReenviable)
+                        || (!r.ok && isIhceYaRegistradoMessage(resumen))
+                        || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || '')));
                     if (cel) {
                         if (r.ok) {
                             cel.innerHTML =
@@ -879,7 +887,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
                         } else if (yaRegistrado) {
                             cel.innerHTML =
-                                '<span class="badge bg-warning text-dark">Ya en IHCE (no pendiente)</span> ' +
+                                '<span class="badge bg-warning text-dark">Ya en IHCE (sale de pendientes)</span> ' +
                                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
                         } else {
                             cel.innerHTML =
@@ -903,13 +911,25 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                                 `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
                         }
                     }
+                    // Quitar de la vista de pendientes de inmediato (también se refresca con buscar).
+                    if (r.ok || yaRegistrado) {
+                        row.classList.add('table-secondary');
+                        const chk = row.querySelector('.chk-fila');
+                        if (chk) {
+                            chk.checked = false;
+                            chk.disabled = true;
+                        }
+                    }
                 }
             });
             el.envioBar.style.width = '100%';
-            el.envioProgreso.textContent = `Listo: ${list.length} respuesta(s) recibidas.`;
+            const yaN = list.filter((r) => r && (r.noReenviable || (!r.ok && /already\s*exist/i.test(String(r.cuerpoTextoTruncado || ''))))).length;
+            el.envioProgreso.textContent = yaN
+                ? `Listo: ${list.length} respuesta(s). ${yaN} ya existían en IHCE y salen de pendientes.`
+                : `Listo: ${list.length} respuesta(s) recibidas.`;
             mostrarResumenLote(list);
             await cargarDashboard();
-            // Refrescar listado: los marcados Enviado*=2 (ya en IHCE) salen de pendientes.
+            // Refrescar listado: Enviado*=2 (already exist) ya no debe aparecer.
             await buscar();
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Envío', text: err.message || String(err) });
