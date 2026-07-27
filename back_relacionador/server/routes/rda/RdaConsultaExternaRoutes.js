@@ -92,6 +92,7 @@ const {
     isIhceNoReenviableResponse,
     setRdaEnvioMarca,
 } = require('../../rda/rdaEnvioEstado');
+const { validatePeriodoAtencionNoFuturo } = require('../../rda/rdaPeriodoAtencion');
 const {
     telefonoPacienteParaFhir,
     mensajeErrorTelefonoPacienteIhce,
@@ -652,6 +653,13 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
     };
 
     try {
+        const dInicioAtencion = toDateTimeRDACE(FechaHoraInicioAtencion);
+        const dFinAtencion = toDateTimeRDACE(FechaHoraFinAtencion);
+        const periodoOk = validatePeriodoAtencionNoFuturo(dInicioAtencion, dFinAtencion);
+        if (!periodoOk.ok) {
+            return res.status(400).json({ ok: false, error: periodoOk.error });
+        }
+
         const pool = await poolPromise;
         const result = await pool.request()
             .input('DocumentoEntidad', sql.NVarChar, DocumentoEntidad || null)
@@ -659,8 +667,8 @@ router.post('/EvaluacionEntidadRDACE/', async (req, res) => {
             .input('CodigoPrestador', sql.NVarChar, CodigoPrestador || null)
             .input('CodigoAdminPlanBeneficios', sql.NVarChar, CodigoAdminPlanBeneficios || null)
             .input('NombreAdminPlanBeneficios', sql.NVarChar, NombreAdminPlanBeneficios || null)
-            .input('FechaHoraInicioAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraInicioAtencion))
-            .input('FechaHoraFinAtencion', sql.DateTime2, toDateTimeRDACE(FechaHoraFinAtencion))
+            .input('FechaHoraInicioAtencion', sql.DateTime2, dInicioAtencion)
+            .input('FechaHoraFinAtencion', sql.DateTime2, dFinAtencion)
             .input('TipoDocProfesional', sql.NVarChar, TipoDocProfesional || null)
             .input('NumDocProfesional', sql.NVarChar, NumDocProfesional || null)
             .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar, DiagnosticoIngresoCIE11Codigo || null)
