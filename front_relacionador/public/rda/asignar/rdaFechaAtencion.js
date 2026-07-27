@@ -51,6 +51,16 @@ export function wireRdaFechaAtencionGlobal() {
         if (d2 <= d1) {
             return { ok: false, error: 'La hora de fin debe ser posterior a la hora de inicio.' };
         }
+        // IHCE: start/end <= now() (inv-enc-period-valid-range)
+        const ahoraMs = Date.now() + 60 * 1000; // 1 min de holgura por reloj
+        if (d1.getTime() > ahoraMs || d2.getTime() > ahoraMs) {
+            return {
+                ok: false,
+                error:
+                    'La fecha y hora de atención (inicio y fin) no pueden ser futuras. ' +
+                    'Si guarda un encuentro futuro, IHCE lo rechazará al enviar.',
+            };
+        }
         return { ok: true, inicio: inicioStr, fin: finStr };
     };
 

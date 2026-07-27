@@ -34,6 +34,7 @@ const {
     isIhceNoReenviableResponse,
     setRdaEnvioMarca,
 } = require('../../rda/rdaEnvioEstado');
+const { validatePeriodoAtencionNoFuturo } = require('../../rda/rdaPeriodoAtencion');
 const {
     toFhirDateTimeColombia,
     toFhirDateTimeColombiaNow,
@@ -290,6 +291,13 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
     // Convierte un string de fecha en objeto Date; null si no es válido
     const toDate = (str) => colombiaDateTimeToMssqlDate(str);
 
+    const dInicioAtencion = toDate(FechaHoraInicioAtencion) || null;
+    const dFinAtencion = toDate(FechaHoraFinAtencion) || null;
+    const periodoOk = validatePeriodoAtencionNoFuturo(dInicioAtencion, dFinAtencion);
+    if (!periodoOk.ok) {
+        return res.status(400).json({ ok: false, error: periodoOk.error });
+    }
+
     try {
         const pool = await poolPromise;
         let idIdentidadGeneroSeguro = parseIntNullable(IdIdentidadGenero);
@@ -360,8 +368,8 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
             .input('CodigoPrestador',               sql.NVarChar,  codPrestTrim)
             .input('CodigoAdminPlanBeneficios',     sql.NVarChar,  CodigoAdminPlanBeneficios        || null)
             .input('NombreAdminPlanBeneficios',     sql.NVarChar,  NombreAdminPlanBeneficios        || null)
-            .input('FechaHoraInicioAtencion',       sql.DateTime2, toDate(FechaHoraInicioAtencion)  || null)
-            .input('FechaHoraFinAtencion',          sql.DateTime2, toDate(FechaHoraFinAtencion)     || null)
+            .input('FechaHoraInicioAtencion',       sql.DateTime2, dInicioAtencion)
+            .input('FechaHoraFinAtencion',          sql.DateTime2, dFinAtencion)
             .input('TipoDocProfesional',            sql.NVarChar,  TipoDocProfesional               || null)
             .input('NumDocProfesional',             sql.NVarChar,  NumDocProfesional                || null)
             .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar,  DiagnosticoIngresoCIE11Codigo    || null)

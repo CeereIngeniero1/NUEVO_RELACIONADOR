@@ -14,6 +14,7 @@ const {
     isIhceNoReenviableResponse,
     setRdaEnvioMarca,
 } = require('../../rda/rdaEnvioEstado');
+const { validatePeriodoAtencionNoFuturo } = require('../../rda/rdaPeriodoAtencion');
 
 const router = Router();
 
@@ -569,14 +570,23 @@ router.post('/RdaEnvioMasivo/:tipo/:id/corregir', async (req, res) => {
         }
 
         if (tipo === 'ce') {
+            const dInicio = body.FechaHoraInicioAtencion ? new Date(body.FechaHoraInicioAtencion) : null;
+            const dFin = body.FechaHoraFinAtencion ? new Date(body.FechaHoraFinAtencion) : null;
+            const periodoOk = validatePeriodoAtencionNoFuturo(
+                dInicio && !Number.isNaN(dInicio.getTime()) ? dInicio : null,
+                dFin && !Number.isNaN(dFin.getTime()) ? dFin : null
+            );
+            if (!periodoOk.ok) {
+                return res.status(400).json({ ok: false, error: periodoOk.error });
+            }
             await pool.request()
                 .input('Id', sql.Int, id)
                 .input('DocumentoEntidad', sql.NVarChar(50), toTrimmedOrNull(body.DocumentoEntidad))
                 .input('CodigoPrestador', sql.NVarChar(50), toTrimmedOrNull(body.CodigoPrestador))
                 .input('CodigoAdminPlanBeneficios', sql.NVarChar(50), toTrimmedOrNull(body.CodigoAdminPlanBeneficios))
                 .input('NombreAdminPlanBeneficios', sql.NVarChar(200), toTrimmedOrNull(body.NombreAdminPlanBeneficios))
-                .input('FechaHoraInicioAtencion', sql.DateTime, body.FechaHoraInicioAtencion ? new Date(body.FechaHoraInicioAtencion) : null)
-                .input('FechaHoraFinAtencion', sql.DateTime, body.FechaHoraFinAtencion ? new Date(body.FechaHoraFinAtencion) : null)
+                .input('FechaHoraInicioAtencion', sql.DateTime, dInicio && !Number.isNaN(dInicio.getTime()) ? dInicio : null)
+                .input('FechaHoraFinAtencion', sql.DateTime, dFin && !Number.isNaN(dFin.getTime()) ? dFin : null)
                 .input('TipoDocProfesional', sql.VarChar(10), toTrimmedOrNull(body.TipoDocProfesional))
                 .input('NumDocProfesional', sql.NVarChar(50), toTrimmedOrNull(body.NumDocProfesional))
                 .input('DiagnosticoIngresoCIE11Codigo', sql.NVarChar(50), toTrimmedOrNull(body.DiagnosticoIngresoCIE11Codigo))

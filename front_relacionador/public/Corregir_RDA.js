@@ -143,6 +143,29 @@
 
     async function guardar(e) {
         e.preventDefault();
+        const payloadCe = state.idCe ? payloadFromKind('ce') : null;
+        if (payloadCe && (payloadCe.FechaHoraInicioAtencion || payloadCe.FechaHoraFinAtencion)) {
+            const d1 = payloadCe.FechaHoraInicioAtencion ? new Date(payloadCe.FechaHoraInicioAtencion) : null;
+            const d2 = payloadCe.FechaHoraFinAtencion ? new Date(payloadCe.FechaHoraFinAtencion) : null;
+            const ahoraMs = Date.now() + 60 * 1000;
+            if ((d1 && !Number.isNaN(d1.getTime()) && d1.getTime() > ahoraMs)
+                || (d2 && !Number.isNaN(d2.getTime()) && d2.getTime() > ahoraMs)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fecha de atención',
+                    text: 'La fecha y hora de atención (inicio y fin) no pueden ser futuras. IHCE rechaza encuentros posteriores a la hora actual.',
+                });
+                return;
+            }
+            if (d1 && d2 && !Number.isNaN(d1.getTime()) && !Number.isNaN(d2.getTime()) && d2 <= d1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fecha de atención',
+                    text: 'La hora de fin debe ser posterior a la de inicio.',
+                });
+                return;
+            }
+        }
         const reqs = [];
         if (state.idPaciente) {
             reqs.push(fetch(`${apiBase()}/apiV3/RdaEnvioMasivo/paciente/${state.idPaciente}/corregir`, {
@@ -155,7 +178,7 @@
             reqs.push(fetch(`${apiBase()}/apiV3/RdaEnvioMasivo/ce/${state.idCe}/corregir`, {
                 method: 'POST',
                 headers: authHeaders(),
-                body: JSON.stringify(payloadFromKind('ce')),
+                body: JSON.stringify(payloadCe),
             }));
         }
         const resps = await Promise.all(reqs);
