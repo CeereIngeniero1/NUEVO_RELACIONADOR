@@ -1349,7 +1349,6 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
         // Generar el archivo ZIP
         const content = await zip.generateAsync({ type: 'nodebuffer' });
         fs.writeFileSync(rutaArchivo, content);
-        res.json({ mensaje: 'Archivo ZIP generado y almacenado', ruta: rutaArchivo });
 
         // Descomprimir los archivos ZIP
         const rutasZips = [rutaArchivo]; // Aquí se pueden agregar más rutas de archivos ZIP
@@ -1360,12 +1359,472 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
         const IgualdadCarpetaParaXMLS = path.join(RIPS_ROOT, 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
         fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
 
+        const carpetaJson = path.join(rutaBaseDestino, NombreArchivoIgualdadCarpetaParaXMLS);
+        let archivosJson = [];
+        try {
+            if (fs.existsSync(carpetaJson)) {
+                archivosJson = fs.readdirSync(carpetaJson).filter((f) => f.toLowerCase().endsWith('.json'));
+            }
+        } catch (_) { /* ignore */ }
+
+        res.json({
+            mensaje: 'Archivo ZIP generado y almacenado',
+            ruta: rutaArchivo,
+            batchFolder: NombreArchivoIgualdadCarpetaParaXMLS,
+            archivosJson,
+        });
+
     } catch (error) {
         console.error('Error al generar o almacenar el archivo ZIP:', error);
-        res.status(500).send('Error interno al generar el archivo ZIP');
+        if (!res.headersSent) {
+            res.status(500).send('Error interno al generar el archivo ZIP');
+        }
     }
 });
 
+/**
+ * Todo en uno: escribe JSON separado EPS vs PARTICULAR (carpetas distintas).
+ * Body: { eps: [], particulares: [] } (también acepta array legacy = solo EPS).
+ * Nombres de archivo: Prefijo + folio sin ceros (alineado a XML).
+ */
+router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
+    const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
+    const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
+
+    let dataEps = [];
+    let dataPart = [];
+    if (Array.isArray(req.body)) {
+        dataEps = req.body;
+    } else if (req.body && typeof req.body === 'object') {
+        dataEps = Array.isArray(req.body.eps) ? req.body.eps : [];
+        dataPart = Array.isArray(req.body.particulares) ? req.body.particulares : [];
+    }
+
+    const extractPrefijo = (numFactura) => {
+        if (numFactura == null || numFactura === 'SinFactura') return null;
+        const m = String(numFactura).match(/^([A-Za-z]+)/);
+        return m ? m[1] : null;
+    };
+
+    const normalizeClave = (numFactura) => {
+        if (numFactura == null) return 'SinFactura';
+        const s = String(numFactura);
+        if (s === 'SinFactura' || s.startsWith('SinFactura')) return s;
+        const m = s.match(/^([A-Za-z]+)0*(\d+)$/);
+        if (m) return `${m[1]}${parseInt(m[2], 10)}`;
+        return s;
+    };
+
+    const batchFolderOf = (prefijo, tipo) => `${prefijo || 'SIN'} --- ${tipo} --- ${fechaInicio} --- ${fechaFin}`;
+
+    const agrupar = (data) => {
+        const byPrefijo = {};
+        const sinFacturaFiles = [];
+        const facturasAgrupadas = data.reduce((acc, consulta) => {
+            const raw = consulta.numFactura || 'SinFactura';
+            const key = raw === 'SinFactura' || String(raw).startsWith('SinFactura')
+                ? `SinFactura:${(consulta.usuarios && consulta.usuarios[0] && consulta.usuarios[0].numDocumentoIdentificacion) || Math.random()}`
+                : normalizeClave(raw);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(consulta);
+            return acc;
+        }, {});
+
+        for (const [key, consultas] of Object.entries(facturasAgrupadas)) {
+            if (key.startsWith('SinFactura')) {
+                const consulta = consultas[0];
+                const docs = consulta.usuarios
+                    ? consulta.usuarios.map((u) => u.numDocumentoIdentificacion)
+                    : ['unknown'];
+                docs.forEach((documento) => {
+                    sinFacturaFiles.push({
+                        nombre: `SinFactura_${documento}.json`,
+                        contenido: JSON.stringify(consulta, null, 2),
+                    });
+                });
+                continue;
+            }
+            const prefijo = extractPrefijo(consultas[0].numFactura) || extractPrefijo(key) || 'SIN';
+            const clave = normalizeClave(consultas[0].numFactura || key);
+            if (!byPrefijo[prefijo]) byPrefijo[prefijo] = [];
+            byPrefijo[prefijo].push({
+                clave,
+                contenido: JSON.stringify(consultas[0], null, 2),
+            });
+        }
+        return { byPrefijo, sinFacturaFiles };
+    };
+
+    const escribirTipo = async (tipo, data) => {
+        const { byPrefijo, sinFacturaFiles } = agrupar(data);
+        const batchFolders = [];
+        const archivosJson = [];
+
+        for (const [prefijo, files] of Object.entries(byPrefijo)) {
+            const batchFolder = batchFolderOf(prefijo, tipo);
+            batchFolders.push(batchFolder);
+
+            const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
+            const rutaXmlDir = path.join(RIPS_ROOT, 'XMLS', batchFolder);
+            fs.mkdirSync(rutaJsonDir, { recursive: true });
+            fs.mkdirSync(rutaXmlDir, { recursive: true });
+
+            const zip = new JSZip();
+            for (const f of files) {
+                const nombre = `${f.clave}.json`;
+                zip.file(nombre, f.contenido);
+                fs.writeFileSync(path.join(rutaJsonDir, nombre), f.contenido, 'utf8');
+                archivosJson.push({ batchFolder, tipo, nombre });
+            }
+
+            const zipPath = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS', `${batchFolder}.zip`);
+            const content = await zip.generateAsync({ type: 'nodebuffer' });
+            fs.writeFileSync(zipPath, content);
+        }
+
+        // SinFactura solo aplica a PARTICULAR (pacientes sin factura)
+        if (tipo === 'PARTICULAR' && sinFacturaFiles.length) {
+            const targets = batchFolders.length ? batchFolders : [batchFolderOf('SIN', 'PARTICULAR')];
+            for (const batchFolder of targets) {
+                const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
+                fs.mkdirSync(rutaJsonDir, { recursive: true });
+                fs.mkdirSync(path.join(RIPS_ROOT, 'XMLS', batchFolder), { recursive: true });
+                for (const f of sinFacturaFiles) {
+                    fs.writeFileSync(path.join(rutaJsonDir, f.nombre), f.contenido, 'utf8');
+                    archivosJson.push({ batchFolder, tipo, nombre: f.nombre });
+                }
+            }
+            if (!batchFolders.length) batchFolders.push(batchFolderOf('SIN', 'PARTICULAR'));
+        }
+
+        return { batchFolders, archivosJson };
+    };
+
+    try {
+        const outEps = await escribirTipo('EPS', dataEps);
+        const outPart = await escribirTipo('PARTICULAR', dataPart);
+        const batchFolders = [...outEps.batchFolders, ...outPart.batchFolders];
+        const archivosJson = [...outEps.archivosJson, ...outPart.archivosJson];
+
+        res.json({
+            mensaje: 'JSON todo-en-uno generado por prefijo y tipo (EPS / PARTICULAR)',
+            batchFolders,
+            batchFoldersEps: outEps.batchFolders,
+            batchFoldersParticular: outPart.batchFolders,
+            archivosJson,
+            conteoArchivos: archivosJson.length,
+            conteoEps: dataEps.length,
+            conteoParticulares: dataPart.length,
+        });
+    } catch (error) {
+        console.error('Error generar-zip-todo-en-uno:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Error interno al generar JSON todo-en-uno');
+        }
+    }
+});
+
+/**
+ * Empaqueta uno o varios batch `{Prefijo} --- fechas` y reporta estado por factura.
+ * Body: { facturas, xmlError, jsonError, batchFolders? }
+ */
+router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
+    const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
+    const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
+    const suffix = ` --- ${fechaInicio} --- ${fechaFin}`;
+    const facturasXml = Array.isArray(req.body?.facturas) ? req.body.facturas : [];
+    const jsonErrorGlobal = typeof req.body?.jsonError === 'string' ? req.body.jsonError : null;
+    const xmlErrorGlobal = typeof req.body?.xmlError === 'string' ? req.body.xmlError : null;
+
+    const safeList = (dir, ext) => {
+        try {
+            if (!fs.existsSync(dir)) return [];
+            return fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith(ext));
+        } catch (_) {
+            return [];
+        }
+    };
+
+    const discoverBatchFolders = () => {
+        const set = new Set();
+        if (Array.isArray(req.body?.batchFolders)) {
+            req.body.batchFolders.filter(Boolean).forEach((b) => set.add(b));
+        }
+        for (const f of facturasXml) {
+            if (f.batchFolder) set.add(f.batchFolder);
+            if (Array.isArray(f.batchFolders)) f.batchFolders.forEach((b) => set.add(b));
+            const pref = f.Prefijo || f.prefijo;
+            if (pref) {
+                set.add(`${pref} --- EPS${suffix}`);
+                set.add(`${pref} --- PARTICULAR${suffix}`);
+            }
+        }
+        for (const rootName of ['XMLS', 'ARCHIVOS_RIPS_JSON']) {
+            const root = path.join(RIPS_ROOT, rootName);
+            try {
+                if (!fs.existsSync(root)) continue;
+                for (const name of fs.readdirSync(root)) {
+                    const full = path.join(root, name);
+                    if (fs.statSync(full).isDirectory() && name.endsWith(suffix)) {
+                        set.add(name);
+                    }
+                }
+            } catch (_) { /* ignore */ }
+        }
+        return [...set];
+    };
+
+    const batchFolders = discoverBatchFolders();
+    const claveFromFactura = (f) => {
+        const prefijo = f.Prefijo || f.prefijo || '';
+        const no = f.NoFactura != null ? f.NoFactura : (f.factura != null ? f.factura : '');
+        const n = parseInt(String(no), 10);
+        if (prefijo && !Number.isNaN(n)) return `${prefijo}${n}`;
+        if (prefijo && no !== '') return `${prefijo}${no}`;
+        return String(no || '');
+    };
+
+    const rowsByClave = new Map();
+    const upsert = (clave, patch) => {
+        if (!clave) return;
+        const prev = rowsByClave.get(clave) || {
+            clave,
+            NoFactura: '',
+            Prefijo: '',
+            FechaFactura: '',
+            batchFolder: '',
+            estadoXml: 'Sin XML',
+            rutaXml: '',
+            estadoJson: 'Sin JSON',
+            rutaJson: '',
+            estadoEmpaquetado: 'No juntado',
+            rutaEmpaquetado: '',
+            detalle: '',
+        };
+        rowsByClave.set(clave, { ...prev, ...patch });
+    };
+
+    for (const f of facturasXml) {
+        const clave = claveFromFactura(f);
+        const estadoXmlRaw = f.estado || f.Estado || xmlErrorGlobal || 'Desconocido';
+        const xmlOk = /exitos|ya existe/i.test(String(estadoXmlRaw));
+        upsert(clave, {
+            NoFactura: String(f.NoFactura != null ? f.NoFactura : (f.factura || '')),
+            Prefijo: f.Prefijo || f.prefijo || '',
+            FechaFactura: f.FechaFactura || f.fechaFactura || '',
+            batchFolder: f.batchFolder || (f.Prefijo ? `${f.Prefijo}${suffix}` : ''),
+            estadoXml: estadoXmlRaw,
+            rutaXml: f.filePath || '',
+            detalle: xmlOk ? '' : String(estadoXmlRaw),
+        });
+    }
+
+    let empaquetadoError = null;
+
+    for (const batchFolder of batchFolders) {
+        const rutaXml = path.join(RIPS_ROOT, 'XMLS', batchFolder);
+        const rutaJson = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
+        const rutaReporte = path.join(RIPS_ROOT, 'ARCHIVOS_DE_ENVIO', `REPORTE (${batchFolder})`);
+        const rutaConFactura = path.join(rutaReporte, 'CON_FACTURA');
+
+        const xmlFiles = safeList(rutaXml, '.xml');
+        const jsonFiles = safeList(rutaJson, '.json');
+
+        const findJsonMatch = (clave) => {
+            const exact = jsonFiles.find((j) => path.basename(j, '.json') === clave);
+            if (exact) return exact;
+            return jsonFiles.find((j) => {
+                const jb = path.basename(j, '.json');
+                return jb.includes(clave) || clave.includes(jb);
+            }) || null;
+        };
+
+        try {
+            if (fs.existsSync(rutaXml) && fs.existsSync(rutaJson)) {
+                fs.mkdirSync(rutaConFactura, { recursive: true });
+                fs.mkdirSync(path.join(rutaReporte, 'SIN_FACTURA'), { recursive: true });
+
+                for (const xmlFile of xmlFiles) {
+                    const clave = path.basename(xmlFile, '.xml');
+                    const jsonMatch = findJsonMatch(clave);
+                    if (!jsonMatch) continue;
+                    const destDir = path.join(rutaConFactura, clave);
+                    fs.mkdirSync(destDir, { recursive: true });
+                    fs.copyFileSync(path.join(rutaJson, jsonMatch), path.join(destDir, jsonMatch));
+                    fs.copyFileSync(path.join(rutaXml, xmlFile), path.join(destDir, `${clave}.xml`));
+                }
+
+                for (const jf of jsonFiles) {
+                    if (!jf.includes('SinFactura_')) continue;
+                    const nombreSub = jf.replace(/\.json$/i, '');
+                    const dest = path.join(rutaReporte, 'SIN_FACTURA', nombreSub);
+                    fs.mkdirSync(dest, { recursive: true });
+                    fs.copyFileSync(path.join(rutaJson, jf), path.join(dest, jf));
+                }
+            }
+        } catch (err) {
+            console.error('Error empaquetando batch', batchFolder, err);
+            empaquetadoError = [empaquetadoError, `${batchFolder}: ${err.message || err}`].filter(Boolean).join(' | ');
+        }
+
+        for (const f of xmlFiles) {
+            const clave = path.basename(f, '.xml');
+            const metaPath = path.join(rutaXml, f);
+            if (rowsByClave.has(clave)) {
+                const row = rowsByClave.get(clave);
+                if (!row.rutaXml) row.rutaXml = metaPath;
+                if (/sin xml/i.test(row.estadoXml)) row.estadoXml = 'XML en carpeta';
+                if (!Array.isArray(row.batchFoldersSeen)) row.batchFoldersSeen = [];
+                if (!row.batchFoldersSeen.includes(batchFolder)) row.batchFoldersSeen.push(batchFolder);
+            } else {
+                const m = clave.match(/^([A-Za-z]+)(\d+)$/);
+                upsert(clave, {
+                    NoFactura: m ? m[2] : clave,
+                    Prefijo: m ? m[1] : '',
+                    batchFolder,
+                    batchFoldersSeen: [batchFolder],
+                    estadoXml: 'XML en carpeta',
+                    rutaXml: metaPath,
+                });
+            }
+        }
+    }
+
+    // Reconciliar: mirar EPS y PARTICULAR (el XML se marca primero en EPS y ocultaba el JSON PARTICULAR)
+    const tipoDeCarpeta = (bf) => {
+        if (String(bf).includes(' --- PARTICULAR --- ')) return 'PARTICULAR';
+        if (String(bf).includes(' --- EPS --- ')) return 'EPS';
+        return '';
+    };
+
+    for (const [clave, row] of rowsByClave.entries()) {
+        const pref = row.Prefijo || '';
+        const carpetasRelevantes = batchFolders.filter((bf) => {
+            if (Array.isArray(row.batchFoldersSeen) && row.batchFoldersSeen.includes(bf)) return true;
+            if (pref && bf.startsWith(`${pref} ---`)) return true;
+            return false;
+        });
+
+        let mejorJson = null;
+        let mejorEnvio = null;
+        const tiposJson = [];
+        const tiposEnvio = [];
+
+        for (const bf of carpetasRelevantes) {
+            const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', bf);
+            const jsonFilesDir = safeList(rutaJsonDir, '.json');
+            const fuzzy = jsonFilesDir.find((j) => path.basename(j, '.json') === clave)
+                || jsonFilesDir.find((j) => {
+                    const jb = path.basename(j, '.json');
+                    return jb.includes(clave) || clave.includes(jb);
+                });
+            if (fuzzy) {
+                mejorJson = path.join(rutaJsonDir, fuzzy);
+                const t = tipoDeCarpeta(bf);
+                if (t && !tiposJson.includes(t)) tiposJson.push(t);
+            }
+
+            const destDir = path.join(RIPS_ROOT, 'ARCHIVOS_DE_ENVIO', `REPORTE (${bf})`, 'CON_FACTURA', clave);
+            if (fs.existsSync(destDir)) {
+                const files = fs.readdirSync(destDir);
+                const hasXml = files.some((x) => x.toLowerCase().endsWith('.xml'));
+                const hasJson = files.some((x) => x.toLowerCase().endsWith('.json'));
+                if (hasXml && hasJson) {
+                    mejorEnvio = destDir;
+                    const t = tipoDeCarpeta(bf);
+                    if (t && !tiposEnvio.includes(t)) tiposEnvio.push(t);
+                }
+            }
+        }
+
+        if (jsonErrorGlobal && !mejorJson) {
+            row.estadoJson = `Error: ${jsonErrorGlobal}`;
+            row.detalle = [row.detalle, `JSON: ${jsonErrorGlobal}`].filter(Boolean).join(' | ');
+        } else if (mejorJson) {
+            row.estadoJson = tiposJson.length
+                ? `JSON generado (${tiposJson.join(' + ')})`
+                : 'JSON generado';
+            row.rutaJson = mejorJson;
+            row.detalle = String(row.detalle || '')
+                .split(' | ')
+                .filter((part) => part && !/no se encontró json/i.test(part))
+                .join(' | ');
+        } else {
+            row.estadoJson = 'Sin JSON';
+            if (!/no se encontró json/i.test(row.detalle || '')) {
+                row.detalle = [row.detalle, 'No se encontró JSON para esta factura'].filter(Boolean).join(' | ');
+            }
+        }
+
+        if (mejorEnvio) {
+            row.estadoEmpaquetado = tiposEnvio.length
+                ? `Juntado OK (${tiposEnvio.join(' + ')})`
+                : 'Juntado OK';
+            row.rutaEmpaquetado = mejorEnvio;
+            row.detalle = String(row.detalle || '')
+                .split(' | ')
+                .filter((part) => part && !/no se empaquetaron|envío incompleta/i.test(part))
+                .join(' | ');
+        } else if (empaquetadoError) {
+            row.estadoEmpaquetado = `Error: ${empaquetadoError}`;
+        } else if (/json generado/i.test(row.estadoJson) && /exitos|ya existe|en carpeta/i.test(row.estadoXml)) {
+            row.estadoEmpaquetado = 'No juntado';
+            if (!/no se empaquetaron/i.test(row.detalle || '')) {
+                row.detalle = [row.detalle, 'XML y JSON existen pero no se empaquetaron'].filter(Boolean).join(' | ');
+            }
+        } else {
+            row.estadoEmpaquetado = 'No juntado';
+        }
+
+        if (row.batchFoldersSeen && row.batchFoldersSeen.length) {
+            row.batchFolder = row.batchFoldersSeen.join(', ');
+        }
+    }
+
+    for (const batchFolder of batchFolders) {
+        const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
+        const jsonFilesDir = safeList(rutaJsonDir, '.json');
+        for (const jf of jsonFilesDir) {
+            if (jf.includes('SinFactura_')) continue;
+            const clave = path.basename(jf, '.json');
+            const already = [...rowsByClave.keys()].some((k) => k === clave || k.includes(clave) || clave.includes(k));
+            if (already) continue;
+            const tipo = tipoDeCarpeta(batchFolder);
+            upsert(clave, {
+                NoFactura: clave,
+                batchFolder,
+                estadoXml: 'Sin XML',
+                estadoJson: tipo ? `JSON generado (${tipo})` : 'JSON generado',
+                rutaJson: path.join(rutaJsonDir, jf),
+                estadoEmpaquetado: 'No juntado',
+                detalle: 'JSON sin XML correspondiente',
+            });
+        }
+    }
+
+    const items = [...rowsByClave.values()].sort((a, b) =>
+        String(a.NoFactura).localeCompare(String(b.NoFactura), undefined, { numeric: true })
+    );
+
+    const resumen = {
+        total: items.length,
+        xmlOk: items.filter((i) => /exitos|ya existe|en carpeta/i.test(i.estadoXml)).length,
+        jsonOk: items.filter((i) => /json generado/i.test(i.estadoJson)).length,
+        empaquetadoOk: items.filter((i) => /juntado ok/i.test(i.estadoEmpaquetado)).length,
+        conError: items.filter((i) => i.detalle).length,
+    };
+
+    res.json({
+        message: 'Estado del proceso todo en uno',
+        batchFolders,
+        batchFolder: batchFolders.join(', '),
+        resumen,
+        items,
+        xmlErrorGlobal,
+        jsonErrorGlobal,
+        empaquetadoError,
+    });
+});
 
 
 module.exports = router;

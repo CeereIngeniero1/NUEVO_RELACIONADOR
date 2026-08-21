@@ -5,6 +5,10 @@ const connection = require('../db');
 // const { connectToDatabase, config } = require('../db2');
 const { sql, poolPromise } = require('../db2');
 const { loadDotEnvFromCandidates } = require('../config/envLoader');
+const {
+    upsertEntidad1888Demografia,
+    ensureEntidad1888Row,
+} = require('../rda/upsertEntidad1888Demografia');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
@@ -3312,7 +3316,8 @@ router.post('/ActualizarPaciente', async (req, res) => {
     }
 
 
-    if (!Documento || Documento.trim() === '') {
+    const documentoTrim = Documento != null ? String(Documento).trim() : '';
+    if (!documentoTrim) {
         return res.status(400).json({
             success: false,
             message: 'El campo Documento es obligatorio'
@@ -3340,25 +3345,25 @@ router.post('/ActualizarPaciente', async (req, res) => {
         });
     }
 
+    const idNacionalidadSeguro = IdNacionalidad != null && String(IdNacionalidad).trim() !== ''
+        ? parseInt(String(IdNacionalidad).trim(), 10) : null;
+    const idResidenciaSeguro = IdResidencia != null && String(IdResidencia).trim() !== ''
+        ? parseInt(String(IdResidencia).trim(), 10) : null;
+    const idMunicipioSeguro = IdMunicipio != null && String(IdMunicipio).trim() !== ''
+        ? parseInt(String(IdMunicipio).trim(), 10) : null;
+
     // Asegurar fila base para que el UPDATE de sp_Paciente_Guardar sí tenga a quién actualizar.
-    // Si no existe Entidad1888 para el documento, se crea con valores mínimos.
     try {
         const pool = await poolPromise;
-        await pool.request()
-            .input('DocumentoPaciente', sql.NVarChar(50), Documento.trim())
-            .query(`
-                IF NOT EXISTS (
-                    SELECT 1
-                    FROM [dbo].[Entidad1888]
-                    WHERE [Documento Entidad] = @DocumentoPaciente
-                )
-                BEGIN
-                    INSERT INTO [dbo].[Entidad1888] ([Documento Entidad])
-                    VALUES (@DocumentoPaciente)
-                END
-            `);
+        await ensureEntidad1888Row(pool, sql, documentoTrim);
     } catch (ensureErr) {
         console.error('❌ Error asegurando fila en Entidad1888 antes de actualizar:', ensureErr);
+        return res.status(500).json({
+            success: false,
+            message: 'No se pudo preparar Entidad1888 antes de actualizar',
+            error: ensureErr.message || String(ensureErr),
+            code: ensureErr.code || undefined,
+        });
     }
 
     const resultados = [];
@@ -3373,78 +3378,66 @@ router.post('/ActualizarPaciente', async (req, res) => {
         }
         (async () => {
             try {
-                // Refuerzo: upsert explícito en Entidad1888 para evitar que quede en null
-                // cuando el SP no encuentra fila para UPDATE.
                 const pool = await poolPromise;
+
+                // Refuerzo EntidadIII (fecha/edad) con match por documento trim.
                 await pool.request()
-                    .input('Documento', sql.NVarChar(50), Documento ? String(Documento).trim() : null)
+                    .input('Documento', sql.NVarChar(50), documentoTrim)
                     .input('FechaNacimiento', sql.DateTime, fechaNacimientoValida)
                     .input('EdadCalculada', sql.Int, edadCalculada)
-                    .input('SexoIdenti', sql.Int, SexoIdenti != null ? parseInt(SexoIdenti, 10) : null)
-                    .input('Talla', sql.VarChar(10), Talla != null && String(Talla).trim() !== '' ? String(Talla).trim() : null)
-                    .input('Peso', sql.VarChar(10), Peso != null && String(Peso).trim() !== '' ? String(Peso).trim() : null)
-                    .input('IdEtnia', sql.Int, IdEtnia != null && String(IdEtnia).trim() !== '' ? parseInt(IdEtnia, 10) : null)
-                    .input('ComunidadEtnica', sql.VarChar(50), ComunidadEtnica != null && String(ComunidadEtnica).trim() !== '' ? String(ComunidadEtnica).trim() : null)
-                    .input('IdDiscapacidad', sql.Int, IdDiscapacidad != null && String(IdDiscapacidad).trim() !== '' ? parseInt(IdDiscapacidad, 10) : null)
-                    .input('IdNacionalidad', sql.Int, IdNacionalidad != null && String(IdNacionalidad).trim() !== '' ? parseInt(IdNacionalidad, 10) : null)
-                    .input('IdResidencia', sql.Int, IdResidencia != null && String(IdResidencia).trim() !== '' ? parseInt(IdResidencia, 10) : null)
-                    .input('IdMunicipio', sql.Int, IdMunicipio != null && String(IdMunicipio).trim() !== '' ? parseInt(IdMunicipio, 10) : null)
-                    .input('Alergias', sql.VarChar(90), Alergias != null && String(Alergias).trim() !== '' ? String(Alergias).trim() : null)
-                    .input('Alergeno', sql.VarChar(150), Alergeno != null && String(Alergeno).trim() !== '' ? String(Alergeno).trim() : null)
                     .query(`
                         UPDATE [dbo].[EntidadIII]
                         SET [Fecha Nacimiento EntidadIII] = ISNULL(@FechaNacimiento, [Fecha Nacimiento EntidadIII]),
                             [Edad EntidadIII] = ISNULL(@EdadCalculada, [Edad EntidadIII])
-                        WHERE [Documento Entidad] = @Documento;
-
-                        IF EXISTS (SELECT 1 FROM [dbo].[Entidad1888] WHERE [Documento Entidad] = @Documento)
-                        BEGIN
-                            UPDATE [dbo].[Entidad1888]
-                            SET [Id Identidad Genero] = @SexoIdenti,
-                                [Talla] = @Talla,
-                                [Peso] = @Peso,
-                                [Id Etnia] = @IdEtnia,
-                                [Comunidad Etnica] = @ComunidadEtnica,
-                                [Id Discapacidad] = @IdDiscapacidad,
-                                [Id Pais Nacionalidad] = @IdNacionalidad,
-                                [Id Pais Recidencia] = @IdResidencia,
-                                [Id Municipio Recidencia] = @IdMunicipio,
-                                [Alergias] = @Alergias,
-                                [Alergeno] = @Alergeno
-                            WHERE [Documento Entidad] = @Documento
-                        END
-                        ELSE
-                        BEGIN
-                            INSERT INTO [dbo].[Entidad1888]
-                            (
-                                [Documento Entidad], [Id Identidad Genero], [Talla], [Peso], [Id Etnia],
-                                [Comunidad Etnica], [Id Discapacidad], [Id Pais Nacionalidad],
-                                [Id Pais Recidencia], [Id Municipio Recidencia], [Alergias], [Alergeno]
-                            )
-                            VALUES
-                            (
-                                @Documento, @SexoIdenti, @Talla, @Peso, @IdEtnia,
-                                @ComunidadEtnica, @IdDiscapacidad, @IdNacionalidad,
-                                @IdResidencia, @IdMunicipio, @Alergias, @Alergeno
-                            )
-                        END
+                        WHERE LTRIM(RTRIM([Documento Entidad])) = @Documento
                     `);
+
+                // Upsert explícito: si falla, NO devolver success:true.
+                const upsert1888 = await upsertEntidad1888Demografia(pool, sql, {
+                    Documento: documentoTrim,
+                    SexoIdenti,
+                    Talla,
+                    Peso,
+                    IdEtnia,
+                    ComunidadEtnica,
+                    IdDiscapacidad,
+                    IdNacionalidad: idNacionalidadSeguro,
+                    IdResidencia: idResidenciaSeguro,
+                    IdMunicipio: idMunicipioSeguro,
+                    Alergias,
+                    Alergeno,
+                });
+
+                console.log('Procedimiento ejecutado con éxito; Entidad1888 rows=', upsert1888.entidad1888RowsAffected);
+                return res.json({
+                    success: true,
+                    message: 'Paciente guardado correctamente',
+                    rowsAffected: rowCount,
+                    entidad1888RowsAffected: upsert1888.entidad1888RowsAffected,
+                    entidad1888: {
+                        Documento: upsert1888.documento,
+                        IdPaisNacionalidad: upsert1888.IdPaisNacionalidad,
+                        IdPaisRecidencia: upsert1888.IdPaisRecidencia,
+                        IdMunicipioRecidencia: upsert1888.IdMunicipioRecidencia,
+                    },
+                    data: resultados
+                });
             } catch (eUpsert1888) {
                 console.error('❌ Error en upsert de Entidad1888 (post-SP):', eUpsert1888);
+                if (!res.headersSent) {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'No se pudo actualizar Entidad1888 (nacionalidad/residencia/demografía)',
+                        error: eUpsert1888.message || String(eUpsert1888),
+                        code: eUpsert1888.code || undefined,
+                    });
+                }
             }
-
-            console.log('Procedimiento ejecutado con éxito');
-            return res.json({
-                success: true,
-                message: 'Paciente guardado correctamente',
-                rowsAffected: rowCount,
-                data: resultados
-            });
         })();
     });
 
     request.addParameter('IdTipoDocumento', TYPES.Int, idTipoDocumentoSeguro);
-    request.addParameter('Documento', TYPES.NVarChar, Documento);
+    request.addParameter('Documento', TYPES.NVarChar, documentoTrim);
     request.addParameter('PrimerApellido', TYPES.NVarChar, PrimerApellido || null);
     request.addParameter('SegundoApellido', TYPES.NVarChar, SegundoApellido || null);
     request.addParameter('PrimerNombre', TYPES.NVarChar, PrimerNombre || null);
@@ -3453,11 +3446,11 @@ router.post('/ActualizarPaciente', async (req, res) => {
     request.addParameter('Edad', TYPES.NVarChar, edadParaGuardar);
     request.addParameter('SexoBio', TYPES.Int, SexoBio);
     request.addParameter('SexoIdenti', TYPES.Int, SexoIdenti);
-    request.addParameter('IdNacionalidad', TYPES.Int, IdNacionalidad);
+    request.addParameter('IdNacionalidad', TYPES.Int, idNacionalidadSeguro);
     request.addParameter('Talla', TYPES.NVarChar, Talla || null);
     request.addParameter('Peso', TYPES.NVarChar, Peso || null);
-    request.addParameter('IdResidencia', TYPES.Int, IdResidencia);
-    request.addParameter('IdMunicipio', TYPES.Int, IdMunicipio);
+    request.addParameter('IdResidencia', TYPES.Int, idResidenciaSeguro);
+    request.addParameter('IdMunicipio', TYPES.Int, idMunicipioSeguro);
     request.addParameter('IdZonaTerritorial', TYPES.Int, IdZonaTerritorial);
     request.addParameter('Direccion', TYPES.NVarChar, Direccion || null);
     request.addParameter('IdEtnia', TYPES.Int, IdEtnia);

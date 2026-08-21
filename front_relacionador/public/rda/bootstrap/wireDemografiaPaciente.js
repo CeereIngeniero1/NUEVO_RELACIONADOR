@@ -12,6 +12,29 @@ import { validarPacienteDemografia, resolveIdOcupacionParaGuardar, registerPacie
 
 // ── Helpers genéricos para select2 demográfico ────────────────────────────
 
+function select2OrDomValue(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return null;
+    try {
+        const $ = window.jQuery;
+        if ($ && $(el).data("select2")) {
+            const d = $(el).select2("data")[0];
+            if (d && d.id != null && String(d.id).trim() !== "") {
+                return String(d.id).trim();
+            }
+        }
+    } catch (e) { /* ignore */ }
+    const v = el.value != null ? String(el.value).trim() : "";
+    return v || null;
+}
+
+function parseSelectInt(selectId) {
+    const raw = select2OrDomValue(selectId);
+    if (raw == null) return null;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+}
+
 function initDemografiaSelect2(selector, placeholder, endpoint, mapFn) {
     if ($(selector).data("select2")) return;
     $(selector).select2({
@@ -188,7 +211,7 @@ function initActualizarPaciente(options = {}) {
         const alergenoTexto = txtNombreAlergeno ? txtNombreAlergeno.value.trim() : "";
         const tieneAlergia = alergenoTexto.length > 0;
         return {
-            IdTipoDocumento: parseInt(document.getElementById("TipoDocumentoBase").value) || null,
+            IdTipoDocumento: parseSelectInt("TipoDocumentoBase"),
             Documento: document.getElementById("DocumentoPaciente").value.trim(),
             PrimerApellido: document.getElementById("PrimerApellidoBase").value.trim(),
             SegundoApellido: document.getElementById("SegundoApellidoBase").value.trim(),
@@ -196,21 +219,21 @@ function initActualizarPaciente(options = {}) {
             SegundoNombre: document.getElementById("SegundoNombreBase").value.trim(),
             FechaNacimiento: document.getElementById("FechaNacimientoBase").value || null,
             Edad: document.getElementById("EdadPaciente").value.trim(),
-            SexoBio: parseInt(document.getElementById("SexoPaciente").value) || null,
-            SexoIdenti: parseInt(document.getElementById("IdentidadGeneroBase").value) || null,
-            IdNacionalidad: parseInt(document.getElementById("SelectNombrePaisNacionalidadBase").value) || null,
+            SexoBio: parseSelectInt("SexoPaciente"),
+            SexoIdenti: parseSelectInt("IdentidadGeneroBase"),
+            IdNacionalidad: parseSelectInt("SelectNombrePaisNacionalidadBase"),
             Talla: document.getElementById("TallaPaciente").value.trim(),
             Peso: document.getElementById("PesoPaciente").value.trim(),
-            IdResidencia: parseInt(document.getElementById("SelectNombrePaisResidenciaBase").value) || null,
-            IdMunicipio: parseInt(document.getElementById("SelectNombreMunicipioResidenciaBase").value) || null,
-            IdZonaTerritorial: parseInt(document.getElementById("ListaZonaTerritorialBase").value) || null,
+            IdResidencia: parseSelectInt("SelectNombrePaisResidenciaBase"),
+            IdMunicipio: parseSelectInt("SelectNombreMunicipioResidenciaBase"),
+            IdZonaTerritorial: parseSelectInt("ListaZonaTerritorialBase"),
             Direccion: document.getElementById("DireccionPaciente").value.trim(),
-            IdEtnia: parseInt(document.getElementById("EtniaBase").value) || null,
+            IdEtnia: parseSelectInt("EtniaBase"),
             ComunidadEtnica: document.getElementById("ComunidadEtnicaBase").value.trim(),
-            IdDiscapacidad: parseInt(document.getElementById("DiscapacidadBase").value) || null,
+            IdDiscapacidad: parseSelectInt("DiscapacidadBase"),
             Telefono: document.getElementById("TelefonoPaciente").value.trim(),
             IdOcupacion: resolveIdOcupacionParaGuardar(
-                document.getElementById("OcupacionBase")?.value
+                select2OrDomValue("OcupacionBase")
             ),
             Alergias: tieneAlergia ? "Si" : "No",
             Alergeno: tieneAlergia ? (alergenoTexto || null) : null

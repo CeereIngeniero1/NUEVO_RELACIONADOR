@@ -40,8 +40,13 @@ let PrepararArchivosDeEnvio = null;
 
 const app = express();
 
-// Usar el middleware de compresión
-app.use(compression());
+// Usar el middleware de compresión (excepto streams NDJSON de progreso)
+app.use(compression({
+    filter: (req, res) => {
+        if (String(req.path || '').includes('descargarxmls-stream')) return false;
+        return compression.filter(req, res);
+    },
+}));
 
 // Configuración de express-session
 app.use(session({

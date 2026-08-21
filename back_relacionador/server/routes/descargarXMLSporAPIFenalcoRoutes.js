@@ -400,7 +400,240 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
     }
 });
 
+/** Todo en uno: XMLs sin filtro de resolución/prefijo; carpeta RIPS --- fechas */
+router.post('/descargarxmls-api-fenalco-sin-prefijo/:fechainicial/:fechafinal/:documentoempresa', async (req, res) => {
+    const { fechainicial, fechafinal, documentoempresa } = req.params;
+    const batchFolder = `RIPS --- ${fechainicial} --- ${fechafinal}`;
+    console.log(`[sin-prefijo Fenalco] Fechas: ${fechainicial} - ${fechafinal}, Empresa: ${documentoempresa}`);
 
+    try {
+        if (connection.state.name !== 'LoggedIn') {
+            return res.status(500).send('La conexión a la base de datos no está en un estado válido');
+        }
+
+        const queryFacturas = `
+            SELECT 
+                Fac.[No Factura] AS NoFactura, 
+                CONVERT(VARCHAR, Fac.[Fecha Factura], 103) AS FechaFactura, 
+                EmpV.[Prefijo Resolución Facturación EmpresaV] AS Prefijo,
+                Empv.idnumeracionFenalco
+            FROM 
+                Factura Fac
+            INNER JOIN 
+                EmpresaV EmpV ON Fac.[Id EmpresaV] = EmpV.[Id EmpresaV]
+            INNER JOIN 
+                Empresa Emp ON EmpV.[Documento Empresa] = Emp.[Documento Empresa]
+            WHERE 
+                ( Fac.EstadoFacturaElectronica >= 1 ) AND
+                ( CAST(Fac.[Fecha Factura] AS DATE) BETWEEN @FechaInicial AND @FechaFinal ) AND 
+                ( Emp.[Documento Empresa] = @DocumentoEmpresa ) AND
+                ( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id Factura] ) )
+        `;
+
+        const facturas = [];
+        const requestFacturas = new Request(queryFacturas, (err, rowCount) => {
+            if (err) {
+                console.error('Error ejecutando la consulta de facturas:', err);
+                return res.status(500).send({ message: `Error ejecutando la consulta de facturas. Detalles => ${err}` });
+            }
+
+            if (rowCount === 0) {
+                console.log('No se encontraron facturas');
+                return res.status(404).send({ message: 'No se encontraron facturas aptas en el rango de fechas ingresado.' });
+            }
+
+            consultarCredenciales();
+        });
+
+        requestFacturas.on('row', columns => {
+            const rowObject = {};
+            columns.forEach(column => {
+                rowObject[column.metadata.colName] = column.value;
+            });
+            facturas.push(rowObject);
+        });
+
+        requestFacturas.addParameter('FechaInicial', TYPES.Date, new Date(fechainicial));
+        requestFacturas.addParameter('FechaFinal', TYPES.Date, new Date(fechafinal));
+        requestFacturas.addParameter('DocumentoEmpresa', TYPES.NVarChar, documentoempresa);
+        connection.execSql(requestFacturas);
+
+        const ContenidoCredenciales = [];
+        const consultarCredenciales = () => {
+            const queryCredenciales = `
+                SELECT 
+                    [Usuario], [Contrasena], [Documento Empresa], [URL SOAP] AS 'URLSOAP'
+                FROM
+                    [CredencialesWSDLFacturaTech]
+                WHERE
+                    [Documento Empresa] = @DocumentoEmpresa
+            `;
+
+            const requestCredenciales = new Request(queryCredenciales, (err, rowCount) => {
+                if (err) {
+                    console.error('Error ejecutando la consulta de credenciales:', err);
+                    return res.status(500).send({ message: `Error ejecutando la consulta de credenciales. Detalles => ${err}` });
+                }
+
+                if (rowCount === 0) {
+                    return res.status(404).send({ message: 'No se encontraron credenciales de WSDL asociadas a la empresa de trabajo. Tabla [CredencialesWSDLFacturaTech]' });
+                }
+
+                processFacturas();
+            });
+
+            requestCredenciales.on('row', columns => {
+                const FilaCapturada = {};
+                columns.forEach(column => {
+                    FilaCapturada[column.metadata.colName] = column.value;
+                });
+                ContenidoCredenciales.push(FilaCapturada);
+            });
+
+            requestCredenciales.addParameter('DocumentoEmpresa', TYPES.NVarChar, documentoempresa);
+            connection.execSql(requestCredenciales);
+        };
+
+        const resultadosFinales = [];
+        const processNextFactura = (listfacturas, token, wsdlUrl) => {
+            if (!Array.isArray(listfacturas) || listfacturas.length === 0) {
+                return res.status(200).json({
+                    message: 'No hay facturas para procesar.',
+                    facturas: [],
+                    batchFolder,
+                });
+            }
+
+            const carpeta = path.join(RIPS_ROOT, 'XMLS', batchFolder);
+            const promises = listfacturas.map(Factura => {
+                const folioNum = parseInt(Factura.NoFactura, 10);
+                const RutaVerificarSiExisteElXML = path.join(carpeta, `${Factura.Prefijo}${folioNum}.xml`);
+
+                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
+                    resultadosFinales.push({
+                        factura: Factura.NoFactura,
+                        Prefijo: Factura.Prefijo,
+                        estado: 'El archivo XML ya existe',
+                        filePath: RutaVerificarSiExisteElXML
+                    });
+                    return Promise.resolve();
+                }
+
+                const Parametros = {
+                    token: token,
+                    idnumeracion: Factura.idnumeracionFenalco,
+                    numero: Factura.NoFactura
+                };
+
+                return new Promise((resolve, reject) => {
+                    soap.createClient(wsdlUrl, (err, client) => {
+                        if (err) {
+                            resultadosFinales.push({
+                                factura: Factura.NoFactura,
+                                Prefijo: Factura.Prefijo,
+                                estado: 'Error',
+                                error: err.message || String(err)
+                            });
+                            return resolve();
+                        }
+
+                        client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+
+                        client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
+                            if (err) {
+                                resultadosFinales.push({
+                                    factura: Factura.NoFactura,
+                                    Prefijo: Factura.Prefijo,
+                                    estado: 'Error',
+                                    error: err.message || String(err)
+                                });
+                                return resolve();
+                            }
+
+                            try {
+                                const response = JSON.parse(result.return);
+                                const base64 = response.data.attachedDocument;
+                                const buffer = Buffer.from(base64, 'base64');
+                                const xmlcontenido = buffer.toString('utf8');
+                                if (!fs.existsSync(carpeta)) {
+                                    fs.mkdirSync(carpeta, { recursive: true });
+                                }
+                                fs.writeFileSync(RutaVerificarSiExisteElXML, xmlcontenido, 'utf8');
+                                resultadosFinales.push({
+                                    factura: Factura.NoFactura,
+                                    Prefijo: Factura.Prefijo,
+                                    estado: 'XML guardado exitosamente',
+                                    filePath: RutaVerificarSiExisteElXML
+                                });
+                                resolve();
+                            } catch (parseError) {
+                                resultadosFinales.push({
+                                    factura: Factura.NoFactura,
+                                    Prefijo: Factura.Prefijo,
+                                    estado: 'Error',
+                                    error: parseError.message || String(parseError)
+                                });
+                                resolve();
+                            }
+                        });
+                    });
+                });
+            });
+
+            Promise.all(promises)
+                .then(() => {
+                    return res.status(200).json({
+                        message: 'Proceso finalizado',
+                        facturas: resultadosFinales,
+                        batchFolder,
+                    });
+                })
+                .catch(err => {
+                    console.error('Error procesando facturas Fenalco sin-prefijo:', err);
+                    return res.status(500).send({ message: 'Error procesando facturas', error: err.message || String(err) });
+                });
+        };
+
+        const processFacturas = () => {
+            if (facturas.length === 0) {
+                return res.status(404).send('No se encontraron facturas para procesar');
+            }
+
+            const wsdlUrl = 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
+            const loginData = {
+                login: ContenidoCredenciales[0].Usuario,
+                password: ContenidoCredenciales[0].Contrasena
+            };
+
+            soap.createClient(wsdlUrl, (err, client) => {
+                if (err) {
+                    console.error('Error al crear el cliente SOAP:', err);
+                    return res.status(500).send({ message: 'Error al crear el cliente SOAP Fenalco' });
+                }
+
+                client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+
+                client.autenticar(loginData, (err, result) => {
+                    if (err) {
+                        console.error('Error al autenticar:', err);
+                        return res.status(500).send({ message: 'Error al autenticar en Fenalco' });
+                    }
+
+                    try {
+                        const response = JSON.parse(result.return);
+                        processNextFactura(facturas, response.data.salida, wsdlUrl);
+                    } catch (parseError) {
+                        console.error('Error al parsear la respuesta:', parseError);
+                        return res.status(500).send({ message: 'Error al parsear autenticación Fenalco' });
+                    }
+                });
+            });
+        };
+    } catch (error) {
+        console.error('Error inesperado:', error);
+        res.status(500).send('Error inesperado');
+    }
+});
 
 router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafinal/:documentoempresa', async (req, res) => {
     const { prefijo, fechainicial, fechafinal, documentoempresa } = req.params;
@@ -689,5 +922,268 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
         res.status(500).send('Error inesperado');
     }
 });
+
+
+/** Stream NDJSON: progreso factura a factura (todo en uno / Fenalco) */
+router.post('/descargarxmls-stream-fenalco-sin-prefijo/:fechainicial/:fechafinal/:documentoempresa', async (req, res) => {
+    const { fechainicial, fechafinal, documentoempresa } = req.params;
+    const batchFolderOf = (prefijo, tipo) => `${prefijo || 'SIN'} --- ${tipo} --- ${fechainicial} --- ${fechafinal}`;
+    const batchFoldersOf = (prefijo) => [
+        batchFolderOf(prefijo, 'EPS'),
+        batchFolderOf(prefijo, 'PARTICULAR'),
+    ];
+    const batchFoldersSet = new Set();
+
+    const send = (obj) => {
+        if (!res.writableEnded) {
+            res.write(`${JSON.stringify(obj)}\n`);
+            if (typeof res.flush === 'function') res.flush();
+        }
+    };
+
+    try {
+        if (connection.state.name !== 'LoggedIn') {
+            res.status(500);
+            return res.end(`${JSON.stringify({ type: 'error', message: 'La conexión a la base de datos no está en un estado válido' })}\n`);
+        }
+
+        res.status(200);
+        res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('X-Accel-Buffering', 'no');
+        if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+        const queryFacturas = `
+            SELECT 
+                Fac.[No Factura] AS NoFactura, 
+                CONVERT(VARCHAR, Fac.[Fecha Factura], 103) AS FechaFactura, 
+                EmpV.[Prefijo Resolución Facturación EmpresaV] AS Prefijo,
+                Empv.idnumeracionFenalco
+            FROM Factura Fac
+            INNER JOIN EmpresaV EmpV ON Fac.[Id EmpresaV] = EmpV.[Id EmpresaV]
+            INNER JOIN Empresa Emp ON EmpV.[Documento Empresa] = Emp.[Documento Empresa]
+            WHERE 
+                ( Fac.EstadoFacturaElectronica >= 1 ) AND
+                ( CAST(Fac.[Fecha Factura] AS DATE) BETWEEN @FechaInicial AND @FechaFinal ) AND 
+                ( Emp.[Documento Empresa] = @DocumentoEmpresa ) AND
+                ( EXISTS ( SELECT 1 FROM [Evaluación Entidad Rips] RIPS WHERE RIPS.[Id Factura] = Fac.[Id Factura] ) )
+        `;
+
+        const facturas = [];
+        const requestFacturas = new Request(queryFacturas, (err, rowCount) => {
+            if (err) {
+                send({ type: 'error', message: `Error consultando facturas: ${err.message || err}` });
+                return res.end();
+            }
+            if (rowCount === 0) {
+                send({ type: 'error', message: 'No se encontraron facturas aptas en el rango de fechas ingresado.', status: 404 });
+                return res.end();
+            }
+            consultarCredenciales();
+        });
+
+        requestFacturas.on('row', columns => {
+            const rowObject = {};
+            columns.forEach(column => {
+                rowObject[column.metadata.colName] = column.value;
+            });
+            facturas.push(rowObject);
+        });
+
+        requestFacturas.addParameter('FechaInicial', TYPES.Date, new Date(fechainicial));
+        requestFacturas.addParameter('FechaFinal', TYPES.Date, new Date(fechafinal));
+        requestFacturas.addParameter('DocumentoEmpresa', TYPES.NVarChar, documentoempresa);
+        connection.execSql(requestFacturas);
+
+        const ContenidoCredenciales = [];
+        const consultarCredenciales = () => {
+            const queryCredenciales = `
+                SELECT [Usuario], [Contrasena], [Documento Empresa], [URL SOAP] AS 'URLSOAP'
+                FROM [CredencialesWSDLFacturaTech]
+                WHERE [Documento Empresa] = @DocumentoEmpresa
+            `;
+            const requestCredenciales = new Request(queryCredenciales, (err, rowCount) => {
+                if (err) {
+                    send({ type: 'error', message: `Error consultando credenciales: ${err.message || err}` });
+                    return res.end();
+                }
+                if (rowCount === 0) {
+                    send({ type: 'error', message: 'No se encontraron credenciales de WSDL asociadas a la empresa.' });
+                    return res.end();
+                }
+                autenticarYProcesar();
+            });
+            requestCredenciales.on('row', columns => {
+                const FilaCapturada = {};
+                columns.forEach(column => {
+                    FilaCapturada[column.metadata.colName] = column.value;
+                });
+                ContenidoCredenciales.push(FilaCapturada);
+            });
+            requestCredenciales.addParameter('DocumentoEmpresa', TYPES.NVarChar, documentoempresa);
+            connection.execSql(requestCredenciales);
+        };
+
+        const descargarUna = (Factura, token, wsdlUrl) => new Promise((resolve) => {
+            const folioNum = parseInt(Factura.NoFactura, 10);
+            const folders = batchFoldersOf(Factura.Prefijo);
+            folders.forEach((bf) => batchFoldersSet.add(bf));
+            const fileName = `${Factura.Prefijo}${folioNum}.xml`;
+            const existingPath = folders
+                .map((bf) => path.join(RIPS_ROOT, 'XMLS', bf, fileName))
+                .find((p) => fs.existsSync(p));
+
+            if (existingPath) {
+                for (const bf of folders) {
+                    const dest = path.join(RIPS_ROOT, 'XMLS', bf, fileName);
+                    if (!fs.existsSync(dest)) {
+                        fs.mkdirSync(path.dirname(dest), { recursive: true });
+                        fs.copyFileSync(existingPath, dest);
+                    }
+                }
+                return resolve({
+                    NoFactura: Factura.NoFactura,
+                    Prefijo: Factura.Prefijo,
+                    FechaFactura: Factura.FechaFactura,
+                    estado: 'El archivo XML ya existe',
+                    filePath: existingPath,
+                    batchFolder: folders[0],
+                    batchFolders: folders,
+                });
+            }
+
+            const Parametros = {
+                token,
+                idnumeracion: Factura.idnumeracionFenalco,
+                numero: Factura.NoFactura,
+            };
+
+            soap.createClient(wsdlUrl, (err, client) => {
+                if (err) {
+                    return resolve({
+                        NoFactura: Factura.NoFactura,
+                        Prefijo: Factura.Prefijo,
+                        FechaFactura: Factura.FechaFactura,
+                        estado: `Error creando cliente SOAP: ${err.message || err}`,
+                        batchFolder: folders[0],
+                        batchFolders: folders,
+                    });
+                }
+
+                client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+                client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err2, result) => {
+                    if (err2) {
+                        return resolve({
+                            NoFactura: Factura.NoFactura,
+                            Prefijo: Factura.Prefijo,
+                            FechaFactura: Factura.FechaFactura,
+                            estado: `Error SOAP: ${err2.message || err2}`,
+                            batchFolder: folders[0],
+                            batchFolders: folders,
+                        });
+                    }
+                    try {
+                        const response = JSON.parse(result.return);
+                        const base64 = response.data.attachedDocument;
+                        const xmlcontenido = Buffer.from(base64, 'base64').toString('utf8');
+                        let primaryPath = '';
+                        for (const bf of folders) {
+                            const carpeta = path.join(RIPS_ROOT, 'XMLS', bf);
+                            if (!fs.existsSync(carpeta)) fs.mkdirSync(carpeta, { recursive: true });
+                            const dest = path.join(carpeta, fileName);
+                            fs.writeFileSync(dest, xmlcontenido, 'utf8');
+                            if (!primaryPath) primaryPath = dest;
+                        }
+                        resolve({
+                            NoFactura: Factura.NoFactura,
+                            Prefijo: Factura.Prefijo,
+                            FechaFactura: Factura.FechaFactura,
+                            estado: 'XML guardado exitosamente',
+                            filePath: primaryPath,
+                            batchFolder: folders[0],
+                            batchFolders: folders,
+                        });
+                    } catch (parseError) {
+                        resolve({
+                            NoFactura: Factura.NoFactura,
+                            Prefijo: Factura.Prefijo,
+                            FechaFactura: Factura.FechaFactura,
+                            estado: `Error parseando respuesta: ${parseError.message || parseError}`,
+                            batchFolder: folders[0],
+                            batchFolders: folders,
+                        });
+                    }
+                });
+            });
+        });
+
+        const autenticarYProcesar = () => {
+            const wsdlUrl = 'https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService?wsdl';
+            const loginData = {
+                login: ContenidoCredenciales[0].Usuario,
+                password: ContenidoCredenciales[0].Contrasena,
+            };
+
+            soap.createClient(wsdlUrl, (err, client) => {
+                if (err) {
+                    send({ type: 'error', message: 'Error al crear el cliente SOAP Fenalco' });
+                    return res.end();
+                }
+                client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
+                client.autenticar(loginData, async (errAuth, result) => {
+                    if (errAuth) {
+                        send({ type: 'error', message: 'Error al autenticar en Fenalco' });
+                        return res.end();
+                    }
+                    try {
+                        const response = JSON.parse(result.return);
+                        const token = response.data.salida;
+                        const total = facturas.length;
+                        send({ type: 'start', total, batchFolders: [], facturador: 'Fenalco' });
+
+                        const resultadosFinales = [];
+                        for (let i = 0; i < facturas.length; i++) {
+                            const Factura = facturas[i];
+                            send({
+                                type: 'progress',
+                                index: i + 1,
+                                total,
+                                NoFactura: Factura.NoFactura,
+                                Prefijo: Factura.Prefijo,
+                                mensaje: `Descargando ${Factura.Prefijo || ''}${Factura.NoFactura} → EPS + PARTICULAR`,
+                            });
+                            const row = await descargarUna(Factura, token, wsdlUrl);
+                            resultadosFinales.push(row);
+                            send({
+                                type: 'factura',
+                                index: i + 1,
+                                total,
+                                NoFactura: row.NoFactura,
+                                Prefijo: row.Prefijo,
+                                FechaFactura: row.FechaFactura,
+                                estado: row.estado,
+                                filePath: row.filePath || '',
+                                batchFolder: row.batchFolder,
+                                batchFolders: row.batchFolders || [],
+                            });
+                        }
+
+                        send({ type: 'done', message: 'Proceso finalizado', facturas: resultadosFinales, batchFolders: [...batchFoldersSet] });
+                        res.end();
+                    } catch (parseError) {
+                        send({ type: 'error', message: 'Error al parsear autenticación Fenalco' });
+                        res.end();
+                    }
+                });
+            });
+        };
+    } catch (error) {
+        console.error('Error inesperado stream Fenalco:', error);
+        if (!res.headersSent) res.status(500);
+        send({ type: 'error', message: error.message || 'Error inesperado' });
+        if (!res.writableEnded) res.end();
+    }
+});
+
 
 module.exports = router;

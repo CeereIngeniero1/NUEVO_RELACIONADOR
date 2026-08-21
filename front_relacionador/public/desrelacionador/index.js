@@ -6,7 +6,8 @@
 import { fetchPacientesConRelaciones, fetchRelacionesRips } from "./api/relacionesRipsApi.js";
 import { getUltimasRelaciones, setUltimasRelaciones } from "./state.js";
 import { initNombrePacienteResolver } from "./ui/filtrosPaciente.js";
-import { ensureAuth, initThemeToggle } from "./ui/shell.js";
+import { ensureAuth } from "./ui/shell.js";
+import { mountAppSidebar } from "../shared/appSidebar.js";
 import { renderTablaRelaciones } from "./ui/tablaRelaciones.js";
 
 function getDocumentoPaciente() {
@@ -129,7 +130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (localStorage.getItem("ceere_theme") === "dark") {
     document.documentElement.setAttribute("data-theme", "dark");
   }
-  initThemeToggle();
+  mountAppSidebar({ active: "desrelacionar" });
   await ensureAuth();
 
   initNombrePacienteResolver();

@@ -349,9 +349,8 @@
     </script>
     <script src="consultas_rda.js"></script>
     <script type="module">
-        import { initThemeToggle, syncTopbarUserName } from '../shared/shell.js';
-        initThemeToggle();
-        syncTopbarUserName();
+        import { mountAppSidebar } from '../shared/appSidebar.js';
+        mountAppSidebar({ active: 'visor', basePath: '../' });
     </script>
 </body>
 

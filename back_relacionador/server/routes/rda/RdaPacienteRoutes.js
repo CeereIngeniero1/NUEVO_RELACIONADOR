@@ -35,6 +35,7 @@ const {
     setRdaEnvioMarca,
 } = require('../../rda/rdaEnvioEstado');
 const { validatePeriodoAtencionNoFuturo } = require('../../rda/rdaPeriodoAtencion');
+const { upsertEntidad1888Demografia } = require('../../rda/upsertEntidad1888Demografia');
 const {
     toFhirDateTimeColombia,
     toFhirDateTimeColombiaNow,
@@ -419,7 +420,47 @@ router.post('/EvaluacionEntidadRDA/', async (req, res) => {
                 )
             `);
         const idInsertado = result.recordset[0]['Id Evaluacion Entidad RDA'];
-        res.json({ ok: true, IdEvaluacionEntidadRDA: idInsertado });
+
+        // Red de seguridad: alinear maestro Entidad1888 con la demografía del snapshot RDA.
+        let entidad1888Sync = null;
+        try {
+            const alergenoTxt = Alergeno != null ? String(Alergeno).trim() : '';
+            entidad1888Sync = await upsertEntidad1888Demografia(pool, sql, {
+                Documento: DocumentoEntidad,
+                SexoIdenti: idIdentidadGeneroSeguro,
+                Talla,
+                Peso,
+                IdEtnia: IdEtnia ? parseInt(IdEtnia, 10) : null,
+                ComunidadEtnica,
+                IdDiscapacidad: idDiscapacidadSeguro,
+                IdNacionalidad: IdPaisNacionalidad ? parseInt(IdPaisNacionalidad, 10) : null,
+                IdResidencia: IdPaisRecidencia ? parseInt(IdPaisRecidencia, 10) : null,
+                IdMunicipio: IdMunicipioRecidencia ? parseInt(IdMunicipioRecidencia, 10) : null,
+                Alergias: alergenoTxt ? 'Si' : 'No',
+                Alergeno: alergenoTxt || null,
+            });
+        } catch (sync1888Err) {
+            console.error('❌ Error sincronizando Entidad1888 tras INSERT RDA Paciente:', sync1888Err);
+            return res.status(500).json({
+                ok: false,
+                error: 'RDA Paciente guardado, pero falló sincronizar Entidad1888: '
+                    + (sync1888Err.message || String(sync1888Err)),
+                IdEvaluacionEntidadRDA: idInsertado,
+                code: sync1888Err.code || undefined,
+            });
+        }
+
+        res.json({
+            ok: true,
+            IdEvaluacionEntidadRDA: idInsertado,
+            entidad1888RowsAffected: entidad1888Sync.entidad1888RowsAffected,
+            entidad1888: {
+                Documento: entidad1888Sync.documento,
+                IdPaisNacionalidad: entidad1888Sync.IdPaisNacionalidad,
+                IdPaisRecidencia: entidad1888Sync.IdPaisRecidencia,
+                IdMunicipioRecidencia: entidad1888Sync.IdMunicipioRecidencia,
+            },
+        });
     } catch (error) {
         console.error('❌ Error al insertar Evaluacion Entidad RDA:', error);
         if (!res.headersSent) {
