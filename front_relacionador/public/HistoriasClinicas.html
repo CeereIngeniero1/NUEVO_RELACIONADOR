@@ -1062,10 +1062,9 @@
 </script>
 <script type="module">
   import { wireDemografiaPaciente } from "./rda/bootstrap/wireDemografiaPaciente.js";
-  import { initThemeToggle, syncTopbarUserName } from "./shared/shell.js";
+  import { mountAppSidebar } from "./shared/appSidebar.js";
   wireDemografiaPaciente({ enableUpdate: false });
-  initThemeToggle();
-  syncTopbarUserName();
+  mountAppSidebar({ active: "historias" });
 </script>
 </body>
 </html>

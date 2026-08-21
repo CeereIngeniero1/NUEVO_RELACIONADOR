@@ -44,33 +44,7 @@
 
 <body>
 
-    <!-- NAVBAR -->
-    <div class="cr-navbar">
-        <div class="d-flex align-items-center gap-3">
-            <img src="images/Ceere_logo.png" alt="Ceere" class="cr-navbar-logo">
-            <h2 id="nombreUsuarioLink"></h2>
-        </div>
-        <div class="cr-nav-actions">
-            <button class="cr-nav-btn" id="crBtnThemeToggle">
-                <i class="ri-moon-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Oscuro</span>
-            </button>
-            <button type="button" id="BotonMaestro" data-bs-toggle="modal" data-bs-target="#ModalParaMaestro"
-                class="cr-nav-btn">Maestro</button>
-            <button type="button" id="descargarRIPS" data-bs-toggle="modal" data-bs-target="#staticBackdrop"
-                class="cr-nav-btn">Descargar RIPS JSON</button>
-            <button type="button" id="XMLS" data-bs-toggle="modal" data-bs-target="#ModalEmpresasResolucionVigente"
-                class="cr-nav-btn">XMLS</button>
-            <a href="./GENERADOR_ARCHIVOS_RIPS_PART/index.php" id="generadorRIPS" class="cr-nav-btn">GENERADOR INFORMES
-                RIPS</a>
-            <a href="Asignar_RIPS V3.html" class="cr-nav-btn">Asignar RIPS &amp; RDA</a>
-            <a href="HistoriasClinicas.html" class="cr-nav-btn">Historias Clínicas</a>
-            <a href="EnvioRdaPendientes.html" class="cr-nav-btn">Envío RDA pendientes</a>
-            <a href="visor/visor.html" class="cr-nav-btn">Visor IHCE (RDA)</a>
-            <a href="Desrelacionar.html" class="cr-nav-btn">Desrelacionar</a>
-            <button type="button" id="closeSesion" class="cr-nav-btn cr-nav-btn-close">Cerrar Sesión</button>
-        </div>
-    </div>
-
+    <div class="cr-app-shell">
     <div class="cr-page-content">
         <main>
 
@@ -422,6 +396,37 @@
             </div>
         </div>
 
+        <!-- Modal todo en uno: Descargar RIPS (XML + JSON, sin resolución) -->
+        <div class="modal fade" id="ModalDescargarRipsTodo" data-bs-backdrop="static" data-bs-keyboard="false"
+            tabindex="-1" aria-labelledby="ModalDescargarRipsTodoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="ModalDescargarRipsTodoLabel">Descargar RIPS (todo en uno)</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            style="width: 10px !important"></button>
+                    </div>
+                    <div class="modal-body modal-rips-todo-body">
+                        <p class="modal-rips-todo-msg">Descarga las facturas relacionadas en Evaluación Entidad Rips, genera el JSON y deja ambos en las carpetas correspondientes. No requiere resolución.</p>
+                        <div class="modal-rips-todo-fechas">
+                            <div class="modal-rips-todo-fecha">
+                                <label for="fechaInicioTodo">Fecha Inicio</label>
+                                <input type="date" id="fechaInicioTodo">
+                            </div>
+                            <div class="modal-rips-todo-fecha">
+                                <label for="fechaFinTodo">Fecha Fin</label>
+                                <input type="date" id="fechaFinTodo">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-rips-todo-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" id="btnDescargarRipsTodo" class="btn btn-primary">Descargar todo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal -->
         <div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-md">
@@ -552,32 +557,11 @@
         </div>
 
     </div>
+    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const themeToggleBtn = document.getElementById('crBtnThemeToggle');
-            const savedTheme = localStorage.getItem('ceere_theme') || 'light';
-
-            // Actualizar el estado del botón al cargar la página si ya está oscuro
-            if (savedTheme === 'dark') {
-                themeToggleBtn.innerHTML = '<i class="ri-sun-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Claro</span>';
-            }
-
-            // Alternar tema
-            themeToggleBtn.addEventListener('click', () => {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-                if (isDark) {
-                    document.documentElement.removeAttribute('data-theme');
-                    localStorage.setItem('ceere_theme', 'light');
-                    themeToggleBtn.innerHTML = '<i class="ri-moon-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Oscuro</span>';
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('ceere_theme', 'dark');
-                    themeToggleBtn.innerHTML = '<i class="ri-sun-line" style="margin-right: 5px; font-size: 16px;"></i><span>Tema Claro</span>';
-                }
-            });
-        });
+    <script type="module">
+        import { mountAppSidebar } from "./shared/appSidebar.js";
+        mountAppSidebar({ active: "inicio", includeRipsTools: true });
     </script>
 </body>
 

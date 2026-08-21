@@ -2304,11 +2304,10 @@
 <!-- RDA V3 - Módulo ES (Resolución 1888) -->
 <script type="module" src="rda/index.js"></script>
 
-<!-- Shared shell: tema + topbar user -->
+<!-- Shared shell: sidebar dashboard + tema + usuario -->
 <script type="module">
-  import { initThemeToggle, syncTopbarUserName } from "./shared/shell.js";
-  initThemeToggle();
-  syncTopbarUserName();
+  import { mountAppSidebar } from "./shared/appSidebar.js";
+  mountAppSidebar({ active: "asignar" });
 </script>
 
 <!-- ═══════════════════════════════════════════

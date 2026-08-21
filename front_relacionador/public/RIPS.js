@@ -960,7 +960,9 @@ const checkAuthentication = async () => {
         if (response.ok) {
             const { user } = await response.json();
             console.log('Usuario autenticado:', user);
-            document.querySelector('#nombreUsuarioLink').textContent = `Hola, ${user.username}`
+            document.querySelector('#TopbarUserName')
+                ? (document.querySelector('#TopbarUserName').textContent = user.username)
+                : (document.querySelector('#nombreUsuarioLink') && (document.querySelector('#nombreUsuarioLink').textContent = `Hola, ${user.username}`));
         } else {
             console.error('Error al obtener información del usuario:', response.statusText);
         }
@@ -1006,7 +1008,7 @@ const logout = () => {
 };
 
 // Asociar la función a un botón de cierre de sesión (puedes cambiar el selector según tu HTML)
-document.getElementById('closeSesion').addEventListener('click', logout);
+document.getElementById('closeSesion')?.addEventListener('click', logout);
 
 /** FUNCIÓN PARA LA DESCARGA DE LOS ARCHIVOS JSON */
 async function DescargarArchivosJSON() {
@@ -1923,6 +1925,518 @@ document.getElementById('DescargarXMLS').addEventListener('click', async () => {
 
 })
 /* FIN FIN FIN FIN FIN FIN FIN */
+
+const PREFIJO_BATCH_TODO = 'RIPS'; // legacy; el todo-en-uno ya no usa carpeta RIPS fija
+
+function normalizarFacturaXmlTodo(f) {
+    return {
+        NoFactura: String(f.NoFactura != null ? f.NoFactura : (f.factura != null ? f.factura : '')),
+        Prefijo: f.Prefijo || f.prefijo || '',
+        FechaFactura: f.FechaFactura || f.fechaFactura || '',
+        estado: f.estado || f.Estado || 'Desconocido',
+        filePath: f.filePath || '',
+        batchFolder: f.batchFolder || '',
+        batchFolders: Array.isArray(f.batchFolders) ? f.batchFolders : (f.batchFolder ? [f.batchFolder] : []),
+    };
+}
+
+function abrirProgresoTodoEnUno() {
+    Swal.fire({
+        title: 'Descargar RIPS (todo en uno)',
+        html: `
+            <div id="todoProgFase" style="font-weight:700;margin-bottom:8px;color:#fff;">Iniciando...</div>
+            <div style="background:rgba(255,255,255,0.15);border-radius:8px;height:12px;overflow:hidden;margin-bottom:8px;">
+                <div id="todoProgBar" style="height:100%;width:0%;background:#2ecc71;transition:width .25s ease;"></div>
+            </div>
+            <div id="todoProgCuenta" style="font-size:0.9rem;margin-bottom:6px;color:#fff;">0 / 0</div>
+            <div id="todoProgActual" style="font-size:0.95rem;margin-bottom:10px;color:#fff;">Preparando...</div>
+            <div id="todoProgLog" style="max-height:240px;overflow:auto;text-align:left;font-size:12px;background:rgba(0,0,0,0.25);border-radius:8px;padding:8px;color:#fff;"></div>
+        `,
+        width: '640px',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        showCancelButton: false,
+        didOpen: () => {
+            const popup = Swal.getPopup();
+            if (popup) popup.style.width = '640px';
+        },
+    });
+}
+
+function actualizarProgresoTodoEnUno({ fase, index, total, actual, logLine, logOk }) {
+    const elFase = document.getElementById('todoProgFase');
+    const elBar = document.getElementById('todoProgBar');
+    const elCuenta = document.getElementById('todoProgCuenta');
+    const elActual = document.getElementById('todoProgActual');
+    const elLog = document.getElementById('todoProgLog');
+
+    if (fase && elFase) elFase.textContent = fase;
+    if (typeof total === 'number' && typeof index === 'number') {
+        const pct = total > 0 ? Math.min(100, Math.round((index / total) * 100)) : 0;
+        if (elBar) elBar.style.width = `${pct}%`;
+        if (elCuenta) elCuenta.textContent = `${index} / ${total}`;
+    }
+    if (actual && elActual) elActual.textContent = actual;
+    if (logLine && elLog) {
+        const color = logOk === false ? '#ff8a80' : (logOk === true ? '#69f0ae' : '#fff');
+        const row = document.createElement('div');
+        row.style.color = color;
+        row.style.marginBottom = '4px';
+        row.textContent = logLine;
+        elLog.prepend(row);
+    }
+}
+
+async function leerNdjsonStream(response, onEvent) {
+    if (!response.body || !response.body.getReader) {
+        const text = await response.text();
+        for (const line of text.split('\n')) {
+            if (!line.trim()) continue;
+            onEvent(JSON.parse(line));
+        }
+        return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+                onEvent(JSON.parse(line));
+            } catch (e) {
+                console.warn('Línea NDJSON inválida:', line, e);
+            }
+        }
+    }
+    if (buffer.trim()) {
+        try {
+            onEvent(JSON.parse(buffer));
+        } catch (_) { /* ignore */ }
+    }
+}
+
+async function DescargarXmlsSinPrefijo(fechaInicio, fechaFin) {
+    const Facturador = await BuscarFacturador();
+    const esFenalco = Facturador === 'Fenalco' || Facturador === 'fenalco';
+    const pathSegment = esFenalco
+        ? 'descargarxmls-stream-fenalco-sin-prefijo'
+        : 'descargarxmls-stream-facturatech-sin-prefijo';
+
+    actualizarProgresoTodoEnUno({
+        fase: `1/3 Descargando XMLs (${esFenalco ? 'Fenalco' : 'Facturatech'})`,
+        actual: 'Consultando facturas relacionadas...',
+        index: 0,
+        total: 0,
+    });
+
+    const response = await fetch(
+        `${window.getApiBaseUrl()}/XMLS/${pathSegment}/${fechaInicio}/${fechaFin}/${documentoEmpresaSeleccionada}`,
+        { method: 'POST' }
+    );
+
+    if (!response.ok && !String(response.headers.get('content-type') || '').includes('ndjson')) {
+        let data = null;
+        try { data = await response.json(); } catch (_) { /* ignore */ }
+        return {
+            ok: false,
+            status: response.status,
+            facturador: esFenalco ? 'Fenalco' : 'Facturatech',
+            message: (data && (data.message || data.error)) || `Error HTTP ${response.status}`,
+            facturas: [],
+            batchFolders: [],
+        };
+    }
+
+    let donePayload = null;
+    let streamError = null;
+    let batchFolders = [];
+    const facturas = [];
+
+    await leerNdjsonStream(response, (ev) => {
+        if (ev.type === 'start') {
+            batchFolders = Array.isArray(ev.batchFolders) ? ev.batchFolders : [];
+            actualizarProgresoTodoEnUno({
+                fase: `1/3 Descargando XMLs (${ev.facturador || Facturador})`,
+                index: 0,
+                total: ev.total || 0,
+                actual: `Encontradas ${ev.total || 0} facturas`,
+                logLine: `Inicio: ${ev.total || 0} facturas (carpetas por prefijo)`,
+            });
+        } else if (ev.type === 'progress') {
+            actualizarProgresoTodoEnUno({
+                index: ev.index,
+                total: ev.total,
+                actual: ev.mensaje || `Procesando ${ev.Prefijo || ''}${ev.NoFactura || ''}...`,
+            });
+        } else if (ev.type === 'factura') {
+            const row = normalizarFacturaXmlTodo(ev);
+            facturas.push(row);
+            if (row.batchFolder && !batchFolders.includes(row.batchFolder)) {
+                batchFolders.push(row.batchFolder);
+            }
+            if (Array.isArray(row.batchFolders)) {
+                row.batchFolders.forEach((bf) => {
+                    if (bf && !batchFolders.includes(bf)) batchFolders.push(bf);
+                });
+            }
+            const ok = /exitos|ya existe/i.test(row.estado || '');
+            actualizarProgresoTodoEnUno({
+                index: ev.index,
+                total: ev.total,
+                actual: `${row.Prefijo || ''}${row.NoFactura}: ${row.estado}`,
+                logLine: `${ev.index}/${ev.total} ${row.Prefijo || ''}${row.NoFactura} → ${row.estado}${row.batchFolder ? ` [${row.batchFolder}]` : ''}`,
+                logOk: ok,
+            });
+        } else if (ev.type === 'done') {
+            donePayload = ev;
+            if (Array.isArray(ev.batchFolders) && ev.batchFolders.length) {
+                batchFolders = ev.batchFolders;
+            }
+            const list = Array.isArray(ev.facturas) ? ev.facturas.map(normalizarFacturaXmlTodo) : facturas;
+            facturas.length = 0;
+            facturas.push(...list);
+        } else if (ev.type === 'error') {
+            streamError = ev.message || 'Error en descarga XML';
+            actualizarProgresoTodoEnUno({
+                actual: streamError,
+                logLine: streamError,
+                logOk: false,
+            });
+        }
+    });
+
+    if (streamError && facturas.length === 0) {
+        return {
+            ok: false,
+            status: 404,
+            facturador: esFenalco ? 'Fenalco' : 'Facturatech',
+            message: streamError,
+            facturas,
+            batchFolders,
+        };
+    }
+
+    return {
+        ok: !streamError,
+        status: 200,
+        facturador: esFenalco ? 'Fenalco' : 'Facturatech',
+        message: donePayload?.message || (streamError || 'Proceso finalizado'),
+        facturas,
+        batchFolders,
+    };
+}
+
+async function GenerarJsonBatchRipsTodo(fechaInicio, fechaFin) {
+    const placeholderResolucion = 'TODO';
+    const base = window.getApiBaseUrl();
+    const doc = documentoEmpresaSeleccionada;
+
+    actualizarProgresoTodoEnUno({
+        fase: '2/3 Generando RIPS JSON (EPS + Particulares)',
+        actual: 'Consultando RIPS EPS...',
+        index: 0,
+        total: 3,
+        logLine: 'Iniciando flujo EPS...',
+    });
+
+    let dataEps = [];
+    let dataPart = [];
+    const errores = [];
+
+    try {
+        const responseEps = await fetch(
+            `${base}/RIPS/usuarios/rips/${fechaInicio}/${fechaFin}/${placeholderResolucion}/${doc}`
+        );
+        if (!responseEps.ok) {
+            throw new Error(`EPS HTTP ${responseEps.status} - ${responseEps.statusText}`);
+        }
+        const raw = await responseEps.json();
+        dataEps = Array.isArray(raw) ? raw : [];
+        actualizarProgresoTodoEnUno({
+            index: 1,
+            total: 3,
+            actual: `EPS OK (${dataEps.length} registros). Consultando Particulares...`,
+            logLine: `EPS: ${dataEps.length} registros`,
+            logOk: true,
+        });
+    } catch (err) {
+        console.error('Error JSON EPS (todo en uno):', err);
+        errores.push(`EPS: ${err.message || err}`);
+        actualizarProgresoTodoEnUno({
+            index: 1,
+            total: 3,
+            actual: `EPS falló. Continuando con Particulares...`,
+            logLine: `EPS error: ${err.message || err}`,
+            logOk: false,
+        });
+    }
+
+    try {
+        const responsePart = await fetch(
+            `${base}/RIPS/usuarios/ripsParticular/${fechaInicio}/${fechaFin}/${placeholderResolucion}/${doc}`
+        );
+        if (!responsePart.ok) {
+            throw new Error(`Particulares HTTP ${responsePart.status} - ${responsePart.statusText}`);
+        }
+        const raw = await responsePart.json();
+        dataPart = Array.isArray(raw) ? raw : [];
+        actualizarProgresoTodoEnUno({
+            index: 2,
+            total: 3,
+            actual: `Particulares OK (${dataPart.length} registros). Generando ZIP...`,
+            logLine: `Particulares: ${dataPart.length} registros`,
+            logOk: true,
+        });
+    } catch (err) {
+        console.error('Error JSON Particulares (todo en uno):', err);
+        errores.push(`Particulares: ${err.message || err}`);
+        actualizarProgresoTodoEnUno({
+            index: 2,
+            total: 3,
+            actual: `Particulares falló.`,
+            logLine: `Particulares error: ${err.message || err}`,
+            logOk: false,
+        });
+    }
+
+    const data = [...dataEps, ...dataPart];
+    if (data.length === 0) {
+        const err = new Error(
+            errores.length
+                ? `Sin datos JSON. ${errores.join(' | ')}`
+                : 'Sin datos JSON EPS ni Particulares en el rango.'
+        );
+        err.partialErrors = errores;
+        throw err;
+    }
+
+    actualizarProgresoTodoEnUno({
+        actual: `EPS (${dataEps.length}) + Particulares (${dataPart.length}). Generando carpetas separadas...`,
+        logLine: `EPS ${dataEps.length} | PARTICULAR ${dataPart.length}`,
+        logOk: true,
+    });
+
+    const zipResponse = await fetch(
+        `${base}/RIPS/generar-zip-todo-en-uno/${fechaInicio}/${fechaFin}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eps: dataEps, particulares: dataPart }),
+        }
+    );
+
+    if (!zipResponse.ok) {
+        const err = new Error(`Error al generar JSON por prefijo: ${zipResponse.status} - ${zipResponse.statusText}`);
+        err.status = zipResponse.status;
+        err.partialErrors = errores;
+        throw err;
+    }
+
+    const zipData = await zipResponse.json();
+    const folders = Array.isArray(zipData?.batchFolders) ? zipData.batchFolders : [];
+    actualizarProgresoTodoEnUno({
+        index: 3,
+        total: 3,
+        actual: `JSON separado listo (${folders.length} carpeta(s) EPS/PARTICULAR)`,
+        logLine: `JSON OK → ${folders.join(', ') || 'sin carpetas'}${errores.length ? ` (parcial: ${errores.join('; ')})` : ''}`,
+        logOk: errores.length === 0,
+    });
+
+    return {
+        ...zipData,
+        batchFolders: folders,
+        conteoEps: dataEps.length,
+        conteoParticulares: dataPart.length,
+        conteoTotal: data.length,
+        partialErrors: errores,
+    };
+}
+
+/** @deprecated alias — usar GenerarJsonBatchRipsTodo */
+async function GenerarJsonEpsBatchRips(fechaInicio, fechaFin) {
+    return GenerarJsonBatchRipsTodo(fechaInicio, fechaFin);
+}
+
+async function CerrarEstadoTodoEnUno(fechaInicio, fechaFin, { facturas, xmlError, jsonError, batchFolders }) {
+    actualizarProgresoTodoEnUno({
+        fase: '3/3 Empaquetando XML + JSON',
+        actual: 'Juntando archivos en ARCHIVOS_DE_ENVIO (por prefijo)...',
+        index: 1,
+        total: 1,
+        logLine: `Empaquetando: ${(batchFolders || []).join(', ') || 'descubrir carpetas'}`,
+    });
+
+    const response = await fetch(
+        `${window.getApiBaseUrl()}/RIPS/cerrar-todo-en-uno/${fechaInicio}/${fechaFin}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ facturas, xmlError, jsonError, batchFolders }),
+        }
+    );
+
+    let data = null;
+    try {
+        data = await response.json();
+    } catch (_) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error((data && (data.message || data.error)) || `Error HTTP ${response.status}`);
+    }
+
+    actualizarProgresoTodoEnUno({
+        actual: 'Empaquetado listo. Preparando resumen...',
+        logLine: `Resumen: XML ${data?.resumen?.xmlOk ?? 0} / JSON ${data?.resumen?.jsonOk ?? 0} / Juntados ${data?.resumen?.empaquetadoOk ?? 0}`,
+        logOk: true,
+    });
+
+    return data;
+}
+
+function MostrarResultadosTodoEnUno(estado) {
+    const carpetas = (Array.isArray(estado?.batchFolders) && estado.batchFolders.length)
+        ? estado.batchFolders
+        : String(estado?.batchFolder || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+    const listaCarpetas = carpetas.length
+        ? `<div style="margin:12px auto 0;max-width:560px;">
+            ${carpetas.map((c) => `
+                <div style="margin-bottom:8px;">
+                    <code style="font-size:0.9rem;word-break:break-word;">ARCHIVOS_DE_ENVIO\\REPORTE (${c})</code>
+                </div>
+            `).join('')}
+           </div>`
+        : `<p style="margin-top:12px;"><code>ARCHIVOS_DE_ENVIO</code></p>`;
+
+    const huboError = !!(estado?.xmlErrorGlobal || estado?.jsonErrorGlobal || estado?.empaquetadoError);
+
+    Swal.fire({
+        icon: huboError ? 'warning' : 'success',
+        title: huboError ? 'Proceso finalizado con alertas' : 'Proceso finalizado',
+        html: `
+            <div style="text-align:center;">
+                <p style="margin:0.5rem 0 0;font-size:1.05rem;">
+                    Ya puede validar los archivos en la carpeta correspondiente:
+                </p>
+                ${listaCarpetas}
+                <p style="margin:14px 0 0;font-size:0.9rem;opacity:0.9;">
+                    Revise dentro de <b>CON_FACTURA</b> (y <b>SIN_FACTURA</b> si aplica).
+                </p>
+                ${estado?.xmlErrorGlobal ? `<p style="margin-top:10px;color:#ff8a80;font-size:0.85rem;">XML: ${estado.xmlErrorGlobal}</p>` : ''}
+                ${estado?.jsonErrorGlobal ? `<p style="margin-top:6px;color:#ff8a80;font-size:0.85rem;">JSON: ${estado.jsonErrorGlobal}</p>` : ''}
+                ${estado?.empaquetadoError ? `<p style="margin-top:6px;color:#ff8a80;font-size:0.85rem;">Empaquetado: ${estado.empaquetadoError}</p>` : ''}
+            </div>
+        `,
+        width: '640px',
+        showCloseButton: true,
+        confirmButtonText: 'Aceptar',
+        allowOutsideClick: true,
+        allowEscapeKey: true,
+    });
+}
+
+async function DescargarRipsTodoEnUno() {
+    const fechaInicio = document.getElementById('fechaInicioTodo')?.value;
+    const fechaFin = document.getElementById('fechaFinTodo')?.value;
+
+    const faltantes = [];
+    if (!fechaInicio) faltantes.push('Fecha Inicio.');
+    if (!fechaFin) faltantes.push('Fecha Fin.');
+    if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
+        faltantes.push('La fecha inicial no puede ser mayor que la fecha final.');
+    }
+    if (!documentoEmpresaSeleccionada) {
+        faltantes.push('Empresa de trabajo (sesión).');
+    }
+
+    if (faltantes.length > 0) {
+        Swal.fire({
+            icon: 'info',
+            html: `
+                <h5 style="color: #ffffff"><b>Los siguientes campos son necesarios:</b></h5>
+                <br>
+                <ul style="color: #FFFFFF; text-align: left;">
+                    ${faltantes.map((c) => `<li style="color: #FFFFFF;">${c}</li>`).join('')}
+                </ul>
+            `,
+        });
+        return;
+    }
+
+    localStorage.setItem('fechaInicio', fechaInicio);
+    localStorage.setItem('fechaFin', fechaFin);
+
+    let xmlResult = { ok: false, facturas: [], message: '', facturador: '', batchFolders: [] };
+    let xmlError = null;
+    let jsonError = null;
+    let batchFolders = [];
+
+    abrirProgresoTodoEnUno();
+
+    try {
+        xmlResult = await DescargarXmlsSinPrefijo(fechaInicio, fechaFin);
+        batchFolders = xmlResult.batchFolders || [];
+        if (!xmlResult.ok) {
+            xmlError = xmlResult.message || 'Error al descargar XMLs';
+        }
+    } catch (err) {
+        console.error('Error en descarga XML (todo en uno):', err);
+        xmlError = err.message || 'Error inesperado en XML';
+        xmlResult = { ok: false, facturas: [], message: xmlError, facturador: '', batchFolders: [] };
+        actualizarProgresoTodoEnUno({ actual: xmlError, logLine: xmlError, logOk: false });
+    }
+
+    try {
+        const zipInfo = await GenerarJsonBatchRipsTodo(fechaInicio, fechaFin);
+        if (Array.isArray(zipInfo?.batchFolders) && zipInfo.batchFolders.length) {
+            const merged = new Set([...(batchFolders || []), ...zipInfo.batchFolders]);
+            batchFolders = [...merged];
+        }
+        if (Array.isArray(zipInfo?.partialErrors) && zipInfo.partialErrors.length) {
+            jsonError = `Parcial: ${zipInfo.partialErrors.join(' | ')}`;
+        }
+    } catch (err) {
+        console.error('Error generando JSON (todo en uno):', err);
+        jsonError = err.message || 'Error inesperado en JSON';
+        actualizarProgresoTodoEnUno({ actual: jsonError, logLine: jsonError, logOk: false });
+    }
+
+    try {
+        const estado = await CerrarEstadoTodoEnUno(fechaInicio, fechaFin, {
+            facturas: xmlResult.facturas || [],
+            xmlError,
+            jsonError,
+            batchFolders,
+        });
+        MostrarResultadosTodoEnUno(estado);
+    } catch (err) {
+        console.error('Error cerrando estado todo en uno:', err);
+        MostrarResultadosTodoEnUno({
+            batchFolders,
+            batchFolder: (batchFolders || []).join(', '),
+            xmlErrorGlobal: xmlError,
+            jsonErrorGlobal: jsonError || (err.message || 'Error al cerrar el proceso'),
+        });
+    }
+}
+
+document.getElementById('btnDescargarRipsTodo')?.addEventListener('click', () => {
+    DescargarRipsTodoEnUno();
+});
 
 // Ver factura: manejado en renderPanelIzquierdoParticular (btn-ver-factura)
 

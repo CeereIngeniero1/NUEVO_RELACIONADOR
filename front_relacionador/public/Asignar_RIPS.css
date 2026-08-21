@@ -544,6 +544,11 @@ body.app-layout {
     padding: 24px 32px 40px;
 }
 
+/* Con sidebar: el centrado lo gobierna style.css (espacio libre a la derecha) */
+body.cr-has-sidebar .cr-page-content {
+    flex: 1 1 auto;
+}
+
 .cr-page-heading {
     font-size: 1.35rem;
     font-weight: 700;
