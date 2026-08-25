@@ -5,6 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
 const { getRipsDataRoot } = require('../config/paths');
+const {
+    existeXmlEmpresa,
+    guardarXmlEmpresa,
+} = require('../utils/xmlCache');
 
 const RIPS_ROOT = getRipsDataRoot();
 
@@ -230,28 +234,23 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                 if (Array.isArray(listfacturas)) {
                     // console.log(listfacturas);
                     let promises = listfacturas.map(Factura => {
-                        // let carpeta = path.join(__dirname, 'Xmls');
-                        var carpeta = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
-                        // console.log(Factura.NoFactura )
                         let Parametros = {
                             token: token,
                             idnumeracion: Factura.idnumeracionFenalco,
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
+                        const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, Factura.Prefijo, Factura.NoFactura);
 
-                        // console.log(RutaVerificarSiExisteElXML);
-
-                        if (fs.existsSync(RutaVerificarSiExisteElXML)) {
-                            console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
+                        if (cached) {
+                            console.log('El archivo XML ya existe (carpeta empresa):', cached);
                             let resultado = {
                                 factura: Factura.NoFactura,
                                 estado: 'El archivo XML ya existe',
-                                filePath: RutaVerificarSiExisteElXML
+                                filePath: cached
                             };
                             resultadosFinales.push(resultado);
-                            return Promise.resolve(); // <- Muy importante devolver una promesa resuelta
+                            return Promise.resolve();
                         }
 
 
@@ -265,8 +264,6 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
                                 client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
 
                                 client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
-                                    // const archivo = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
-
                                     if (err) {
                                         console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${Factura.NoFactura}:`, err);
                                         return reject(err);
@@ -274,17 +271,21 @@ router.post('/descargarxmls-api-fenalco/:prefijo/:fechainicial/:fechafinal/:docu
 
                                     try {
                                         const response = JSON.parse(result.return);
-                                        // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
-                                        // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
                                         let base64 = response.data.attachedDocument;
                                         let buffer = Buffer.from(base64, 'base64');
                                         let xmlcontenido = buffer.toString('utf8');
-                                        // console.log(xmlcontenido);
-                                        if (!fs.existsSync(carpeta)) {
-                                            fs.mkdirSync(carpeta, { recursive: true });
-                                        }
-
-                                        fs.writeFileSync(RutaVerificarSiExisteElXML, xmlcontenido, 'utf8');
+                                        const saved = guardarXmlEmpresa(
+                                            RIPS_ROOT,
+                                            documentoempresa,
+                                            Factura.Prefijo,
+                                            Factura.NoFactura,
+                                            xmlcontenido
+                                        );
+                                        resultadosFinales.push({
+                                            factura: Factura.NoFactura,
+                                            estado: 'XML guardado exitosamente',
+                                            filePath: saved,
+                                        });
                                         resolve(response.data.attachedDocument);
                                     } catch (parseError) {
                                         console.error(`Error al parsear la respuesta de la factura ${Factura.NoFactura}:`, parseError);
@@ -504,17 +505,15 @@ router.post('/descargarxmls-api-fenalco-sin-prefijo/:fechainicial/:fechafinal/:d
                 });
             }
 
-            const carpeta = path.join(RIPS_ROOT, 'XMLS', batchFolder);
             const promises = listfacturas.map(Factura => {
-                const folioNum = parseInt(Factura.NoFactura, 10);
-                const RutaVerificarSiExisteElXML = path.join(carpeta, `${Factura.Prefijo}${folioNum}.xml`);
+                const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, Factura.Prefijo, Factura.NoFactura);
 
-                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
+                if (cached) {
                     resultadosFinales.push({
                         factura: Factura.NoFactura,
                         Prefijo: Factura.Prefijo,
                         estado: 'El archivo XML ya existe',
-                        filePath: RutaVerificarSiExisteElXML
+                        filePath: cached
                     });
                     return Promise.resolve();
                 }
@@ -555,15 +554,18 @@ router.post('/descargarxmls-api-fenalco-sin-prefijo/:fechainicial/:fechafinal/:d
                                 const base64 = response.data.attachedDocument;
                                 const buffer = Buffer.from(base64, 'base64');
                                 const xmlcontenido = buffer.toString('utf8');
-                                if (!fs.existsSync(carpeta)) {
-                                    fs.mkdirSync(carpeta, { recursive: true });
-                                }
-                                fs.writeFileSync(RutaVerificarSiExisteElXML, xmlcontenido, 'utf8');
+                                const saved = guardarXmlEmpresa(
+                                    RIPS_ROOT,
+                                    documentoempresa,
+                                    Factura.Prefijo,
+                                    Factura.NoFactura,
+                                    xmlcontenido
+                                );
                                 resultadosFinales.push({
                                     factura: Factura.NoFactura,
                                     Prefijo: Factura.Prefijo,
                                     estado: 'XML guardado exitosamente',
-                                    filePath: RutaVerificarSiExisteElXML
+                                    filePath: saved
                                 });
                                 resolve();
                             } catch (parseError) {
@@ -758,26 +760,23 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                 if (Array.isArray(listfacturas)) {
                     // console.log(listfacturas);
                     let promises = listfacturas.map(Factura => {
-                        // let carpeta = path.join(__dirname, 'Xmls');
-                        var carpeta = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
-                        // console.log(Factura.NoFactura )
                         let Parametros = {
                             token: token,
                             idnumeracion: Factura.idnumeracionFenalco,
                             numero: Factura.NoFactura
                         };
 
-                        const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${parseInt(Factura.NoFactura)}.xml`);
+                        const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, Factura.Prefijo, Factura.NoFactura);
 
-                        // console.log(RutaVerificarSiExisteElXML);
-
-                        if (fs.existsSync(RutaVerificarSiExisteElXML)) {
-                            console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
-                            facturas.estado = 'El archivo XML ya existe';
-                            facturas.filePath = RutaVerificarSiExisteElXML;
-                            resultadosFinales.push(facturas);  // Agrega la factura a los resultados
+                        if (cached) {
+                            console.log('El archivo XML ya existe (carpeta empresa):', cached);
+                            resultadosFinales.push({
+                                factura: Factura.NoFactura,
+                                estado: 'El archivo XML ya existe',
+                                filePath: cached,
+                            });
                             processedCount++;
-                            return;
+                            return Promise.resolve();
                         }
 
                         return new Promise((resolve, reject) => {
@@ -790,8 +789,6 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
                                 client.setEndpoint('https://factible.fenalcoantioquia.com/FactibleWebService/FacturacionWebService');
 
                                 client.obtenerApplicationResponseyAttachedDocument2(Parametros, (err, result) => {
-                                    // const archivo = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${Factura.Prefijo}${Factura.NoFactura}.xml`);
-
                                     if (err) {
                                         console.error(`Error al obtener ApplicationResponseyAttachedDocument2 para la factura ${Factura.NoFactura}:`, err);
                                         return reject(err);
@@ -799,17 +796,21 @@ router.post('/descargarxmls-api-fenalco Respaldo/:prefijo/:fechainicial/:fechafi
 
                                     try {
                                         const response = JSON.parse(result.return);
-                                        // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
-                                        // console.log(`Factura ${numero} - XML en base 64:`, response.data.attachedDocument);
                                         let base64 = response.data.attachedDocument;
                                         let buffer = Buffer.from(base64, 'base64');
                                         let xmlcontenido = buffer.toString('utf8');
-                                        // console.log(xmlcontenido);
-                                        if (!fs.existsSync(carpeta)) {
-                                            fs.mkdirSync(carpeta, { recursive: true });
-                                        }
-
-                                        fs.writeFileSync(RutaVerificarSiExisteElXML, xmlcontenido, 'utf8');
+                                        const saved = guardarXmlEmpresa(
+                                            RIPS_ROOT,
+                                            documentoempresa,
+                                            Factura.Prefijo,
+                                            Factura.NoFactura,
+                                            xmlcontenido
+                                        );
+                                        resultadosFinales.push({
+                                            factura: Factura.NoFactura,
+                                            estado: 'XML guardado exitosamente',
+                                            filePath: saved,
+                                        });
                                         resolve(response.data.attachedDocument);
                                     } catch (parseError) {
                                         console.error(`Error al parsear la respuesta de la factura ${Factura.NoFactura}:`, parseError);
@@ -1025,28 +1026,17 @@ router.post('/descargarxmls-stream-fenalco-sin-prefijo/:fechainicial/:fechafinal
         };
 
         const descargarUna = (Factura, token, wsdlUrl) => new Promise((resolve) => {
-            const folioNum = parseInt(Factura.NoFactura, 10);
             const folders = batchFoldersOf(Factura.Prefijo);
             folders.forEach((bf) => batchFoldersSet.add(bf));
-            const fileName = `${Factura.Prefijo}${folioNum}.xml`;
-            const existingPath = folders
-                .map((bf) => path.join(RIPS_ROOT, 'XMLS', bf, fileName))
-                .find((p) => fs.existsSync(p));
+            const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, Factura.Prefijo, Factura.NoFactura);
 
-            if (existingPath) {
-                for (const bf of folders) {
-                    const dest = path.join(RIPS_ROOT, 'XMLS', bf, fileName);
-                    if (!fs.existsSync(dest)) {
-                        fs.mkdirSync(path.dirname(dest), { recursive: true });
-                        fs.copyFileSync(existingPath, dest);
-                    }
-                }
+            if (cached) {
                 return resolve({
                     NoFactura: Factura.NoFactura,
                     Prefijo: Factura.Prefijo,
                     FechaFactura: Factura.FechaFactura,
                     estado: 'El archivo XML ya existe',
-                    filePath: existingPath,
+                    filePath: cached,
                     batchFolder: folders[0],
                     batchFolders: folders,
                 });
@@ -1086,14 +1076,13 @@ router.post('/descargarxmls-stream-fenalco-sin-prefijo/:fechainicial/:fechafinal
                         const response = JSON.parse(result.return);
                         const base64 = response.data.attachedDocument;
                         const xmlcontenido = Buffer.from(base64, 'base64').toString('utf8');
-                        let primaryPath = '';
-                        for (const bf of folders) {
-                            const carpeta = path.join(RIPS_ROOT, 'XMLS', bf);
-                            if (!fs.existsSync(carpeta)) fs.mkdirSync(carpeta, { recursive: true });
-                            const dest = path.join(carpeta, fileName);
-                            fs.writeFileSync(dest, xmlcontenido, 'utf8');
-                            if (!primaryPath) primaryPath = dest;
-                        }
+                        const primaryPath = guardarXmlEmpresa(
+                            RIPS_ROOT,
+                            documentoempresa,
+                            Factura.Prefijo,
+                            Factura.NoFactura,
+                            xmlcontenido
+                        );
                         resolve({
                             NoFactura: Factura.NoFactura,
                             Prefijo: Factura.Prefijo,

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
 const { getRipsDataRoot } = require('../config/paths');
+const { rutaXmlEmpresaPorClave } = require('../utils/xmlCache');
 
 // Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT en .env — ver server/config/paths.js)
 const RIPS_ROOT = getRipsDataRoot();
@@ -19,102 +20,131 @@ function verificarCarpetas(...carpetas) {
     });
 }
 
-// Función para encontrar archivos con nombres similares
-function encontrarArchivosSimilares(carpeta1, carpeta2) {
-    const archivos1 = fs.readdirSync(carpeta1);
-    const archivos2 = fs.readdirSync(carpeta2);
-
-    const archivosSimilares = {};
-
-    archivos1.forEach(archivo1 => {
-        archivos2.forEach(archivo2 => {
-            const nombreArchivo1 = path.basename(archivo1, path.extname(archivo1));
-            const nombreArchivo2 = path.basename(archivo2, path.extname(archivo2));
-
-            if (nombreArchivo1.includes(nombreArchivo2) || nombreArchivo2.includes(nombreArchivo1)) {
-                if (!archivosSimilares[nombreArchivo2]) {
-                    archivosSimilares[nombreArchivo2] = [];
-                }
-                archivosSimilares[nombreArchivo2].push(archivo1);
-            }
+/** Carpetas empresa bajo XMLS (no lotes con " --- ") */
+function listDocumentoEmpresaDirs() {
+    try {
+        return fs.readdirSync(carpeta2).filter((name) => {
+            const full = path.join(carpeta2, name);
+            return fs.statSync(full).isDirectory() && !String(name).includes(' --- ');
         });
-    });
-
-    return archivosSimilares;
+    } catch (_) {
+        return [];
+    }
 }
 
-// Función para crear subcarpetas y copiar archivos
-function crearSubcarpetasYCopiarArchivos() {
-    const carpetasXML = fs.readdirSync(carpeta2).filter(file => fs.statSync(path.join(carpeta2, file)).isDirectory());
-
-    carpetasXML.forEach(subcarpeta => {
-        const rutaSubcarpeta1 = path.join(carpeta1, subcarpeta);
-        const rutaSubcarpeta2 = path.join(carpeta2, subcarpeta);
-
-        if (fs.existsSync(rutaSubcarpeta1)) {
-            const archivosSimilares = encontrarArchivosSimilares(rutaSubcarpeta1, rutaSubcarpeta2);
-            const rutaReporte = path.join(carpeta3, `REPORTE (${subcarpeta})`);
-            const rutaReporteConFacturas = path.join(rutaReporte, `CON_FACTURA`);
-            const rutaReporteSinFacturas = path.join(rutaReporte, `SIN_FACTURA`);
-
-            fs.mkdirSync(rutaReporte, { recursive: true });
-            fs.mkdirSync(rutaReporteConFacturas, { recursive: true });
-            fs.mkdirSync(rutaReporteSinFacturas, { recursive: true });
-
-            Object.keys(archivosSimilares).forEach(llave => {
-                const rutaReporteLlave = path.join(rutaReporteConFacturas, llave);
-                fs.mkdirSync(rutaReporteLlave, { recursive: true });
-
-                archivosSimilares[llave].forEach(archivo1 => {
-                    const rutaArchivo1 = path.join(rutaSubcarpeta1, archivo1);
-                    const rutaArchivo2 = path.join(rutaSubcarpeta2, llave + '.xml');
-
-                    fs.copyFileSync(rutaArchivo1, path.join(rutaReporteLlave, archivo1));
-                    fs.copyFileSync(rutaArchivo2, path.join(rutaReporteLlave, llave + '.xml'));
-                });
-            });
-
-            procesarArchivosSinFactura(rutaSubcarpeta1, rutaReporteSinFacturas);
-        }
-    });
+/**
+ * XML canónico: XMLS/{documentoEmpresa}/{clave}.xml
+ * Fallback legacy: XMLS/{lote}/{clave}.xml (carpetas de rango antiguas)
+ */
+function resolverXmlParaClave(clave, loteOpcional) {
+    for (const doc of listDocumentoEmpresaDirs()) {
+        const p = rutaXmlEmpresaPorClave(RIPS_ROOT, doc, clave);
+        if (p) return p;
+    }
+    if (loteOpcional) {
+        const legacy = path.join(carpeta2, loteOpcional, `${clave}.xml`);
+        if (fs.existsSync(legacy)) return legacy;
+    }
+    return null;
 }
 
-// Función para procesar archivos "SinFactura_"
-function procesarArchivosSinFactura(carpeta1, carpeta3) {
-    const archivos1 = fs.readdirSync(carpeta1);
+function procesarArchivosSinFactura(rutaJsonLote, rutaReporteSinFacturas) {
+    let archivos1 = [];
+    try {
+        archivos1 = fs.readdirSync(rutaJsonLote);
+    } catch (_) {
+        return;
+    }
 
-    archivos1.forEach(archivo1 => {
+    archivos1.forEach((archivo1) => {
         if (archivo1.includes('SinFactura_') && archivo1.endsWith('.json')) {
             const nombreSubcarpeta = archivo1.replace('.json', '');
-            const rutaSubcarpeta = path.join(carpeta3, nombreSubcarpeta);
+            const rutaSubcarpeta = path.join(rutaReporteSinFacturas, nombreSubcarpeta);
             fs.mkdirSync(rutaSubcarpeta, { recursive: true });
-            fs.copyFileSync(path.join(carpeta1, archivo1), path.join(rutaSubcarpeta, archivo1));
+            fs.copyFileSync(path.join(rutaJsonLote, archivo1), path.join(rutaSubcarpeta, archivo1));
         }
+    });
+}
+
+// Empaqueta por lote JSON: XML desde carpeta empresa (o legacy lote)
+function crearSubcarpetasYCopiarArchivos() {
+    let lotesJson = [];
+    try {
+        lotesJson = fs.readdirSync(carpeta1).filter((name) => {
+            const full = path.join(carpeta1, name);
+            return fs.statSync(full).isDirectory();
+        });
+    } catch (_) {
+        return;
+    }
+
+    lotesJson.forEach((lote) => {
+        const rutaJson = path.join(carpeta1, lote);
+        const rutaReporte = path.join(carpeta3, `REPORTE (${lote})`);
+        const rutaReporteConFacturas = path.join(rutaReporte, 'CON_FACTURA');
+        const rutaReporteSinFacturas = path.join(rutaReporte, 'SIN_FACTURA');
+
+        fs.mkdirSync(rutaReporte, { recursive: true });
+        fs.mkdirSync(rutaReporteConFacturas, { recursive: true });
+        fs.mkdirSync(rutaReporteSinFacturas, { recursive: true });
+
+        let jsonFiles = [];
+        try {
+            jsonFiles = fs.readdirSync(rutaJson).filter((f) => f.toLowerCase().endsWith('.json'));
+        } catch (_) {
+            return;
+        }
+
+        for (const jf of jsonFiles) {
+            if (jf.includes('SinFactura_')) continue;
+
+            const clave = path.basename(jf, '.json');
+            const xmlPath = resolverXmlParaClave(clave, lote);
+            if (!xmlPath) continue;
+
+            const destDir = path.join(rutaReporteConFacturas, clave);
+            fs.mkdirSync(destDir, { recursive: true });
+            fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
+            fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
+        }
+
+        procesarArchivosSinFactura(rutaJson, rutaReporteSinFacturas);
     });
 }
 
 // Función para verificar y eliminar archivos en ARCHIVOS_DE_ENVIO si sus correspondientes XML han sido eliminados
 function verificarYEliminarArchivosEnEnvio() {
+    if (!fs.existsSync(carpeta3)) return;
     const archivosEnvio = fs.readdirSync(carpeta3);
 
-    archivosEnvio.forEach(subcarpeta => {
+    archivosEnvio.forEach((subcarpeta) => {
         const rutaSubcarpeta = path.join(carpeta3, subcarpeta);
 
-        if (fs.statSync(rutaSubcarpeta).isDirectory()) {
-            const archivosEnSubcarpeta = fs.readdirSync(rutaSubcarpeta);
+        if (!fs.statSync(rutaSubcarpeta).isDirectory()) return;
 
-            archivosEnSubcarpeta.forEach(archivo => {
-                if (archivo.endsWith('.json')) {
-                    const nombreArchivo = path.basename(archivo, '.json');
-                    const rutaXML = path.join(carpeta2, nombreArchivo + '.xml');
+        const conFactura = path.join(rutaSubcarpeta, 'CON_FACTURA');
+        if (!fs.existsSync(conFactura)) return;
 
-                    if (!fs.existsSync(rutaXML)) {
-                        console.log(`Eliminando ${archivo} porque su archivo XML correspondiente ha sido eliminado.`);
-                        fs.unlinkSync(path.join(rutaSubcarpeta, archivo));
-                    }
-                }
-            });
+        let claves = [];
+        try {
+            claves = fs.readdirSync(conFactura).filter((n) =>
+                fs.statSync(path.join(conFactura, n)).isDirectory()
+            );
+        } catch (_) {
+            return;
         }
+
+        claves.forEach((clave) => {
+            const xmlPath = resolverXmlParaClave(clave);
+            if (xmlPath) return;
+            const destDir = path.join(conFactura, clave);
+            try {
+                console.log(`Eliminando empaquetado de ${clave} porque no hay XML en carpeta empresa.`);
+                fs.rmSync(destDir, { recursive: true, force: true });
+            } catch (err) {
+                console.error(`No se pudo eliminar ${destDir}:`, err.message || err);
+            }
+        });
     });
 }
 
@@ -128,13 +158,11 @@ crearSubcarpetasYCopiarArchivos();
 const watcher1 = chokidar.watch(carpeta1, { persistent: true });
 const watcher2 = chokidar.watch(carpeta2, { persistent: true });
 
-watcher1.on('all', (event, path) => {
-    // console.log(`Se detectó un evento de tipo ${event} en la carpeta ${carpeta1}`);
+watcher1.on('all', () => {
     crearSubcarpetasYCopiarArchivos();
 });
 
-watcher2.on('all', (event, path) => {
-    // console.log(`Se detectó un evento de tipo ${event} en la carpeta ${carpeta2}`);
+watcher2.on('all', () => {
     crearSubcarpetasYCopiarArchivos();
 });
 

@@ -5,6 +5,11 @@ const fs = require('fs');
 const path = require('path');
 const soap = require('soap');
 const { getRipsDataRoot } = require('../config/paths');
+const {
+    existeXmlEmpresa,
+    guardarXmlEmpresa,
+    esXmlVacioOInvalido,
+} = require('../utils/xmlCache');
 
 const RIPS_ROOT = getRipsDataRoot();
 
@@ -213,6 +218,12 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                         if (result && result.return && result.return.resourceData && result.return.resourceData.$value) {
                             const base64Data = result.return.resourceData.$value;
                             const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
+                            if (esXmlVacioOInvalido(xmlData)) {
+                                console.warn('XML vacío/inválido; no se guarda:', args.prefijo, args.folio);
+                                processedCount++;
+                                processNextFactura(facturas[processedCount]);
+                                return;
+                            }
                             // const filePath = path.join(RIPS_ROOT, 'XMLS', `${args.prefijo}${args.folio}.xml`);
                             // Crear la carpeta de manera recursiva
                             const carpetaPath = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
@@ -381,12 +392,12 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     });
                 }
         
-                const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`, `${factura.Prefijo}${parseInt(factura.NoFactura)}.xml`);
-        
-                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
-                    console.log('El archivo XML ya existe:', RutaVerificarSiExisteElXML);
+                const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, factura.Prefijo, factura.NoFactura);
+
+                if (cached) {
+                    console.log('El archivo XML ya existe (carpeta empresa):', cached);
                     factura.estado = 'El archivo XML ya existe';
-                    factura.filePath = RutaVerificarSiExisteElXML;
+                    factura.filePath = cached;
                     resultadosFinales.push(factura);  // Agrega la factura a los resultados
                     processedCount++;
                     processNextFactura(facturas[processedCount]);
@@ -471,27 +482,24 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                         try {
                             const base64Data = resourceData.$value;
                             const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            const carpetaPath = path.join(RIPS_ROOT, 'XMLS', `${prefijo} --- ${fechainicial} --- ${fechafinal}`);
-                            fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join(carpetaPath, `${args.prefijo}${args.folio}.xml`);
-        
-                            fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
-                                if (err) {
-                                    console.error('Error guardando archivo XML:', err);
-                                    factura.estado = 'Error guardando archivo XML';
-                                } else {
-                                    console.log('Archivo XML guardado exitosamente:', filePath);
-                                    factura.filePath = filePath;
-                                    factura.estado = 'XML guardado exitosamente';
-                                }
-                                                           
-                                resultadosFinales.push(factura);  // Agrega la factura a los resultados
-                                processedCount++;
-                                processNextFactura(facturas[processedCount]);
-                            });
+                            const filePath = guardarXmlEmpresa(
+                                RIPS_ROOT,
+                                documentoempresa,
+                                args.prefijo,
+                                args.folio,
+                                xmlData
+                            );
+                            console.log('Archivo XML guardado en carpeta empresa:', filePath);
+                            factura.filePath = filePath;
+                            factura.estado = 'XML guardado exitosamente';
+                            resultadosFinales.push(factura);
+                            processedCount++;
+                            processNextFactura(facturas[processedCount]);
                         } catch (error) {
                             console.error('Error procesando los datos recibidos:', error);
-                            factura.estado = 'Error procesando los datos recibidos';
+                            factura.estado = error && error.code === 'XML_VACIO'
+                                ? error.message
+                                : 'Error procesando los datos recibidos';
                             resultadosFinales.push(factura);  // Agrega la factura a los resultados
                             processedCount++;
                             processNextFactura(facturas[processedCount]);
@@ -624,11 +632,11 @@ router.post('/descargarxmls-api-facturatech-sin-prefijo/:fechainicial/:fechafina
                 }
 
                 const folioNum = parseInt(factura.NoFactura, 10);
-                const RutaVerificarSiExisteElXML = path.join(RIPS_ROOT, 'XMLS', batchFolder, `${factura.Prefijo}${folioNum}.xml`);
+                const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, factura.Prefijo, factura.NoFactura);
 
-                if (fs.existsSync(RutaVerificarSiExisteElXML)) {
+                if (cached) {
                     factura.estado = 'El archivo XML ya existe';
-                    factura.filePath = RutaVerificarSiExisteElXML;
+                    factura.filePath = cached;
                     resultadosFinales.push(factura);
                     processedCount++;
                     processNextFactura(facturas[processedCount]);
@@ -711,23 +719,22 @@ router.post('/descargarxmls-api-facturatech-sin-prefijo/:fechainicial/:fechafina
                         try {
                             const base64Data = resourceData.$value;
                             const xmlData = Buffer.from(base64Data, 'base64').toString('utf8');
-                            const carpetaPath = path.join(RIPS_ROOT, 'XMLS', batchFolder);
-                            fs.mkdirSync(carpetaPath, { recursive: true });
-                            const filePath = path.join(carpetaPath, `${args.prefijo}${folioNum}.xml`);
-
-                            fs.writeFile(filePath, xmlData, { encoding: 'utf8' }, (err) => {
-                                if (err) {
-                                    factura.estado = 'Error guardando archivo XML';
-                                } else {
-                                    factura.filePath = filePath;
-                                    factura.estado = 'XML guardado exitosamente';
-                                }
-                                resultadosFinales.push(factura);
-                                processedCount++;
-                                processNextFactura(facturas[processedCount]);
-                            });
+                            const filePath = guardarXmlEmpresa(
+                                RIPS_ROOT,
+                                documentoempresa,
+                                args.prefijo,
+                                args.folio,
+                                xmlData
+                            );
+                            factura.filePath = filePath;
+                            factura.estado = 'XML guardado exitosamente';
+                            resultadosFinales.push(factura);
+                            processedCount++;
+                            processNextFactura(facturas[processedCount]);
                         } catch (error) {
-                            factura.estado = 'Error procesando los datos recibidos';
+                            factura.estado = error && error.code === 'XML_VACIO'
+                                ? error.message
+                                : 'Error procesando los datos recibidos';
                             resultadosFinales.push(factura);
                             processedCount++;
                             processNextFactura(facturas[processedCount]);
@@ -891,22 +898,11 @@ router.post('/descargarxmls-stream-facturatech-sin-prefijo/:fechainicial/:fechaf
                 });
 
                 const folioNum = parseInt(factura.NoFactura, 10);
-                const fileName = `${factura.Prefijo}${folioNum}.xml`;
-                const existingPath = folders
-                    .map((bf) => path.join(RIPS_ROOT, 'XMLS', bf, fileName))
-                    .find((p) => fs.existsSync(p));
+                const cached = existeXmlEmpresa(RIPS_ROOT, documentoempresa, factura.Prefijo, factura.NoFactura);
 
-                if (existingPath) {
-                    // Asegurar copia en ambas carpetas (EPS y PARTICULAR)
-                    for (const bf of folders) {
-                        const dest = path.join(RIPS_ROOT, 'XMLS', bf, fileName);
-                        if (!fs.existsSync(dest)) {
-                            fs.mkdirSync(path.dirname(dest), { recursive: true });
-                            fs.copyFileSync(existingPath, dest);
-                        }
-                    }
+                if (cached) {
                     factura.estado = 'El archivo XML ya existe';
-                    factura.filePath = existingPath;
+                    factura.filePath = cached;
                     return finishOne(factura);
                 }
 
@@ -987,20 +983,20 @@ router.post('/descargarxmls-stream-facturatech-sin-prefijo/:fechainicial/:fechaf
 
                         try {
                             const xmlData = Buffer.from(resourceData.$value, 'base64').toString('utf8');
-                            const fileNameWrite = `${args.prefijo}${folioNum}.xml`;
-                            let primaryPath = '';
-                            for (const folder of folders) {
-                                const carpetaPath = path.join(RIPS_ROOT, 'XMLS', folder);
-                                fs.mkdirSync(carpetaPath, { recursive: true });
-                                const filePath = path.join(carpetaPath, fileNameWrite);
-                                fs.writeFileSync(filePath, xmlData, { encoding: 'utf8' });
-                                if (!primaryPath) primaryPath = filePath;
-                            }
-                            factura.filePath = primaryPath;
+                            const filePath = guardarXmlEmpresa(
+                                RIPS_ROOT,
+                                documentoempresa,
+                                args.prefijo,
+                                args.folio,
+                                xmlData
+                            );
+                            factura.filePath = filePath;
                             factura.estado = 'XML guardado exitosamente';
                             finishOne(factura);
                         } catch (e) {
-                            factura.estado = 'Error procesando los datos recibidos';
+                            factura.estado = e && e.code === 'XML_VACIO'
+                                ? e.message
+                                : 'Error procesando los datos recibidos';
                             finishOne(factura);
                         }
                     });

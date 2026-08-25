@@ -2269,7 +2269,7 @@ async function GenerarJsonEpsBatchRips(fechaInicio, fechaFin) {
 async function CerrarEstadoTodoEnUno(fechaInicio, fechaFin, { facturas, xmlError, jsonError, batchFolders }) {
     actualizarProgresoTodoEnUno({
         fase: '3/3 Empaquetando XML + JSON',
-        actual: 'Juntando archivos en ARCHIVOS_DE_ENVIO (por prefijo)...',
+        actual: 'Juntando archivos en ARCHIVOS_DE_ENVIO (JSON lote + XML carpeta empresa)...',
         index: 1,
         total: 1,
         logLine: `Empaquetando: ${(batchFolders || []).join(', ') || 'descubrir carpetas'}`,
@@ -2280,7 +2280,13 @@ async function CerrarEstadoTodoEnUno(fechaInicio, fechaFin, { facturas, xmlError
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ facturas, xmlError, jsonError, batchFolders }),
+            body: JSON.stringify({
+                facturas,
+                xmlError,
+                jsonError,
+                batchFolders,
+                documentoEmpresa: documentoEmpresaSeleccionada || sessionStorage.getItem('empresaTrabajarExecuted') || '',
+            }),
         }
     );
 
