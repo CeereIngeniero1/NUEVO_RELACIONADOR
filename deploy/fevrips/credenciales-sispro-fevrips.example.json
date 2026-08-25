@@ -1,0 +1,10 @@
+{
+  "_comentario": "Copia a {CEERE_RIPS_DATA_ROOT}/config/credenciales-sispro-fevrips.json o usa PUT /RIPS/fevrips/credenciales/:documentoEmpresa",
+  "900123456": {
+    "tipoDocumento": "CC",
+    "numeroDocumento": "1234567890",
+    "clave": "TU_CLAVE_SISPRO",
+    "nit": "900123456",
+    "tipoUsuario": "RE"
+  }
+}

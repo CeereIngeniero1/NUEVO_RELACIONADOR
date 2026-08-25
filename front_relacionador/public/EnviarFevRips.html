@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar FEV-RIPS — CEERE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="Asignar_RIPS.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="enviarFevRips/enviarFevRips.css">
+    <link rel="icon" href="images/Logo.png" type="image/x-icon">
+    <script>
+        if (localStorage.getItem('ceere_theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+
+<body class="app-layout fevrips-app">
+
+    <nav class="cr-topbar" id="crTopbar" hidden>
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
+            <img src="images/Ceere_logo.png" alt="Logo" class="cr-topbar-logo">
+            <span class="cr-topbar-title">Relacionador RIPS</span>
+        </div>
+    </nav>
+
+    <div class="cr-page-content">
+        <div class="fevrips-page-head d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h1 class="cr-page-heading mb-0">Enviar a MinSalud (FEV-RIPS)</h1>
+            <button type="button" class="fevrips-gear-btn" id="btnCredencialesFev" title="Credenciales SISPRO">
+                <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                <span>Credenciales SISPRO</span>
+            </button>
+        </div>
+        <main class="container-fluid px-0">
+
+            <div class="fevrips-modo-toggle mb-3" role="group" aria-label="Modo de envío">
+                <button type="button" class="fevrips-modo-btn is-active" id="btnModoConFactura" data-modo="con_factura">
+                    Con factura
+                </button>
+                <button type="button" class="fevrips-modo-btn" id="btnModoSinFactura" data-modo="sin_factura">
+                    Sin factura
+                </button>
+            </div>
+
+            <div class="alert border-0 mb-3 fevrips-info-alert" role="alert" id="fevripsInfoAlert">
+                <div class="d-flex gap-2 align-items-start">
+                    <i class="ri-information-line fs-5 fevrips-info-icon"></i>
+                    <div id="fevripsInfoText">
+                        Lista facturas con RIPS en el rango y el estado del <strong>XML</strong> en
+                        <code>XMLS/{empresa}/</code>. Si falta, puede descargarlo aquí.
+                        El JSON se usa al validar/enviar cuando ya esté generado/empaquetado.
+                        API: <code id="fevripsApiBaseLabel">—</code> · Ambiente:
+                        <strong id="fevripsAmbienteLabel">—</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fevrips-dashboard mb-4" id="fevripsDashboard">
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label" id="dashLabelTotal">Total facturas</div>
+                    <div class="fevrips-dash-value" id="dashTotal">0</div>
+                </div>
+                <div class="fevrips-dash-card" data-modo-only="con_factura">
+                    <div class="fevrips-dash-label">Con XML</div>
+                    <div class="fevrips-dash-value text-success" id="dashConXml">0</div>
+                </div>
+                <div class="fevrips-dash-card" data-modo-only="con_factura">
+                    <div class="fevrips-dash-label">Sin XML</div>
+                    <div class="fevrips-dash-value text-danger" id="dashSinXml">0</div>
+                </div>
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label">Con JSON</div>
+                    <div class="fevrips-dash-value" id="dashConJson">0</div>
+                </div>
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label">Listos envío</div>
+                    <div class="fevrips-dash-value text-success" id="dashListos">0</div>
+                </div>
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label">Enviados OK</div>
+                    <div class="fevrips-dash-value text-success" id="dashOk">0</div>
+                </div>
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label">Prevalidados OK</div>
+                    <div class="fevrips-dash-value text-success" id="dashValidados">0</div>
+                </div>
+                <div class="fevrips-dash-card">
+                    <div class="fevrips-dash-label">Errores prevalidación</div>
+                    <div class="fevrips-dash-value text-danger" id="dashValErr">0</div>
+                </div>
+            </div>
+
+            <div class="cr-card cr-card-left-border mb-4">
+                <div class="cr-card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                        <h2 class="h6 text-uppercase fw-bold mb-0" style="color: var(--color-text-secondary);">Filtros y acciones</h2>
+                        <p class="small text-muted mb-0" id="fevripsEmpresaLabel">Empresa: —</p>
+                    </div>
+
+                    <div class="fevrips-toolbar">
+                        <div class="fevrips-seg fevrips-seg-buscar">
+                            <span class="fevrips-seg-title">Buscar</span>
+                            <div class="fevrips-seg-row">
+                                <div class="fevrips-field">
+                                    <label for="fechaInicioFev">Inicio</label>
+                                    <input type="date" id="fechaInicioFev" class="form-control form-control-sm">
+                                </div>
+                                <div class="fevrips-field">
+                                    <label for="fechaFinFev">Fin</label>
+                                    <input type="date" id="fechaFinFev" class="form-control form-control-sm">
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm" id="btnBuscarFevRips">Buscar facturas</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnDescargarXmlFaltantes" data-modo-only="con_factura" disabled>Descargar XMLs faltantes</button>
+                            </div>
+                            <p class="fevrips-seg-hint" id="fevripsBuscarHint">Facturas con RIPS en el rango. Muestra si el XML ya está en caché empresa; descarga solo los que falten.</p>
+                        </div>
+
+                        <div class="fevrips-seg fevrips-seg-validar">
+                            <span class="fevrips-seg-title">1. Validar</span>
+                            <div class="fevrips-seg-row fevrips-seg-row-actions">
+                                <div class="fevrips-radios" role="radiogroup" aria-label="Alcance de validación">
+                                    <label class="fevrips-radio">
+                                        <input type="radio" name="scopeValidarFev" value="seleccionados" checked>
+                                        <span>Solo seleccionados</span>
+                                    </label>
+                                    <label class="fevrips-radio">
+                                        <input type="radio" name="scopeValidarFev" value="todos">
+                                        <span>Todos los listos</span>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-warning btn-sm" id="btnValidarFev" disabled>Validar</button>
+                            </div>
+                            <p class="fevrips-seg-hint">Prevalidación local (JSON / XML). No envía a MinSalud.</p>
+                        </div>
+
+                        <div class="fevrips-seg fevrips-seg-enviar">
+                            <span class="fevrips-seg-title">2. Enviar</span>
+                            <div class="fevrips-seg-row fevrips-seg-row-actions">
+                                <div class="fevrips-radios" role="radiogroup" aria-label="Alcance de envío">
+                                    <label class="fevrips-radio">
+                                        <input type="radio" name="scopeEnviarFev" value="seleccionados" checked>
+                                        <span>Solo seleccionados prevalidados</span>
+                                    </label>
+                                    <label class="fevrips-radio">
+                                        <input type="radio" name="scopeEnviarFev" value="todos">
+                                        <span>Todos prevalidados OK</span>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm" id="btnEnviarFev" disabled>Enviar</button>
+                            </div>
+                            <p class="fevrips-seg-hint">API Docker MinSalud (reglas + CUV). Solo si el paso 1 quedó OK.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cr-card">
+                <div class="cr-card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h2 class="h6 text-uppercase fw-bold mb-0" style="color: var(--color-text-secondary);">Desglose</h2>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="fevCheckAll" checked>
+                            <label class="form-check-label small" for="fevCheckAll">Seleccionar listos</label>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="tablaFevRips">
+                            <thead class="fevrips-thead">
+                                <tr id="theadFevRips">
+                                    <th style="width:2.5rem;"></th>
+                                    <th>Clave</th>
+                                    <th>Fecha</th>
+                                    <th class="col-xml">XML</th>
+                                    <th>JSON</th>
+                                    <th>Prevalidación</th>
+                                    <th>Estado envío</th>
+                                    <th>CUV / detalle</th>
+                                    <th class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyFevRips">
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">
+                                        Seleccione el rango de fechas y pulse <strong>Buscar</strong>.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 200;">
+        <a href="RIPS.html" class="btn btn-success shadow-lg fw-bolder">⬅ Regresar</a>
+    </div>
+
+    <script src="/config.js"></script>
+    <script src="/apiConfig.js"></script>
+    <script src="/NombreEquipoServidor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="module" src="enviarFevRips/index.js"></script>
+</body>
+
+</html>

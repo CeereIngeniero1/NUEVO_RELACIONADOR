@@ -1,0 +1,56 @@
+# Plantilla Production — sin secretos.
+# Copiar a apilocal-dockercompose.Production.yml y completar valores desde documentación MinSalud.
+# En Relacionador: FEVRIPS_AMBIENTE=prod y FEVRIPS_ALLOW_PRODUCTION=1
+#
+# docker login -u <ACR_USER> -p <ACR_PASSWORD> crmspsgovcoprd.azurecr.io
+# docker compose -f apilocal-dockercompose.Production.yml pull
+# docker compose -f apilocal-dockercompose.Production.yml up -d
+
+networks:
+  fevrips-net:
+    driver: bridge
+
+services:
+  fevrips-db:
+    container_name: fevrips-db
+    image: mcr.microsoft.com/mssql/server:2022-CU12-ubuntu-22.04
+    deploy:
+      resources:
+        limits:
+          cpus: "4.00"
+          memory: 9G
+        reservations:
+          cpus: "3.00"
+          memory: 6G
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${FEVRIPS_MSSQL_SA_PASSWORD}
+      - MSSQL_MEMORY_LIMIT_MB=9000
+      - MSSQL_COLLATION=SQL_Latin1_General_CP1_CI_AS
+      - MSSQL_PID=Enterprise
+    networks:
+      - fevrips-net
+
+  fevrips-api:
+    container_name: fevrips-api
+    image: crmspsgovcoprd.azurecr.io/production-fevrips-apilocal
+    deploy:
+      resources:
+        limits:
+          cpus: "4.00"
+          memory: 9G
+        reservations:
+          cpus: "3.00"
+          memory: 6G
+    ports:
+      - "9443:5100"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=DockerProduction
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${FEVRIPS_PFX_PASSWORD}
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/certificates/fevripsapilocal.pfx
+    volumes:
+      - ${FEVRIPS_CERTIFICATES_HOST_PATH:-C:/Certificates}:/certificates
+    networks:
+      - fevrips-net
+    depends_on:
+      - fevrips-db

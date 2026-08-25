@@ -10,161 +10,177 @@ const carpeta1 = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
 const carpeta2 = path.join(RIPS_ROOT, 'XMLS');
 const carpeta3 = path.join(RIPS_ROOT, 'ARCHIVOS_DE_ENVIO');
 
-// Verificar que las carpetas existen
+let empaquetadoTimer = null;
+
 function verificarCarpetas(...carpetas) {
-    carpetas.forEach(carpeta => {
-        if (!fs.existsSync(carpeta)) {
-            console.error(`La carpeta ${carpeta} no existe. Por favor, verifica las rutas.`);
-            process.exit(1); // Salir del programa si alguna carpeta no existe
-        }
-    });
+  carpetas.forEach((carpeta) => {
+    if (!fs.existsSync(carpeta)) {
+      console.error(`La carpeta ${carpeta} no existe. Por favor, verifica las rutas.`);
+      process.exit(1);
+    }
+  });
 }
 
 /** Carpetas empresa bajo XMLS (no lotes con " --- ") */
 function listDocumentoEmpresaDirs() {
-    try {
-        return fs.readdirSync(carpeta2).filter((name) => {
-            const full = path.join(carpeta2, name);
-            return fs.statSync(full).isDirectory() && !String(name).includes(' --- ');
-        });
-    } catch (_) {
-        return [];
-    }
+  try {
+    return fs.readdirSync(carpeta2).filter((name) => {
+      const full = path.join(carpeta2, name);
+      return fs.statSync(full).isDirectory() && !String(name).includes(' --- ');
+    });
+  } catch (_) {
+    return [];
+  }
 }
 
 /**
- * XML canónico: XMLS/{documentoEmpresa}/{clave}.xml
- * Fallback legacy: XMLS/{lote}/{clave}.xml (carpetas de rango antiguas)
+ * Solo XML canónico en XMLS/{documentoEmpresa}/{clave}.xml
+ * (no usa lotes legacy: eso provocaba crear → borrar en cada arranque).
  */
-function resolverXmlParaClave(clave, loteOpcional) {
-    for (const doc of listDocumentoEmpresaDirs()) {
-        const p = rutaXmlEmpresaPorClave(RIPS_ROOT, doc, clave);
-        if (p) return p;
-    }
-    if (loteOpcional) {
-        const legacy = path.join(carpeta2, loteOpcional, `${clave}.xml`);
-        if (fs.existsSync(legacy)) return legacy;
-    }
-    return null;
+function resolverXmlEmpresa(clave) {
+  for (const doc of listDocumentoEmpresaDirs()) {
+    const p = rutaXmlEmpresaPorClave(RIPS_ROOT, doc, clave);
+    if (p) return p;
+  }
+  return null;
 }
 
 function procesarArchivosSinFactura(rutaJsonLote, rutaReporteSinFacturas) {
-    let archivos1 = [];
-    try {
-        archivos1 = fs.readdirSync(rutaJsonLote);
-    } catch (_) {
-        return;
-    }
+  let archivos1 = [];
+  try {
+    archivos1 = fs.readdirSync(rutaJsonLote);
+  } catch (_) {
+    return;
+  }
 
-    archivos1.forEach((archivo1) => {
-        if (archivo1.includes('SinFactura_') && archivo1.endsWith('.json')) {
-            const nombreSubcarpeta = archivo1.replace('.json', '');
-            const rutaSubcarpeta = path.join(rutaReporteSinFacturas, nombreSubcarpeta);
-            fs.mkdirSync(rutaSubcarpeta, { recursive: true });
-            fs.copyFileSync(path.join(rutaJsonLote, archivo1), path.join(rutaSubcarpeta, archivo1));
-        }
-    });
+  archivos1.forEach((archivo1) => {
+    if (archivo1.includes('SinFactura_') && archivo1.endsWith('.json')) {
+      const nombreSubcarpeta = archivo1.replace('.json', '');
+      const rutaSubcarpeta = path.join(rutaReporteSinFacturas, nombreSubcarpeta);
+      fs.mkdirSync(rutaSubcarpeta, { recursive: true });
+      fs.copyFileSync(path.join(rutaJsonLote, archivo1), path.join(rutaSubcarpeta, archivo1));
+    }
+  });
 }
 
-// Empaqueta por lote JSON: XML desde carpeta empresa (o legacy lote)
+/** Empaqueta CON_FACTURA solo si el XML está en carpeta empresa. */
 function crearSubcarpetasYCopiarArchivos() {
-    let lotesJson = [];
+  let lotesJson = [];
+  try {
+    lotesJson = fs.readdirSync(carpeta1).filter((name) => {
+      const full = path.join(carpeta1, name);
+      return fs.statSync(full).isDirectory();
+    });
+  } catch (_) {
+    return;
+  }
+
+  lotesJson.forEach((lote) => {
+    const rutaJson = path.join(carpeta1, lote);
+    const rutaReporte = path.join(carpeta3, `REPORTE (${lote})`);
+    const rutaReporteConFacturas = path.join(rutaReporte, 'CON_FACTURA');
+    const rutaReporteSinFacturas = path.join(rutaReporte, 'SIN_FACTURA');
+
+    fs.mkdirSync(rutaReporte, { recursive: true });
+    fs.mkdirSync(rutaReporteConFacturas, { recursive: true });
+    fs.mkdirSync(rutaReporteSinFacturas, { recursive: true });
+
+    let jsonFiles = [];
     try {
-        lotesJson = fs.readdirSync(carpeta1).filter((name) => {
-            const full = path.join(carpeta1, name);
-            return fs.statSync(full).isDirectory();
-        });
+      jsonFiles = fs.readdirSync(rutaJson).filter((f) => f.toLowerCase().endsWith('.json'));
     } catch (_) {
-        return;
+      return;
     }
 
-    lotesJson.forEach((lote) => {
-        const rutaJson = path.join(carpeta1, lote);
-        const rutaReporte = path.join(carpeta3, `REPORTE (${lote})`);
-        const rutaReporteConFacturas = path.join(rutaReporte, 'CON_FACTURA');
-        const rutaReporteSinFacturas = path.join(rutaReporte, 'SIN_FACTURA');
+    for (const jf of jsonFiles) {
+      if (jf.includes('SinFactura_')) continue;
 
-        fs.mkdirSync(rutaReporte, { recursive: true });
-        fs.mkdirSync(rutaReporteConFacturas, { recursive: true });
-        fs.mkdirSync(rutaReporteSinFacturas, { recursive: true });
+      const clave = path.basename(jf, '.json');
+      const xmlPath = resolverXmlEmpresa(clave);
+      if (!xmlPath) continue;
 
-        let jsonFiles = [];
-        try {
-            jsonFiles = fs.readdirSync(rutaJson).filter((f) => f.toLowerCase().endsWith('.json'));
-        } catch (_) {
-            return;
-        }
+      const destDir = path.join(rutaReporteConFacturas, clave);
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
+      fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
+    }
 
-        for (const jf of jsonFiles) {
-            if (jf.includes('SinFactura_')) continue;
-
-            const clave = path.basename(jf, '.json');
-            const xmlPath = resolverXmlParaClave(clave, lote);
-            if (!xmlPath) continue;
-
-            const destDir = path.join(rutaReporteConFacturas, clave);
-            fs.mkdirSync(destDir, { recursive: true });
-            fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
-            fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
-        }
-
-        procesarArchivosSinFactura(rutaJson, rutaReporteSinFacturas);
-    });
+    procesarArchivosSinFactura(rutaJson, rutaReporteSinFacturas);
+  });
 }
 
-// Función para verificar y eliminar archivos en ARCHIVOS_DE_ENVIO si sus correspondientes XML han sido eliminados
+/**
+ * Quita CON_FACTURA sin XML en carpeta empresa.
+ * Solo loguea un resumen (no una línea por factura).
+ */
 function verificarYEliminarArchivosEnEnvio() {
-    if (!fs.existsSync(carpeta3)) return;
-    const archivosEnvio = fs.readdirSync(carpeta3);
+  if (!fs.existsSync(carpeta3)) return 0;
+  const archivosEnvio = fs.readdirSync(carpeta3);
+  let eliminados = 0;
 
-    archivosEnvio.forEach((subcarpeta) => {
-        const rutaSubcarpeta = path.join(carpeta3, subcarpeta);
+  archivosEnvio.forEach((subcarpeta) => {
+    const rutaSubcarpeta = path.join(carpeta3, subcarpeta);
+    if (!fs.statSync(rutaSubcarpeta).isDirectory()) return;
 
-        if (!fs.statSync(rutaSubcarpeta).isDirectory()) return;
+    const conFactura = path.join(rutaSubcarpeta, 'CON_FACTURA');
+    if (!fs.existsSync(conFactura)) return;
 
-        const conFactura = path.join(rutaSubcarpeta, 'CON_FACTURA');
-        if (!fs.existsSync(conFactura)) return;
+    let claves = [];
+    try {
+      claves = fs.readdirSync(conFactura).filter((n) =>
+        fs.statSync(path.join(conFactura, n)).isDirectory()
+      );
+    } catch (_) {
+      return;
+    }
 
-        let claves = [];
-        try {
-            claves = fs.readdirSync(conFactura).filter((n) =>
-                fs.statSync(path.join(conFactura, n)).isDirectory()
-            );
-        } catch (_) {
-            return;
-        }
-
-        claves.forEach((clave) => {
-            const xmlPath = resolverXmlParaClave(clave);
-            if (xmlPath) return;
-            const destDir = path.join(conFactura, clave);
-            try {
-                console.log(`Eliminando empaquetado de ${clave} porque no hay XML en carpeta empresa.`);
-                fs.rmSync(destDir, { recursive: true, force: true });
-            } catch (err) {
-                console.error(`No se pudo eliminar ${destDir}:`, err.message || err);
-            }
-        });
+    claves.forEach((clave) => {
+      if (resolverXmlEmpresa(clave)) return;
+      const destDir = path.join(conFactura, clave);
+      try {
+        fs.rmSync(destDir, { recursive: true, force: true });
+        eliminados += 1;
+      } catch (err) {
+        console.error(`No se pudo eliminar ${destDir}:`, err.message || err);
+      }
     });
+  });
+
+  return eliminados;
 }
 
-// Verificar las carpetas antes de ejecutar
+function programarEmpaquetado() {
+  if (empaquetadoTimer) clearTimeout(empaquetadoTimer);
+  empaquetadoTimer = setTimeout(() => {
+    empaquetadoTimer = null;
+    crearSubcarpetasYCopiarArchivos();
+  }, 800);
+}
+
 verificarCarpetas(carpeta1, carpeta2, carpeta3);
 
-// Ejecutar inicialmente
+// Arranque: primero limpiar huérfanos (una vez), luego empaquetar solo con XML empresa.
+const n = verificarYEliminarArchivosEnEnvio();
+if (n > 0) {
+  console.log(
+    `[empaquetado] Se eliminaron ${n} carpeta(s) CON_FACTURA sin XML en carpeta empresa.`
+  );
+} else {
+  console.log('[empaquetado] Sin carpetas huérfanas CON_FACTURA que limpiar.');
+}
+
 crearSubcarpetasYCopiarArchivos();
 
-// Usar chokidar para observar cambios
-const watcher1 = chokidar.watch(carpeta1, { persistent: true });
-const watcher2 = chokidar.watch(carpeta2, { persistent: true });
+const watchOpts = {
+  persistent: true,
+  ignoreInitial: true, // no re-disparar por cada archivo ya existente al arrancar
+  awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
+};
 
-watcher1.on('all', () => {
-    crearSubcarpetasYCopiarArchivos();
-});
+const watcher1 = chokidar.watch(carpeta1, watchOpts);
+const watcher2 = chokidar.watch(carpeta2, watchOpts);
 
-watcher2.on('all', () => {
-    crearSubcarpetasYCopiarArchivos();
-});
+watcher1.on('all', () => programarEmpaquetado());
+watcher2.on('all', () => programarEmpaquetado());
 
-// Ejecutar la verificación inicial de archivos en ARCHIVOS_DE_ENVIO
-verificarYEliminarArchivosEnEnvio();
+module.exports = {};
