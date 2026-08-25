@@ -10,6 +10,7 @@ const { promisify } = require('util');
 const { Console } = require('console');
 const pipelineAsync = promisify(require('stream').pipeline);
 const { getRipsDataRoot } = require('../config/paths');
+const { rutaXmlEmpresaPorClave, rutaDirEmpresa } = require('../utils/xmlCache');
 
 const INTERNAL_API_BASE = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
 const RIPS_ROOT = getRipsDataRoot();
@@ -1356,9 +1357,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
         await descomprimirZip(rutasZips, rutaBaseDestino);
         const NombreArchivoIgualdadCarpetaParaXMLS = `${prefijo} --- ${fechaInicio} --- ${fechaFin}`;
 
-        const IgualdadCarpetaParaXMLS = path.join(RIPS_ROOT, 'XMLS', NombreArchivoIgualdadCarpetaParaXMLS);
-        fs.mkdirSync(IgualdadCarpetaParaXMLS, { recursive: true });
-
+        // XML vive en XMLS/{documentoEmpresa}/; solo se crea el lote JSON
         const carpetaJson = path.join(rutaBaseDestino, NombreArchivoIgualdadCarpetaParaXMLS);
         let archivosJson = [];
         try {
@@ -1465,9 +1464,7 @@ router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) 
             batchFolders.push(batchFolder);
 
             const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
-            const rutaXmlDir = path.join(RIPS_ROOT, 'XMLS', batchFolder);
             fs.mkdirSync(rutaJsonDir, { recursive: true });
-            fs.mkdirSync(rutaXmlDir, { recursive: true });
 
             const zip = new JSZip();
             for (const f of files) {
@@ -1488,7 +1485,6 @@ router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) 
             for (const batchFolder of targets) {
                 const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
                 fs.mkdirSync(rutaJsonDir, { recursive: true });
-                fs.mkdirSync(path.join(RIPS_ROOT, 'XMLS', batchFolder), { recursive: true });
                 for (const f of sinFacturaFiles) {
                     fs.writeFileSync(path.join(rutaJsonDir, f.nombre), f.contenido, 'utf8');
                     archivosJson.push({ batchFolder, tipo, nombre: f.nombre });
@@ -1525,13 +1521,14 @@ router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) 
 });
 
 /**
- * Empaqueta uno o varios batch `{Prefijo} --- fechas` y reporta estado por factura.
- * Body: { facturas, xmlError, jsonError, batchFolders? }
+ * Empaqueta lotes JSON + XML desde XMLS/{documentoEmpresa}/ y reporta estado por factura.
+ * Body: { facturas, xmlError, jsonError, batchFolders?, documentoEmpresa }
  */
 router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
     const fechaInicio = new Date(req.params.fechaInicio).toISOString().split('T')[0];
     const fechaFin = new Date(req.params.fechaFin).toISOString().split('T')[0];
     const suffix = ` --- ${fechaInicio} --- ${fechaFin}`;
+    const documentoEmpresa = String(req.body?.documentoEmpresa || req.body?.documentoempresa || '').trim();
     const facturasXml = Array.isArray(req.body?.facturas) ? req.body.facturas : [];
     const jsonErrorGlobal = typeof req.body?.jsonError === 'string' ? req.body.jsonError : null;
     const xmlErrorGlobal = typeof req.body?.xmlError === 'string' ? req.body.xmlError : null;
@@ -1559,18 +1556,18 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
                 set.add(`${pref} --- PARTICULAR${suffix}`);
             }
         }
-        for (const rootName of ['XMLS', 'ARCHIVOS_RIPS_JSON']) {
-            const root = path.join(RIPS_ROOT, rootName);
-            try {
-                if (!fs.existsSync(root)) continue;
+        // Solo JSON por lote (XML ya no vive en carpetas de rango)
+        const root = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
+        try {
+            if (fs.existsSync(root)) {
                 for (const name of fs.readdirSync(root)) {
                     const full = path.join(root, name);
                     if (fs.statSync(full).isDirectory() && name.endsWith(suffix)) {
                         set.add(name);
                     }
                 }
-            } catch (_) { /* ignore */ }
-        }
+            }
+        } catch (_) { /* ignore */ }
         return [...set];
     };
 
@@ -1608,13 +1605,16 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
         const clave = claveFromFactura(f);
         const estadoXmlRaw = f.estado || f.Estado || xmlErrorGlobal || 'Desconocido';
         const xmlOk = /exitos|ya existe/i.test(String(estadoXmlRaw));
+        const rutaXmlEmpresa = documentoEmpresa
+            ? rutaXmlEmpresaPorClave(RIPS_ROOT, documentoEmpresa, clave)
+            : null;
         upsert(clave, {
             NoFactura: String(f.NoFactura != null ? f.NoFactura : (f.factura || '')),
             Prefijo: f.Prefijo || f.prefijo || '',
             FechaFactura: f.FechaFactura || f.fechaFactura || '',
             batchFolder: f.batchFolder || (f.Prefijo ? `${f.Prefijo}${suffix}` : ''),
             estadoXml: estadoXmlRaw,
-            rutaXml: f.filePath || '',
+            rutaXml: f.filePath || rutaXmlEmpresa || '',
             detalle: xmlOk ? '' : String(estadoXmlRaw),
         });
     }
@@ -1622,44 +1622,35 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
     let empaquetadoError = null;
 
     for (const batchFolder of batchFolders) {
-        const rutaXml = path.join(RIPS_ROOT, 'XMLS', batchFolder);
         const rutaJson = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', batchFolder);
         const rutaReporte = path.join(RIPS_ROOT, 'ARCHIVOS_DE_ENVIO', `REPORTE (${batchFolder})`);
         const rutaConFactura = path.join(rutaReporte, 'CON_FACTURA');
-
-        const xmlFiles = safeList(rutaXml, '.xml');
         const jsonFiles = safeList(rutaJson, '.json');
 
-        const findJsonMatch = (clave) => {
-            const exact = jsonFiles.find((j) => path.basename(j, '.json') === clave);
-            if (exact) return exact;
-            return jsonFiles.find((j) => {
-                const jb = path.basename(j, '.json');
-                return jb.includes(clave) || clave.includes(jb);
-            }) || null;
-        };
-
         try {
-            if (fs.existsSync(rutaXml) && fs.existsSync(rutaJson)) {
+            if (fs.existsSync(rutaJson)) {
                 fs.mkdirSync(rutaConFactura, { recursive: true });
                 fs.mkdirSync(path.join(rutaReporte, 'SIN_FACTURA'), { recursive: true });
 
-                for (const xmlFile of xmlFiles) {
-                    const clave = path.basename(xmlFile, '.xml');
-                    const jsonMatch = findJsonMatch(clave);
-                    if (!jsonMatch) continue;
+                for (const jf of jsonFiles) {
+                    if (jf.includes('SinFactura_')) {
+                        const nombreSub = jf.replace(/\.json$/i, '');
+                        const dest = path.join(rutaReporte, 'SIN_FACTURA', nombreSub);
+                        fs.mkdirSync(dest, { recursive: true });
+                        fs.copyFileSync(path.join(rutaJson, jf), path.join(dest, jf));
+                        continue;
+                    }
+
+                    const clave = path.basename(jf, '.json');
+                    const xmlPath = documentoEmpresa
+                        ? rutaXmlEmpresaPorClave(RIPS_ROOT, documentoEmpresa, clave)
+                        : null;
+                    if (!xmlPath) continue;
+
                     const destDir = path.join(rutaConFactura, clave);
                     fs.mkdirSync(destDir, { recursive: true });
-                    fs.copyFileSync(path.join(rutaJson, jsonMatch), path.join(destDir, jsonMatch));
-                    fs.copyFileSync(path.join(rutaXml, xmlFile), path.join(destDir, `${clave}.xml`));
-                }
-
-                for (const jf of jsonFiles) {
-                    if (!jf.includes('SinFactura_')) continue;
-                    const nombreSub = jf.replace(/\.json$/i, '');
-                    const dest = path.join(rutaReporte, 'SIN_FACTURA', nombreSub);
-                    fs.mkdirSync(dest, { recursive: true });
-                    fs.copyFileSync(path.join(rutaJson, jf), path.join(dest, jf));
+                    fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
+                    fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
                 }
             }
         } catch (err) {
@@ -1667,15 +1658,21 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
             empaquetadoError = [empaquetadoError, `${batchFolder}: ${err.message || err}`].filter(Boolean).join(' | ');
         }
 
-        for (const f of xmlFiles) {
-            const clave = path.basename(f, '.xml');
-            const metaPath = path.join(rutaXml, f);
+        // Marcar JSON del lote en filas
+        for (const jf of jsonFiles) {
+            if (jf.includes('SinFactura_')) continue;
+            const clave = path.basename(jf, '.json');
+            const xmlPath = documentoEmpresa
+                ? rutaXmlEmpresaPorClave(RIPS_ROOT, documentoEmpresa, clave)
+                : null;
             if (rowsByClave.has(clave)) {
                 const row = rowsByClave.get(clave);
-                if (!row.rutaXml) row.rutaXml = metaPath;
-                if (/sin xml/i.test(row.estadoXml)) row.estadoXml = 'XML en carpeta';
                 if (!Array.isArray(row.batchFoldersSeen)) row.batchFoldersSeen = [];
                 if (!row.batchFoldersSeen.includes(batchFolder)) row.batchFoldersSeen.push(batchFolder);
+                if (xmlPath) {
+                    row.rutaXml = row.rutaXml || xmlPath;
+                    if (/sin xml/i.test(row.estadoXml)) row.estadoXml = 'XML en carpeta empresa';
+                }
             } else {
                 const m = clave.match(/^([A-Za-z]+)(\d+)$/);
                 upsert(clave, {
@@ -1683,14 +1680,30 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
                     Prefijo: m ? m[1] : '',
                     batchFolder,
                     batchFoldersSeen: [batchFolder],
-                    estadoXml: 'XML en carpeta',
-                    rutaXml: metaPath,
+                    estadoXml: xmlPath ? 'XML en carpeta empresa' : 'Sin XML',
+                    rutaXml: xmlPath || '',
+                    estadoJson: 'JSON generado',
+                    rutaJson: path.join(rutaJson, jf),
                 });
             }
         }
     }
 
-    // Reconciliar: mirar EPS y PARTICULAR (el XML se marca primero en EPS y ocultaba el JSON PARTICULAR)
+    // Indexar XML presentes en carpeta empresa (aunque no hayan venido en facturasXml)
+    if (documentoEmpresa) {
+        const dirEmp = rutaDirEmpresa(RIPS_ROOT, documentoEmpresa);
+        for (const xf of safeList(dirEmp, '.xml')) {
+            const clave = path.basename(xf, '.xml');
+            const full = path.join(dirEmp, xf);
+            if (rowsByClave.has(clave)) {
+                const row = rowsByClave.get(clave);
+                if (!row.rutaXml) row.rutaXml = full;
+                if (/sin xml/i.test(row.estadoXml)) row.estadoXml = 'XML en carpeta empresa';
+            }
+        }
+    }
+
+    // Reconciliar: mirar EPS y PARTICULAR (JSON) + XML en carpeta empresa
     const tipoDeCarpeta = (bf) => {
         if (String(bf).includes(' --- PARTICULAR --- ')) return 'PARTICULAR';
         if (String(bf).includes(' --- EPS --- ')) return 'EPS';
@@ -1709,6 +1722,16 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
         let mejorEnvio = null;
         const tiposJson = [];
         const tiposEnvio = [];
+
+        const xmlEmpresa = documentoEmpresa
+            ? rutaXmlEmpresaPorClave(RIPS_ROOT, documentoEmpresa, clave)
+            : (row.rutaXml && fs.existsSync(row.rutaXml) ? row.rutaXml : null);
+        if (xmlEmpresa) {
+            row.rutaXml = xmlEmpresa;
+            if (/sin xml|desconocido/i.test(row.estadoXml || '')) {
+                row.estadoXml = 'XML en carpeta empresa';
+            }
+        }
 
         for (const bf of carpetasRelevantes) {
             const rutaJsonDir = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON', bf);
@@ -1790,14 +1813,18 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
             const already = [...rowsByClave.keys()].some((k) => k === clave || k.includes(clave) || clave.includes(k));
             if (already) continue;
             const tipo = tipoDeCarpeta(batchFolder);
+            const xmlPath = documentoEmpresa
+                ? rutaXmlEmpresaPorClave(RIPS_ROOT, documentoEmpresa, clave)
+                : null;
             upsert(clave, {
                 NoFactura: clave,
                 batchFolder,
-                estadoXml: 'Sin XML',
+                estadoXml: xmlPath ? 'XML en carpeta empresa' : 'Sin XML',
+                rutaXml: xmlPath || '',
                 estadoJson: tipo ? `JSON generado (${tipo})` : 'JSON generado',
                 rutaJson: path.join(rutaJsonDir, jf),
                 estadoEmpaquetado: 'No juntado',
-                detalle: 'JSON sin XML correspondiente',
+                detalle: 'JSON sin fila XML previa',
             });
         }
     }
@@ -1818,6 +1845,7 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
         message: 'Estado del proceso todo en uno',
         batchFolders,
         batchFolder: batchFolders.join(', '),
+        documentoEmpresa,
         resumen,
         items,
         xmlErrorGlobal,
