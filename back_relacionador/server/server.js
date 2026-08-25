@@ -29,6 +29,7 @@ const DesrelacionadorRoutes = require('./routes/desrelacionadorRoutes');
 const VisorIhceRoutes = require('./routes/VisorIhceRoutes');
 const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
+const fevripsEnvioRoutes = require('./routes/fevripsEnvioRoutes');
 
 /* =========================================================================================================== */
 // Se crea un nuevo worker que ejecutará el archivo asignarNombreServidorRoutes.js
@@ -115,6 +116,7 @@ app.get('/index', authenticateToken, (req, res) => {
 app.use('/api', loginRoutes);
 
 app.use('/RIPS', descargarArchivosRIPSRoutes);
+app.use('/RIPS', fevripsEnvioRoutes);
 
 app.use('/RIPSv2', descargarArchivosRIPSRoutesv2);
 

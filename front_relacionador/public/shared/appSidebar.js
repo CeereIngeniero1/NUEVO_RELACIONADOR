@@ -18,6 +18,7 @@ const CORE_LINKS = [
   { id: "envio", href: "EnvioRdaPendientes.html", icon: "ri-send-plane-line", label: "Envío RDA pendientes" },
   { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)" },
   { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar" },
+  { id: "enviar-fevrips", href: "EnviarFevRips.html", icon: "ri-send-plane-2-line", label: "Enviar MinSalud FEV" },
 ];
 
 const RIPS_TOOLS = [
@@ -92,6 +93,7 @@ function detectActiveFromLocation() {
   if (path.includes("enviordapendientes") || path.includes("corregir_rda")) return "envio";
   if (path.includes("/visor/") || path.includes("visor.html")) return "visor";
   if (path.includes("desrelacionar")) return "desrelacionar";
+  if (path.includes("enviarfevrips")) return "enviar-fevrips";
   if (path.includes("rips.html") || path.endsWith("/rips") || path.endsWith("/public/") || path.endsWith("/public")) {
     return "inicio";
   }

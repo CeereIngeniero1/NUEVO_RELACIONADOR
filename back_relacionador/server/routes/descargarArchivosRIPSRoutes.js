@@ -1376,7 +1376,7 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
     } catch (error) {
         console.error('Error al generar o almacenar el archivo ZIP:', error);
         if (!res.headersSent) {
-            res.status(500).send('Error interno al generar el archivo ZIP');
+        res.status(500).send('Error interno al generar el archivo ZIP');
         }
     }
 });
