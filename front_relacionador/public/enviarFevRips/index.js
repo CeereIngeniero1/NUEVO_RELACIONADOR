@@ -567,11 +567,19 @@ async function editarCredenciales() {
     return;
   }
 
+  const TIPOS_USUARIO_SISPRO = [
+    { codigo: "RE", label: "Representante de la Entidad" },
+    { codigo: "PIN", label: "Profesional Independiente Nacional" },
+    { codigo: "PINx", label: "Profesional Independiente Nacional de Excepción" },
+    { codigo: "PIE", label: "Profesional Independiente Extranjero" },
+  ];
+
   const docTrabajo = getDocumentoEmpresa();
   const empresaInicial =
     empresas.find((e) => e.documento === docTrabajo)?.documento || empresas[0].documento;
   const actual = await cargarCredencialesPublicas(empresaInicial);
   const tipoInicial = actual.tipoDocumento || "CC";
+  const tipoUsrInicial = actual.tipoUsuario || "RE";
 
   const htmlEmpresas = optionsHtml(empresas, empresaInicial, (e) => ({
     value: e.documento,
@@ -581,33 +589,38 @@ async function editarCredenciales() {
     value: t.codigo,
     label: t.desc && t.desc !== t.codigo ? `${t.codigo} — ${t.desc}` : t.codigo,
   }));
+  const htmlTipoUsr = optionsHtml(TIPOS_USUARIO_SISPRO, tipoUsrInicial, (t) => ({
+    value: t.codigo,
+    label: `${t.label} (${t.codigo})`,
+  }));
 
   const { value: form } = await Swal.fire({
     title: "Credenciales SISPRO",
-    width: "28rem",
+    width: "30rem",
     html: `
       <div class="fevrips-cred-form text-start">
+        <p class="fevrips-cred-hint">Mismos datos del login del validador MinSalud (LoginSISPRO).</p>
+
         <label class="fevrips-cred-label" for="swalEmpresa">Empresa a vincular</label>
         <select id="swalEmpresa" class="fevrips-cred-control">${htmlEmpresas}</select>
 
-        <label class="fevrips-cred-label" for="swalTipoDoc">Tipo documento</label>
+        <label class="fevrips-cred-label" for="swalTipoUsr">Tipo usuario</label>
+        <select id="swalTipoUsr" class="fevrips-cred-control">${htmlTipoUsr}</select>
+
+        <label class="fevrips-cred-label" for="swalTipoDoc">Tipo identificación</label>
         <select id="swalTipoDoc" class="fevrips-cred-control">${htmlTipos}</select>
 
-        <label class="fevrips-cred-label" for="swalNumDoc">Número documento</label>
-        <input id="swalNumDoc" class="swal2-input fevrips-cred-control" placeholder="Número documento"
+        <label class="fevrips-cred-label" for="swalNumDoc">No. identificación</label>
+        <input id="swalNumDoc" class="swal2-input fevrips-cred-control" placeholder="No. identificación"
           value="${String(actual.numeroDocumento || "").replace(/"/g, "&quot;")}">
 
-        <label class="fevrips-cred-label" for="swalClave">Clave SISPRO</label>
+        <label class="fevrips-cred-label" for="swalClave">Contraseña</label>
         <input id="swalClave" class="swal2-input fevrips-cred-control" type="password"
-          placeholder="${actual.tieneClave ? "•••••••• (dejar vacío para no cambiar)" : "Clave SISPRO"}">
+          placeholder="${actual.tieneClave ? "•••••••• (dejar vacío para no cambiar)" : "Contraseña SISPRO"}">
 
-        <label class="fevrips-cred-label" for="swalNit">NIT</label>
-        <input id="swalNit" class="swal2-input fevrips-cred-control" placeholder="NIT"
+        <label class="fevrips-cred-label" for="swalNit">Nit / No. identificación</label>
+        <input id="swalNit" class="swal2-input fevrips-cred-control" placeholder="NIT de la entidad"
           value="${String(actual.nit || empresaInicial).replace(/"/g, "&quot;")}">
-
-        <label class="fevrips-cred-label" for="swalTipoUsr">Tipo usuario</label>
-        <input id="swalTipoUsr" class="swal2-input fevrips-cred-control" placeholder="Tipo usuario (RE)"
-          value="${String(actual.tipoUsuario || "RE").replace(/"/g, "&quot;")}">
       </div>
     `,
     showCancelButton: true,
@@ -615,9 +628,9 @@ async function editarCredenciales() {
     didOpen: () => {
       const selEmp = document.getElementById("swalEmpresa");
       const selTipo = document.getElementById("swalTipoDoc");
+      const selUsr = document.getElementById("swalTipoUsr");
       const numDoc = document.getElementById("swalNumDoc");
       const nit = document.getElementById("swalNit");
-      const tipoUsr = document.getElementById("swalTipoUsr");
       const clave = document.getElementById("swalClave");
 
       selEmp?.addEventListener("change", async () => {
@@ -627,14 +640,18 @@ async function editarCredenciales() {
           const codigo = cred.tipoDocumento || "CC";
           if ([...selTipo.options].some((o) => o.value === codigo)) selTipo.value = codigo;
         }
+        if (selUsr) {
+          const tu = cred.tipoUsuario || "RE";
+          if ([...selUsr.options].some((o) => o.value === tu)) selUsr.value = tu;
+          else selUsr.value = "RE";
+        }
         if (numDoc) numDoc.value = cred.numeroDocumento || "";
         if (nit) nit.value = cred.nit || doc;
-        if (tipoUsr) tipoUsr.value = cred.tipoUsuario || "RE";
         if (clave) {
           clave.value = "";
           clave.placeholder = cred.tieneClave
             ? "•••••••• (dejar vacío para no cambiar)"
-            : "Clave SISPRO";
+            : "Contraseña SISPRO";
         }
       });
     },
@@ -649,12 +666,16 @@ async function editarCredenciales() {
         Swal.showValidationMessage("Seleccione la empresa a vincular");
         return false;
       }
+      if (!tipoUsuario) {
+        Swal.showValidationMessage("Seleccione el tipo de usuario");
+        return false;
+      }
       if (!tipoDocumento) {
-        Swal.showValidationMessage("Seleccione el tipo de documento");
+        Swal.showValidationMessage("Seleccione el tipo de identificación");
         return false;
       }
       if (!numeroDocumento) {
-        Swal.showValidationMessage("Número de documento obligatorio");
+        Swal.showValidationMessage("Número de identificación obligatorio");
         return false;
       }
       if (!nit) {
@@ -668,7 +689,7 @@ async function editarCredenciales() {
 
   const prev = await cargarCredencialesPublicas(form.documentoEmpresa);
   if (!form.clave && !prev.tieneClave) {
-    Swal.fire({ icon: "warning", text: "Clave SISPRO obligatoria la primera vez." });
+    Swal.fire({ icon: "warning", text: "Contraseña obligatoria la primera vez." });
     return;
   }
 
