@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (localStorage.getItem("ceere_theme") === "dark") {
     document.documentElement.setAttribute("data-theme", "dark");
   }
-  mountAppSidebar({ active: "desrelacionar-v2" });
+  mountAppSidebar({ active: "desrelacionar" });
   await ensureAuth();
 
   document.getElementById("btnBuscarFacturasV2")?.addEventListener("click", () => buscarFacturas());
