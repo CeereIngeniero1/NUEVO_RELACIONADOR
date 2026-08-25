@@ -588,10 +588,10 @@ async function editarCredenciales() {
     html: `
       <div class="fevrips-cred-form text-start">
         <label class="fevrips-cred-label" for="swalEmpresa">Empresa a vincular</label>
-        <select id="swalEmpresa" class="swal2-select fevrips-cred-control">${htmlEmpresas}</select>
+        <select id="swalEmpresa" class="fevrips-cred-control">${htmlEmpresas}</select>
 
         <label class="fevrips-cred-label" for="swalTipoDoc">Tipo documento</label>
-        <select id="swalTipoDoc" class="swal2-select fevrips-cred-control">${htmlTipos}</select>
+        <select id="swalTipoDoc" class="fevrips-cred-control">${htmlTipos}</select>
 
         <label class="fevrips-cred-label" for="swalNumDoc">Número documento</label>
         <input id="swalNumDoc" class="swal2-input fevrips-cred-control" placeholder="Número documento"
