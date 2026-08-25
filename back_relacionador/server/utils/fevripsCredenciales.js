@@ -146,7 +146,19 @@ async function guardarCredenciales(documentoEmpresa, payload) {
     err.status = 400;
     throw err;
   }
-  const cred = normalizeCred({ ...payload, documentoEmpresa: key }, key);
+
+  const prev = await obtenerCredenciales(key);
+  const merged = {
+    ...(prev || {}),
+    ...payload,
+    documentoEmpresa: key,
+  };
+  // Si no envían clave nueva, conservar la anterior
+  if (!String(merged.clave || '').trim() && prev?.clave) {
+    merged.clave = prev.clave;
+  }
+
+  const cred = normalizeCred(merged, key);
   if (!cred) {
     const err = new Error('Faltan tipoDocumento, numeroDocumento, clave o nit');
     err.status = 400;
@@ -168,7 +180,6 @@ async function guardarCredenciales(documentoEmpresa, payload) {
     numeroDocumento: cred.numeroDocumento,
     nit: cred.nit,
     tipoUsuario: cred.tipoUsuario,
-    // no devolver clave en lecturas públicas
   };
 }
 

@@ -485,56 +485,216 @@ async function descargarXmlsFaltantes() {
   }
 }
 
+async function cargarEmpresasFev() {
+  const res = await fetch(`${apiBase()}/XMLS/mostrar-empresas-con-resoluciones-vigentes`);
+  if (!res.ok) throw new Error("No se pudieron cargar las empresas");
+  const rows = await res.json();
+  const map = new Map();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const doc = String(r.DocumentoEmpresa || "").trim();
+    if (!doc || map.has(doc)) continue;
+    const nombre = String(r.NombreComercialEmpresa || "").trim();
+    map.set(doc, { documento: doc, nombre });
+  }
+  return [...map.values()].sort((a, b) =>
+    (a.nombre || a.documento).localeCompare(b.nombre || b.documento, "es")
+  );
+}
+
+async function cargarTiposDocumentoFev() {
+  const res = await fetch(`${apiBase()}/apiV3/TipoDocumento`);
+  if (!res.ok) throw new Error("No se pudo cargar tipos de documento");
+  const rows = await res.json();
+  return (Array.isArray(rows) ? rows : [])
+    .map((r) => {
+      const codigo = String(
+        r.CódigoTipoDocumento || r.CodigoTipoDocumento || r.TipoDocumento || ""
+      ).trim();
+      const desc = String(
+        r.DescripciónTipoDocumento || r.DescripcionTipoDocumento || r.TipoDocumento || codigo
+      ).trim();
+      return codigo ? { codigo, desc } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, "es"));
+}
+
+async function cargarCredencialesPublicas(documentoEmpresa) {
+  if (!documentoEmpresa) return {};
+  try {
+    const res = await fetch(
+      `${apiBase()}/RIPS/fevrips/credenciales/${encodeURIComponent(documentoEmpresa)}`
+    );
+    if (!res.ok) return {};
+    return await res.json();
+  } catch (_) {
+    return {};
+  }
+}
+
+function optionsHtml(items, selected, mapFn) {
+  return items
+    .map((it) => {
+      const { value, label } = mapFn(it);
+      const sel = String(value) === String(selected || "") ? " selected" : "";
+      return `<option value="${String(value).replace(/"/g, "&quot;")}"${sel}>${String(label).replace(/</g, "&lt;")}</option>`;
+    })
+    .join("");
+}
+
 async function editarCredenciales() {
-  const doc = getDocumentoEmpresa();
-  if (!doc) {
-    Swal.fire({ icon: "warning", text: "Seleccione empresa de trabajo en Inicio." });
+  let empresas = [];
+  let tiposDoc = [];
+  try {
+    Swal.fire({
+      title: "Cargando…",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    [empresas, tiposDoc] = await Promise.all([cargarEmpresasFev(), cargarTiposDocumentoFev()]);
+    Swal.close();
+  } catch (err) {
+    Swal.fire({ icon: "error", text: err.message || String(err) });
     return;
   }
-  let actual = {};
-  try {
-    const res = await fetch(`${apiBase()}/RIPS/fevrips/credenciales/${encodeURIComponent(doc)}`);
-    if (res.ok) actual = await res.json();
-  } catch (_) {
-    /* ignore */
+
+  if (!empresas.length) {
+    Swal.fire({ icon: "warning", text: "No hay empresas con resolución vigente." });
+    return;
   }
+  if (!tiposDoc.length) {
+    Swal.fire({ icon: "warning", text: "No hay tipos de documento en el catálogo." });
+    return;
+  }
+
+  const docTrabajo = getDocumentoEmpresa();
+  const empresaInicial =
+    empresas.find((e) => e.documento === docTrabajo)?.documento || empresas[0].documento;
+  const actual = await cargarCredencialesPublicas(empresaInicial);
+  const tipoInicial = actual.tipoDocumento || "CC";
+
+  const htmlEmpresas = optionsHtml(empresas, empresaInicial, (e) => ({
+    value: e.documento,
+    label: e.nombre ? `${e.nombre} (${e.documento})` : e.documento,
+  }));
+  const htmlTipos = optionsHtml(tiposDoc, tipoInicial, (t) => ({
+    value: t.codigo,
+    label: t.desc && t.desc !== t.codigo ? `${t.codigo} — ${t.desc}` : t.codigo,
+  }));
 
   const { value: form } = await Swal.fire({
     title: "Credenciales SISPRO",
+    width: "28rem",
     html: `
-      <p class="small text-start">Empresa: <code>${doc}</code></p>
-      <input id="swalTipoDoc" class="swal2-input" placeholder="Tipo doc (CC)" value="${actual.tipoDocumento || "CC"}">
-      <input id="swalNumDoc" class="swal2-input" placeholder="Número documento" value="${actual.numeroDocumento || ""}">
-      <input id="swalClave" class="swal2-input" type="password" placeholder="Clave SISPRO">
-      <input id="swalNit" class="swal2-input" placeholder="NIT" value="${actual.nit || doc}">
-      <input id="swalTipoUsr" class="swal2-input" placeholder="Tipo usuario (RE)" value="${actual.tipoUsuario || "RE"}">
+      <div class="fevrips-cred-form text-start">
+        <label class="fevrips-cred-label" for="swalEmpresa">Empresa a vincular</label>
+        <select id="swalEmpresa" class="swal2-select fevrips-cred-control">${htmlEmpresas}</select>
+
+        <label class="fevrips-cred-label" for="swalTipoDoc">Tipo documento</label>
+        <select id="swalTipoDoc" class="swal2-select fevrips-cred-control">${htmlTipos}</select>
+
+        <label class="fevrips-cred-label" for="swalNumDoc">Número documento</label>
+        <input id="swalNumDoc" class="swal2-input fevrips-cred-control" placeholder="Número documento"
+          value="${String(actual.numeroDocumento || "").replace(/"/g, "&quot;")}">
+
+        <label class="fevrips-cred-label" for="swalClave">Clave SISPRO</label>
+        <input id="swalClave" class="swal2-input fevrips-cred-control" type="password"
+          placeholder="${actual.tieneClave ? "•••••••• (dejar vacío para no cambiar)" : "Clave SISPRO"}">
+
+        <label class="fevrips-cred-label" for="swalNit">NIT</label>
+        <input id="swalNit" class="swal2-input fevrips-cred-control" placeholder="NIT"
+          value="${String(actual.nit || empresaInicial).replace(/"/g, "&quot;")}">
+
+        <label class="fevrips-cred-label" for="swalTipoUsr">Tipo usuario</label>
+        <input id="swalTipoUsr" class="swal2-input fevrips-cred-control" placeholder="Tipo usuario (RE)"
+          value="${String(actual.tipoUsuario || "RE").replace(/"/g, "&quot;")}">
+      </div>
     `,
     showCancelButton: true,
     confirmButtonText: "Guardar",
-    preConfirm: () => ({
-      tipoDocumento: document.getElementById("swalTipoDoc").value.trim() || "CC",
-      numeroDocumento: document.getElementById("swalNumDoc").value.trim(),
-      clave: document.getElementById("swalClave").value,
-      nit: document.getElementById("swalNit").value.trim() || doc,
-      tipoUsuario: document.getElementById("swalTipoUsr").value.trim() || "RE",
-    }),
+    didOpen: () => {
+      const selEmp = document.getElementById("swalEmpresa");
+      const selTipo = document.getElementById("swalTipoDoc");
+      const numDoc = document.getElementById("swalNumDoc");
+      const nit = document.getElementById("swalNit");
+      const tipoUsr = document.getElementById("swalTipoUsr");
+      const clave = document.getElementById("swalClave");
+
+      selEmp?.addEventListener("change", async () => {
+        const doc = selEmp.value;
+        const cred = await cargarCredencialesPublicas(doc);
+        if (selTipo) {
+          const codigo = cred.tipoDocumento || "CC";
+          if ([...selTipo.options].some((o) => o.value === codigo)) selTipo.value = codigo;
+        }
+        if (numDoc) numDoc.value = cred.numeroDocumento || "";
+        if (nit) nit.value = cred.nit || doc;
+        if (tipoUsr) tipoUsr.value = cred.tipoUsuario || "RE";
+        if (clave) {
+          clave.value = "";
+          clave.placeholder = cred.tieneClave
+            ? "•••••••• (dejar vacío para no cambiar)"
+            : "Clave SISPRO";
+        }
+      });
+    },
+    preConfirm: () => {
+      const documentoEmpresa = document.getElementById("swalEmpresa")?.value?.trim();
+      const tipoDocumento = document.getElementById("swalTipoDoc")?.value?.trim();
+      const numeroDocumento = document.getElementById("swalNumDoc")?.value?.trim();
+      const clave = document.getElementById("swalClave")?.value || "";
+      const nit = document.getElementById("swalNit")?.value?.trim();
+      const tipoUsuario = document.getElementById("swalTipoUsr")?.value?.trim() || "RE";
+      if (!documentoEmpresa) {
+        Swal.showValidationMessage("Seleccione la empresa a vincular");
+        return false;
+      }
+      if (!tipoDocumento) {
+        Swal.showValidationMessage("Seleccione el tipo de documento");
+        return false;
+      }
+      if (!numeroDocumento) {
+        Swal.showValidationMessage("Número de documento obligatorio");
+        return false;
+      }
+      if (!nit) {
+        Swal.showValidationMessage("NIT obligatorio");
+        return false;
+      }
+      return { documentoEmpresa, tipoDocumento, numeroDocumento, clave, nit, tipoUsuario };
+    },
   });
   if (!form) return;
-  if (!form.numeroDocumento || !form.clave) {
-    Swal.fire({ icon: "warning", text: "Documento y clave obligatorios." });
+
+  const prev = await cargarCredencialesPublicas(form.documentoEmpresa);
+  if (!form.clave && !prev.tieneClave) {
+    Swal.fire({ icon: "warning", text: "Clave SISPRO obligatoria la primera vez." });
     return;
   }
-  const res = await fetch(`${apiBase()}/RIPS/fevrips/credenciales/${encodeURIComponent(doc)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
+
+  const res = await fetch(
+    `${apiBase()}/RIPS/fevrips/credenciales/${encodeURIComponent(form.documentoEmpresa)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipoDocumento: form.tipoDocumento,
+        numeroDocumento: form.numeroDocumento,
+        clave: form.clave,
+        nit: form.nit,
+        tipoUsuario: form.tipoUsuario,
+      }),
+    }
+  );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     Swal.fire({ icon: "error", text: data.message || "No se guardó" });
     return;
   }
-  Swal.fire({ icon: "success", text: "Credenciales guardadas." });
+  Swal.fire({
+    icon: "success",
+    text: `Credenciales guardadas para ${form.documentoEmpresa}.`,
+  });
 }
 
 async function validarItems(items) {

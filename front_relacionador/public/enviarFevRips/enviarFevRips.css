@@ -400,3 +400,32 @@
 [data-theme="dark"] .fevrips-app .form-check-label {
   color: var(--color-text-secondary);
 }
+
+.fevrips-cred-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 0.25rem 0.5rem;
+}
+
+.fevrips-cred-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.45rem;
+  margin-bottom: 0.1rem;
+  color: var(--color-text-secondary, #6b7280);
+  text-align: left;
+}
+
+.fevrips-cred-control.swal2-input,
+.fevrips-cred-control.swal2-select {
+  width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.fevrips-cred-control.swal2-select {
+  height: 2.5rem;
+  padding: 0.35rem 0.6rem;
+}
