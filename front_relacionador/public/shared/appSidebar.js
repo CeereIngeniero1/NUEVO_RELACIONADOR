@@ -17,8 +17,7 @@ const CORE_LINKS = [
   { id: "historias", href: "HistoriasClinicas.html", icon: "ri-health-book-line", label: "Historias Clínicas" },
   { id: "envio", href: "EnvioRdaPendientes.html", icon: "ri-send-plane-line", label: "Envío RDA pendientes" },
   { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)" },
-  { id: "desrelacionar", href: "Desrelacionar.html", icon: "ri-link-unlink", label: "Desrelacionar" },
-  { id: "desrelacionar-v2", href: "DesrelacionarV2.html", icon: "ri-link-unlink-m", label: "Desrelacionar V2" },
+  { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar" },
 ];
 
 const RIPS_TOOLS = [
