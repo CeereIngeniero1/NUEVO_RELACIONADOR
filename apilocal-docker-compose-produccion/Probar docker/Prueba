@@ -1,0 +1,7 @@
+@'
+{"persona":{"identificacion":{"tipo":"CC","numero":"TU_DOCUMENTO"}},"clave":"TU_CLAVE","nit":"EL_NIT_DE_LA_ENTIDAD","tipoUsuario":"RE"}
+'@ | Set-Content -Path "$env:TEMP\login-fevrips.json" -Encoding UTF8 -NoNewline
+
+curl.exe -k -X POST "https://localhost:9443/api/Auth/LoginSISPRO" `
+  -H "Content-Type: application/json" `
+  --data-binary "@$env:TEMP\login-fevrips.json"

@@ -1,0 +1,2 @@
+# Credenciales registry Production MinSalud (manual público FEV-RIPS)
+# docker login crmspsgovcoprd.azurecr.io -u puller -p <PASSWORD del manual MinSalud>
