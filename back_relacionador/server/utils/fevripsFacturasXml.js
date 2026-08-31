@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { getRipsDataRoot } = require('../config/paths');
 const { claveXml, existeXmlEmpresa, rutaXmlEmpresa } = require('./xmlCache');
+const { cuvValido } = require('./fevripsCuvExistente');
 
 function envioRoot() {
   return path.join(getRipsDataRoot(), 'ARCHIVOS_DE_ENVIO');
@@ -188,7 +189,7 @@ async function listarFacturasConEstadoXml(documentoEmpresa, fechaInicio, fechaFi
     const enviadoBd = Number(row.EnviadoFevRips || 0) === 1;
     const cuvBd = row.CuvFevRips || null;
     let estadoUi = !tieneXml ? 'Sin XML' : !tieneJson ? 'Sin JSON' : 'Listo';
-    if (enviadoBd) estadoUi = 'Enviado OK';
+    if (enviadoBd || cuvValido(cuvBd)) estadoUi = 'Enviado OK';
     return {
       tipo: 'CON_FACTURA',
       procesoEnvio: 'Factura Electrónica de Venta',

@@ -8,6 +8,7 @@ import { ensureAuthAndSyncTopbar } from "../shared/shell.js";
 let paquetesCache = [];
 let ultimoRango = { fi: "", ff: "" };
 let modoActual = "con_factura"; // con_factura | sin_factura
+let tabDesgloseActiva = "en_trabajo";
 
 function apiBase() {
   return window.getApiBaseUrl ? window.getApiBaseUrl() : "";
@@ -24,6 +25,61 @@ function esSinFactura() {
 function itemListo(p) {
   if (esSinFactura()) return Boolean(p.tieneJson);
   return Boolean(p.tieneXml && p.tieneJson);
+}
+
+function cuvValido(cuv) {
+  if (cuv == null || cuv === "") return false;
+  const s = String(cuv).trim();
+  if (!s || /^no aplica$/i.test(s)) return false;
+  return true;
+}
+
+function tieneCuv(p) {
+  if (cuvValido(p?.cuvFevRips)) return true;
+  if (cuvValido(p?.ultimoEnvio?.codigoUnicoValidacion)) return true;
+  const det = String(p?.ultimoEnvio?.detalle || "").trim();
+  const m = det.match(/CUV:\s*(\S+)/i);
+  return m ? cuvValido(m[1]) : false;
+}
+
+function esEnviadoOk(p) {
+  return (
+    p.estadoUi === "Enviado OK" ||
+    p.enviadoFevRips ||
+    p.ultimoEnvio?.estado === "Enviado OK" ||
+    tieneCuv(p)
+  );
+}
+
+function puedeEnviarPaquete(p) {
+  return p?.prevalidacion?.ok === true && !esEnviadoOk(p) && !tieneCuv(p);
+}
+
+function esSinJsonTab(p) {
+  if (esEnviadoOk(p)) return false;
+  if (esSinFactura()) return !p.tieneJson;
+  return Boolean(p.tieneXml && !p.tieneJson);
+}
+
+function paquetesPorTab(tab) {
+  if (tab === "enviados_ok") return paquetesCache.filter(esEnviadoOk);
+  if (tab === "sin_json") return paquetesCache.filter(esSinJsonTab);
+  return paquetesCache.filter((p) => !esEnviadoOk(p) && !esSinJsonTab(p));
+}
+
+function paqueteToItem(p) {
+  return {
+    clave: p.clave,
+    reporte: p.reporte || "",
+    Prefijo: p.Prefijo || "",
+    NoFactura: p.NoFactura,
+    tipo: esSinFactura() ? "SIN_FACTURA" : "CON_FACTURA",
+  };
+}
+
+function tablaColspan() {
+  const base = esSinFactura() ? 8 : 9;
+  return tabDesgloseActiva === "en_trabajo" ? base : base - 1;
 }
 
 function badgeClass(estado) {
@@ -50,6 +106,190 @@ function badgeClass(estado) {
   return "fevrips-badge fevrips-badge-pend";
 }
 
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/"/g, "&quot;");
+}
+
+function truncarTexto(s, max = 52) {
+  const t = String(s || "").trim();
+  if (!t) return "—";
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
+function htmlTablaValidacionesDetalle(items) {
+  const rows = (Array.isArray(items) ? items : []).filter(
+    (v) => v && (v.descripcion || v.observaciones || v.codigo || v.pathFuente)
+  );
+  if (!rows.length) return "";
+
+  const body = rows
+    .map((v) => {
+      const clase = String(v.clase || "").toLowerCase();
+      const badge =
+        clase.includes("rechaz")
+          ? "fevrips-badge fevrips-badge-err"
+          : clase.includes("notif")
+            ? "fevrips-badge fevrips-badge-pend"
+            : "fevrips-badge";
+      return `<tr>
+        <td class="text-nowrap"><span class="${badge}">${escapeHtml(v.codigo || "—")}</span>
+          ${v.clase ? `<div class="small text-muted">${escapeHtml(v.clase)}</div>` : ""}</td>
+        <td>${escapeHtml(v.descripcion || "—")}</td>
+        <td>${escapeHtml(v.observaciones || "—")}</td>
+        <td><code class="fevrips-path-src">${escapeHtml(v.pathFuente || "—")}</code></td>
+      </tr>`;
+    })
+    .join("");
+
+  return `
+    <h6 class="fevrips-det-title">Validaciones MinSalud</h6>
+    <div class="fevrips-val-table-wrap">
+      <table class="table table-sm fevrips-val-table mb-2">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Observaciones</th>
+            <th>PathFuente</th>
+          </tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
+function puedeVerDetalle(p) {
+  const prev = p?.prevalidacion;
+  if (prev && (prev.errors?.length || prev.warnings?.length || prev.ok === false)) {
+    return true;
+  }
+  const u = p?.ultimoEnvio;
+  if (u && /error|rechaz|omitido/i.test(String(u.estado || ""))) return true;
+  const det = String(u?.detalle || p?.cuvFevRips || "").trim();
+  if (det && det !== "—") return true;
+  if (Array.isArray(u?.resultadosValidacion) && u.resultadosValidacion.length) return true;
+  return false;
+}
+
+async function verDetallePaquete(clave) {
+  const p = paquetesCache.find((x) => x.clave === clave);
+  const doc = getDocumentoEmpresa();
+  let html = "";
+
+  if (p?.prevalidacion) {
+    const prev = p.prevalidacion;
+    if (prev.errors?.length) {
+      html += `<h6 class="fevrips-det-title">Prevalidación — errores</h6><ul class="fevrips-det-list">${prev.errors
+        .map((e) => `<li>${escapeHtml(e)}</li>`)
+        .join("")}</ul>`;
+    }
+    if (prev.warnings?.length) {
+      html += `<h6 class="fevrips-det-title">Prevalidación — avisos</h6><ul class="fevrips-det-list">${prev.warnings
+        .map((e) => `<li>${escapeHtml(e)}</li>`)
+        .join("")}</ul>`;
+    }
+    if (prev.detalle && prev.ok === false && !prev.errors?.length) {
+      html += `<p class="small mb-2">${escapeHtml(prev.detalle)}</p>`;
+    }
+  }
+
+  if (doc) {
+    try {
+      const res = await fetch(
+        `${apiBase()}/RIPS/fevrips/resultado/${encodeURIComponent(clave)}?documentoEmpresa=${encodeURIComponent(doc)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        html += `<h6 class="fevrips-det-title">Último envío${data.fecha ? ` · ${escapeHtml(data.fecha)}` : ""}</h6>`;
+        html += `<p class="small mb-1"><strong>Estado:</strong> ${escapeHtml(data.resumen?.estado || "—")}</p>`;
+        if (data.resumen?.httpStatus) {
+          html += `<p class="small mb-1"><strong>HTTP:</strong> ${escapeHtml(data.resumen.httpStatus)}</p>`;
+        }
+        if (data.resumen?.codigoUnicoValidacion) {
+          html += `<p class="small mb-1"><strong>CUV:</strong> <code>${escapeHtml(data.resumen.codigoUnicoValidacion)}</code></p>`;
+        }
+        if (data.resumen?.detalle) {
+          html += `<p class="small mb-2">${escapeHtml(data.resumen.detalle)}</p>`;
+        }
+        if (data.errorDetalle?.errors?.length) {
+          html += `<h6 class="fevrips-det-title">Errores técnicos</h6><ul class="fevrips-det-list">${data.errorDetalle.errors
+            .map((e) => `<li>${escapeHtml(e)}</li>`)
+            .join("")}</ul>`;
+        } else         if (data.errorDetalle?.message) {
+          html += `<p class="small text-danger mb-2">${escapeHtml(data.errorDetalle.message)}</p>`;
+        }
+        const tablaVal = htmlTablaValidacionesDetalle(data.validacionesDetalle);
+        if (tablaVal) {
+          html += tablaVal;
+        } else {
+          const vals = [...(data.rechazos || []), ...(data.validaciones || [])];
+          const uniq = [...new Set(vals.filter(Boolean))];
+          if (uniq.length) {
+            html += `<h6 class="fevrips-det-title">Validaciones MinSalud</h6><ul class="fevrips-det-list fevrips-det-scroll">${uniq
+              .map((v) => `<li>${escapeHtml(v)}</li>`)
+              .join("")}</ul>`;
+          }
+        }
+      } else if (!html) {
+        const errData = await res.json().catch(() => ({}));
+        html = `<p class="small">${escapeHtml(errData.message || "Sin detalle guardado.")}</p>`;
+      }
+    } catch (err) {
+      if (!html) html = `<p class="small text-danger">${escapeHtml(err.message || String(err))}</p>`;
+    }
+  }
+
+  if (!html && p?.ultimoEnvio?.detalle) {
+    html = `<p class="small">${escapeHtml(p.ultimoEnvio.detalle)}</p>`;
+  }
+
+  if (doc) {
+    try {
+      const qs = new URLSearchParams({ documentoEmpresa: doc });
+      if (p?.reporte) qs.set("reporte", p.reporte);
+      if (esSinFactura() || /^SinFactura_/i.test(clave)) qs.set("modo", "sin_factura");
+      const vr = await fetch(
+        `${apiBase()}/RIPS/fevrips/validador/${encodeURIComponent(clave)}?${qs}`
+      );
+      const vd = await vr.json().catch(() => ({}));
+      if (vd.rutaDir) {
+        html += `<h6 class="fevrips-det-title">Carpeta validador MinSalud</h6>`;
+        if (vd.listo) {
+          const soloJson = vd.sinFactura || esSinFactura();
+          html += `<p class="small mb-1">Cargue en el validador FEV-RIPS ${
+            soloJson ? "el JSON de esta carpeta" : "los archivos de esta carpeta"
+          }:</p>`;
+          html += `<code class="fevrips-path-code">${escapeHtml(vd.rutaDir)}</code>`;
+          html += soloJson
+            ? `<p class="small text-muted mb-0 mt-1"><strong>${escapeHtml(clave)}.json</strong> (Sin factura — solo JSON)</p>`
+            : `<p class="small text-muted mb-0 mt-1"><strong>${escapeHtml(clave)}.xml</strong> + <strong>${escapeHtml(clave)}.json</strong></p>`;
+        } else if (vd.exportado?.errores?.length) {
+          html += `<p class="small text-warning mb-0">${escapeHtml(vd.exportado.errores.join(" · "))}</p>`;
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  if (!html) {
+    Swal.fire({ icon: "info", title: clave, text: "Sin detalle disponible." });
+    return;
+  }
+
+  Swal.fire({
+    icon: "info",
+    title: `Detalle — ${clave}`,
+    html: `<div class="text-start fevrips-detalle-modal">${html}</div>`,
+    width: "920px",
+    confirmButtonText: "Cerrar",
+  });
+}
+
 function aplicarUiModo() {
   const sin = esSinFactura();
   document.querySelectorAll("[data-modo-only='con_factura']").forEach((el) => {
@@ -72,7 +312,7 @@ function aplicarUiModo() {
   if (hint) {
     hint.textContent = sin
       ? "Paquetes RIPS Sin Factura (JSON) empaquetados o en lotes cuyo rango solapa las fechas."
-      : "Facturas con RIPS en el rango. Muestra si el XML ya está en caché empresa; descarga solo los que falten.";
+      : "Facturas con RIPS en el rango. Preparar descarga XML faltante, genera JSON (EPS + Particulares) y empaqueta.";
   }
 
   const info = document.getElementById("fevripsInfoText");
@@ -90,8 +330,8 @@ function aplicarUiModo() {
         <strong id="fevripsAmbienteLabel">${ambTxt}</strong>`;
     } else {
       info.innerHTML = `
-        Modo <strong>Con factura</strong>: lista facturas con RIPS y estado del <strong>XML</strong> en
-        <code>XMLS/{empresa}/</code>. Envía con <code>CargarFevRips</code> (XML+JSON).
+        Modo <strong>Con factura</strong>: lista facturas con RIPS, XML en <code>XMLS/{empresa}/</code> y JSON
+        empaquetado. Use <strong>Preparar XML + JSON</strong> antes de validar. Envía con <code>CargarFevRips</code>.
         API: <code id="fevripsApiBaseLabel">${apiTxt}</code> · Ambiente:
         <strong id="fevripsAmbienteLabel">${ambTxt}</strong>`;
     }
@@ -103,18 +343,21 @@ function setModo(modo) {
   if (next === modoActual) return;
   modoActual = next;
   paquetesCache = [];
+  tabDesgloseActiva = "en_trabajo";
   aplicarUiModo();
   renderDashboard({});
   const tbody = document.getElementById("tbodyFevRips");
   if (tbody) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="${esSinFactura() ? 8 : 9}" class="text-center py-4 text-muted">
+        <td colspan="${tablaColspan()}" class="text-center py-4 text-muted">
           Modo <strong>${esSinFactura() ? "Sin factura" : "Con factura"}</strong>.
           Seleccione fechas y pulse <strong>${esSinFactura() ? "Buscar paquetes" : "Buscar facturas"}</strong>.
         </td>
       </tr>`;
   }
+  actualizarTabsDesglose();
+  actualizarUiTabDesglose();
   updateActionButtons();
 }
 
@@ -136,8 +379,14 @@ function renderDashboard(d) {
   set("dashValidados", valOk);
   set("dashValErr", valErr);
 
-  const btnDl = document.getElementById("btnDescargarXmlFaltantes");
-  if (btnDl) btnDl.disabled = esSinFactura() || !(dash.sinXml > 0);
+  const sinJson = Math.max(0, (dash.total || 0) - (dash.conJson || 0));
+  const btnPrep = document.getElementById("btnPrepararArchivos");
+  const btnValExp = document.getElementById("btnExportarValidador");
+  const listosValidador = esSinFactura()
+    ? paquetesCache.filter((p) => p.tieneJson).length
+    : paquetesCache.filter((p) => p.tieneXml && p.tieneJson).length;
+  if (btnPrep) btnPrep.disabled = esSinFactura() || (!dash.sinXml && !sinJson);
+  if (btnValExp) btnValExp.disabled = listosValidador === 0;
 }
 
 function selectedItems() {
@@ -153,16 +402,10 @@ function selectedItems() {
 function itemsPrevalidadosOk(fromSelection = false) {
   const base = fromSelection
     ? selectedItems()
-    : paquetesCache.filter(itemListo).map((p) => ({
-        clave: p.clave,
-        reporte: p.reporte || "",
-        Prefijo: p.Prefijo || "",
-        NoFactura: p.NoFactura,
-        tipo: esSinFactura() ? "SIN_FACTURA" : "CON_FACTURA",
-      }));
+    : paquetesCache.filter((p) => itemListo(p) && !esEnviadoOk(p)).map(paqueteToItem);
   return base.filter((it) => {
     const p = paquetesCache.find((x) => x.clave === it.clave);
-    return p?.prevalidacion?.ok === true;
+    return p?.prevalidacion?.ok === true && !esEnviadoOk(p);
   });
 }
 
@@ -172,36 +415,20 @@ function scopeValue(name) {
 }
 
 function updateActionButtons() {
-  const listos = paquetesCache.filter(itemListo).length;
-  const sel = selectedItems().length;
-  const valOkAll = paquetesCache.filter((p) => p.prevalidacion?.ok === true).length;
+  const listosParaValidar = itemsParaValidarTodosListos().length;
+  const valOkAll = itemsPrevalidadosOk(false).length;
   const valOkSel = itemsPrevalidadosOk(true).length;
-  const scopeVal = scopeValue("scopeValidarFev");
   const scopeEnv = scopeValue("scopeEnviarFev");
 
   const btnVal = document.getElementById("btnValidarFev");
   const btnEnv = document.getElementById("btnEnviarFev");
 
-  if (btnVal) {
-    btnVal.disabled = scopeVal === "todos" ? listos === 0 : sel === 0;
-  }
-  if (btnEnv) {
-    btnEnv.disabled = scopeEnv === "todos" ? valOkAll === 0 : valOkSel === 0;
-  }
+  if (btnVal) btnVal.disabled = listosParaValidar === 0;
+  if (btnEnv) btnEnv.disabled = scopeEnv === "todos" ? valOkAll === 0 : valOkSel === 0;
 }
 
-function itemsParaValidarSegunScope() {
-  const scope = scopeValue("scopeValidarFev");
-  if (scope === "todos") {
-    return paquetesCache.filter(itemListo).map((p) => ({
-      clave: p.clave,
-      reporte: p.reporte || "",
-      Prefijo: p.Prefijo || "",
-      NoFactura: p.NoFactura,
-      tipo: esSinFactura() ? "SIN_FACTURA" : "CON_FACTURA",
-    }));
-  }
-  return selectedItems();
+function itemsParaValidarTodosListos() {
+  return paquetesCache.filter((p) => itemListo(p) && !esEnviadoOk(p)).map(paqueteToItem);
 }
 
 function itemsParaEnviarSegunScope() {
@@ -209,11 +436,50 @@ function itemsParaEnviarSegunScope() {
   return itemsPrevalidadosOk(scope === "seleccionados");
 }
 
+function actualizarTabsDesglose() {
+  const counts = {
+    en_trabajo: paquetesPorTab("en_trabajo").length,
+    sin_json: paquetesPorTab("sin_json").length,
+    enviados_ok: paquetesPorTab("enviados_ok").length,
+  };
+  document.querySelectorAll(".fevrips-tab-desglose").forEach((btn) => {
+    const tab = btn.getAttribute("data-tab");
+    const countEl = btn.querySelector(".fevrips-tab-count");
+    if (countEl && tab) countEl.textContent = String(counts[tab] ?? 0);
+    const active = tab === tabDesgloseActiva;
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
+
+function actualizarUiTabDesglose() {
+  const enTrabajo = tabDesgloseActiva === "en_trabajo";
+  document.getElementById("fevCheckAllWrap")?.classList.toggle("d-none", !enTrabajo);
+  document.querySelectorAll(".col-chk").forEach((el) => {
+    el.classList.toggle("d-none", !enTrabajo);
+  });
+}
+
+function setTabDesglose(tab) {
+  tabDesgloseActiva = tab;
+  actualizarUiTabDesglose();
+  actualizarTabsDesglose();
+  renderCuerpoTabla();
+}
+
 function renderTabla(paquetes) {
+  paquetesCache = Array.isArray(paquetes) ? paquetes : [];
+  actualizarTabsDesglose();
+  actualizarUiTabDesglose();
+  renderCuerpoTabla();
+}
+
+function renderCuerpoTabla() {
   const tbody = document.getElementById("tbodyFevRips");
   if (!tbody) return;
-  paquetesCache = Array.isArray(paquetes) ? paquetes : [];
-  const cols = esSinFactura() ? 8 : 9;
+  const cols = tablaColspan();
+  const enTrabajo = tabDesgloseActiva === "en_trabajo";
+  const visibles = paquetesPorTab(tabDesgloseActiva);
 
   if (!paquetesCache.length) {
     tbody.innerHTML = `
@@ -230,41 +496,55 @@ function renderTabla(paquetes) {
     return;
   }
 
-  tbody.innerHTML = paquetesCache
+  if (!visibles.length) {
+    const msg =
+      tabDesgloseActiva === "enviados_ok"
+        ? "No hay envíos exitosos en este rango."
+        : tabDesgloseActiva === "sin_json"
+          ? esSinFactura()
+            ? "No hay paquetes sin JSON en este rango."
+            : "No hay facturas con XML listo pero sin JSON."
+          : "No hay registros en esta vista.";
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${cols}" class="text-center py-4 text-muted">${msg}</td>
+      </tr>`;
+    updateActionButtons();
+    return;
+  }
+
+  tbody.innerHTML = visibles
     .map((p) => {
       const prev = p.prevalidacion;
       const prevLabel = prev
         ? prev.estadoValidacion || (prev.ok ? "OK" : "Con errores")
         : "Sin validar";
       const prevDetail = prev?.detalle || "—";
-      const cuv = p.ultimoEnvio?.codigoUnicoValidacion || p.ultimoEnvio?.detalle || "—";
+      const detalleEnvio = tieneCuv(p)
+        ? `CUV: ${p.cuvFevRips || p.ultimoEnvio?.codigoUnicoValidacion || "—"}`
+        : p.cuvFevRips || p.ultimoEnvio?.detalle || "—";
+      const detalleCorto = truncarTexto(detalleEnvio);
+      const verDet = puedeVerDetalle(p);
       const xmlLabel = p.tieneXml ? "Sí" : "No";
       const jsonLabel = p.tieneJson ? "Sí" : "No";
-      const puedeValidar = itemListo(p);
+      const puedeValidar = itemListo(p) && !esEnviadoOk(p);
+      const puedeEnviar = puedeEnviarPaquete(p);
       const fecha = p.FechaFactura || p.fechaInicioLote || "—";
       const xmlCell = esSinFactura()
         ? ""
         : `<td><span class="${badgeClass(xmlLabel === "Sí" ? "XML descargado" : "Sin XML")}">${xmlLabel}</span></td>`;
-      return `
-      <tr data-clave="${p.clave}">
-        <td>
+      const chkHabilitado = itemListo(p) && !esEnviadoOk(p);
+      const chkCell = enTrabajo
+        ? `<td class="col-chk">
           <input type="checkbox" class="fev-chk form-check-input" data-clave="${p.clave}"
             data-reporte="${String(p.reporte || "").replace(/"/g, "&quot;")}"
             data-prefijo="${String(p.Prefijo || "").replace(/"/g, "&quot;")}"
-            data-folio="${String(p.NoFactura ?? "").replace(/"/g, "&quot;")}" checked>
-        </td>
-        <td><span class="fevrips-clave">${p.clave}</span></td>
-        <td class="small">${fecha}</td>
-        ${xmlCell}
-        <td title="${p.estadoJson || ""}"><span class="${badgeClass(jsonLabel === "Sí" ? "JSON listo" : "Sin JSON")}">${jsonLabel}</span></td>
-        <td title="${String(prevDetail).replace(/"/g, "&quot;")}">
-          <span class="${badgeClass(prevLabel)}">${prevLabel}</span>
-        </td>
-        <td><span class="${badgeClass(p.estadoUi)}">${p.estadoUi || "—"}</span></td>
-        <td class="small" style="max-width:180px;word-break:break-all;">${String(
-          p.cuvFevRips || cuv
-        ).replace(/</g, "&lt;")}</td>
-        <td class="text-end text-nowrap">
+            data-folio="${String(p.NoFactura ?? "").replace(/"/g, "&quot;")}"
+            ${chkHabilitado ? "checked" : "disabled"}>
+        </td>`
+        : "";
+      const accionesEnTrabajo = enTrabajo
+        ? `${verDet ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle me-1" data-clave="${p.clave}" title="Ver error o validación">Detalle</button>` : ""}
           <button type="button" class="btn btn-sm btn-outline-warning btn-validar-uno"
             data-clave="${p.clave}" data-reporte="${String(p.reporte || "").replace(/"/g, "&quot;")}"
             data-prefijo="${String(p.Prefijo || "").replace(/"/g, "&quot;")}"
@@ -274,12 +554,40 @@ function renderTabla(paquetes) {
             data-clave="${p.clave}" data-reporte="${String(p.reporte || "").replace(/"/g, "&quot;")}"
             data-prefijo="${String(p.Prefijo || "").replace(/"/g, "&quot;")}"
             data-folio="${String(p.NoFactura ?? "").replace(/"/g, "&quot;")}"
-            ${p.prevalidacion?.ok ? "" : "disabled"}>Enviar</button>
+            ${puedeEnviar ? "" : "disabled"}>Enviar</button>`
+        : verDet
+          ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle" data-clave="${p.clave}" title="Ver detalle">Detalle</button>`
+          : "";
+      return `
+      <tr data-clave="${p.clave}">
+        ${chkCell}
+        <td><span class="fevrips-clave">${p.clave}</span></td>
+        <td class="small">${fecha}</td>
+        ${xmlCell}
+        <td title="${p.estadoJson || ""}"><span class="${badgeClass(jsonLabel === "Sí" ? "JSON listo" : "Sin JSON")}">${jsonLabel}</span></td>
+        <td title="${String(prevDetail).replace(/"/g, "&quot;")}">
+          <span class="${badgeClass(prevLabel)}">${prevLabel}</span>
         </td>
+        <td><span class="${badgeClass(p.estadoUi)}">${p.estadoUi || "—"}</span></td>
+        <td class="small fevrips-detalle-cell" style="max-width:200px;word-break:break-word;">
+          <span title="${escapeHtml(detalleEnvio)}">${escapeHtml(detalleCorto)}</span>
+          ${
+            verDet
+              ? `<button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline btn-ver-detalle" data-clave="${p.clave}">Ver detalle</button>`
+              : ""
+          }
+        </td>
+        <td class="text-end text-nowrap">${accionesEnTrabajo}</td>
       </tr>`;
     })
     .join("");
 
+  tbody.querySelectorAll(".btn-ver-detalle").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      verDetallePaquete(btn.getAttribute("data-clave"));
+    });
+  });
   tbody.querySelectorAll(".btn-validar-uno").forEach((btn) => {
     btn.addEventListener("click", () => {
       validarItems([
@@ -395,94 +703,473 @@ async function buscarFacturador() {
   return arr?.[0]?.Facturador || "";
 }
 
-async function descargarXmlsFaltantes() {
-  if (esSinFactura()) return;
-  const doc = getDocumentoEmpresa();
-  const { fi, ff } = ultimoRango;
-  const sinXml = paquetesCache.filter((p) => !p.tieneXml).length;
-  if (!fi || !ff) {
-    Swal.fire({ icon: "warning", text: "Busque primero un rango de fechas." });
-    return;
-  }
-  if (!sinXml) {
-    Swal.fire({ icon: "info", text: "No hay XMLs faltantes en este listado." });
-    return;
-  }
-
-  const conf = await Swal.fire({
-    icon: "question",
-    title: "Descargar XMLs faltantes",
-    html: `<p>Se descargarán hasta <strong>${sinXml}</strong> XML(s) ausentes del rango<br><code>${fi}</code> → <code>${ff}</code></p>
-           <p class="small text-muted">Los que ya estén en la carpeta empresa se omiten.</p>`,
-    showCancelButton: true,
-    confirmButtonText: "Descargar",
+function abrirProgresoPreparar() {
+  Swal.fire({
+    title: "Preparando archivos…",
+    html: `
+      <p id="fevPrepFase" class="small fw-semibold mb-1">Iniciando…</p>
+      <p id="fevPrepDet" class="small text-muted mb-0">—</p>`,
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
   });
-  if (!conf.isConfirmed) return;
+}
 
-  let facturador;
-  try {
-    facturador = await buscarFacturador();
-  } catch (e) {
-    Swal.fire({ icon: "error", text: e.message || String(e) });
+function actualizarProgresoPreparar(fase, detalle) {
+  const f = document.getElementById("fevPrepFase");
+  const d = document.getElementById("fevPrepDet");
+  if (f && fase) f.textContent = fase;
+  if (d && detalle) d.textContent = detalle;
+}
+
+async function leerNdjsonStream(response, onEvent) {
+  if (!response.body?.getReader) {
+    const text = await response.text();
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      onEvent(JSON.parse(line));
+    }
     return;
   }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        onEvent(JSON.parse(line));
+      } catch (e) {
+        console.warn("[fevrips] NDJSON inválido:", line, e);
+      }
+    }
+  }
+  if (buffer.trim()) {
+    try {
+      onEvent(JSON.parse(buffer));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+}
+
+function facturasDesdeCache() {
+  return paquetesCache.map((p) => ({
+    Prefijo: p.Prefijo || "",
+    NoFactura: p.NoFactura,
+    FechaFactura: p.FechaFactura,
+    clave: p.clave,
+  }));
+}
+
+async function descargarXmlsStream(fi, ff, doc, facturador) {
   const esFenalco = /fenalco/i.test(facturador);
   const pathSegment = esFenalco
     ? "descargarxmls-stream-fenalco-sin-prefijo"
     : "descargarxmls-stream-facturatech-sin-prefijo";
 
-  Swal.fire({
-    title: "Descargando XMLs…",
-    html: `<p id="fevDlProg">Conectando (${facturador || "API"})…</p>`,
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
-  });
+  const response = await fetch(
+    `${apiBase()}/XMLS/${pathSegment}/${fi}/${ff}/${encodeURIComponent(doc)}`,
+    { method: "POST" }
+  );
 
-  try {
-    const response = await fetch(
-      `${apiBase()}/XMLS/${pathSegment}/${fi}/${ff}/${encodeURIComponent(doc)}`,
-      { method: "POST" }
-    );
-    if (!response.ok || !response.body) {
-      throw new Error(`Error HTTP ${response.status}`);
+  if (!response.ok && !String(response.headers.get("content-type") || "").includes("ndjson")) {
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (_) {
+      /* ignore */
     }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop() || "";
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        let ev;
-        try {
-          ev = JSON.parse(line);
-        } catch (_) {
-          continue;
+    return {
+      ok: false,
+      message: (data && (data.message || data.error)) || `Error HTTP ${response.status}`,
+      facturas: [],
+      batchFolders: [],
+    };
+  }
+
+  let streamError = null;
+  let batchFolders = [];
+  const facturas = [];
+
+  await leerNdjsonStream(response, (ev) => {
+    if (ev.type === "start") {
+      batchFolders = Array.isArray(ev.batchFolders) ? ev.batchFolders : [];
+      actualizarProgresoPreparar(
+        `1/3 Descargando XMLs (${facturador || "API"})`,
+        `Encontradas ${ev.total || 0} factura(s) en el rango`
+      );
+    } else if (ev.type === "progress" || ev.type === "factura") {
+      const clave = `${ev.Prefijo || ""}${ev.NoFactura || ev.factura || ""}`;
+      actualizarProgresoPreparar(
+        `1/3 Descargando XMLs (${facturador || "API"})`,
+        `${clave} — ${ev.estado || ev.message || ev.mensaje || ""}`
+      );
+      if (ev.type === "factura") {
+        facturas.push({
+          Prefijo: ev.Prefijo || "",
+          NoFactura: ev.NoFactura,
+          FechaFactura: ev.FechaFactura,
+          estado: ev.estado,
+          batchFolder: ev.batchFolder,
+          batchFolders: ev.batchFolders,
+        });
+        if (ev.batchFolder && !batchFolders.includes(ev.batchFolder)) {
+          batchFolders.push(ev.batchFolder);
         }
-        if (ev.type === "progress" || ev.type === "factura") {
-          const el = document.getElementById("fevDlProg");
-          if (el) {
-            el.textContent = `${ev.Prefijo || ""}${ev.NoFactura || ev.factura || ""} — ${ev.estado || ev.message || ""}`;
-          }
-        }
-        if (ev.type === "error" && ev.message) {
-          console.warn("[fevrips xml]", ev.message);
+        if (Array.isArray(ev.batchFolders)) {
+          ev.batchFolders.forEach((bf) => {
+            if (bf && !batchFolders.includes(bf)) batchFolders.push(bf);
+          });
         }
       }
+    } else if (ev.type === "done") {
+      if (Array.isArray(ev.batchFolders) && ev.batchFolders.length) {
+        batchFolders = ev.batchFolders;
+      }
+      if (Array.isArray(ev.facturas) && ev.facturas.length) {
+        facturas.length = 0;
+        facturas.push(...ev.facturas);
+      }
+    } else if (ev.type === "error") {
+      streamError = ev.message || "Error en descarga XML";
     }
+  });
+
+  if (streamError && facturas.length === 0) {
+    return { ok: false, message: streamError, facturas, batchFolders };
+  }
+  return {
+    ok: !streamError,
+    message: streamError || "Descarga XML finalizada",
+    facturas,
+    batchFolders,
+  };
+}
+
+async function generarJsonRango(fi, ff, doc) {
+  const placeholderResolucion = "TODO";
+  const base = apiBase();
+  let dataEps = [];
+  let dataPart = [];
+  const errores = [];
+
+  actualizarProgresoPreparar("2/3 Generando JSON RIPS", "Consultando EPS…");
+
+  try {
+    const resEps = await fetch(
+      `${base}/RIPS/usuarios/rips/${fi}/${ff}/${placeholderResolucion}/${doc}`
+    );
+    if (!resEps.ok) throw new Error(`EPS HTTP ${resEps.status}`);
+    const raw = await resEps.json();
+    dataEps = Array.isArray(raw) ? raw : [];
+    actualizarProgresoPreparar(
+      "2/3 Generando JSON RIPS",
+      `EPS: ${dataEps.length} registro(s). Consultando Particulares…`
+    );
+  } catch (err) {
+    errores.push(`EPS: ${err.message || err}`);
+    actualizarProgresoPreparar("2/3 Generando JSON RIPS", errores[errores.length - 1]);
+  }
+
+  try {
+    const resPart = await fetch(
+      `${base}/RIPS/usuarios/ripsParticular/${fi}/${ff}/${placeholderResolucion}/${doc}`
+    );
+    if (!resPart.ok) throw new Error(`Particulares HTTP ${resPart.status}`);
+    const raw = await resPart.json();
+    dataPart = Array.isArray(raw) ? raw : [];
+    actualizarProgresoPreparar(
+      "2/3 Generando JSON RIPS",
+      `EPS ${dataEps.length} + Particulares ${dataPart.length}. Escribiendo archivos…`
+    );
+  } catch (err) {
+    errores.push(`Particulares: ${err.message || err}`);
+    actualizarProgresoPreparar("2/3 Generando JSON RIPS", errores[errores.length - 1]);
+  }
+
+  const data = [...dataEps, ...dataPart];
+  if (data.length === 0) {
+    const msg = errores.length
+      ? `Sin datos JSON. ${errores.join(" | ")}`
+      : "Sin datos JSON EPS ni Particulares en el rango.";
+    return { ok: false, message: msg, batchFolders: [], partialErrors: errores };
+  }
+
+  const zipRes = await fetch(`${base}/RIPS/generar-zip-todo-en-uno/${fi}/${ff}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ eps: dataEps, particulares: dataPart }),
+  });
+
+  if (!zipRes.ok) {
+    return {
+      ok: false,
+      message: `Error al generar JSON: HTTP ${zipRes.status}`,
+      batchFolders: [],
+      partialErrors: errores,
+    };
+  }
+
+  const zipData = await zipRes.json();
+  const batchFolders = Array.isArray(zipData?.batchFolders) ? zipData.batchFolders : [];
+  actualizarProgresoPreparar(
+    "2/3 Generando JSON RIPS",
+    `JSON listo (${batchFolders.length} carpeta(s): ${batchFolders.join(", ") || "—"})`
+  );
+
+  return {
+    ok: errores.length === 0,
+    message: errores.length ? `Parcial: ${errores.join(" | ")}` : "JSON generado",
+    batchFolders,
+    partialErrors: errores,
+    conteoTotal: data.length,
+  };
+}
+
+async function empaquetarArchivos(fi, ff, { facturas, batchFolders, xmlError, jsonError, doc }) {
+  actualizarProgresoPreparar(
+    "3/3 Empaquetando",
+    "Juntando XML + JSON en ARCHIVOS_DE_ENVIO…"
+  );
+
+  const res = await fetch(`${apiBase()}/RIPS/cerrar-todo-en-uno/${fi}/${ff}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      facturas,
+      xmlError,
+      jsonError,
+      batchFolders,
+      documentoEmpresa: doc,
+    }),
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (_) {
+    data = null;
+  }
+
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Error HTTP ${res.status}`);
+  }
+  return data;
+}
+
+async function prepararArchivosFaltantes() {
+  if (esSinFactura()) return;
+  const doc = getDocumentoEmpresa();
+  const { fi, ff } = ultimoRango;
+  const sinXml = paquetesCache.filter((p) => !p.tieneXml).length;
+  const sinJson = paquetesCache.filter((p) => !p.tieneJson).length;
+
+  if (!fi || !ff) {
+    Swal.fire({ icon: "warning", text: "Busque primero un rango de fechas." });
+    return;
+  }
+  if (!sinXml && !sinJson) {
+    Swal.fire({ icon: "info", text: "No faltan XML ni JSON en este listado." });
+    return;
+  }
+
+  const pasos = [];
+  if (sinXml) pasos.push(`Descargar hasta <strong>${sinXml}</strong> XML(s)`);
+  if (sinJson) pasos.push(`Generar JSON del rango (EPS + Particulares)`);
+  pasos.push("Empaquetar en <code>ARCHIVOS_DE_ENVIO</code>");
+
+  const conf = await Swal.fire({
+    icon: "question",
+    title: "Preparar XML + JSON",
+    html: `<p>Rango <code>${fi}</code> → <code>${ff}</code></p>
+           <ul class="text-start small">${pasos.map((p) => `<li>${p}</li>`).join("")}</ul>`,
+    showCancelButton: true,
+    confirmButtonText: "Preparar",
+  });
+  if (!conf.isConfirmed) return;
+
+  let xmlError = null;
+  let jsonError = null;
+  let batchFolders = [];
+  let facturas = facturasDesdeCache();
+
+  abrirProgresoPreparar();
+
+  try {
+    if (sinXml) {
+      let facturador;
+      try {
+        facturador = await buscarFacturador();
+      } catch (e) {
+        Swal.close();
+        Swal.fire({ icon: "error", text: e.message || String(e) });
+        return;
+      }
+
+      const xmlResult = await descargarXmlsStream(fi, ff, doc, facturador);
+      if (xmlResult.batchFolders?.length) {
+        batchFolders = [...new Set([...batchFolders, ...xmlResult.batchFolders])];
+      }
+      if (xmlResult.facturas?.length) {
+        facturas = xmlResult.facturas;
+      }
+      if (!xmlResult.ok) {
+        xmlError = xmlResult.message || "Error al descargar XMLs";
+      }
+    }
+
+    if (sinJson) {
+      const jsonResult = await generarJsonRango(fi, ff, doc);
+      if (jsonResult.batchFolders?.length) {
+        batchFolders = [...new Set([...batchFolders, ...jsonResult.batchFolders])];
+      }
+      if (!jsonResult.ok && !jsonResult.batchFolders?.length) {
+        jsonError = jsonResult.message || "Error al generar JSON";
+      } else if (jsonResult.partialErrors?.length) {
+        jsonError = jsonResult.message;
+      }
+    }
+
+    const estado = await empaquetarArchivos(fi, ff, {
+      facturas,
+      batchFolders,
+      xmlError,
+      jsonError,
+      doc,
+    });
+
+    Swal.close();
     await buscarPaquetes();
+    await exportarValidadorItems(
+      paquetesCache.filter((p) => p.tieneXml && p.tieneJson).map((p) => ({
+        clave: p.clave,
+        Prefijo: p.Prefijo,
+        NoFactura: p.NoFactura,
+      })),
+      { silencioso: true }
+    );
+
+    const resumen = estado?.resumen || {};
+    const huboAlerta = !!(xmlError || jsonError || estado?.empaquetadoError);
     Swal.fire({
-      icon: "success",
-      title: "Descarga finalizada",
-      text: "Se actualizó el estado de XMLs. Revise la columna XML.",
+      icon: huboAlerta ? "warning" : "success",
+      title: huboAlerta ? "Preparación con alertas" : "Preparación completada",
+      html: `
+        <p>XML OK: <strong>${resumen.xmlOk ?? "—"}</strong> ·
+           JSON OK: <strong>${resumen.jsonOk ?? "—"}</strong> ·
+           Empaquetados: <strong>${resumen.empaquetadoOk ?? "—"}</strong></p>
+        ${xmlError ? `<p class="small text-danger mb-1">XML: ${String(xmlError).replace(/</g, "&lt;")}</p>` : ""}
+        ${jsonError ? `<p class="small text-danger mb-1">JSON: ${String(jsonError).replace(/</g, "&lt;")}</p>` : ""}
+        ${estado?.empaquetadoError ? `<p class="small text-danger mb-0">Empaquetado: ${String(estado.empaquetadoError).replace(/</g, "&lt;")}</p>` : ""}
+        <p class="small text-muted mt-2 mb-0">Carpetas en <code>PAQUETES_VALIDADOR</code> para el validador manual. Luego pulse <strong>Validar</strong>.</p>`,
     });
   } catch (err) {
-    Swal.fire({ icon: "error", title: "Error descarga", text: err.message || String(err) });
+    Swal.close();
+    Swal.fire({ icon: "error", title: "Error", text: err.message || String(err) });
   }
+}
+
+function itemsParaExportarValidador(fromSelection = false) {
+  const base = fromSelection
+    ? selectedItems()
+    : paquetesCache.filter((p) => (esSinFactura() ? p.tieneJson : p.tieneXml && p.tieneJson));
+  return base.map((p) => ({
+    clave: p.clave,
+    Prefijo: p.Prefijo || "",
+    NoFactura: p.NoFactura,
+    reporte: p.reporte || "",
+    tipo: esSinFactura() ? "SIN_FACTURA" : "CON_FACTURA",
+  }));
+}
+
+async function exportarValidadorItems(items, { silencioso = false } = {}) {
+  const doc = getDocumentoEmpresa();
+  if (!doc) return null;
+  const list = Array.isArray(items) ? items.filter((i) => i?.clave) : [];
+  if (!list.length) {
+    if (!silencioso) {
+      Swal.fire({
+        icon: "info",
+        text: esSinFactura()
+          ? "No hay paquetes Sin Factura con JSON para exportar."
+          : "No hay facturas con XML y JSON para exportar.",
+      });
+    }
+    return null;
+  }
+
+  if (!silencioso) {
+    Swal.fire({
+      title: "Generando carpetas validador…",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  }
+
+  try {
+    const res = await fetch(`${apiBase()}/RIPS/fevrips/exportar-validador`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentoEmpresa: doc, items: list }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!silencioso) Swal.close();
+    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+
+    paquetesCache = paquetesCache.map((p) => {
+      const hit = (data.items || []).find((i) => i.clave === p.clave && i.ok);
+      if (!hit) return p;
+      return {
+        ...p,
+        paqueteValidador: {
+          listo: true,
+          rutaDir: hit.rutaDir,
+          rutaJson: hit.rutaJson,
+          rutaXml: hit.rutaXml,
+        },
+      };
+    });
+
+    if (!silencioso) {
+      const r = data.resumen || {};
+      const ejemplos = (data.items || [])
+        .filter((i) => i.ok)
+        .slice(0, 3)
+        .map((i) => `<code>${escapeHtml(i.rutaDir)}</code>`)
+        .join("<br>");
+      Swal.fire({
+        icon: r.fallidos ? "warning" : "success",
+        title: "Carpetas validador",
+        html: `
+          <p>OK: <strong>${r.ok ?? 0}</strong> · Fallidos: <strong>${r.fallidos ?? 0}</strong></p>
+          <p class="small text-start mb-1">Raíz:</p>
+          <code class="fevrips-path-code">${escapeHtml(data.root || "")}\\${escapeHtml(doc)}</code>
+          ${ejemplos ? `<p class="small text-start mt-2 mb-0">Ejemplos:<br>${ejemplos}</p>` : ""}
+          <p class="small text-muted mt-2 mb-0">Abra la carpeta de la factura en el validador FEV-RIPS de MinSalud.</p>`,
+        width: "640px",
+      });
+    }
+    return data;
+  } catch (err) {
+    if (!silencioso) Swal.close();
+    if (!silencioso) Swal.fire({ icon: "error", text: err.message || String(err) });
+    return null;
+  }
+}
+
+async function exportarCarpetasValidador() {
+  const sel = selectedItems();
+  const items = sel.length ? itemsParaExportarValidador(true) : itemsParaExportarValidador(false);
+  const filtrados = items.filter((it) => {
+    const p = paquetesCache.find((x) => x.clave === it.clave);
+    return esSinFactura() ? p?.tieneJson : p?.tieneXml && p?.tieneJson;
+  });
+  await exportarValidadorItems(filtrados);
 }
 
 async function cargarEmpresasFev() {
@@ -722,7 +1409,9 @@ async function validarItems(items) {
   if (!items?.length) {
     Swal.fire({
       icon: "warning",
-      text: esSinFactura() ? "Seleccione al menos un paquete." : "Seleccione al menos una factura.",
+      text: esSinFactura()
+        ? "No hay paquetes listos para validar."
+        : "No hay facturas listas para validar (XML + JSON, no enviadas).",
     });
     return;
   }
@@ -756,12 +1445,36 @@ async function validarItems(items) {
         <p class="small text-muted mb-0">${
           esSinFactura()
             ? "Solo se requiere JSON SinFactura listo."
-            : "Si falta JSON, genérelo/empaquete antes de enviar. El XML debe estar en caché."
+            : "Si falta XML o JSON, use <strong>Preparar XML + JSON</strong>. Luego valide antes de enviar."
         }</p>`,
     });
   } catch (err) {
     Swal.fire({ icon: "error", text: err.message || String(err) });
   }
+}
+
+function aplicarResultadoEnvio(items) {
+  const byKey = new Map(items.map((i) => [i.clave, i]));
+  paquetesCache = paquetesCache.map((p) => {
+    const hit = byKey.get(p.clave);
+    if (!hit) return p;
+    return {
+      ...p,
+      ultimoEnvio: {
+        fecha: new Date().toISOString(),
+        estado: hit.estado,
+        codigoUnicoValidacion: hit.codigoUnicoValidacion,
+        detalle: hit.detalle,
+        resultadosValidacion: hit.resultadosValidacion,
+      },
+      estadoUi:
+        hit.estado === "Enviado OK"
+          ? "Enviado OK"
+          : hit.estado === "Rechazado"
+            ? "Rechazado"
+            : hit.estado || p.estadoUi,
+    };
+  });
 }
 
 function mostrarResultado(data) {
@@ -771,10 +1484,17 @@ function mostrarResultado(data) {
     .map(
       (i) => `
     <tr>
-      <td><code>${i.clave || ""}</code></td>
-      <td>${i.estado || ""}</td>
-      <td style="font-size:0.75rem;word-break:break-all;">${i.codigoUnicoValidacion || "—"}</td>
-      <td style="font-size:0.75rem;">${String(i.detalle || "").replace(/</g, "&lt;")}</td>
+      <td><code>${escapeHtml(i.clave || "")}</code></td>
+      <td>${escapeHtml(i.estado || "")}</td>
+      <td style="font-size:0.75rem;word-break:break-all;">${escapeHtml(i.codigoUnicoValidacion || "—")}</td>
+      <td style="font-size:0.75rem;">
+        <span>${escapeHtml(truncarTexto(i.detalle, 80))}</span>
+        ${
+          i.clave
+            ? `<button type="button" class="btn btn-link btn-sm p-0 ms-1 fev-res-ver-detalle" data-clave="${escapeHtml(i.clave)}">Ver detalle</button>`
+            : ""
+        }
+      </td>
     </tr>`
     )
     .join("");
@@ -789,6 +1509,14 @@ function mostrarResultado(data) {
         <table class="table table-sm"><thead><tr><th>Clave</th><th>Estado</th><th>CUV</th><th>Detalle</th></tr></thead>
         <tbody>${rows || "<tr><td colspan=4>Sin ítems</td></tr>"}</tbody></table>
       </div>`,
+    didOpen: () => {
+      document.querySelectorAll(".fev-res-ver-detalle").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          verDetallePaquete(btn.getAttribute("data-clave"));
+        });
+      });
+    },
   });
 }
 
@@ -798,17 +1526,25 @@ async function enviarItems(items) {
     Swal.fire({ icon: "warning", text: "Sin empresa de trabajo." });
     return;
   }
-  const okItems = items.filter((it) => {
+  const prevalidados = items.filter((it) => {
     const p = paquetesCache.find((x) => x.clave === it.clave);
     return p?.prevalidacion?.ok === true;
   });
+  const okItems = prevalidados.filter((it) => {
+    const p = paquetesCache.find((x) => x.clave === it.clave);
+    return !tieneCuv(p);
+  });
+  const saltadosCuv = prevalidados.length - okItems.length;
+
   if (!okItems.length) {
     Swal.fire({
       icon: "warning",
-      title: "Sin prevalidados",
-      text: esSinFactura()
-        ? "Primero valide. Solo se envían paquetes con prevalidación OK (JSON)."
-        : "Primero valide. Solo se envían facturas con prevalidación OK (XML + JSON).",
+      title: saltadosCuv ? "Ya enviados (CUV)" : "Sin prevalidados",
+      text: saltadosCuv
+        ? "Los seleccionados ya tienen CUV registrado. No se reenvían a MinSalud."
+        : esSinFactura()
+          ? "Primero valide. Solo se envían paquetes con prevalidación OK (JSON)."
+          : "Primero valide. Solo se envían facturas con prevalidación OK (XML + JSON).",
     });
     return;
   }
@@ -817,6 +1553,11 @@ async function enviarItems(items) {
     icon: "question",
     title: "¿Enviar a MinSalud?",
     html: `<p>${okItems.length} ${esSinFactura() ? "paquete(s) Sin Factura" : "factura(s)"} → API Docker FEV-RIPS</p>
+           ${
+             saltadosCuv
+               ? `<p class="small text-warning mb-1">${saltadosCuv} omitido(s): ya tienen CUV.</p>`
+               : ""
+           }
            <p class="small text-muted">${esSinFactura() ? "CargarRipsSinFactura" : "CargarFevRips"}</p>`,
     showCancelButton: true,
     confirmButtonText: "Enviar",
@@ -841,6 +1582,7 @@ async function enviarItems(items) {
       Swal.fire({ icon: "error", title: "Error", text: data.message || `HTTP ${res.status}` });
       return;
     }
+    aplicarResultadoEnvio(data.items || []);
     mostrarResultado(data);
     await buscarPaquetes();
   } catch (err) {
@@ -862,20 +1604,29 @@ async function init() {
 
   await cargarConfig();
   aplicarUiModo();
+  actualizarTabsDesglose();
+  actualizarUiTabDesglose();
 
   document.getElementById("btnModoConFactura")?.addEventListener("click", () => setModo("con_factura"));
   document.getElementById("btnModoSinFactura")?.addEventListener("click", () => setModo("sin_factura"));
   document.getElementById("btnBuscarFevRips")?.addEventListener("click", buscarPaquetes);
-  document.getElementById("btnDescargarXmlFaltantes")?.addEventListener("click", descargarXmlsFaltantes);
+  document.getElementById("btnPrepararArchivos")?.addEventListener("click", prepararArchivosFaltantes);
+  document.getElementById("btnExportarValidador")?.addEventListener("click", exportarCarpetasValidador);
   document.getElementById("btnCredencialesFev")?.addEventListener("click", editarCredenciales);
   document.getElementById("btnValidarFev")?.addEventListener("click", () => {
-    validarItems(itemsParaValidarSegunScope());
+    validarItems(itemsParaValidarTodosListos());
   });
   document.getElementById("btnEnviarFev")?.addEventListener("click", () => {
     enviarItems(itemsParaEnviarSegunScope());
   });
-  document.querySelectorAll('input[name="scopeValidarFev"], input[name="scopeEnviarFev"]').forEach((el) => {
+  document.querySelectorAll('input[name="scopeEnviarFev"]').forEach((el) => {
     el.addEventListener("change", updateActionButtons);
+  });
+  document.querySelectorAll(".fevrips-tab-desglose").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab");
+      if (tab && tab !== tabDesgloseActiva) setTabDesglose(tab);
+    });
   });
   document.getElementById("fevCheckAll")?.addEventListener("change", (ev) => {
     document.querySelectorAll(".fev-chk:not(:disabled)").forEach((chk) => {

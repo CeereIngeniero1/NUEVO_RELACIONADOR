@@ -29,6 +29,24 @@ const {
 } = require('../utils/fevripsFacturasXml');
 const { existeXmlEmpresa, claveXml } = require('../utils/xmlCache');
 const { marcarEnviadoTrasEnvioOk } = require('../utils/fevripsMarcarEnviado');
+const {
+  formatErrMessage,
+  formatResultDetalle,
+  resumenValidaciones,
+  detalleValidaciones,
+  serializarError,
+} = require('../utils/fevripsErrorFormat');
+const {
+  exportarPaquetesValidador,
+  exportarPaqueteValidador,
+  infoPaqueteValidador,
+} = require('../utils/fevripsPaquetesValidador');
+const {
+  cuvValido,
+  buscarCuvEnArchivosResultado,
+  resolverCuvExistente,
+  resolverCuvDesdeCampos,
+} = require('../utils/fevripsCuvExistente');
 
 const router = Router();
 
@@ -210,7 +228,11 @@ function mapaUltimosResultados(documentoEmpresa) {
                     ? 'Error'
                     : 'Desconocido',
             codigoUnicoValidacion: r.codigoUnicoValidacion || null,
-            detalle: r.message || r.error || (r.codigoUnicoValidacion ? `CUV: ${r.codigoUnicoValidacion}` : ''),
+            detalle: formatResultDetalle(r),
+            resultadosValidacion: r.resultadosValidacion || [],
+            rechazos: r.rechazos || [],
+            httpStatus: r.httpStatus || null,
+            errorDetalle: r.errorDetalle || (r.errors ? { errors: r.errors } : null),
             archivo: full,
           });
         }
@@ -223,8 +245,32 @@ function mapaUltimosResultados(documentoEmpresa) {
 
 function enriquecerPublico(paquetes, documentoEmpresa) {
   const ultimos = documentoEmpresa ? mapaUltimosResultados(documentoEmpresa) : new Map();
+  const doc = String(documentoEmpresa || 'SIN_EMPRESA').trim() || 'SIN_EMPRESA';
+  const resRoot = documentoEmpresa ? path.join(resultadosRoot(), doc) : null;
+
   return paquetes.map((p) => {
     const u = ultimos.get(p.clave);
+    const cuvArch =
+      resRoot && p.clave ? buscarCuvEnArchivosResultado(resRoot, p.clave) : null;
+    const cuv =
+      resolverCuvDesdeCampos({
+        ...p,
+        cuvFevRips: p.cuvFevRips || cuvArch || null,
+        ultimoEnvio: u,
+      }) ||
+      cuvArch ||
+      null;
+    const tieneCuv = cuvValido(cuv);
+    const enviado = Boolean(p.enviadoFevRips || tieneCuv);
+
+    let estadoUi;
+    if (!p.listo) estadoUi = 'Incompleto';
+    else if (enviado || u?.estado === 'Enviado OK') estadoUi = 'Enviado OK';
+    else if (u?.estado === 'Rechazado') estadoUi = 'Rechazado';
+    else if (u) estadoUi = u.estado;
+    else if (p.estadoUi) estadoUi = p.estadoUi;
+    else estadoUi = 'Pendiente';
+
     return {
       tipo: p.tipo,
       clave: p.clave,
@@ -236,16 +282,10 @@ function enriquecerPublico(paquetes, documentoEmpresa) {
       procesoEnvio: p.procesoEnvio,
       tieneJson: Boolean(p.rutaJson),
       tieneXml: Boolean(p.rutaXml),
+      cuvFevRips: cuv || p.cuvFevRips || null,
+      enviadoFevRips: enviado,
       ultimoEnvio: u || null,
-      estadoUi: !p.listo
-        ? 'Incompleto'
-        : u?.estado === 'Enviado OK'
-          ? 'Enviado OK'
-          : u?.estado === 'Rechazado'
-            ? 'Rechazado'
-            : u
-              ? u.estado
-              : 'Pendiente',
+      estadoUi,
     };
   });
 }
@@ -292,6 +332,11 @@ function persistirResultado(documentoEmpresa, item, resultado) {
 
 async function enviarPaquetesLista(documentoEmpresa, paquetes) {
   const items = [];
+  const resRoot = path.join(
+    resultadosRoot(),
+    String(documentoEmpresa || 'SIN_EMPRESA').trim() || 'SIN_EMPRESA'
+  );
+
   for (const p of paquetes) {
     const row = {
       tipo: p.tipo,
@@ -308,6 +353,15 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
     };
 
     try {
+      const existente = await resolverCuvExistente(documentoEmpresa, p, { resultadosRoot: resRoot });
+      if (cuvValido(existente.cuv)) {
+        row.estado = 'Omitido';
+        row.codigoUnicoValidacion = existente.cuv;
+        row.detalle = `Ya tiene CUV (${existente.origen || 'registrado'}): ${existente.cuv}`;
+        items.push(row);
+        continue;
+      }
+
       const rips = readJsonFile(p.rutaJson);
       let resultado;
       if (p.tipo === 'CON_FACTURA') {
@@ -322,6 +376,11 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
       row.resultState = resultado.resultState;
       row.codigoUnicoValidacion = resultado.codigoUnicoValidacion;
       row.resultadosValidacion = resultado.resultadosValidacion || [];
+      row.validacionesDetalle = detalleValidaciones(
+        resultado.resultadosValidacion?.length
+          ? resultado.resultadosValidacion
+          : resultado.rechazos || []
+      );
       row.procesoId = resultado.procesoId;
       row.ambienteApi = resultado.ambiente;
       row.httpStatus = resultado.httpStatus;
@@ -365,20 +424,23 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
         row.detalle = resultado.message || 'Error HTTP';
       } else {
         row.estado = 'Rechazado';
-        const msgs = (resultado.rechazos || [])
-          .map((v) => v.Descripcion || v.descripcion || v.Codigo || v.codigo)
-          .filter(Boolean);
+        row.rechazos = resultado.rechazos || [];
+        const msgs = resumenValidaciones(resultado.rechazos || resultado.resultadosValidacion);
         row.detalle = msgs.slice(0, 5).join(' | ') || 'ResultState false';
       }
       row.archivoResultado = persistirResultado(documentoEmpresa, p, resultado);
     } catch (err) {
       row.estado = 'Error';
-      row.detalle = err.message || String(err);
+      const errInfo = serializarError(err);
+      row.detalle = errInfo.message;
+      row.errorDetalle = errInfo;
       try {
         row.archivoResultado = persistirResultado(documentoEmpresa, p, {
           ok: false,
-          error: err.message || String(err),
-          code: err.code,
+          error: errInfo.message,
+          code: errInfo.code,
+          errors: errInfo.errors,
+          errorDetalle: errInfo,
         });
       } catch (_) { /* ignore */ }
     }
@@ -506,8 +568,11 @@ router.get('/fevrips/paquetes-rango', async (req, res) => {
       const conUltimo = enriquecerPublico(items, documentoEmpresa).map((pub, idx) => ({
         ...items[idx],
         ...pub,
-        estadoUi: items[idx].estadoUi,
+        estadoUi: pub.estadoUi || items[idx].estadoUi,
+        cuvFevRips: pub.cuvFevRips || items[idx].cuvFevRips,
+        enviadoFevRips: pub.enviadoFevRips || items[idx].enviadoFevRips,
         ultimoEnvio: pub.ultimoEnvio,
+        paqueteValidador: infoPaqueteValidador(documentoEmpresa, items[idx].clave, items[idx]),
       }));
       return res.json({
         fechaInicio,
@@ -537,8 +602,11 @@ router.get('/fevrips/paquetes-rango', async (req, res) => {
     ).map((pub, idx) => ({
       ...items[idx],
       ...pub,
-      estadoUi: items[idx].estadoUi,
+      estadoUi: pub.estadoUi || items[idx].estadoUi,
+      cuvFevRips: pub.cuvFevRips || items[idx].cuvFevRips,
+      enviadoFevRips: pub.enviadoFevRips || items[idx].enviadoFevRips,
       ultimoEnvio: pub.ultimoEnvio,
+      paqueteValidador: infoPaqueteValidador(documentoEmpresa, items[idx].clave, items[idx]),
     }));
 
     res.json({
@@ -879,6 +947,7 @@ router.post('/fevrips/enviar', async (req, res) => {
       rechazados: items.filter((i) => i.estado === 'Rechazado').length,
       errores: items.filter((i) => i.estado === 'Error' || i.estado === 'Error HTTP').length,
       omitidosPrevalidacion: omitidos.length,
+      omitidosCuv: items.filter((i) => i.estado === 'Omitido' && /CUV/i.test(String(i.detalle || ''))).length,
     };
 
     res.json({
@@ -896,6 +965,112 @@ router.post('/fevrips/enviar', async (req, res) => {
       code: err.code,
       detail: err.detail,
     });
+  }
+});
+
+/**
+ * GET /RIPS/fevrips/resultado/:clave?documentoEmpresa=
+ * Devuelve el último JSON guardado de envío/prevalidación fallida para una clave.
+ */
+router.get('/fevrips/resultado/:clave', (req, res) => {
+  try {
+    const clave = String(req.params.clave || '').trim();
+    const documentoEmpresa = String(req.query.documentoEmpresa || '').trim();
+    if (!clave) return res.status(400).json({ message: 'clave requerida' });
+    if (!documentoEmpresa) return res.status(400).json({ message: 'documentoEmpresa requerido' });
+
+    const ultimos = mapaUltimosResultados(documentoEmpresa);
+    const hit = ultimos.get(clave);
+    if (!hit?.archivo || !fs.existsSync(hit.archivo)) {
+      return res.status(404).json({ message: 'Sin resultado guardado para esta clave' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(hit.archivo, 'utf8'));
+    const r = data.resultado || {};
+    const validacionesRaw =
+      (Array.isArray(r.resultadosValidacion) && r.resultadosValidacion.length
+        ? r.resultadosValidacion
+        : null) ||
+      (Array.isArray(r.rechazos) && r.rechazos.length ? r.rechazos : []);
+
+    res.json({
+      clave,
+      fecha: data.fecha,
+      ambiente: data.ambiente,
+      paquete: data.paquete,
+      resumen: {
+        estado: hit.estado,
+        detalle: hit.detalle,
+        codigoUnicoValidacion: r.codigoUnicoValidacion || null,
+        httpStatus: r.httpStatus || null,
+      },
+      resultado: r,
+      validaciones: resumenValidaciones(validacionesRaw),
+      validacionesDetalle: detalleValidaciones(validacionesRaw),
+      rechazos: resumenValidaciones(r.rechazos || []),
+      errorDetalle: r.errorDetalle || null,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || String(err) });
+  }
+});
+
+/**
+ * POST /RIPS/fevrips/exportar-validador
+ * Copia XML+JSON a PAQUETES_VALIDADOR/{empresa}/{clave}/ para el validador MinSalud.
+ */
+router.post('/fevrips/exportar-validador', (req, res) => {
+  try {
+    const documentoEmpresa = String(req.body?.documentoEmpresa || '').trim();
+    const itemsIn = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!documentoEmpresa) {
+      return res.status(400).json({ message: 'documentoEmpresa requerido' });
+    }
+    if (!itemsIn.length) {
+      return res.status(400).json({ message: 'items requerido (al menos una clave)' });
+    }
+
+    const data = exportarPaquetesValidador(documentoEmpresa, itemsIn);
+    res.json({
+      message: 'Paquetes copiados para validador manual',
+      root: data.root,
+      documentoEmpresa: data.documentoEmpresa,
+      resumen: { total: data.total, ok: data.ok, fallidos: data.fallidos },
+      items: data.items,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || String(err) });
+  }
+});
+
+/**
+ * GET /RIPS/fevrips/validador/:clave?documentoEmpresa=
+ * Devuelve ruta del paquete; si no existe, intenta exportarlo.
+ */
+router.get('/fevrips/validador/:clave', (req, res) => {
+  try {
+    const clave = String(req.params.clave || '').trim();
+    const documentoEmpresa = String(req.query.documentoEmpresa || '').trim();
+    const reporte = String(req.query.reporte || '').trim();
+    const modo = String(req.query.modo || '').trim().toLowerCase();
+    if (!clave) return res.status(400).json({ message: 'clave requerida' });
+    if (!documentoEmpresa) return res.status(400).json({ message: 'documentoEmpresa requerido' });
+
+    const item = {
+      clave,
+      reporte: reporte || undefined,
+      tipo: modo === 'sin_factura' || /^SinFactura_/i.test(clave) ? 'SIN_FACTURA' : 'CON_FACTURA',
+    };
+
+    let info = infoPaqueteValidador(documentoEmpresa, clave, item);
+    let exportado = null;
+    if (!info.listo) {
+      exportado = exportarPaqueteValidador(documentoEmpresa, item);
+      info = infoPaqueteValidador(documentoEmpresa, clave, item);
+    }
+    res.json({ ...info, exportado });
+  } catch (err) {
+    res.status(500).json({ message: err.message || String(err) });
   }
 });
 

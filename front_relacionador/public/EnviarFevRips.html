@@ -55,9 +55,11 @@
                 <div class="d-flex gap-2 align-items-start">
                     <i class="ri-information-line fs-5 fevrips-info-icon"></i>
                     <div id="fevripsInfoText">
-                        Lista facturas con RIPS en el rango y el estado del <strong>XML</strong> en
-                        <code>XMLS/{empresa}/</code>. Si falta, puede descargarlo aquí.
-                        El JSON se usa al validar/enviar cuando ya esté generado/empaquetado.
+                        Lista facturas con RIPS en el rango y el estado del <strong>XML</strong> y
+                        <strong>JSON</strong>. Use <strong>Preparar XML + JSON</strong> para descargar
+                        XMLs faltantes, generar JSON del rango y empaquetar en
+                        <code>ARCHIVOS_DE_ENVIO</code>. Use <strong>Carpetas validador</strong> para copiar
+                        XML+JSON por factura en <code>PAQUETES_VALIDADOR/{empresa}/{clave}/</code>.
                         API: <code id="fevripsApiBaseLabel">—</code> · Ambiente:
                         <strong id="fevripsAmbienteLabel">—</strong>
                     </div>
@@ -119,7 +121,8 @@
                                     <input type="date" id="fechaFinFev" class="form-control form-control-sm">
                                 </div>
                                 <button type="button" class="btn btn-primary btn-sm" id="btnBuscarFevRips">Buscar facturas</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnDescargarXmlFaltantes" data-modo-only="con_factura" disabled>Descargar XMLs faltantes</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnPrepararArchivos" data-modo-only="con_factura" disabled>Preparar XML + JSON</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnExportarValidador" disabled title="PAQUETES_VALIDADOR/{empresa}/{clave}/">Carpetas validador</button>
                             </div>
                             <p class="fevrips-seg-hint" id="fevripsBuscarHint">Facturas con RIPS en el rango. Muestra si el XML ya está en caché empresa; descarga solo los que falten.</p>
                         </div>
@@ -127,19 +130,9 @@
                         <div class="fevrips-seg fevrips-seg-validar">
                             <span class="fevrips-seg-title">1. Validar</span>
                             <div class="fevrips-seg-row fevrips-seg-row-actions">
-                                <div class="fevrips-radios" role="radiogroup" aria-label="Alcance de validación">
-                                    <label class="fevrips-radio">
-                                        <input type="radio" name="scopeValidarFev" value="seleccionados" checked>
-                                        <span>Solo seleccionados</span>
-                                    </label>
-                                    <label class="fevrips-radio">
-                                        <input type="radio" name="scopeValidarFev" value="todos">
-                                        <span>Todos los listos</span>
-                                    </label>
-                                </div>
+                                <p class="fevrips-seg-hint mb-0 flex-grow-1">Prevalida todos los listos (XML + JSON). No envía a MinSalud.</p>
                                 <button type="button" class="btn btn-warning btn-sm" id="btnValidarFev" disabled>Validar</button>
                             </div>
-                            <p class="fevrips-seg-hint">Prevalidación local (JSON / XML). No envía a MinSalud.</p>
                         </div>
 
                         <div class="fevrips-seg fevrips-seg-enviar">
@@ -157,7 +150,7 @@
                                 </div>
                                 <button type="button" class="btn btn-success btn-sm" id="btnEnviarFev" disabled>Enviar</button>
                             </div>
-                            <p class="fevrips-seg-hint">API Docker MinSalud (reglas + CUV). Solo si el paso 1 quedó OK.</p>
+                            <p class="fevrips-seg-hint">API Docker MinSalud (reglas + CUV). Solo seleccionados: filas marcadas con prevalidación OK. Todos: todos los prevalidados OK no enviados.</p>
                         </div>
                     </div>
                 </div>
@@ -167,16 +160,27 @@
                 <div class="cr-card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                         <h2 class="h6 text-uppercase fw-bold mb-0" style="color: var(--color-text-secondary);">Desglose</h2>
-                        <div class="form-check">
+                        <div class="form-check" id="fevCheckAllWrap">
                             <input class="form-check-input" type="checkbox" id="fevCheckAll" checked>
                             <label class="form-check-label small" for="fevCheckAll">Seleccionar listos</label>
                         </div>
+                    </div>
+                    <div class="fevrips-tabs-desglose mb-2" role="tablist" aria-label="Vista del desglose">
+                        <button type="button" class="fevrips-tab-desglose is-active" data-tab="en_trabajo" role="tab" aria-selected="true">
+                            En trabajo <span class="fevrips-tab-count">0</span>
+                        </button>
+                        <button type="button" class="fevrips-tab-desglose" data-tab="sin_json" role="tab" aria-selected="false">
+                            Sin JSON <span class="fevrips-tab-count">0</span>
+                        </button>
+                        <button type="button" class="fevrips-tab-desglose" data-tab="enviados_ok" role="tab" aria-selected="false">
+                            Enviado OK <span class="fevrips-tab-count">0</span>
+                        </button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" id="tablaFevRips">
                             <thead class="fevrips-thead">
                                 <tr id="theadFevRips">
-                                    <th style="width:2.5rem;"></th>
+                                    <th class="col-chk" style="width:2.5rem;"></th>
                                     <th>Clave</th>
                                     <th>Fecha</th>
                                     <th class="col-xml">XML</th>
