@@ -47,6 +47,15 @@ const {
   resolverCuvExistente,
   resolverCuvDesdeCampos,
 } = require('../utils/fevripsCuvExistente');
+const {
+  huellaPaqueteEnDisco,
+  evaluarReenvioSinCambios,
+} = require('../utils/fevripsHashPaquete');
+const {
+  resolverRutasPaquete,
+  normalizarRutasPaquete,
+  abrirCarpetasPaquete,
+} = require('../utils/fevripsRutasArchivos');
 
 const router = Router();
 
@@ -233,6 +242,7 @@ function mapaUltimosResultados(documentoEmpresa) {
             rechazos: r.rechazos || [],
             httpStatus: r.httpStatus || null,
             errorDetalle: r.errorDetalle || (r.errors ? { errors: r.errors } : null),
+            contenidoEnviado: data.contenidoEnviado || null,
             archivo: full,
           });
         }
@@ -303,7 +313,7 @@ function resumenDashboard(paquetesPublicos) {
   };
 }
 
-function persistirResultado(documentoEmpresa, item, resultado) {
+function persistirResultado(documentoEmpresa, item, resultado, contenidoEnviado) {
   const dir = path.join(
     resultadosRoot(),
     String(documentoEmpresa || 'SIN_EMPRESA').trim() || 'SIN_EMPRESA',
@@ -324,13 +334,15 @@ function persistirResultado(documentoEmpresa, item, resultado) {
       reporte: item.reporte,
       endpoint: item.endpoint,
     },
+    contenidoEnviado: contenidoEnviado || null,
     resultado,
   };
   fs.writeFileSync(file, JSON.stringify(payload, null, 2), 'utf8');
   return file;
 }
 
-async function enviarPaquetesLista(documentoEmpresa, paquetes) {
+async function enviarPaquetesLista(documentoEmpresa, paquetes, opts = {}) {
+  const confirmarSinCambios = Boolean(opts.confirmarSinCambios);
   const items = [];
   const resRoot = path.join(
     resultadosRoot(),
@@ -338,12 +350,13 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
   );
 
   for (const p of paquetes) {
+    const paquete = normalizarRutasPaquete(documentoEmpresa, p);
     const row = {
-      tipo: p.tipo,
-      clave: p.clave,
-      reporte: p.reporte,
-      endpoint: p.endpoint,
-      procesoEnvio: p.procesoEnvio,
+      tipo: paquete.tipo,
+      clave: paquete.clave,
+      reporte: paquete.reporte,
+      endpoint: paquete.endpoint,
+      procesoEnvio: paquete.procesoEnvio,
       estado: 'Pendiente',
       codigoUnicoValidacion: null,
       resultState: null,
@@ -353,7 +366,7 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
     };
 
     try {
-      const existente = await resolverCuvExistente(documentoEmpresa, p, { resultadosRoot: resRoot });
+      const existente = await resolverCuvExistente(documentoEmpresa, paquete, { resultadosRoot: resRoot });
       if (cuvValido(existente.cuv)) {
         row.estado = 'Omitido';
         row.codigoUnicoValidacion = existente.cuv;
@@ -362,13 +375,26 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
         continue;
       }
 
-      const rips = readJsonFile(p.rutaJson);
+      const contenidoEnviado = huellaPaqueteEnDisco(paquete);
+      const ultimos = mapaUltimosResultados(documentoEmpresa);
+      const evalReenvio = evaluarReenvioSinCambios(paquete, ultimos.get(paquete.clave));
+      if (evalReenvio.sinModificar && !confirmarSinCambios) {
+        row.estado = 'Omitido';
+        row.advertenciaSinModificar = true;
+        row.detalle =
+          evalReenvio.mensaje ||
+          'JSON/XML sin modificar desde el último error. Corrija el RIPS antes de reenviar.';
+        items.push(row);
+        continue;
+      }
+
+      const rips = readJsonFile(paquete.rutaJson);
       let resultado;
-      if (p.tipo === 'CON_FACTURA') {
-        if (!p.rutaXml || !fs.existsSync(p.rutaXml)) {
+      if (paquete.tipo === 'CON_FACTURA') {
+        if (!paquete.rutaXml || !fs.existsSync(paquete.rutaXml)) {
           throw new Error('XML ausente en paquete CON_FACTURA');
         }
-        resultado = await cargarFevRips(documentoEmpresa, rips, xmlToBase64(p.rutaXml));
+        resultado = await cargarFevRips(documentoEmpresa, rips, xmlToBase64(paquete.rutaXml));
       } else {
         resultado = await cargarRipsSinFactura(documentoEmpresa, rips);
       }
@@ -392,10 +418,10 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
           : 'ResultState true';
         try {
           // Prefijo/folio: del paquete o derivados de la clave (FE16196)
-          let prefijo = p.Prefijo;
-          let noFactura = p.NoFactura;
-          if ((!prefijo || noFactura == null || noFactura === '') && p.clave) {
-            const m = String(p.clave).match(/^([A-Za-z]+)(\d+)$/);
+          let prefijo = paquete.Prefijo;
+          let noFactura = paquete.NoFactura;
+          if ((!prefijo || noFactura == null || noFactura === '') && paquete.clave) {
+            const m = String(paquete.clave).match(/^([A-Za-z]+)(\d+)$/);
             if (m) {
               prefijo = prefijo || m[1];
               noFactura = noFactura != null && noFactura !== '' ? noFactura : m[2];
@@ -403,7 +429,7 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
           }
           const mark = await marcarEnviadoTrasEnvioOk({
             documentoEmpresa,
-            paquete: { ...p, Prefijo: prefijo, NoFactura: noFactura },
+            paquete: { ...paquete, Prefijo: prefijo, NoFactura: noFactura },
             cuv: resultado.codigoUnicoValidacion,
             ambiente: resultado.ambiente || ambienteConfigurado(),
             ripsJson: rips,
@@ -428,20 +454,26 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes) {
         const msgs = resumenValidaciones(resultado.rechazos || resultado.resultadosValidacion);
         row.detalle = msgs.slice(0, 5).join(' | ') || 'ResultState false';
       }
-      row.archivoResultado = persistirResultado(documentoEmpresa, p, resultado);
+      row.archivoResultado = persistirResultado(documentoEmpresa, paquete, resultado, contenidoEnviado);
     } catch (err) {
       row.estado = 'Error';
       const errInfo = serializarError(err);
       row.detalle = errInfo.message;
       row.errorDetalle = errInfo;
       try {
-        row.archivoResultado = persistirResultado(documentoEmpresa, p, {
-          ok: false,
-          error: errInfo.message,
-          code: errInfo.code,
-          errors: errInfo.errors,
-          errorDetalle: errInfo,
-        });
+        const contenidoEnviado = huellaPaqueteEnDisco(paquete);
+        row.archivoResultado = persistirResultado(
+          documentoEmpresa,
+          paquete,
+          {
+            ok: false,
+            error: errInfo.message,
+            code: errInfo.code,
+            errors: errInfo.errors,
+            errorDetalle: errInfo,
+          },
+          contenidoEnviado
+        );
       } catch (_) { /* ignore */ }
     }
     items.push(row);
@@ -677,7 +709,6 @@ router.post('/fevrips/validar', (req, res) => {
     const itemsSel = Array.isArray(req.body?.items) ? req.body.items : null;
     const documentoEmpresa = String(req.body?.documentoEmpresa || '').trim();
     const modo = String(req.body?.modo || '').trim().toLowerCase();
-    const root = getRipsDataRoot();
 
     if (itemsSel && itemsSel.length) {
       for (const it of itemsSel) {
@@ -709,26 +740,20 @@ router.post('/fevrips/validar', (req, res) => {
         }
 
         const jsonInfo = encontrarJsonParaClave(clave);
-        const xmlPath =
-          (prefijo || no != null) && documentoEmpresa
-            ? existeXmlEmpresa(root, documentoEmpresa, prefijo, no)
-            : null;
-        let rutaXml = xmlPath;
-        if (!rutaXml && jsonInfo.rutaJson) {
-          const side = path.join(path.dirname(jsonInfo.rutaJson), `${clave}.xml`);
-          if (fs.existsSync(side)) rutaXml = side;
-        }
-        paquetes.push({
-          tipo: 'CON_FACTURA',
-          clave,
-          reporte: jsonInfo.reporte || rep || '',
-          Prefijo: prefijo,
-          NoFactura: no,
-          rutaJson: jsonInfo.rutaJson,
-          rutaXml,
-          listo: Boolean(jsonInfo.rutaJson && rutaXml),
-          procesoEnvio: 'Factura Electrónica de Venta',
-        });
+        paquetes.push(
+          normalizarRutasPaquete(documentoEmpresa, {
+            tipo: 'CON_FACTURA',
+            clave,
+            reporte: jsonInfo.reporte || rep || '',
+            Prefijo: prefijo,
+            NoFactura: no,
+            rutaJson: jsonInfo.rutaJson,
+            rutaXml: null,
+            listo: Boolean(jsonInfo.rutaJson),
+            procesoEnvio: 'Factura Electrónica de Venta',
+            endpoint: 'CargarFevRips',
+          })
+        );
       }
     } else {
       const reporte = String(req.body?.reporte || '').trim();
@@ -750,8 +775,36 @@ router.post('/fevrips/validar', (req, res) => {
       }
     }
 
+    if (documentoEmpresa) {
+      paquetes = paquetes.map((p) => normalizarRutasPaquete(documentoEmpresa, p));
+    }
+
     const items = paquetes.map((p) => {
       const v = validarPaqueteLocal(p);
+      let archivosSinModificar = false;
+      let jsonSinModificar = false;
+      let xmlSinModificar = null;
+      let mensajeSinModificar = null;
+      if (documentoEmpresa) {
+        const ultimos = mapaUltimosResultados(documentoEmpresa);
+        const evalReenvio = evaluarReenvioSinCambios(p, ultimos.get(p.clave));
+        archivosSinModificar = Boolean(evalReenvio.sinModificar);
+        jsonSinModificar = archivosSinModificar;
+        xmlSinModificar =
+          evalReenvio.xmlSinModificar != null ? Boolean(evalReenvio.xmlSinModificar) : null;
+        mensajeSinModificar = evalReenvio.mensaje || null;
+      }
+      const warnings = [...(v.warnings || [])];
+      if (archivosSinModificar) {
+        warnings.push(
+          mensajeSinModificar ||
+            'El JSON/XML no cambió desde el último rechazo o error. Riesgo de repetir el mismo resultado en MinSalud.'
+        );
+      }
+      let estadoValidacion = v.estadoValidacion;
+      if (v.ok && archivosSinModificar && estadoValidacion === 'OK') {
+        estadoValidacion = 'OK con avisos';
+      }
       return {
         tipo: p.tipo,
         clave: p.clave,
@@ -761,10 +814,14 @@ router.post('/fevrips/validar', (req, res) => {
         procesoEnvio: p.procesoEnvio,
         listo: p.listo,
         ok: v.ok,
-        estadoValidacion: v.estadoValidacion,
+        estadoValidacion,
         errors: v.errors,
-        warnings: v.warnings,
+        warnings,
         detalle: v.detalle,
+        archivosSinModificar,
+        jsonSinModificar: archivosSinModificar,
+        xmlSinModificar,
+        mensajeSinModificar,
       };
     });
 
@@ -773,6 +830,8 @@ router.post('/fevrips/validar', (req, res) => {
       ok: items.filter((i) => i.ok && i.estadoValidacion === 'OK').length,
       okConAvisos: items.filter((i) => i.ok && i.estadoValidacion === 'OK con avisos').length,
       conErrores: items.filter((i) => !i.ok).length,
+      jsonSinModificar: items.filter((i) => i.archivosSinModificar).length,
+      archivosSinModificar: items.filter((i) => i.archivosSinModificar).length,
     };
 
     res.json({
@@ -918,6 +977,17 @@ router.post('/fevrips/enviar', async (req, res) => {
       }
     }
 
+    paquetes = paquetes.map((p) => {
+      const n = normalizarRutasPaquete(documentoEmpresa, p);
+      const esSin =
+        String(n.tipo || '').toUpperCase() === 'SIN_FACTURA' ||
+        /^SinFactura_/i.test(String(n.clave || ''));
+      return {
+        ...n,
+        listo: esSin ? Boolean(n.rutaJson) : Boolean(n.rutaJson && n.rutaXml),
+      };
+    });
+
     const forzar = ['1', 'true', 'yes', 'on'].includes(
       String(req.body?.forzarEnvioSinPrevalidacion || '').trim().toLowerCase()
     );
@@ -940,7 +1010,11 @@ router.post('/fevrips/enviar', async (req, res) => {
       paquetes = filtrados;
     }
 
-    const items = await enviarPaquetesLista(documentoEmpresa, paquetes);
+    const confirmarSinCambios = ['1', 'true', 'yes', 'on'].includes(
+      String(req.body?.confirmarReenvioSinCambios || '').trim().toLowerCase()
+    );
+
+    const items = await enviarPaquetesLista(documentoEmpresa, paquetes, { confirmarSinCambios });
     const resumen = {
       total: items.length + omitidos.length,
       ok: items.filter((i) => i.estado === 'Enviado OK').length,
@@ -948,6 +1022,7 @@ router.post('/fevrips/enviar', async (req, res) => {
       errores: items.filter((i) => i.estado === 'Error' || i.estado === 'Error HTTP').length,
       omitidosPrevalidacion: omitidos.length,
       omitidosCuv: items.filter((i) => i.estado === 'Omitido' && /CUV/i.test(String(i.detalle || ''))).length,
+      omitidosSinModificar: items.filter((i) => i.advertenciaSinModificar).length,
     };
 
     res.json({
@@ -1040,6 +1115,65 @@ router.post('/fevrips/exportar-validador', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || String(err) });
+  }
+});
+
+function itemRutasDesdeRequest(params) {
+  const clave = String(params.clave || '').trim();
+  const reporte = String(params.reporte || '').trim();
+  const modo = String(params.modo || '').trim().toLowerCase();
+  const prefijo = String(params.prefijo || params.Prefijo || '').trim();
+  const folioRaw = params.folio != null ? params.folio : params.NoFactura;
+  return {
+    clave,
+    reporte: reporte || undefined,
+    tipo: modo === 'sin_factura' || /^SinFactura_/i.test(clave) ? 'SIN_FACTURA' : 'CON_FACTURA',
+    Prefijo: prefijo || undefined,
+    NoFactura: folioRaw != null && String(folioRaw).trim() !== '' ? folioRaw : undefined,
+    rutaJson: params.rutaJson || undefined,
+    rutaXml: params.rutaXml || undefined,
+  };
+}
+
+/**
+ * GET /RIPS/fevrips/rutas-archivos/:clave?documentoEmpresa=&reporte=&modo=
+ * Rutas absolutas del JSON/XML del paquete en disco.
+ */
+router.get('/fevrips/rutas-archivos/:clave', (req, res) => {
+  try {
+    const clave = String(req.params.clave || '').trim();
+    const documentoEmpresa = String(req.query.documentoEmpresa || '').trim();
+    if (!clave) return res.status(400).json({ message: 'clave requerida' });
+    if (!documentoEmpresa) return res.status(400).json({ message: 'documentoEmpresa requerido' });
+
+    const item = itemRutasDesdeRequest({ clave, ...req.query });
+    const rutas = resolverRutasPaquete(documentoEmpresa, item);
+    res.json(rutas);
+  } catch (err) {
+    res.status(500).json({ message: err.message || String(err) });
+  }
+});
+
+/**
+ * POST /RIPS/fevrips/abrir-carpeta
+ * Abre el explorador de archivos en la PC del servidor (JSON, XML o ambos).
+ */
+router.post('/fevrips/abrir-carpeta', async (req, res) => {
+  let rutas = null;
+  try {
+    const body = req.body || {};
+    const clave = String(body.clave || '').trim();
+    const documentoEmpresa = String(body.documentoEmpresa || '').trim();
+    const destino = String(body.destino || 'json_xml').trim().toLowerCase();
+    if (!clave) return res.status(400).json({ message: 'clave requerida' });
+    if (!documentoEmpresa) return res.status(400).json({ message: 'documentoEmpresa requerido' });
+
+    const item = itemRutasDesdeRequest({ clave, ...body });
+    rutas = resolverRutasPaquete(documentoEmpresa, item);
+    const opened = await abrirCarpetasPaquete(rutas, destino);
+    res.json({ ok: true, opened, rutas });
+  } catch (err) {
+    res.status(500).json({ message: err.message || String(err), rutas });
   }
 });
 

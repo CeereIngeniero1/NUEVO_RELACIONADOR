@@ -55,6 +55,10 @@ function puedeEnviarPaquete(p) {
   return p?.prevalidacion?.ok === true && !esEnviadoOk(p) && !tieneCuv(p);
 }
 
+function paqueteSinModificarDesdeError(p) {
+  return Boolean(p?.prevalidacion?.archivosSinModificar ?? p?.prevalidacion?.jsonSinModificar);
+}
+
 function esSinJsonTab(p) {
   if (esEnviadoOk(p)) return false;
   if (esSinFactura()) return !p.tieneJson;
@@ -175,6 +179,97 @@ function puedeVerDetalle(p) {
   return false;
 }
 
+function rutasParaCopiar(rutas, destino = "json_xml") {
+  const dest = String(destino || "json_xml").toLowerCase();
+  const out = [];
+  if ((dest === "json" || dest === "json_xml") && rutas?.rutaJson) out.push(rutas.rutaJson);
+  if ((dest === "xml" || dest === "json_xml") && rutas?.rutaXml) out.push(rutas.rutaXml);
+  return out;
+}
+
+async function copiarRutasAlPortapapeles(rutas, destino = "json_xml") {
+  const paths = rutasParaCopiar(rutas, destino);
+  if (!paths.length || !navigator.clipboard?.writeText) return false;
+  await navigator.clipboard.writeText(paths.join("\r\n"));
+  return true;
+}
+
+async function obtenerRutasArchivos(clave, p) {
+  const doc = getDocumentoEmpresa();
+  if (!doc) return null;
+  const qs = new URLSearchParams({ documentoEmpresa: doc });
+  if (p?.reporte) qs.set("reporte", p.reporte);
+  if (p?.Prefijo) qs.set("prefijo", p.Prefijo);
+  if (p?.NoFactura != null) qs.set("folio", String(p.NoFactura));
+  if (esSinFactura() || /^SinFactura_/i.test(clave)) qs.set("modo", "sin_factura");
+  const res = await fetch(
+    `${apiBase()}/RIPS/fevrips/rutas-archivos/${encodeURIComponent(clave)}?${qs}`
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function abrirCarpetaArchivos(clave, destino = "json_xml") {
+  const p = paquetesCache.find((x) => x.clave === clave);
+  const doc = getDocumentoEmpresa();
+  if (!doc) {
+    Swal.fire({ icon: "warning", title: "Empresa", text: "Seleccione la empresa de trabajo." });
+    return;
+  }
+  try {
+    const res = await fetch(`${apiBase()}/RIPS/fevrips/abrir-carpeta`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        documentoEmpresa: doc,
+        clave,
+        reporte: p?.reporte || "",
+        modo: esSinFactura() || /^SinFactura_/i.test(clave) ? "sin_factura" : "con_factura",
+        destino,
+        prefijo: p?.Prefijo || "",
+        folio: p?.NoFactura,
+        rutaJson: p?.rutaJson || undefined,
+        rutaXml: p?.rutaXml || undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    let rutas = data.rutas || null;
+    if (!rutas) rutas = await obtenerRutasArchivos(clave, p);
+
+    const copiado = rutas ? await copiarRutasAlPortapapeles(rutas, destino).catch(() => false) : false;
+    const paths = rutas ? rutasParaCopiar(rutas, destino) : [];
+
+    if (!res.ok) {
+      if (copiado) {
+        Swal.fire({
+          icon: "info",
+          title: "Ruta copiada",
+          html: `<p class="small mb-0">Se copió al portapapeles:</p><code class="fevrips-path-code">${escapeHtml(paths.join("\n"))}</code><p class="small mt-2 mb-0 text-muted">No se pudo abrir el explorador en el servidor.</p>`,
+        });
+        return;
+      }
+      throw new Error(data.message || "No se pudo abrir la carpeta");
+    }
+
+    const abrioAmbos = data.opened?.length === 2 && !data.rutas?.mismaCarpeta;
+    const msgAbrir = abrioAmbos
+      ? "Se abrieron las ubicaciones del JSON y del XML."
+      : "Se abrió el explorador con el archivo seleccionado.";
+    Swal.fire({
+      icon: "success",
+      title: copiado ? "Ruta copiada y explorador abierto" : "Explorador abierto",
+      html: copiado
+        ? `<p class="small mb-1">${msgAbrir}</p><code class="fevrips-path-code">${escapeHtml(paths.join("\n"))}</code><p class="small mt-2 mb-0 text-muted">La ruta quedó en el portapapeles.</p>`
+        : `<p class="small mb-0">${msgAbrir}</p>`,
+      timer: copiado ? undefined : 2400,
+      showConfirmButton: copiado,
+      confirmButtonText: "Cerrar",
+    });
+  } catch (err) {
+    Swal.fire({ icon: "error", title: "Abrir carpeta", text: err.message || String(err) });
+  }
+}
+
 async function verDetallePaquete(clave) {
   const p = paquetesCache.find((x) => x.clave === clave);
   const doc = getDocumentoEmpresa();
@@ -247,6 +342,53 @@ async function verDetallePaquete(clave) {
     html = `<p class="small">${escapeHtml(p.ultimoEnvio.detalle)}</p>`;
   }
 
+  if (paqueteSinModificarDesdeError(p)) {
+    const msg = p.prevalidacion?.mensajeSinModificar;
+    html += `<div class="alert alert-warning py-2 px-3 small mb-0 mt-2">${escapeHtml(
+      msg ||
+        "El JSON/XML no cambió desde el último rechazo o error. Corrija el RIPS y vuelva a validar."
+    )}</div>`;
+  }
+
+  if (doc) {
+    try {
+      const qsRutas = new URLSearchParams({ documentoEmpresa: doc });
+      if (p?.reporte) qsRutas.set("reporte", p.reporte);
+      if (p?.Prefijo) qsRutas.set("prefijo", p.Prefijo);
+      if (p?.NoFactura != null) qsRutas.set("folio", String(p.NoFactura));
+      if (esSinFactura() || /^SinFactura_/i.test(clave)) qsRutas.set("modo", "sin_factura");
+      const rr = await fetch(
+        `${apiBase()}/RIPS/fevrips/rutas-archivos/${encodeURIComponent(clave)}?${qsRutas}`
+      );
+      if (rr.ok) {
+        const rutasArchivos = await rr.json();
+        if (rutasArchivos.tieneJson || rutasArchivos.tieneXml) {
+          html += `<h6 class="fevrips-det-title">Archivos para corregir</h6>`;
+          html += `<p class="small mb-1">Modifique el JSON/XML en disco, luego pulse <strong>Validar</strong> y <strong>Enviar</strong>.</p>`;
+          if (rutasArchivos.rutaJson) {
+            html += `<p class="small mb-1"><strong>JSON:</strong><br><code class="fevrips-path-code">${escapeHtml(rutasArchivos.rutaJson)}</code></p>`;
+          }
+          if (rutasArchivos.rutaXml) {
+            html += `<p class="small mb-1"><strong>XML:</strong><br><code class="fevrips-path-code">${escapeHtml(rutasArchivos.rutaXml)}</code></p>`;
+          }
+          html += `<div class="fevrips-archivos-btns mt-2 mb-1">`;
+          if (rutasArchivos.tieneJson && rutasArchivos.tieneXml) {
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1 btn-abrir-archivo" data-clave="${escapeHtml(clave)}" data-destino="json_xml">Abrir JSON y XML</button>`;
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1 btn-abrir-archivo" data-clave="${escapeHtml(clave)}" data-destino="json">Solo JSON</button>`;
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary mb-1 btn-abrir-archivo" data-clave="${escapeHtml(clave)}" data-destino="xml">Solo XML</button>`;
+          } else if (rutasArchivos.tieneJson) {
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary btn-abrir-archivo" data-clave="${escapeHtml(clave)}" data-destino="json">Abrir carpeta JSON</button>`;
+          } else {
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary btn-abrir-archivo" data-clave="${escapeHtml(clave)}" data-destino="xml">Abrir carpeta XML</button>`;
+          }
+          html += `</div>`;
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
   if (doc) {
     try {
       const qs = new URLSearchParams({ documentoEmpresa: doc });
@@ -287,6 +429,16 @@ async function verDetallePaquete(clave) {
     html: `<div class="text-start fevrips-detalle-modal">${html}</div>`,
     width: "920px",
     confirmButtonText: "Cerrar",
+    didOpen: (popup) => {
+      popup.querySelectorAll(".btn-abrir-archivo").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          abrirCarpetaArchivos(
+            btn.getAttribute("data-clave"),
+            btn.getAttribute("data-destino") || "json_xml"
+          );
+        });
+      });
+    },
   });
 }
 
@@ -543,8 +695,12 @@ function renderCuerpoTabla() {
             ${chkHabilitado ? "checked" : "disabled"}>
         </td>`
         : "";
+      const puedeAbrirArchivos = p.tieneJson || p.tieneXml;
+      const btnArchivos = puedeAbrirArchivos
+        ? `<button type="button" class="btn btn-sm btn-outline-secondary btn-abrir-archivos me-1" data-clave="${p.clave}" title="Abrir carpeta del JSON/XML en el explorador del servidor">Archivos</button>`
+        : "";
       const accionesEnTrabajo = enTrabajo
-        ? `${verDet ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle me-1" data-clave="${p.clave}" title="Ver error o validación">Detalle</button>` : ""}
+        ? `${btnArchivos}${verDet ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle me-1" data-clave="${p.clave}" title="Ver error o validación">Detalle</button>` : ""}
           <button type="button" class="btn btn-sm btn-outline-warning btn-validar-uno"
             data-clave="${p.clave}" data-reporte="${String(p.reporte || "").replace(/"/g, "&quot;")}"
             data-prefijo="${String(p.Prefijo || "").replace(/"/g, "&quot;")}"
@@ -555,9 +711,11 @@ function renderCuerpoTabla() {
             data-prefijo="${String(p.Prefijo || "").replace(/"/g, "&quot;")}"
             data-folio="${String(p.NoFactura ?? "").replace(/"/g, "&quot;")}"
             ${puedeEnviar ? "" : "disabled"}>Enviar</button>`
-        : verDet
-          ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle" data-clave="${p.clave}" title="Ver detalle">Detalle</button>`
-          : "";
+        : `${btnArchivos}${
+            verDet
+              ? `<button type="button" class="btn btn-sm btn-outline-info btn-ver-detalle" data-clave="${p.clave}" title="Ver detalle">Detalle</button>`
+              : ""
+          }`;
       return `
       <tr data-clave="${p.clave}">
         ${chkCell}
@@ -568,7 +726,13 @@ function renderCuerpoTabla() {
         <td title="${String(prevDetail).replace(/"/g, "&quot;")}">
           <span class="${badgeClass(prevLabel)}">${prevLabel}</span>
         </td>
-        <td><span class="${badgeClass(p.estadoUi)}">${p.estadoUi || "—"}</span></td>
+        <td><span class="${badgeClass(p.estadoUi)}">${p.estadoUi || "—"}</span>
+          ${
+            paqueteSinModificarDesdeError(p)
+              ? `<div class="small mt-1"><span class="fevrips-badge fevrips-badge-pend" title="${escapeHtml(p.prevalidacion?.mensajeSinModificar || "")}">JSON/XML sin modificar</span></div>`
+              : ""
+          }
+        </td>
         <td class="small fevrips-detalle-cell" style="max-width:200px;word-break:break-word;">
           <span title="${escapeHtml(detalleEnvio)}">${escapeHtml(detalleCorto)}</span>
           ${
@@ -586,6 +750,12 @@ function renderCuerpoTabla() {
     btn.addEventListener("click", (ev) => {
       ev.preventDefault();
       verDetallePaquete(btn.getAttribute("data-clave"));
+    });
+  });
+  tbody.querySelectorAll(".btn-abrir-archivos").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      abrirCarpetaArchivos(btn.getAttribute("data-clave"), "json_xml");
     });
   });
   tbody.querySelectorAll(".btn-validar-uno").forEach((btn) => {
@@ -633,6 +803,10 @@ function aplicarPrevalidacion(items) {
         errors: hit.errors || [],
         warnings: hit.warnings || [],
         detalle: hit.detalle,
+        jsonSinModificar: Boolean(hit.archivosSinModificar ?? hit.jsonSinModificar),
+        archivosSinModificar: Boolean(hit.archivosSinModificar ?? hit.jsonSinModificar),
+        xmlSinModificar: hit.xmlSinModificar ?? null,
+        mensajeSinModificar: hit.mensajeSinModificar || null,
       },
     };
   });
@@ -1437,11 +1611,17 @@ async function validarItems(items) {
     if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
     aplicarPrevalidacion(data.items || []);
     const r = data.resumen || {};
+    const sinMod = r.archivosSinModificar || r.jsonSinModificar || 0;
     Swal.fire({
-      icon: r.conErrores ? "warning" : "success",
+      icon: r.conErrores ? "warning" : sinMod ? "warning" : "success",
       title: "Prevalidación local",
       html: `
         <p>OK: <strong>${r.ok || 0}</strong> · Con avisos: <strong>${r.okConAvisos || 0}</strong> · Con errores: <strong>${r.conErrores || 0}</strong></p>
+        ${
+          sinMod
+            ? `<p class="small text-warning mb-2"><strong>${sinMod}</strong> con JSON/XML sin modificar desde el último rechazo o error. Corrija los archivos y vuelva a validar antes de enviar.</p>`
+            : ""
+        }
         <p class="small text-muted mb-0">${
           esSinFactura()
             ? "Solo se requiere JSON SinFactura listo."
@@ -1503,8 +1683,8 @@ function mostrarResultado(data) {
     icon: r.errores || r.rechazados || r.omitidosPrevalidacion ? "warning" : "success",
     title: "Resultado envío",
     width: "90%",
-    html: `
-      <p>OK: <strong>${r.ok || 0}</strong> · Rechazados: <strong>${r.rechazados || 0}</strong> · Errores: <strong>${r.errores || 0}</strong> · Omitidos: <strong>${r.omitidosPrevalidacion || 0}</strong></p>
+      html: `
+      <p>OK: <strong>${r.ok || 0}</strong> · Rechazados: <strong>${r.rechazados || 0}</strong> · Errores: <strong>${r.errores || 0}</strong> · Omitidos: <strong>${r.omitidosPrevalidacion || 0}</strong>${r.omitidosSinModificar ? ` · Sin modificar: <strong>${r.omitidosSinModificar}</strong>` : ""}</p>
       <div style="max-height:360px;overflow:auto;text-align:left;">
         <table class="table table-sm"><thead><tr><th>Clave</th><th>Estado</th><th>CUV</th><th>Detalle</th></tr></thead>
         <tbody>${rows || "<tr><td colspan=4>Sin ítems</td></tr>"}</tbody></table>
@@ -1520,7 +1700,7 @@ function mostrarResultado(data) {
   });
 }
 
-async function enviarItems(items) {
+async function enviarItems(items, opts = {}) {
   const doc = getDocumentoEmpresa();
   if (!doc) {
     Swal.fire({ icon: "warning", text: "Sin empresa de trabajo." });
@@ -1549,13 +1729,68 @@ async function enviarItems(items) {
     return;
   }
 
+  const sinModificar = okItems.filter((it) => {
+    const p = paquetesCache.find((x) => x.clave === it.clave);
+    return paqueteSinModificarDesdeError(p);
+  });
+  let itemsParaEnvio = okItems;
+  let confirmarReenvioSinCambios = Boolean(opts.confirmarReenvioSinCambios);
+
+  if (sinModificar.length && !confirmarReenvioSinCambios) {
+    const filas = sinModificar
+      .map((it) => {
+        const p = paquetesCache.find((x) => x.clave === it.clave);
+        const msg = truncarTexto(p?.prevalidacion?.mensajeSinModificar || "", 80);
+        return `<li><code>${escapeHtml(it.clave)}</code>${msg ? ` — ${escapeHtml(msg)}` : ""}</li>`;
+      })
+      .join("");
+    const adv = await Swal.fire({
+      icon: "warning",
+      title: "JSON/XML sin modificar",
+      html: `<p class="text-start small mb-2">Estos paquetes no cambiaron desde el último rechazo o error (ni el JSON ni el XML). Hay riesgo de obtener el mismo resultado en MinSalud:</p>
+        <ul class="text-start small fevrips-det-list mb-2">${filas}</ul>
+        <p class="text-start small text-muted mb-0">Corrija el JSON o el XML en disco, y luego pulse <strong>Validar</strong> de nuevo.</p>`,
+      showCancelButton: true,
+      showDenyButton: sinModificar.length < okItems.length,
+      confirmButtonText: "Enviar de todos modos",
+      denyButtonText: "Solo los modificados",
+      cancelButtonText: "Cancelar",
+      width: "640px",
+    });
+    if (adv.isDismissed) return;
+    if (adv.isConfirmed) {
+      confirmarReenvioSinCambios = true;
+    } else if (adv.isDenied) {
+      const sinSet = new Set(sinModificar.map((it) => it.clave));
+      itemsParaEnvio = okItems.filter((it) => !sinSet.has(it.clave));
+      if (!itemsParaEnvio.length) {
+        Swal.fire({
+          icon: "info",
+          title: "Nada que enviar",
+          text: "Todos los seleccionados tienen el JSON/XML sin modificar. Corrija al menos uno antes de enviar.",
+        });
+        return;
+      }
+    }
+  }
+
   const conf = await Swal.fire({
     icon: "question",
     title: "¿Enviar a MinSalud?",
-    html: `<p>${okItems.length} ${esSinFactura() ? "paquete(s) Sin Factura" : "factura(s)"} → API Docker FEV-RIPS</p>
+    html: `<p>${itemsParaEnvio.length} ${esSinFactura() ? "paquete(s) Sin Factura" : "factura(s)"} → API Docker FEV-RIPS</p>
            ${
              saltadosCuv
                ? `<p class="small text-warning mb-1">${saltadosCuv} omitido(s): ya tienen CUV.</p>`
+               : ""
+           }
+           ${
+             sinModificar.length && itemsParaEnvio.length < okItems.length
+               ? `<p class="small text-warning mb-1">${okItems.length - itemsParaEnvio.length} omitido(s): JSON/XML sin modificar.</p>`
+               : ""
+           }
+           ${
+             sinModificar.length && confirmarReenvioSinCambios
+               ? `<p class="small text-warning mb-1">${sinModificar.length} con JSON/XML sin modificar (reenvío forzado).</p>`
                : ""
            }
            <p class="small text-muted">${esSinFactura() ? "CargarRipsSinFactura" : "CargarFevRips"}</p>`,
@@ -1575,7 +1810,12 @@ async function enviarItems(items) {
     const res = await fetch(`${apiBase()}/RIPS/fevrips/enviar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentoEmpresa: doc, modo: modoActual, items: okItems }),
+      body: JSON.stringify({
+        documentoEmpresa: doc,
+        modo: modoActual,
+        items: itemsParaEnvio,
+        confirmarReenvioSinCambios: confirmarReenvioSinCambios,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
