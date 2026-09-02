@@ -46,6 +46,7 @@ const {
   buscarCuvEnArchivosResultado,
   resolverCuvExistente,
   resolverCuvDesdeCampos,
+  evaluarRechazoCuvDuplicado,
 } = require('../utils/fevripsCuvExistente');
 const {
   huellaPaqueteEnDisco,
@@ -225,9 +226,12 @@ function mapaUltimosResultados(documentoEmpresa) {
         const ts = data.fecha || '';
         if (!prev || String(ts) > String(prev.fecha || '')) {
           const r = data.resultado || {};
+          const dup = evaluarRechazoCuvDuplicado(r);
+          const okEfectivo = r.ok || dup.esDuplicado;
+          const cuvFinal = dup.cuv || r.codigoUnicoValidacion || null;
           map.set(clave, {
             fecha: ts,
-            estado: r.ok
+            estado: okEfectivo
               ? 'Enviado OK'
               : r.httpError
                 ? 'Error HTTP'
@@ -236,13 +240,19 @@ function mapaUltimosResultados(documentoEmpresa) {
                   : r.error
                     ? 'Error'
                     : 'Desconocido',
-            codigoUnicoValidacion: r.codigoUnicoValidacion || null,
-            detalle: formatResultDetalle(r),
+            codigoUnicoValidacion: cuvFinal,
+            detalle:
+              okEfectivo && dup.esDuplicado && !r.ok
+                ? cuvFinal
+                  ? `CUV: ${cuvFinal} (ya registrado en MinSalud — RVG18/RVG02)`
+                  : 'CUV ya registrado en MinSalud (RVG18/RVG02)'
+                : formatResultDetalle({ ...r, ok: okEfectivo, codigoUnicoValidacion: cuvFinal }),
             resultadosValidacion: r.resultadosValidacion || [],
             rechazos: r.rechazos || [],
             httpStatus: r.httpStatus || null,
             errorDetalle: r.errorDetalle || (r.errors ? { errors: r.errors } : null),
             contenidoEnviado: data.contenidoEnviado || null,
+            cuvRecuperadoDeRechazo: dup.esDuplicado && !r.ok,
             archivo: full,
           });
         }
@@ -411,11 +421,27 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes, opts = {}) {
       row.ambienteApi = resultado.ambiente;
       row.httpStatus = resultado.httpStatus;
 
-      if (resultado.ok) {
+      const dupCuv = evaluarRechazoCuvDuplicado(resultado);
+      const envioOk = resultado.ok || dupCuv.esDuplicado;
+
+      if (envioOk) {
+        const cuvFinal = dupCuv.cuv || resultado.codigoUnicoValidacion || null;
         row.estado = 'Enviado OK';
-        row.detalle = resultado.codigoUnicoValidacion
-          ? `CUV: ${resultado.codigoUnicoValidacion}`
-          : 'ResultState true';
+        row.codigoUnicoValidacion = cuvFinal;
+        row.cuvRecuperadoDeRechazo = dupCuv.esDuplicado && !resultado.ok;
+        row.detalle = cuvFinal
+          ? row.cuvRecuperadoDeRechazo
+            ? `CUV: ${cuvFinal} (ya registrado en MinSalud — RVG18/RVG02)`
+            : `CUV: ${cuvFinal}`
+          : row.cuvRecuperadoDeRechazo
+            ? 'CUV ya registrado en MinSalud (RVG18/RVG02)'
+            : 'ResultState true';
+        resultado = {
+          ...resultado,
+          ok: true,
+          codigoUnicoValidacion: cuvFinal,
+          cuvRecuperadoDeRechazo: row.cuvRecuperadoDeRechazo,
+        };
         try {
           // Prefijo/folio: del paquete o derivados de la clave (FE16196)
           let prefijo = paquete.Prefijo;
@@ -430,7 +456,7 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes, opts = {}) {
           const mark = await marcarEnviadoTrasEnvioOk({
             documentoEmpresa,
             paquete: { ...paquete, Prefijo: prefijo, NoFactura: noFactura },
-            cuv: resultado.codigoUnicoValidacion,
+            cuv: cuvFinal,
             ambiente: resultado.ambiente || ambienteConfigurado(),
             ripsJson: rips,
           });

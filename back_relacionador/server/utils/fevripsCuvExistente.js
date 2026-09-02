@@ -16,8 +16,74 @@ function cuvValido(cuv) {
 }
 
 function extraerCuvDeDetalle(detalle) {
-  const m = String(detalle || '').match(/CUV:\s*(\S+)/i);
-  return m && cuvValido(m[1]) ? m[1] : null;
+  return extraerCuvDeTexto(detalle);
+}
+
+function extraerCuvDeTexto(text) {
+  const s = String(text || '');
+  const m1 = s.match(/CUV[:\s]+([a-f0-9]{32,128})/i);
+  if (m1 && cuvValido(m1[1])) return m1[1].trim();
+  const m2 = s.match(
+    /C[oó]digo\s+[Uu][nÚn]ico\s+de\s+[Vv]alidaci[oó]n[^a-f0-9]*([a-f0-9]{32,128})/i
+  );
+  if (m2 && cuvValido(m2[1])) return m2[1].trim();
+  return null;
+}
+
+function esValidacionRechazoCuvExistente(v) {
+  const codigo = String(v?.Codigo || v?.codigo || '').trim().toUpperCase();
+  const desc = String(v?.Descripcion || v?.descripcion || '');
+  const obs = String(v?.Observaciones || v?.observaciones || '');
+  const texto = `${desc} ${obs}`;
+
+  if (codigo === 'RVG18') return true;
+  if (
+    codigo === 'RVG02' &&
+    /CUV|ya se encuentra registrado|aprobado previamente|ya fue aprobado/i.test(texto)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * MinSalud rechaza con RVG18/RVG02 cuando el CUV ya existe; equivale a envío OK.
+ * @returns {{ esDuplicado: boolean, cuv: string|null }}
+ */
+function evaluarRechazoCuvDuplicado(resultado) {
+  if (!resultado || typeof resultado !== 'object') {
+    return { esDuplicado: false, cuv: null };
+  }
+  if (resultado.ok) return { esDuplicado: false, cuv: null };
+
+  if (cuvValido(resultado.codigoUnicoValidacion)) {
+    return { esDuplicado: true, cuv: String(resultado.codigoUnicoValidacion).trim() };
+  }
+
+  const vals = [
+    ...(Array.isArray(resultado.resultadosValidacion) ? resultado.resultadosValidacion : []),
+    ...(Array.isArray(resultado.rechazos) ? resultado.rechazos : []),
+  ];
+  if (!vals.some(esValidacionRechazoCuvExistente)) {
+    return { esDuplicado: false, cuv: null };
+  }
+
+  for (const v of vals) {
+    const cuv = extraerCuvDeTexto(
+      [v?.Observaciones, v?.observaciones, v?.Descripcion, v?.descripcion]
+        .filter(Boolean)
+        .join(' ')
+    );
+    if (cuvValido(cuv)) return { esDuplicado: true, cuv };
+  }
+
+  return { esDuplicado: true, cuv: null };
+}
+
+function esEnvioOkEfectivo(resultado) {
+  if (!resultado) return false;
+  if (resultado.ok) return true;
+  return evaluarRechazoCuvDuplicado(resultado).esDuplicado;
 }
 
 /**
@@ -55,8 +121,18 @@ function buscarCuvEnArchivosResultado(resultadosRoot, clave) {
         const claveArch = data?.paquete?.clave;
         if (claveArch !== key) continue;
         const r = data.resultado || {};
-        if (!r.ok) continue;
-        const cuv = r.codigoUnicoValidacion || extraerCuvDeDetalle(r.detalle);
+        const dup = evaluarRechazoCuvDuplicado(r);
+        const okEfectivo = r.ok || dup.esDuplicado;
+        if (!okEfectivo) continue;
+        const cuv =
+          dup.cuv ||
+          r.codigoUnicoValidacion ||
+          extraerCuvDeTexto(
+            (Array.isArray(r.resultadosValidacion) ? r.resultadosValidacion : [])
+              .map((v) => v?.Observaciones || v?.observaciones || '')
+              .join(' ')
+          ) ||
+          extraerCuvDeDetalle(r.detalle);
         if (!cuvValido(cuv)) continue;
         const ts = String(data.fecha || '');
         if (!mejor || ts > String(mejor.fecha || '')) {
@@ -226,6 +302,10 @@ function resolverCuvDesdeCampos(paquete) {
 module.exports = {
   cuvValido,
   extraerCuvDeDetalle,
+  extraerCuvDeTexto,
+  esValidacionRechazoCuvExistente,
+  evaluarRechazoCuvDuplicado,
+  esEnvioOkEfectivo,
   buscarCuvEnArchivosResultado,
   resolverCuvExistente,
   resolverCuvDesdeCampos,
