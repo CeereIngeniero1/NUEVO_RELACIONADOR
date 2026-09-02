@@ -7,7 +7,7 @@
  * Desde /visor/:
  *   mountAppSidebar({ active: "visor", basePath: "../" });
  */
-import { initThemeToggle, syncTopbarUserName } from "./shell.js";
+import { initThemeToggle, syncTopbarUserName, relocateModalsToBody } from "./shell.js";
 
 const STORAGE_COLLAPSED = "ceere_sidebar_collapsed";
 
@@ -337,6 +337,7 @@ export function mountAppSidebar(options = {}) {
   }
   if (document.getElementById("crSidebar")) {
     document.body.classList.add("cr-has-sidebar");
+    relocateModalsToBody();
     return { mounted: false, reason: "already" };
   }
 
@@ -367,6 +368,7 @@ export function mountAppSidebar(options = {}) {
   }
 
   document.body.classList.add("cr-has-sidebar", "app-layout");
+  relocateModalsToBody();
 
   const collapsed = localStorage.getItem(STORAGE_COLLAPSED) === "1";
   setCollapsed(collapsed);

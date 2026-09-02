@@ -37,6 +37,18 @@ export function initThemeToggle({
 }
  
 /**
+ * Mueve modales Bootstrap al body para que no queden limitados por el layout del sidebar.
+ */
+export function relocateModalsToBody(root = document) {
+  const scope = root === document ? document : root;
+  scope.querySelectorAll(".cr-page-content .modal, .cr-app-shell .modal").forEach((modal) => {
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+  });
+}
+
+/**
  * Sincroniza el nombre del usuario en el topbar consultando /protected.
  * Si falla, usa un fallback (usuario guardado o documento).
  */

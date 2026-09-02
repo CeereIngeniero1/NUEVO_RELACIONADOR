@@ -587,7 +587,7 @@ body.cr-has-sidebar .cr-page-content {
     transition: margin-left 0.22s ease, width 0.22s ease;
 }
 
-body.cr-has-sidebar .cr-page-content > * {
+body.cr-has-sidebar .cr-page-content > *:not(.modal):not(.modal-backdrop) {
     width: 100%;
     max-width: 1200px;
 }
@@ -1111,6 +1111,58 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
 /* ══════════════════════════════════════════════
    MODALES (preservando estilos existentes)
 ══════════════════════════════════════════════ */
+/* Bootstrap modal + backdrop: pantalla completa y centrado (no heredar max-width del sidebar) */
+.modal {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 var(--bs-modal-padding, 0.5rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.modal.show {
+    display: flex !important;
+    justify-content: center;
+}
+
+.modal.show:not(:has(.modal-dialog-top)) {
+    align-items: center;
+}
+
+.modal.show:has(.modal-dialog-top) {
+    align-items: flex-start;
+    padding-top: var(--bs-modal-margin, 1rem);
+}
+
+.modal-dialog {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+}
+
+/* SweetAlert2: siempre centrado en viewport */
+.swal2-container {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    max-width: none !important;
+    padding: 0.625em;
+    box-sizing: border-box;
+}
+
 /* Modales: Bootstrap se encarga del layout interno */
 
 /* Modal Descarga RIPS todo en uno: contenido centrado */
@@ -1186,6 +1238,79 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
 
 #ModalDescargarRipsTodo .modal-rips-todo-footer > * {
     margin: 0 !important;
+}
+
+/* Modales Bootstrap — modo oscuro (RIPS / Inicio y páginas con style.css) */
+[data-theme="dark"] .modal-content {
+    background-color: var(--color-bg-row);
+    border: 1px solid var(--color-border-input, #334155);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    background-color: var(--color-header-bg);
+    border-color: var(--color-border-input, #334155);
+}
+
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .modal-body h5 {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-body {
+    background-color: var(--color-bg-row);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .modal-body label,
+[data-theme="dark"] .modal-rips-todo-msg,
+[data-theme="dark"] .modal-rips-todo-fecha label {
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .modal .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+[data-theme="dark"] .modal-footer .btn-secondary {
+    background-color: #334155;
+    border-color: #475569;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-footer .btn-secondary:hover {
+    background-color: #475569;
+    border-color: #64748b;
+    color: #fff;
+}
+
+[data-theme="dark"] .modal input[type="date"],
+[data-theme="dark"] .modal select,
+[data-theme="dark"] .modal input.form-control,
+[data-theme="dark"] .modal .form-select,
+[data-theme="dark"] .modal textarea {
+    background-color: var(--color-bg-row-hover);
+    border: 1px solid var(--color-border-input, #334155);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .modal input[type="date"]:focus,
+[data-theme="dark"] .modal select:focus,
+[data-theme="dark"] .modal input.form-control:focus,
+[data-theme="dark"] .modal .form-select:focus {
+    background-color: var(--color-bg-row-hover);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+    box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+}
+
+[data-theme="dark"] .modal input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}
+
+[data-theme="dark"] .modal-backdrop.show {
+    opacity: 0.72;
 }
 
 .moodal {
@@ -1443,7 +1568,7 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
         align-items: center;
     }
 
-    body.cr-has-sidebar .cr-page-content > * {
+    body.cr-has-sidebar .cr-page-content > *:not(.modal):not(.modal-backdrop) {
         max-width: 1200px;
     }
 
