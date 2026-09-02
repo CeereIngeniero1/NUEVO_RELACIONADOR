@@ -1,7 +1,6 @@
-# docker login -u puller -p <ver Guia> crmspsgovcoprd.azurecr.io
+# docker login -u puller -p KkzSsl1yqmCEvjiTvzmrSvcXqWEcAbHclVehxIJqdU+ACRC0WuUB crmspsgovcoprd.azurecr.io
 # docker-compose -f apilocal-dockercompose.Production.yml pull
 # docker-compose -f apilocal-dockercompose.Production.yml up -d
-
 
 networks:
 
