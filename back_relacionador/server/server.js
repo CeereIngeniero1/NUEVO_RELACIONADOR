@@ -66,6 +66,24 @@ app.get('/health', (req, res) => {
     res.status(200).json({ ok: true, service: 'back_relacionador' });
 });
 
+/**
+ * Flags de producto (RIPS / RDA) para la UI del front.
+ * El front los combina (AND) con front_relacionador/.env vía /config.js.
+ * false en back o en front → el módulo queda oculto.
+ */
+app.get('/api/product-flags', (req, res) => {
+    const parseBool = (v, fallback) => {
+        const raw = String(v == null ? '' : v).trim().toLowerCase();
+        if (!raw) return fallback;
+        return ['1', 'true', 'yes', 'on'].includes(raw);
+    };
+    res.set('Cache-Control', 'no-store');
+    res.status(200).json({
+        ENABLE_RIPS: parseBool(process.env.ENABLE_RIPS, true),
+        ENABLE_RDA: parseBool(process.env.ENABLE_RDA, true),
+    });
+});
+
 let connections = [];
 
 // Endpoint para ejecutar una consulta (debe ser implementado)

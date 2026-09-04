@@ -61,8 +61,12 @@ const app = express();
 /**
  * Configuración para el navegador: API_BASE_URL y BACK_PORT (fallback).
  * Debe registrarse antes de express.static para no servir un archivo estático con el mismo nombre.
+ *
+ * ENABLE_RIPS / ENABLE_RDA: se leen del .env del front y se combinan (AND) con
+ * GET {API_BASE}/api/product-flags del backend. Si cualquiera está en false, el módulo se oculta.
+ * Así en un cliente basta con poner ENABLE_RDA=false en back o en front.
  */
-app.get('/config.js', (req, res) => {
+app.get('/config.js', async (req, res) => {
     res.type('application/javascript');
     res.set('Cache-Control', 'no-store');
     const explicit = (process.env.API_BASE_URL || '').trim();
@@ -96,9 +100,30 @@ app.get('/config.js', (req, res) => {
     const enableProd = forceSandboxOnly ? false : parseBool(process.env.IHCE_ENABLE_PROD, true);
     // RDA CE: al enviar a IHCE, ¿unificar con RDA Paciente (guardar + enviar ambos) o solo RDACE?
     const rdaIhceUnifiedSend = parseBool(process.env.RDA_IHCE_UNIFIED_SEND, true);
-    // Producto: ocultar por completo módulos RIPS / RDA en UI (menú, páginas, paneles)
-    const enableRips = parseBool(process.env.ENABLE_RIPS, true);
-    const enableRda = parseBool(process.env.ENABLE_RDA, true);
+
+    // Producto: front AND backend (false en cualquiera oculta el módulo)
+    let enableRips = parseBool(process.env.ENABLE_RIPS, true);
+    let enableRda = parseBool(process.env.ENABLE_RDA, true);
+    try {
+        const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+            ? AbortSignal.timeout(1500)
+            : undefined;
+        const flagsRes = await fetch(`${apiBase}/api/product-flags`, {
+            method: 'GET',
+            signal: ctrl,
+            headers: { Accept: 'application/json' },
+        });
+        if (flagsRes.ok) {
+            const flags = await flagsRes.json();
+            enableRips = enableRips && parseBool(flags.ENABLE_RIPS, true);
+            enableRda = enableRda && parseBool(flags.ENABLE_RDA, true);
+        }
+    } catch (err) {
+        console.warn(
+            '[config.js] No se pudo leer /api/product-flags del backend; se usan solo flags del front:',
+            err && err.message ? err.message : err
+        );
+    }
 
     const body =
         'window.__APP_CONFIG__=' +

@@ -24,6 +24,9 @@ const CORE_LINKS = [
 
 function resolveCoreLinks() {
   const { enableRips, enableRda } = getFeatureFlags();
+  if (typeof console !== "undefined" && console.info) {
+    console.info(`[featureFlags] ENABLE_RIPS=${enableRips} ENABLE_RDA=${enableRda}`);
+  }
   return CORE_LINKS.filter((link) => {
     if (link.feature === "rips") return enableRips;
     if (link.feature === "rda") return enableRda;
