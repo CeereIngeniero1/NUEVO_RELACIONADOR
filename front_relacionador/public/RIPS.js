@@ -29,6 +29,7 @@ const emptyPanelDerecho = document.getElementById('emptyPanelDerecho')
 const tituloPanelIzquierdo = document.getElementById('tituloPanelIzquierdo')
 const tituloPanelDerecho = document.getElementById('tituloPanelDerecho')
 const theadPanelIzquierdo = document.getElementById('theadPanelIzquierdo')
+const progresoFacturaPrepagada = document.getElementById('progresoFacturaPrepagada')
 
 const ripsUiState = {
     leftRows: [],
@@ -264,6 +265,28 @@ function badgeProgresoHc(relacionados, total) {
     return `<span class="rips-progress-badge ${cls}" title="${label}">${relacionados}/${total}</span>`;
 }
 
+function actualizarProgresoFacturaPrepagada(grupos) {
+    if (!progresoFacturaPrepagada) return;
+    if (!checkboxPrepagada?.checked) {
+        progresoFacturaPrepagada.classList.add('d-none');
+        progresoFacturaPrepagada.innerHTML = '';
+        return;
+    }
+    const list = Array.isArray(grupos) ? grupos : [];
+    const relacionados = list.reduce((acc, g) => acc + (Number(g.relacionados) || 0), 0);
+    const total = list.reduce((acc, g) => acc + (Number(g.total) || 0), 0);
+    if (!total) {
+        progresoFacturaPrepagada.classList.add('d-none');
+        progresoFacturaPrepagada.innerHTML = '';
+        return;
+    }
+    progresoFacturaPrepagada.classList.remove('d-none');
+    progresoFacturaPrepagada.innerHTML = `
+        <span class="rips-factura-progress-label">Factura</span>
+        ${badgeProgresoHc(relacionados, total)}
+    `;
+}
+
 function sortKeyDerecho(item, key) {
     if (key === 'idRips') return Number(item.idEveRips ?? item.idEvaluacion) || 0;
     if (key === 'realizadoPor') return item.nombreUsuario || item.TipoEvaluacion || '';
@@ -288,6 +311,7 @@ function clearPanels() {
     ripsUiState.expandedPatientKey = null;
     if (tablaPanelIzquierdo) tablaPanelIzquierdo.innerHTML = '';
     if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
+    actualizarProgresoFacturaPrepagada([]);
     clearPanelDerecho();
 }
 
@@ -420,9 +444,11 @@ function renderPanelIzquierdoPrepagada(pacientes) {
 
     if (!grupos.length) {
         if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
+        actualizarProgresoFacturaPrepagada([]);
         return;
     }
     if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
+    actualizarProgresoFacturaPrepagada(grupos);
 
     grupos.forEach((grupo) => {
         const expanded = ripsUiState.expandedPatientKey === grupo.key;

@@ -1046,6 +1046,27 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
     border: 1px solid #ef9a9a;
 }
 
+.rips-factura-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.rips-factura-progress-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary, #607d8b);
+}
+
+.rips-factura-progress .rips-progress-badge {
+    font-size: 0.95rem;
+    min-width: 3.6rem;
+    padding: 0.25rem 0.65rem;
+}
+
 .rips-child-row > td {
     background: #fafcfd !important;
     font-size: 0.92rem !important;
