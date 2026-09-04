@@ -39,6 +39,7 @@ const ripsUiState = {
     filterText: '',
     sortLeft: { col: null, dir: 1 },
     sortRight: { col: null, dir: 1 },
+    expandedPatientKey: null,
 };
 
 const RIPS_HC_MAX_MESES = 4;
@@ -140,9 +141,9 @@ function paintTheadIzquierdo() {
     const { col, dir } = ripsUiState.sortLeft;
     if (prepagada) {
         theadPanelIzquierdo.innerHTML = `<tr>
-            <th data-sort-key="paciente">PLAN / PACIENTE${sortMarker(col, 'paciente', dir)}</th>
+            <th data-sort-key="paciente">PACIENTE${sortMarker(col, 'paciente', dir)}</th>
             <th data-sort-key="documento">DOCUMENTO${sortMarker(col, 'documento', dir)}</th>
-            <th data-sort-key="estado">ESTADO HC${sortMarker(col, 'estado', dir)}</th>
+            <th data-sort-key="estado">PROGRESO HC${sortMarker(col, 'estado', dir)}</th>
         </tr>`;
     } else {
         theadPanelIzquierdo.innerHTML = `<tr>
@@ -199,6 +200,70 @@ function sortKeyIzquierdoPrepagada(p, key) {
     return '';
 }
 
+function sortKeyGrupoPrepagada(grupo, key) {
+    if (key === 'paciente') return grupo.nombre || '';
+    if (key === 'documento') return grupo.DocumentoPaciente || '';
+    if (key === 'estado') {
+        const ratio = grupo.total ? grupo.relacionados / grupo.total : 0;
+        return ratio;
+    }
+    return '';
+}
+
+function nombrePacienteLimpio(nombreRaw) {
+    return String(nombreRaw || '')
+        .replace(/\s+Pres\s+\d+[\s\S]*$/i, '')
+        .replace(/\s+HC\s+[\s\S]*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Paciente';
+}
+
+function esTratamientoRelacionado(p) {
+    return !String(p.NombrePaciente || '').toUpperCase().includes('NO TIENE');
+}
+
+function extraerNroPres(p) {
+    const m = String(p.NombrePaciente || '').match(/Pres\s+(\d+)/i);
+    if (m) return m[1];
+    return p.Idtratamiento != null ? String(p.Idtratamiento) : '—';
+}
+
+function agruparPacientesPrepagada(rows) {
+    const map = new Map();
+    for (const p of rows) {
+        const doc = String(p.DocumentoPaciente || '').trim();
+        const eps = String(p.DocumentoEps || '').trim();
+        const key = `grp-${doc}|${eps}`;
+        if (!map.has(key)) {
+            map.set(key, {
+                key,
+                DocumentoPaciente: doc,
+                DocumentoEps: eps,
+                nombre: nombrePacienteLimpio(p.NombrePaciente),
+                tratamientos: [],
+            });
+        }
+        const g = map.get(key);
+        g.tratamientos.push(p);
+        if (!g.nombre || g.nombre === 'Paciente') {
+            g.nombre = nombrePacienteLimpio(p.NombrePaciente);
+        }
+    }
+    return [...map.values()].map((g) => {
+        const relacionados = g.tratamientos.filter(esTratamientoRelacionado).length;
+        const total = g.tratamientos.length;
+        return { ...g, relacionados, total };
+    });
+}
+
+function badgeProgresoHc(relacionados, total) {
+    const full = total > 0 && relacionados >= total;
+    const none = relacionados === 0;
+    const cls = full ? 'rips-progress-full' : none ? 'rips-progress-none' : 'rips-progress-partial';
+    const label = full ? 'Completo' : none ? 'Sin relacionar' : 'Parcial';
+    return `<span class="rips-progress-badge ${cls}" title="${label}">${relacionados}/${total}</span>`;
+}
+
 function sortKeyDerecho(item, key) {
     if (key === 'idRips') return Number(item.idEveRips ?? item.idEvaluacion) || 0;
     if (key === 'realizadoPor') return item.nombreUsuario || item.TipoEvaluacion || '';
@@ -220,6 +285,7 @@ function clearPanels() {
     ripsUiState.rightModo = null;
     ripsUiState.selectedLeftKey = null;
     ripsUiState.selectedLeftData = null;
+    ripsUiState.expandedPatientKey = null;
     if (tablaPanelIzquierdo) tablaPanelIzquierdo.innerHTML = '';
     if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
     clearPanelDerecho();
@@ -235,7 +301,7 @@ function applyModoUI() {
     }
     if (tituloPanelIzquierdo) {
         tituloPanelIzquierdo.textContent = prepagada
-            ? 'Atenciones / Pacientes en factura'
+            ? 'Pacientes en factura (agrupados)'
             : 'Facturas del rango';
     }
     if (tituloPanelDerecho) {
@@ -254,14 +320,6 @@ function rowMatchesFilter(text) {
     const q = (ripsUiState.filterText || '').trim().toLowerCase();
     if (!q) return true;
     return String(text || '').toLowerCase().includes(q);
-}
-
-function markSelectedLeftRow(key) {
-    ripsUiState.selectedLeftKey = key;
-    if (!tablaPanelIzquierdo) return;
-    tablaPanelIzquierdo.querySelectorAll('tr').forEach((tr) => {
-        tr.classList.toggle('cr-row-selected', tr.dataset.rowKey === key);
-    });
 }
 
 function renderPanelIzquierdoParticular(facturas) {
@@ -321,6 +379,26 @@ function renderPanelIzquierdoParticular(facturas) {
     });
 }
 
+function markSelectedLeftRow(key) {
+    ripsUiState.selectedLeftKey = key;
+    if (!tablaPanelIzquierdo) return;
+    const selectedGroupKey = (() => {
+        if (ripsUiState.expandedPatientKey) return ripsUiState.expandedPatientKey;
+        if (ripsUiState.selectedLeftData?.DocumentoPaciente != null) {
+            return `grp-${ripsUiState.selectedLeftData.DocumentoPaciente}|${ripsUiState.selectedLeftData.DocumentoEps || ''}`;
+        }
+        return null;
+    })();
+    tablaPanelIzquierdo.querySelectorAll('tr').forEach((tr) => {
+        const isChild = tr.dataset.rowKey && tr.dataset.rowKey === key;
+        const isGroup =
+            tr.classList.contains('rips-group-row') &&
+            selectedGroupKey &&
+            tr.dataset.groupKey === selectedGroupKey;
+        tr.classList.toggle('cr-row-selected', Boolean(isChild || isGroup));
+    });
+}
+
 function renderPanelIzquierdoPrepagada(pacientes) {
     ripsUiState.leftRows = Array.isArray(pacientes) ? pacientes : [];
     if (!tablaPanelIzquierdo) return;
@@ -332,35 +410,91 @@ function renderPanelIzquierdoPrepagada(pacientes) {
         return rowMatchesFilter(blob);
     });
 
+    let grupos = agruparPacientesPrepagada(visibles);
     const { col, dir } = ripsUiState.sortLeft;
     if (col) {
-        visibles = [...visibles].sort((a, b) =>
-            dir * compareSortValues(sortKeyIzquierdoPrepagada(a, col), sortKeyIzquierdoPrepagada(b, col))
+        grupos = [...grupos].sort((a, b) =>
+            dir * compareSortValues(sortKeyGrupoPrepagada(a, col), sortKeyGrupoPrepagada(b, col))
         );
     }
 
-    if (!visibles.length) {
+    if (!grupos.length) {
         if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
         return;
     }
     if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.add('d-none');
 
-    visibles.forEach((p) => {
-        const key = `${p.DocumentoPaciente}|${p.DocumentoEps}|${p.Idtratamiento}`;
-        const tr = document.createElement('tr');
-        tr.dataset.rowKey = key;
-        tr.dataset.modo = 'prepagada';
-        if (ripsUiState.selectedLeftKey === key) tr.classList.add('cr-row-selected');
+    grupos.forEach((grupo) => {
+        const expanded = ripsUiState.expandedPatientKey === grupo.key;
+        const trGroup = document.createElement('tr');
+        trGroup.className = 'rips-group-row';
+        trGroup.dataset.groupKey = grupo.key;
+        trGroup.dataset.modo = 'prepagada-group';
+        if (expanded) trGroup.classList.add('rips-group-expanded');
 
-        const estado = (p.NombrePaciente || '').includes('NO TIENE') ? 'Sin HC relacionada' : 'Con HC';
-        tr.innerHTML = `
-            <td>${p.NombrePaciente || '—'}</td>
-            <td>${p.DocumentoPaciente || '—'}</td>
-            <td>${estado}</td>
+        const chevron = expanded ? '▼' : '▶';
+        trGroup.innerHTML = `
+            <td>
+                <span class="rips-group-chevron" aria-hidden="true">${chevron}</span>
+                <strong>${grupo.nombre}</strong>
+                <div class="small text-muted">${grupo.total} tratamiento${grupo.total === 1 ? '' : 's'}</div>
+            </td>
+            <td>${grupo.DocumentoPaciente || '—'}</td>
+            <td>${badgeProgresoHc(grupo.relacionados, grupo.total)}</td>
         `;
-        tr.addEventListener('click', () => onLeftRowClickPrepagada(p, key));
-        tablaPanelIzquierdo.appendChild(tr);
+        trGroup.addEventListener('click', () => {
+            const wasExpanded = ripsUiState.expandedPatientKey === grupo.key;
+            ripsUiState.expandedPatientKey = wasExpanded ? null : grupo.key;
+            if (!wasExpanded) {
+                ripsUiState.selectedLeftKey = null;
+                ripsUiState.selectedLeftData = null;
+                clearPanelDerecho('Seleccione un tratamiento del paciente para ver sus RIPS.');
+            }
+            renderPanelIzquierdoPrepagada(ripsUiState.leftRows);
+            markSelectedLeftRow(ripsUiState.selectedLeftKey);
+        });
+        tablaPanelIzquierdo.appendChild(trGroup);
+
+        if (!expanded) return;
+
+        // Relacionados primero, luego pendientes
+        const ordenados = [...grupo.tratamientos].sort((a, b) => {
+            const ar = esTratamientoRelacionado(a) ? 1 : 0;
+            const br = esTratamientoRelacionado(b) ? 1 : 0;
+            if (ar !== br) return ar - br; // no relacionados primero (prioridad para relacionar)
+            return String(extraerNroPres(a)).localeCompare(String(extraerNroPres(b)), 'es', { numeric: true });
+        });
+
+        ordenados.forEach((p) => {
+            const key = `${p.DocumentoPaciente}|${p.DocumentoEps}|${p.Idtratamiento}`;
+            const tr = document.createElement('tr');
+            tr.className = 'rips-child-row';
+            tr.dataset.rowKey = key;
+            tr.dataset.groupKey = grupo.key;
+            tr.dataset.modo = 'prepagada';
+            if (ripsUiState.selectedLeftKey === key) tr.classList.add('cr-row-selected');
+
+            const relacionado = esTratamientoRelacionado(p);
+            const estadoTxt = relacionado ? 'Relacionado' : 'Sin HC relacionada';
+            const estadoCls = relacionado ? 'rips-child-ok' : 'rips-child-pending';
+            tr.innerHTML = `
+                <td class="rips-child-cell">
+                    <span class="rips-child-indent">↳</span>
+                    Pres ${extraerNroPres(p)}
+                    <small class="text-muted"> · Id ${p.Idtratamiento ?? '—'}</small>
+                </td>
+                <td class="rips-child-cell">${p.DocumentoPaciente || '—'}</td>
+                <td class="rips-child-cell"><span class="${estadoCls}">${estadoTxt}</span></td>
+            `;
+            tr.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                onLeftRowClickPrepagada(p, key);
+            });
+            tablaPanelIzquierdo.appendChild(tr);
+        });
     });
+
+    markSelectedLeftRow(ripsUiState.selectedLeftKey);
 }
 
 function renderPanelDerechoRips(items, modo, opts = {}) {
@@ -436,6 +570,7 @@ async function onLeftRowClickParticular(factura, key) {
 }
 
 async function onLeftRowClickPrepagada(paciente, key) {
+    ripsUiState.expandedPatientKey = `grp-${paciente.DocumentoPaciente}|${paciente.DocumentoEps || ''}`;
     markSelectedLeftRow(key);
     ripsUiState.selectedLeftData = paciente;
     clearPanelDerecho('Cargando historias clínicas...');

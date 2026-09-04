@@ -994,6 +994,82 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
     color: var(--color-primary, #007E82);
 }
 
+.rips-group-row {
+    background: #f3f8fb !important;
+    cursor: pointer;
+}
+
+.rips-group-row > td {
+    background: #f3f8fb !important;
+    vertical-align: middle !important;
+}
+
+.rips-group-row.rips-group-expanded > td,
+.rips-group-row.cr-row-selected > td {
+    background: #A3D3FF !important;
+}
+
+.rips-group-chevron {
+    display: inline-block;
+    width: 1rem;
+    color: var(--color-primary, #007E82);
+    font-size: 0.7rem;
+    margin-right: 0.35rem;
+}
+
+.rips-progress-badge {
+    display: inline-block;
+    min-width: 3.2rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+.rips-progress-partial {
+    background: #ffe0b2;
+    color: #e65100;
+    border: 1px solid #ffb74d;
+}
+
+.rips-progress-full {
+    background: #c8e6c9;
+    color: #1b5e20;
+    border: 1px solid #81c784;
+}
+
+.rips-progress-none {
+    background: #ffcdd2;
+    color: #b71c1c;
+    border: 1px solid #ef9a9a;
+}
+
+.rips-child-row > td {
+    background: #fafcfd !important;
+    font-size: 0.92rem !important;
+}
+
+.rips-child-row.cr-row-selected > td {
+    background: #A3D3FF !important;
+}
+
+.rips-child-indent {
+    color: #78909c;
+    margin-right: 0.35rem;
+}
+
+.rips-child-ok {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.rips-child-pending {
+    color: #e65100;
+    font-weight: 600;
+}
+
 .rips-panel-empty {
     font-size: 0.9rem;
     text-align: center;
