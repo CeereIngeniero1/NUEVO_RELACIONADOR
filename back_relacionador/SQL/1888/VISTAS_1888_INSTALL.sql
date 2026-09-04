@@ -11,8 +11,9 @@
   IMPORTANTE: [Cnsta Relacionador Usuarios Info] aquí REEMPLAZA la versión 2275
   con la versión extendida RDA (demografía 1888, Entidad1888, etc.).
 
-  Prerrequisitos: tablas 1888, Entidad1888, RDA_MedicationTime, RDA_UMM,
-  RDA_ViaAdministracion, RDA_ColombianTechModality (ver scripts 1888).
+  Prerrequisitos: tablas 1888, Entidad1888, y catálogos RDA FHIR
+  (ejecutar CATALOGOS_RDA_FHIR_INSTALL.sql antes de este script):
+  RDA_MedicationTime, RDA_UMM, RDA_ViaAdministracion, RDA_ColombianTechModality.
 
   Uso backend: Asignar_RipsRoutes V3, RdaPacienteRoutes, RdaConsultaExternaRoutes,
   rdaceAggregateLoader, rdaFhirCatalogs, historiasClinicasRoutes.
@@ -469,51 +470,81 @@ FROM dbo.CompromisoVI
 WHERE ([Id Estado] <> 60 OR [Id Estado] <> 61)
 ORDER BY [Id CompromisoVI] DESC
 GO
-/* SECCIÓN 5 — Vistas FHIR RDA (tablas RDA_*) */
+/* SECCIÓN 5 — Vistas FHIR RDA (tablas RDA_*)
+   Requiere: CATALOGOS_RDA_FHIR_INSTALL.sql ejecutado ANTES en la misma BD. */
+
+IF OBJECT_ID(N'dbo.RDA_MedicationTime', N'U') IS NULL
+    OR OBJECT_ID(N'dbo.RDA_UMM', N'U') IS NULL
+    OR OBJECT_ID(N'dbo.RDA_ViaAdministracion', N'U') IS NULL
+    OR OBJECT_ID(N'dbo.RDA_ColombianTechModality', N'U') IS NULL
+BEGIN
+    PRINT N'ERROR: Faltan tablas RDA FHIR. Ejecute PRIMERO en esta misma BD:';
+    PRINT N'  back_relacionador/SQL/1888/CATALOGOS_RDA_FHIR_INSTALL.sql';
+    PRINT N'Luego vuelva a ejecutar la SECCIÓN 5 de este script (o el archivo completo).';
+END
+GO
 
 IF OBJECT_ID(N'dbo.VW_RDA_MedicationTime_Activos', N'V') IS NOT NULL
     DROP VIEW dbo.VW_RDA_MedicationTime_Activos;
 GO
 
+IF OBJECT_ID(N'dbo.RDA_MedicationTime', N'U') IS NOT NULL
+EXEC(N'
 CREATE VIEW dbo.VW_RDA_MedicationTime_Activos
 AS
 SELECT id, codigo, display, system_url, fhir_duration_unit, id_estado
 FROM dbo.RDA_MedicationTime
 WHERE id_estado = 7
+');
 GO
 
 IF OBJECT_ID(N'dbo.VW_RDA_UMM_Activos', N'V') IS NOT NULL
     DROP VIEW dbo.VW_RDA_UMM_Activos;
 GO
 
+IF OBJECT_ID(N'dbo.RDA_UMM', N'U') IS NOT NULL
+EXEC(N'
 CREATE VIEW dbo.VW_RDA_UMM_Activos
 AS
 SELECT id, codigo, display, unidad, system_url, id_estado
 FROM dbo.RDA_UMM
 WHERE id_estado = 7
+');
 GO
 
 IF OBJECT_ID(N'dbo.VW_RDA_ViaAdministracion_Activos', N'V') IS NOT NULL
     DROP VIEW dbo.VW_RDA_ViaAdministracion_Activos;
 GO
 
+IF OBJECT_ID(N'dbo.RDA_ViaAdministracion', N'U') IS NOT NULL
+EXEC(N'
 CREATE VIEW dbo.VW_RDA_ViaAdministracion_Activos
 AS
 SELECT id, codigo, display, system_url, id_estado
 FROM dbo.RDA_ViaAdministracion
 WHERE id_estado = 7
+');
 GO
 
 IF OBJECT_ID(N'dbo.VW_RDA_ColombianTechModality_Activos', N'V') IS NOT NULL
     DROP VIEW dbo.VW_RDA_ColombianTechModality_Activos;
 GO
 
+IF OBJECT_ID(N'dbo.RDA_ColombianTechModality', N'U') IS NOT NULL
+EXEC(N'
 CREATE VIEW dbo.VW_RDA_ColombianTechModality_Activos
 AS
 SELECT id, codigo, display, system_url, id_estado
 FROM dbo.RDA_ColombianTechModality
 WHERE id_estado = 7
+');
 GO
 
-PRINT 'Vistas Resolución 1888 / RDA instaladas correctamente (34 vistas).';
+IF OBJECT_ID(N'dbo.VW_RDA_MedicationTime_Activos', N'V') IS NOT NULL
+   AND OBJECT_ID(N'dbo.VW_RDA_UMM_Activos', N'V') IS NOT NULL
+   AND OBJECT_ID(N'dbo.VW_RDA_ViaAdministracion_Activos', N'V') IS NOT NULL
+   AND OBJECT_ID(N'dbo.VW_RDA_ColombianTechModality_Activos', N'V') IS NOT NULL
+    PRINT N'Vistas Resolución 1888 / RDA instaladas correctamente (incluye 4 vistas FHIR).';
+ELSE
+    PRINT N'AVISO: Vistas demográficas OK, pero faltan vistas FHIR. Ejecute CATALOGOS_RDA_FHIR_INSTALL.sql y reintente.';
 GO

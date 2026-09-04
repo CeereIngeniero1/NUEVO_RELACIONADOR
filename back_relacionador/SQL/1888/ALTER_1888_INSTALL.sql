@@ -9,6 +9,7 @@
     2. ALTER_1888_INSTALL.sql (este)
     3. UPDATES_1888_INSTALL.sql
     4. DATOS_1888_INSTALL.sql
+    4b. CATALOGOS_RDA_FHIR_INSTALL.sql
     5. VISTAS_1888_INSTALL.sql
 
   Prerrequisitos:
@@ -21,6 +22,28 @@
     - ALTER_RDACE_NotasAdicionalesPdf.sql
     - ALTER_RDACE_ContenidoDocumentoPdf.sql
     - 1888 update a registros malos.sql
+
+  ---------------------------------------------------------------------------
+  HOTFIX CLIENTE (Message 207 — tablas incompletas)
+  ---------------------------------------------------------------------------
+  Ejecutar ANTES de recrear vistas (o FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
+
+  -- Entidad1888 (Cnsta Relacionador Usuarios Info)
+  IF COL_LENGTH(N'dbo.Entidad1888', N'Id Pais Nacionalidad') IS NULL
+    ALTER TABLE dbo.Entidad1888 ADD [Id Pais Nacionalidad] INT NULL;
+  IF COL_LENGTH(N'dbo.Entidad1888', N'Id Pais Recidencia') IS NULL
+    ALTER TABLE dbo.Entidad1888 ADD [Id Pais Recidencia] INT NULL;
+  IF COL_LENGTH(N'dbo.Entidad1888', N'Id Municipio Recidencia') IS NULL
+    ALTER TABLE dbo.Entidad1888 ADD [Id Municipio Recidencia] INT NULL;
+  IF COL_LENGTH(N'dbo.Entidad1888', N'Alergeno') IS NULL
+    ALTER TABLE dbo.Entidad1888 ADD Alergeno VARCHAR(200) NULL;
+
+  -- Entidades Prepagadas 1888 (Cnsta Entidades Prepagadas 1888)
+  IF COL_LENGTH(N'dbo.[Entidades Prepagadas 1888]', N'Id Estado') IS NULL
+    ALTER TABLE dbo.[Entidades Prepagadas 1888]
+      ADD [Id Estado] INT NULL CONSTRAINT DF_EntidadesPrepagadas1888_IdEstado_HF DEFAULT (7);
+
+  Tipos desde 1888.sql.
 ==============================================================================
 */
 
@@ -181,6 +204,28 @@ IF COL_LENGTH(N'dbo.Entidad1888', N'Id Municipio Recidencia') IS NULL
 GO
 IF COL_LENGTH(N'dbo.Entidad1888', N'Alergeno') IS NULL
     ALTER TABLE dbo.Entidad1888 ADD Alergeno VARCHAR(200) NULL;
+GO
+
+/* --- Entidades Prepagadas 1888 — Id Estado (1888.sql DEFAULT 7) --- */
+IF COL_LENGTH(N'dbo.[Entidades Prepagadas 1888]', N'Id Estado') IS NULL
+    ALTER TABLE dbo.[Entidades Prepagadas 1888]
+        ADD [Id Estado] INT NULL CONSTRAINT DF_EntidadesPrepagadas1888_IdEstado_Alt DEFAULT (7);
+GO
+
+/* --- Entidades sgsss 1888 — columnas vistas Cnsta sgsss / Cnsta Relacionador Entidades --- */
+IF COL_LENGTH(N'dbo.[Entidades sgsss 1888]', N'Id Estado') IS NULL
+    ALTER TABLE dbo.[Entidades sgsss 1888]
+        ADD [Id Estado] INT NOT NULL CONSTRAINT DF_EntidadesSGSSS1888_IdEstado_Alt DEFAULT (7);
+GO
+IF COL_LENGTH(N'dbo.[Entidades sgsss 1888]', N'Id Regimen') IS NULL
+    ALTER TABLE dbo.[Entidades sgsss 1888]
+        ADD [Id Regimen] INT NULL;
+GO
+
+/* --- Regimen — Id Estado (vista join) --- */
+IF COL_LENGTH(N'dbo.Regimen', N'Id Estado') IS NULL
+    ALTER TABLE dbo.Regimen
+        ADD [Id Estado] INT NOT NULL CONSTRAINT DF_Regimen_IdEstado_Alt DEFAULT (1);
 GO
 
 /* Ocupación — ampliar columna */

@@ -9,6 +9,7 @@
     2. ALTER_1888_INSTALL.sql
     3. UPDATES_1888_INSTALL.sql
     4. DATOS_1888_INSTALL.sql
+    4b. CATALOGOS_RDA_FHIR_INSTALL.sql
     5. VISTAS_1888_INSTALL.sql
 
   Prerrequisitos:
@@ -18,6 +19,9 @@
   Fuentes:
     - 1888.sql
     - Evaluacion Entidad RDA Consulta Externa - CREATE.sql
+    - 1888 update a registros malos.sql (catálogos RDA FHIR)
+
+  Nota: datos MERGE de RDA_* van en CATALOGOS_RDA_FHIR_INSTALL.sql (paso 4b).
 ==============================================================================
 */
 
@@ -141,7 +145,8 @@ BEGIN
     CREATE TABLE dbo.[Entidades Prepagadas 1888] (
         [Id Entidades Prepagadas 1888] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
         Codigo NVARCHAR(20) NULL,
-        Nombre NVARCHAR(500) NULL
+        Nombre NVARCHAR(500) NULL,
+        [Id Estado] INT NULL CONSTRAINT DF_EntidadesPrepagadas1888_IdEstado DEFAULT (7)
     );
 END
 GO
@@ -598,6 +603,69 @@ BEGIN
         CONSTRAINT FK_RDACE_OtrasTecnologias
             FOREIGN KEY ([Id Evaluacion Entidad RDA Consulta Externa])
             REFERENCES [Evaluacion Entidad RDA Consulta Externa]([Id Evaluacion Entidad RDA Consulta Externa])
+    );
+END
+GO
+
+/* ============================================================================
+   Catálogos RDA FHIR (MedicationTime, UMM, VAD, ColombianTechModality)
+   Datos: CATALOGOS_RDA_FHIR_INSTALL.sql
+   ============================================================================ */
+
+IF OBJECT_ID(N'dbo.RDA_MedicationTime', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RDA_MedicationTime (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        codigo VARCHAR(10) NOT NULL,
+        display NVARCHAR(150) NOT NULL,
+        system_url NVARCHAR(300) NOT NULL,
+        fhir_duration_unit VARCHAR(10) NULL,
+        id_estado INT NOT NULL,
+        fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT UQ_RDA_MedicationTime_codigo_system UNIQUE (codigo, system_url)
+    );
+END
+GO
+
+IF OBJECT_ID(N'dbo.RDA_UMM', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RDA_UMM (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        codigo VARCHAR(30) NOT NULL,
+        display NVARCHAR(200) NOT NULL,
+        unidad NVARCHAR(100) NULL,
+        system_url NVARCHAR(300) NOT NULL,
+        id_estado INT NOT NULL,
+        fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT UQ_RDA_UMM_codigo_system UNIQUE (codigo, system_url)
+    );
+END
+GO
+
+IF OBJECT_ID(N'dbo.RDA_ViaAdministracion', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RDA_ViaAdministracion (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        codigo VARCHAR(30) NOT NULL,
+        display NVARCHAR(200) NOT NULL,
+        system_url NVARCHAR(300) NOT NULL,
+        id_estado INT NOT NULL,
+        fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT UQ_RDA_ViaAdministracion_codigo_system UNIQUE (codigo, system_url)
+    );
+END
+GO
+
+IF OBJECT_ID(N'dbo.RDA_ColombianTechModality', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RDA_ColombianTechModality (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        codigo VARCHAR(10) NOT NULL,
+        display NVARCHAR(200) NOT NULL,
+        system_url NVARCHAR(300) NOT NULL,
+        id_estado INT NOT NULL,
+        fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT UQ_RDA_ColombianTechModality_codigo_system UNIQUE (codigo, system_url)
     );
 END
 GO

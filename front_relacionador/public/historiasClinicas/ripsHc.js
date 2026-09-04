@@ -38,7 +38,16 @@
     return formularioRipsCompleto();
   }
 
+  function isRipsProductEnabled() {
+    const cfg = global.__APP_CONFIG__ || {};
+    const raw = cfg.ENABLE_RIPS;
+    if (raw === undefined || raw === null || raw === "") return true;
+    if (typeof raw === "boolean") return raw;
+    return ["1", "true", "yes", "on"].includes(String(raw).trim().toLowerCase());
+  }
+
   function puedeGuardarHcSegunRips() {
+    if (!isRipsProductEnabled()) return { ok: true };
     if (!isExigirRipsAntesGuardarHc()) return { ok: true };
     if (!getDocumentoPaciente()) return { ok: true };
     if (!evolucionActiva) {
@@ -246,6 +255,16 @@
   }
 
   function initRipsHc() {
+    if (!isRipsProductEnabled()) {
+      ["hcRipsFab", "hcRipsPanel", "hcRipsOverlay", "cardRipsHc"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = "none";
+          el.setAttribute("hidden", "hidden");
+        }
+      });
+      return;
+    }
     const card = document.getElementById("cardRipsHc");
     if (!card) return;
     if (card.dataset.ripsHcBound === "1") return;

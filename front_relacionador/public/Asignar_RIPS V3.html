@@ -2307,7 +2307,14 @@
 <!-- Shared shell: sidebar dashboard + tema + usuario -->
 <script type="module">
   import { mountAppSidebar } from "./shared/appSidebar.js";
-  mountAppSidebar({ active: "asignar" });
+  import { getFeatureFlags, getDefaultLandingHref, applyProductUiGates } from "./shared/featureFlags.js";
+  const flags = getFeatureFlags();
+  if (!flags.enableRips && !flags.enableRda) {
+    window.location.replace(getDefaultLandingHref());
+  } else {
+    applyProductUiGates();
+    mountAppSidebar({ active: "asignar" });
+  }
 </script>
 
 <!-- ═══════════════════════════════════════════

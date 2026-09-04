@@ -8,18 +8,44 @@
  *   mountAppSidebar({ active: "visor", basePath: "../" });
  */
 import { initThemeToggle, syncTopbarUserName, relocateModalsToBody } from "./shell.js";
+import { getFeatureFlags } from "./featureFlags.js";
 
 const STORAGE_COLLAPSED = "ceere_sidebar_collapsed";
 
 const CORE_LINKS = [
-  { id: "inicio", href: "RIPS.html", icon: "ri-home-4-line", label: "Inicio" },
-  { id: "asignar", href: "Asignar_RIPS V3.html", icon: "ri-file-list-3-line", label: "Asignar RIPS & RDA" },
+  { id: "inicio", href: "RIPS.html", icon: "ri-home-4-line", label: "Inicio", feature: "rips" },
+  { id: "asignar", href: "Asignar_RIPS V3.html", icon: "ri-file-list-3-line", label: "Asignar RIPS & RDA", feature: "asignar" },
   { id: "historias", href: "HistoriasClinicas.html", icon: "ri-health-book-line", label: "Historias Clínicas" },
-  { id: "envio", href: "EnvioRdaPendientes.html", icon: "ri-send-plane-line", label: "Envío RDA pendientes" },
-  { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)" },
-  { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar" },
-  { id: "enviar-fevrips", href: "EnviarFevRips.html", icon: "ri-send-plane-2-line", label: "Enviar MinSalud FEV" },
+  { id: "envio", href: "EnvioRdaPendientes.html", icon: "ri-send-plane-line", label: "Envío RDA pendientes", feature: "rda" },
+  { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)", feature: "rda" },
+  { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar", feature: "rips" },
+  { id: "enviar-fevrips", href: "EnviarFevRips.html", icon: "ri-send-plane-2-line", label: "Enviar MinSalud FEV", feature: "rips" },
 ];
+
+function resolveCoreLinks() {
+  const { enableRips, enableRda } = getFeatureFlags();
+  return CORE_LINKS.filter((link) => {
+    if (link.feature === "rips") return enableRips;
+    if (link.feature === "rda") return enableRda;
+    if (link.feature === "asignar") return enableRips || enableRda;
+    return true;
+  }).map((link) => {
+    if (link.id !== "asignar") return link;
+    let label = "Asignar";
+    if (enableRips && enableRda) label = "Asignar RIPS & RDA";
+    else if (enableRips) label = "Asignar RIPS";
+    else if (enableRda) label = "Asignar RDA";
+    return { ...link, label };
+  });
+}
+
+function resolveBrandTitle() {
+  const { enableRips, enableRda } = getFeatureFlags();
+  if (enableRips && enableRda) return "Relacionador RIPS & RDA";
+  if (enableRips) return "Relacionador RIPS";
+  if (enableRda) return "Relacionador RDA";
+  return "Relacionador CEERE";
+}
 
 const RIPS_TOOLS = [
   {
@@ -169,11 +195,14 @@ function toolsItemHtml(item, ctx) {
 }
 
 function buildSidebarHtml({ active, basePath, includeRipsTools }) {
-  const tools = includeRipsTools
+  const { enableRips } = getFeatureFlags();
+  const showRipsTools = includeRipsTools && enableRips;
+  const tools = showRipsTools
     ? `<div class="cr-sidebar-section-label"><span>Herramientas</span></div>${RIPS_TOOLS.map((it) => toolsItemHtml(it, { active, basePath })).join("")}`
     : "";
 
-  const links = CORE_LINKS.map((it) => navItemHtml(it, { active, basePath })).join("");
+  const links = resolveCoreLinks().map((it) => navItemHtml(it, { active, basePath })).join("");
+  const brandTitle = resolveBrandTitle();
 
   return `
     <button type="button" class="cr-sidebar-toggle" id="crSidebarToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="crSidebar">
@@ -185,7 +214,7 @@ function buildSidebarHtml({ active, basePath, includeRipsTools }) {
         <img src="${joinPath(basePath, "images/Ceere_logo.png")}" alt="" class="cr-navbar-logo cr-navbar-logo-full" aria-hidden="true">
         <img src="${joinPath(basePath, "images/CeereIconCollapsed.png")}?v=3" alt="" class="cr-navbar-logo cr-navbar-logo-collapsed" aria-hidden="true">
         <div class="cr-sidebar-brand-text">
-          <span class="cr-sidebar-app">Relacionador RIPS</span>
+          <span class="cr-sidebar-app">${brandTitle}</span>
           <h2 id="nombreUsuarioLink"><span id="TopbarUserName">Usuario</span></h2>
         </div>
         <button type="button" class="cr-sidebar-close" id="crSidebarClose" aria-label="Cerrar menú">
@@ -346,8 +375,11 @@ export function mountAppSidebar(options = {}) {
   const topbar = document.getElementById("crTopbar");
   if (topbar) topbar.setAttribute("hidden", "hidden");
 
+  const { enableRips } = getFeatureFlags();
+  const showRipsTools = includeRipsTools && enableRips;
+
   // Evitar IDs duplicados de botones RIPS (Maestro/XMLS/etc.) si ya existían en markup viejo
-  if (includeRipsTools) {
+  if (showRipsTools) {
     ["BotonMaestro", "descargarRIPS", "descargarRIPSTodo", "XMLS", "generadorRIPS", "crBtnThemeToggle", "closeSesion", "TopbarUserName", "nombreUsuarioLink"].forEach((id) => {
       document.querySelectorAll(`#${id}`).forEach((el) => {
         if (!el.closest?.("#crSidebar")) el.removeAttribute("id");
@@ -362,7 +394,7 @@ export function mountAppSidebar(options = {}) {
   }
 
   const wrap = document.createElement("div");
-  wrap.innerHTML = buildSidebarHtml({ active, basePath, includeRipsTools });
+  wrap.innerHTML = buildSidebarHtml({ active, basePath, includeRipsTools: showRipsTools });
   while (wrap.firstChild) {
     document.body.insertBefore(wrap.firstChild, document.body.firstChild);
   }

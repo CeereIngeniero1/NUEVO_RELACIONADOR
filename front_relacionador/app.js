@@ -96,6 +96,9 @@ app.get('/config.js', (req, res) => {
     const enableProd = forceSandboxOnly ? false : parseBool(process.env.IHCE_ENABLE_PROD, true);
     // RDA CE: al enviar a IHCE, ¿unificar con RDA Paciente (guardar + enviar ambos) o solo RDACE?
     const rdaIhceUnifiedSend = parseBool(process.env.RDA_IHCE_UNIFIED_SEND, true);
+    // Producto: ocultar por completo módulos RIPS / RDA en UI (menú, páginas, paneles)
+    const enableRips = parseBool(process.env.ENABLE_RIPS, true);
+    const enableRda = parseBool(process.env.ENABLE_RDA, true);
 
     const body =
         'window.__APP_CONFIG__=' +
@@ -108,9 +111,58 @@ app.get('/config.js', (req, res) => {
             IHCE_ENABLE_SANDBOX: enableSandbox,
             IHCE_ENABLE_PROD: enableProd,
             RDA_IHCE_UNIFIED_SEND: rdaIhceUnifiedSend,
+            ENABLE_RIPS: enableRips,
+            ENABLE_RDA: enableRda,
         }) +
         ';';
     res.send(body);
+});
+
+/** Bloqueo de páginas HTML según ENABLE_RIPS / ENABLE_RDA (misma BD de flags que /config.js). */
+app.use((req, res, next) => {
+    const parseBool = (v, fallback) => {
+        const raw = String(v == null ? '' : v).trim().toLowerCase();
+        if (!raw) return fallback;
+        return ['1', 'true', 'yes', 'on'].includes(raw);
+    };
+    const enableRips = parseBool(process.env.ENABLE_RIPS, true);
+    const enableRda = parseBool(process.env.ENABLE_RDA, true);
+    if (enableRips && enableRda) return next();
+
+    const pathRaw = decodeURIComponent(String(req.path || '')).replace(/\\/g, '/');
+    const p = pathRaw.toLowerCase();
+    const isHtml = p.endsWith('.html') || p === '/' || p.endsWith('/public') || p.endsWith('/public/');
+
+    const ripsPages = [
+        '/rips.html',
+        '/rips v2.html',
+        '/enviarfevrips.html',
+        '/desrelacionarv2.html',
+        '/asignar_rips v2.html',
+        '/asignar_rips.html',
+    ];
+    const rdaPages = [
+        '/enviordapendientes.html',
+        '/corregir_rda.html',
+        '/visor/visor.html',
+    ];
+    // Asignar V3 / experimental: se bloquean solo si ambos módulos están off
+    const asignarPages = ['/asignar_rips v3.html', '/asignar_rips v3 experimental.html'];
+
+    const hit = (list) => list.some((x) => p === x || p.endsWith(x));
+
+    let blocked = false;
+    if (!enableRips && hit(ripsPages)) blocked = true;
+    if (!enableRda && hit(rdaPages)) blocked = true;
+    if (!enableRips && !enableRda && hit(asignarPages)) blocked = true;
+    // Si RIPS off y RDA off, RIPS.html ya bloqueado; landing → Historias
+    if (!blocked && !isHtml) return next();
+    if (!blocked) return next();
+
+    let dest = '/HistoriasClinicas.html';
+    if (enableRips) dest = '/RIPS.html';
+    else if (enableRda) dest = '/Asignar_RIPS%20V3.html';
+    return res.redirect(dest);
 });
 
 // Middleware para compresión

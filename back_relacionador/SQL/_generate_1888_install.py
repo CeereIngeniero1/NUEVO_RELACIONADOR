@@ -338,6 +338,27 @@ def gen_alter():
          "ALTER_RDACE_NotasAdicionalesPdf.sql", "ALTER_RDACE_ContenidoDocumentoPdf.sql",
          "1888 update a registros malos.sql"],
     )
+    # Insert client hotfix note before SET NOCOUNT (after closing */)
+    hotfix = """
+  ---------------------------------------------------------------------------
+  HOTFIX CLIENTE (CeereSio / Message 207 en Cnsta Relacionador Usuarios Info)
+  ---------------------------------------------------------------------------
+  Si Entidad1888 existe pero faltan columnas de país/municipio/Alergeno,
+  ejecutar ANTES de recrear la vista (también en
+  FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
+
+    IF COL_LENGTH('dbo.Entidad1888', 'Id Pais Nacionalidad') IS NULL
+      ALTER TABLE dbo.Entidad1888 ADD [Id Pais Nacionalidad] INT NULL;
+    IF COL_LENGTH('dbo.Entidad1888', 'Id Pais Recidencia') IS NULL
+      ALTER TABLE dbo.Entidad1888 ADD [Id Pais Recidencia] INT NULL;
+    IF COL_LENGTH('dbo.Entidad1888', 'Id Municipio Recidencia') IS NULL
+      ALTER TABLE dbo.Entidad1888 ADD [Id Municipio Recidencia] INT NULL;
+    IF COL_LENGTH('dbo.Entidad1888', 'Alergeno') IS NULL
+      ALTER TABLE dbo.Entidad1888 ADD Alergeno VARCHAR(200) NULL;
+
+  Tipos desde 1888.sql (ALTER TABLE + alter Alergeno varchar(200)).
+"""
+    c = c.replace("=" * 78 + "\n*/", hotfix + "=" * 78 + "\n*/", 1)
 
     # Embed idempotent alter files
     for fn in [

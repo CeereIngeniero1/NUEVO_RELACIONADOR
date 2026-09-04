@@ -44,26 +44,43 @@ import {
     handleIhceAntecedentesMessage,
 } from "./visor/ihceAntecedentesImport.js";
 
+function isRdaProductEnabled() {
+    const cfg = typeof window !== "undefined" ? window.__APP_CONFIG__ || {} : {};
+    const raw = cfg.ENABLE_RDA;
+    if (raw === undefined || raw === null || raw === "") return true;
+    if (typeof raw === "boolean") return raw;
+    return ["1", "true", "yes", "on"].includes(String(raw).trim().toLowerCase());
+}
+
 // ── Inicialización (el script se carga al final del body, DOM ya existe) ──
-// Orden documentado: módulos internos primero, luego wireup de página.
-initBiometria();
-initControlRda();
-initListasPaciente();
-initListasConsultaExterna();
-inicializarSelectsRDA();
-initAsignarRdaWireup();
+if (!isRdaProductEnabled()) {
+    const card = document.getElementById("cardRDA");
+    if (card) {
+        card.style.display = "none";
+        card.setAttribute("hidden", "hidden");
+    }
+    console.log("%c[RDA V3] Módulo deshabilitado (ENABLE_RDA=false)", "color: #999;");
+} else {
+    // Orden documentado: módulos internos primero, luego wireup de página.
+    initBiometria();
+    initControlRda();
+    initListasPaciente();
+    initListasConsultaExterna();
+    inicializarSelectsRDA();
+    initAsignarRdaWireup();
 
-// Persistencia RDA + IHCE (antes inline en Asignar_RIPS V3.html)
-wireRdaFechaAtencionGlobal();
-initIhceAsignarWindow();
-wireGuardarPaciente();
-wireGuardarRdace();
-wireIhceVisorModal();
+    // Persistencia RDA + IHCE (antes inline en Asignar_RIPS V3.html)
+    wireRdaFechaAtencionGlobal();
+    initIhceAsignarWindow();
+    wireGuardarPaciente();
+    wireGuardarRdace();
+    wireIhceVisorModal();
 
-console.log(
-    "%c[RDA V3] Módulo cargado correctamente",
-    "color: #4CAF50; font-weight: bold; font-size: 14px;"
-);
+    console.log(
+        "%c[RDA V3] Módulo cargado correctamente",
+        "color: #4CAF50; font-weight: bold; font-size: 14px;"
+    );
+}
 
 function buildPacienteBundle(formValues) {
     return buildRda1888({
@@ -74,29 +91,33 @@ function buildPacienteBundle(formValues) {
 }
 
 // ── API pública (contrato con el resto de la aplicación) ──────────────────
-window.RDA = {
-    // RDA Paciente
-    getAntecedentes,
-    getAntecedentesFamiliares,
-    getMedicamentos,
-    // RDA Consulta Externa — Antecedentes
-    getAntecedentesCE,
-    getAntecedentesFamiliaresCE,
-    getMedicamentosCE,
-    // RDA Consulta Externa — Diagnósticos / Prescripciones
-    getDiagRelacionados,
-    getPrescripcionMedicamentos,
-    getPrescripcionProcedimientos,
-    getOtrasTecnologias,
-    // FHIR Bundle builder
-    buildPacienteBundle,
-    // Feature flag (localStorage RDA_API_VERSION o __APP_CONFIG__.RDA_API_VERSION)
-    getRdaApiVersion,
-    isRdaV2,
-    setPacienteActivoIhce,
-    syncIhceVisorButtonState,
-    refreshIhceVisorConsulta,
-    closeIhceVisorModal,
-    extractAntecedentesFromIhceBundle,
-    applyAntecedentesFromIhce,
-};
+if (isRdaProductEnabled()) {
+    window.RDA = {
+        // RDA Paciente
+        getAntecedentes,
+        getAntecedentesFamiliares,
+        getMedicamentos,
+        // RDA Consulta Externa — Antecedentes
+        getAntecedentesCE,
+        getAntecedentesFamiliaresCE,
+        getMedicamentosCE,
+        // RDA Consulta Externa — Diagnósticos / Prescripciones
+        getDiagRelacionados,
+        getPrescripcionMedicamentos,
+        getPrescripcionProcedimientos,
+        getOtrasTecnologias,
+        // FHIR Bundle builder
+        buildPacienteBundle,
+        // Feature flag (localStorage RDA_API_VERSION o __APP_CONFIG__.RDA_API_VERSION)
+        getRdaApiVersion,
+        isRdaV2,
+        setPacienteActivoIhce,
+        syncIhceVisorButtonState,
+        refreshIhceVisorConsulta,
+        closeIhceVisorModal,
+        extractAntecedentesFromIhceBundle,
+        applyAntecedentesFromIhce,
+    };
+} else {
+    window.RDA = { disabled: true };
+}

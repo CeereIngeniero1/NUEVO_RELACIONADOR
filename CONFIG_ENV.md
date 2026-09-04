@@ -25,6 +25,10 @@
    - `IHCE_FORCE_SANDBOX_ONLY=true` fuerza solo sandbox.
    - `IHCE_FORCE_PROD_ONLY=true` fuerza solo producción.
    - Si ambas están en `true`, prevalece `IHCE_FORCE_PROD_ONLY`.
+6. Módulos de producto (ocultar por completo en menú/páginas/paneles):
+   - `ENABLE_RIPS=true|false` — Inicio, herramientas RIPS, Asignar RIPS, FEV, Desrelacionar, panel RIPS en HC.
+   - `ENABLE_RDA=true|false` — card RDA en Asignar, Envío pendientes, Visor IHCE, Corregir RDA.
+   - Por defecto ambos son `true`. Tras cambiar: reiniciar `node app.js` del front y Ctrl+F5.
 
 ## Comprobaciones rápidas
 

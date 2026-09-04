@@ -39,7 +39,18 @@ const login = async () => {
 
                 alertify.success('Inicio de sesión correcto');
                 setTimeout(() => {
-                    window.location.href = 'RIPS.html';
+                    const cfg = window.__APP_CONFIG__ || {};
+                    const parseBool = (v, fallback) => {
+                        if (v === undefined || v === null || v === '') return fallback;
+                        if (typeof v === 'boolean') return v;
+                        return ['1', 'true', 'yes', 'on'].includes(String(v).trim().toLowerCase());
+                    };
+                    const enableRips = parseBool(cfg.ENABLE_RIPS, true);
+                    const enableRda = parseBool(cfg.ENABLE_RDA, true);
+                    let dest = 'HistoriasClinicas.html';
+                    if (enableRips) dest = 'RIPS.html';
+                    else if (enableRda) dest = 'Asignar_RIPS V3.html';
+                    window.location.href = dest;
                 }, 2000);
             } else {
                 const errorData = await response.json();

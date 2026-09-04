@@ -75,7 +75,11 @@
     <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
     <script type="module">
         import { mountAppSidebar } from "./shared/appSidebar.js";
-        mountAppSidebar({ active: "envio" });
+        import { guardPageAccess, applyProductUiGates } from "./shared/featureFlags.js";
+        if (!guardPageAccess({ requireRda: true })) {
+          applyProductUiGates();
+          mountAppSidebar({ active: "envio" });
+        }
     </script>
     <script src="Corregir_RDA.js"></script>
 </body>

@@ -350,7 +350,11 @@
     <script src="consultas_rda.js"></script>
     <script type="module">
         import { mountAppSidebar } from '../shared/appSidebar.js';
-        mountAppSidebar({ active: 'visor', basePath: '../' });
+        import { guardPageAccess, applyProductUiGates } from '../shared/featureFlags.js';
+        if (!guardPageAccess({ requireRda: true, basePath: '../' })) {
+          applyProductUiGates();
+          mountAppSidebar({ active: 'visor', basePath: '../' });
+        }
     </script>
 </body>
 

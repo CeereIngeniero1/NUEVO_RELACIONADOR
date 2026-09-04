@@ -1063,6 +1063,8 @@
 <script type="module">
   import { wireDemografiaPaciente } from "./rda/bootstrap/wireDemografiaPaciente.js";
   import { mountAppSidebar } from "./shared/appSidebar.js";
+  import { applyProductUiGates } from "./shared/featureFlags.js";
+  applyProductUiGates();
   wireDemografiaPaciente({ enableUpdate: false });
   mountAppSidebar({ active: "historias" });
 </script>

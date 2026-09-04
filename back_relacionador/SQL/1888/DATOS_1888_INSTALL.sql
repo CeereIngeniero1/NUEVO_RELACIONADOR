@@ -9,6 +9,7 @@
     2. ALTER
     3. UPDATES
     4. DATOS (este)
+    4b. CATALOGOS_RDA_FHIR_INSTALL.sql
     5. VISTAS
 
   Prerrequisitos:
@@ -2116,6 +2117,8 @@ GO
    2. 1888_create_cie11_tabla_con_datos.sql  → dbo.CIE11_Codigos
    3. 1888_insert_medicamentos_dci.sql       → dbo.[Medicamento DCI 1888]
    4. 1888_insert_ciudad_municipios.sql      → dbo.Ciudad1888
+   5. CATALOGOS_RDA_FHIR_INSTALL.sql         → RDA_MedicationTime / UMM / VAD / TechModality
+      (obligatorio antes de VISTAS_1888_INSTALL.sql — vistas VW_RDA_*)
 
    Esos archivos usan MERGE / IF NOT EXISTS y son seguros de re-ejecutar.
    ============================================================================ */
