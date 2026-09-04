@@ -64,6 +64,7 @@ export function applyProductUiGates() {
 
   if (!enableRda) {
     hide(document.getElementById("cardRDA"));
+    hide(document.getElementById("bloqueBuscarDocumentoRda"));
     document.querySelectorAll("[data-feature='rda']").forEach(hide);
   }
 
