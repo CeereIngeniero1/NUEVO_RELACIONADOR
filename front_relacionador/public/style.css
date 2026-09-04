@@ -930,7 +930,30 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
 
 .cr-table tbody tr.seleccionada,
 .cr-table tbody tr.cr-row-selected {
-    background-color: var(--color-selected) !important;
+    background-color: #A3D3FF !important;
+    outline: none;
+    box-shadow: inset 4px 0 0 #1a73e8;
+}
+
+.cr-table tbody tr.seleccionada > td,
+.cr-table tbody tr.cr-row-selected > td {
+    background-color: #A3D3FF !important;
+    color: #0b3d66 !important;
+    font-weight: 600;
+}
+
+.rips-panel-table tbody tr.cr-row-selected:hover > td,
+.cr-table tbody tr.cr-row-selected:hover > td {
+    background-color: #8fc4ff !important;
+}
+
+[data-theme="dark"] .cr-table tbody tr.seleccionada,
+[data-theme="dark"] .cr-table tbody tr.cr-row-selected,
+[data-theme="dark"] .cr-table tbody tr.seleccionada > td,
+[data-theme="dark"] .cr-table tbody tr.cr-row-selected > td {
+    background-color: rgba(26, 115, 232, 0.45) !important;
+    color: #e8f1ff !important;
+    box-shadow: inset 4px 0 0 #5b9dff;
 }
 
 .rips-panel-subtitle {
