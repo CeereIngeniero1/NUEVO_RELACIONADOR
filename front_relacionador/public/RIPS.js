@@ -32,9 +32,21 @@ const theadPanelIzquierdo = document.getElementById('theadPanelIzquierdo')
 
 const ripsUiState = {
     leftRows: [],
+    rightRows: [],
+    rightModo: null,
     selectedLeftKey: null,
     selectedLeftData: null,
     filterText: '',
+    sortLeft: { col: null, dir: 1 },
+    sortRight: { col: null, dir: 1 },
+};
+
+const RIPS_HC_MAX_MESES = 4;
+
+const MESES_ABBR = {
+    ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5,
+    jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
+    jan: 0, apr: 3, aug: 7, dec: 11,
 };
 
 function formatFechaRips(value) {
@@ -44,6 +56,154 @@ function formatFechaRips(value) {
     } catch (_) {
         return String(value);
     }
+}
+
+/** Fecha límite: hoy menos N meses (hora 00:00). */
+function fechaLimiteMesesAtras(meses = RIPS_HC_MAX_MESES) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setMonth(d.getMonth() - meses);
+    return d;
+}
+
+/** Extrae Date de un ítem del panel derecho (fechaEvaluacion o fechaEveRips estilo SQL 100). */
+function parseFechaItemRips(item) {
+    if (!item) return null;
+    if (item.fechaEvaluacion) {
+        const d = new Date(item.fechaEvaluacion);
+        if (!Number.isNaN(d.getTime())) return d;
+    }
+    const rawFull = String(item.fechaEveRips || '').trim();
+    if (!rawFull) return null;
+    const raw = rawFull.split(';')[0].trim();
+    const asIso = new Date(raw);
+    if (!Number.isNaN(asIso.getTime())) return asIso;
+
+    const m = raw.match(
+        /^([A-Za-zÁÉÍÓÚáéíóúñÑ.]+)\s+(\d{1,2})\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?)?/
+    );
+    if (!m) return null;
+    const mesKey = m[1].replace(/\./g, '').slice(0, 3).toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const mes = MESES_ABBR[mesKey];
+    if (mes == null) return null;
+    let hora = m[4] != null ? parseInt(m[4], 10) : 0;
+    const min = m[5] != null ? parseInt(m[5], 10) : 0;
+    const seg = m[6] != null ? parseInt(m[6], 10) : 0;
+    const ampm = (m[7] || '').toUpperCase();
+    if (ampm === 'PM' && hora < 12) hora += 12;
+    if (ampm === 'AM' && hora === 12) hora = 0;
+    const d = new Date(parseInt(m[3], 10), mes, parseInt(m[2], 10), hora, min, seg);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function filtrarRipsUltimosMeses(items, meses = RIPS_HC_MAX_MESES) {
+    const limite = fechaLimiteMesesAtras(meses);
+    return (Array.isArray(items) ? items : []).filter((item) => {
+        const fecha = parseFechaItemRips(item);
+        if (!fecha) return false;
+        return fecha >= limite;
+    });
+}
+
+function compareSortValues(a, b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    if (typeof a === 'number' && typeof b === 'number') return a - b;
+    if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
+    return String(a).localeCompare(String(b), 'es', { numeric: true, sensitivity: 'base' });
+}
+
+function sortMarker(activeCol, col, dir) {
+    if (activeCol !== col) return ' <span class="rips-sort-ind" aria-hidden="true">↕</span>';
+    return dir > 0
+        ? ' <span class="rips-sort-ind rips-sort-ind-active" aria-hidden="true">↑</span>'
+        : ' <span class="rips-sort-ind rips-sort-ind-active" aria-hidden="true">↓</span>';
+}
+
+function wireTableSort(thead, onSort) {
+    if (!thead) return;
+    thead.querySelectorAll('th[data-sort-key]').forEach((th) => {
+        th.classList.add('rips-sortable-th');
+        th.title = 'Clic para ordenar';
+        th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort-key');
+            onSort(key);
+        });
+    });
+}
+
+function paintTheadIzquierdo() {
+    if (!theadPanelIzquierdo) return;
+    const prepagada = checkboxPrepagada.checked;
+    const { col, dir } = ripsUiState.sortLeft;
+    if (prepagada) {
+        theadPanelIzquierdo.innerHTML = `<tr>
+            <th data-sort-key="paciente">PLAN / PACIENTE${sortMarker(col, 'paciente', dir)}</th>
+            <th data-sort-key="documento">DOCUMENTO${sortMarker(col, 'documento', dir)}</th>
+            <th data-sort-key="estado">ESTADO HC${sortMarker(col, 'estado', dir)}</th>
+        </tr>`;
+    } else {
+        theadPanelIzquierdo.innerHTML = `<tr>
+            <th data-sort-key="id">ID${sortMarker(col, 'id', dir)}</th>
+            <th data-sort-key="paciente">PACIENTE${sortMarker(col, 'paciente', dir)}</th>
+            <th data-sort-key="factura">FACTURA${sortMarker(col, 'factura', dir)}</th>
+            <th>VER</th>
+        </tr>`;
+    }
+    wireTableSort(theadPanelIzquierdo, (key) => {
+        if (ripsUiState.sortLeft.col === key) ripsUiState.sortLeft.dir *= -1;
+        else {
+            ripsUiState.sortLeft.col = key;
+            ripsUiState.sortLeft.dir = 1;
+        }
+        if (checkboxPrepagada.checked) renderPanelIzquierdoPrepagada(ripsUiState.leftRows);
+        else renderPanelIzquierdoParticular(ripsUiState.leftRows);
+    });
+}
+
+function paintTheadDerecho() {
+    const thead = document.getElementById('theadPanelDerecho');
+    if (!thead) return;
+    const { col, dir } = ripsUiState.sortRight;
+    thead.innerHTML = `<tr>
+        <th class="ColumnaCheckBox">SEL.</th>
+        <th data-sort-key="idRips">ID RIPS${sortMarker(col, 'idRips', dir)}</th>
+        <th data-sort-key="realizadoPor">REALIZADA POR${sortMarker(col, 'realizadoPor', dir)}</th>
+        <th data-sort-key="fecha">HISTORIA CLÍNICA${sortMarker(col, 'fecha', dir)}</th>
+    </tr>`;
+    wireTableSort(thead, (key) => {
+        if (ripsUiState.sortRight.col === key) ripsUiState.sortRight.dir *= -1;
+        else {
+            ripsUiState.sortRight.col = key;
+            ripsUiState.sortRight.dir = 1;
+        }
+        renderPanelDerechoRips(ripsUiState.rightRows, ripsUiState.rightModo, { alreadyFiltered: true });
+    });
+}
+
+function sortKeyIzquierdoParticular(f, key) {
+    if (key === 'id') return Number(f.idFactura) || 0;
+    if (key === 'paciente') return f.nombrePaciente || '';
+    if (key === 'factura') return `${f.prefijo || ''} ${f.noFactura || ''}`;
+    return '';
+}
+
+function sortKeyIzquierdoPrepagada(p, key) {
+    if (key === 'paciente') return p.NombrePaciente || '';
+    if (key === 'documento') return p.DocumentoPaciente || '';
+    if (key === 'estado') {
+        return (p.NombrePaciente || '').includes('NO TIENE') ? 'Sin HC relacionada' : 'Con HC';
+    }
+    return '';
+}
+
+function sortKeyDerecho(item, key) {
+    if (key === 'idRips') return Number(item.idEveRips ?? item.idEvaluacion) || 0;
+    if (key === 'realizadoPor') return item.nombreUsuario || item.TipoEvaluacion || '';
+    if (key === 'fecha') return parseFechaItemRips(item) || new Date(0);
+    return '';
 }
 
 function clearPanelDerecho(mensaje = 'Seleccione una atención o factura a la izquierda.') {
@@ -56,6 +216,8 @@ function clearPanelDerecho(mensaje = 'Seleccione una atención o factura a la iz
 
 function clearPanels() {
     ripsUiState.leftRows = [];
+    ripsUiState.rightRows = [];
+    ripsUiState.rightModo = null;
     ripsUiState.selectedLeftKey = null;
     ripsUiState.selectedLeftData = null;
     if (tablaPanelIzquierdo) tablaPanelIzquierdo.innerHTML = '';
@@ -78,14 +240,13 @@ function applyModoUI() {
     }
     if (tituloPanelDerecho) {
         tituloPanelDerecho.textContent = prepagada
-            ? 'Historias clínicas RIPS'
-            : 'Historias clínicas RIPS pendientes';
+            ? 'Historias clínicas RIPS (últimos 4 meses)'
+            : 'Historias clínicas RIPS pendientes (últimos 4 meses)';
     }
-    if (theadPanelIzquierdo) {
-        theadPanelIzquierdo.innerHTML = prepagada
-            ? '<tr><th>PLAN / PACIENTE</th><th>DOCUMENTO</th><th>ESTADO HC</th></tr>'
-            : '<tr><th>ID</th><th>PACIENTE</th><th>FACTURA</th><th>VER</th></tr>';
-    }
+    ripsUiState.sortLeft = { col: null, dir: 1 };
+    ripsUiState.sortRight = { col: null, dir: 1 };
+    paintTheadIzquierdo();
+    paintTheadDerecho();
     clearPanels();
 }
 
@@ -106,12 +267,20 @@ function markSelectedLeftRow(key) {
 function renderPanelIzquierdoParticular(facturas) {
     ripsUiState.leftRows = Array.isArray(facturas) ? facturas : [];
     if (!tablaPanelIzquierdo) return;
+    paintTheadIzquierdo();
     tablaPanelIzquierdo.innerHTML = '';
 
-    const visibles = ripsUiState.leftRows.filter((f) => {
+    let visibles = ripsUiState.leftRows.filter((f) => {
         const blob = `${f.idFactura} ${f.nombrePaciente} ${f.documentoPaciente} ${f.prefijo} ${f.noFactura}`;
         return rowMatchesFilter(blob);
     });
+
+    const { col, dir } = ripsUiState.sortLeft;
+    if (col) {
+        visibles = [...visibles].sort((a, b) =>
+            dir * compareSortValues(sortKeyIzquierdoParticular(a, col), sortKeyIzquierdoParticular(b, col))
+        );
+    }
 
     if (!visibles.length) {
         if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
@@ -155,12 +324,20 @@ function renderPanelIzquierdoParticular(facturas) {
 function renderPanelIzquierdoPrepagada(pacientes) {
     ripsUiState.leftRows = Array.isArray(pacientes) ? pacientes : [];
     if (!tablaPanelIzquierdo) return;
+    paintTheadIzquierdo();
     tablaPanelIzquierdo.innerHTML = '';
 
-    const visibles = ripsUiState.leftRows.filter((p) => {
+    let visibles = ripsUiState.leftRows.filter((p) => {
         const blob = `${p.NombrePaciente} ${p.DocumentoPaciente} ${p.Idtratamiento}`;
         return rowMatchesFilter(blob);
     });
+
+    const { col, dir } = ripsUiState.sortLeft;
+    if (col) {
+        visibles = [...visibles].sort((a, b) =>
+            dir * compareSortValues(sortKeyIzquierdoPrepagada(a, col), sortKeyIzquierdoPrepagada(b, col))
+        );
+    }
 
     if (!visibles.length) {
         if (emptyPanelIzquierdo) emptyPanelIzquierdo.classList.remove('d-none');
@@ -186,13 +363,31 @@ function renderPanelIzquierdoPrepagada(pacientes) {
     });
 }
 
-function renderPanelDerechoRips(items, modo) {
+function renderPanelDerechoRips(items, modo, opts = {}) {
     if (!tablaPanelDerecho) return;
+    const fuente = Array.isArray(items) ? items : [];
+    const filtrados = opts.alreadyFiltered ? fuente : filtrarRipsUltimosMeses(fuente);
+    ripsUiState.rightRows = filtrados;
+    ripsUiState.rightModo = modo || null;
+
+    paintTheadDerecho();
     tablaPanelDerecho.innerHTML = '';
 
-    const list = Array.isArray(items) ? items : [];
+    let list = [...filtrados];
+    const { col, dir } = ripsUiState.sortRight;
+    if (col) {
+        list.sort((a, b) =>
+            dir * compareSortValues(sortKeyDerecho(a, col), sortKeyDerecho(b, col))
+        );
+    }
+
     if (!list.length) {
-        clearPanelDerecho('No hay historias clínicas RIPS para esta selección.');
+        const huboSinFiltro = fuente.length > 0 && filtrados.length === 0 && !opts.alreadyFiltered;
+        clearPanelDerecho(
+            huboSinFiltro
+                ? 'No hay historias clínicas RIPS de los últimos 4 meses para esta selección.'
+                : 'No hay historias clínicas RIPS para esta selección.'
+        );
         return;
     }
     if (emptyPanelDerecho) emptyPanelDerecho.classList.add('d-none');

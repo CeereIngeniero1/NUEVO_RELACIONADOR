@@ -287,6 +287,7 @@ TE.[Tipo de Evaluación] AS [TipoEvaluacion]
         INNER JOIN [Tipo de Evaluación] TE ON TE.[Id Tipo de Evaluación] = EVA.[Id Tipo de Evaluación]
         left join Factura fac on fac.[Id Factura] = evr.[Id Factura]
         WHERE EVA.[Documento Entidad] = @DocumentoPaciente AND EVR.[Documento Tipo Rips] = @DocumentoEPS
+          AND EVA.[Fecha Evaluación Entidad] >= DATEADD(month, -4, CAST(GETDATE() AS date))
         order by EVA.[Fecha Evaluación Entidad] desc
         --AND EVR.[Id Factura] IS NULL AND EVR.[Id Plan de Tratamiento] IS NULL`, (err, rowCount) => {
         if (err) {
