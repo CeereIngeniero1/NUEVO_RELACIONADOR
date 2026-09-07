@@ -37,6 +37,7 @@ import { initIhceAsignarWindow } from "./asignar/ihceAsignar.js";
 import { wireRdaFechaAtencionGlobal } from "./asignar/rdaFechaAtencion.js";
 import { wireGuardarPaciente } from "./asignar/guardarPaciente.js";
 import { wireGuardarRdace } from "./asignar/guardarRdace.js";
+import { initEdicionRda } from "./asignar/edicionRda.js";
 import { wireIhceVisorModal, setPacienteActivoIhce, syncIhceVisorButtonState, refreshIhceVisorConsulta, closeIhceVisorModal } from "./visor/ihceVisorModal.js";
 import {
     applyAntecedentesFromIhce,
@@ -118,6 +119,7 @@ if (isRdaProductEnabled()) {
         extractAntecedentesFromIhceBundle,
         applyAntecedentesFromIhce,
     };
+    initEdicionRda();
 } else {
     window.RDA = { disabled: true };
 }

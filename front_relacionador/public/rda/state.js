@@ -90,6 +90,22 @@ export function replaceAntecedentesCE({ salud = [], familiares = [], medicamento
     medicamentos.forEach((item) => listaMedicamentosCE.push(item));
 }
 
+export function replaceListasClinicasCE({
+    diagRelacionados = [],
+    prescripcionMed = [],
+    prescripcionProc = [],
+    otrasTec = [],
+} = {}) {
+    listaDiagRelacionados.length = 0;
+    listaPrescripcionMed.length = 0;
+    listaPrescripcionProc.length = 0;
+    listaOtrasTec.length = 0;
+    diagRelacionados.forEach((item) => listaDiagRelacionados.push(item));
+    prescripcionMed.forEach((item) => listaPrescripcionMed.push(item));
+    prescripcionProc.forEach((item) => listaPrescripcionProc.push(item));
+    otrasTec.forEach((item) => listaOtrasTec.push(item));
+}
+
 /**
  * Vacía todas las listas (útil al cambiar de paciente).
  */

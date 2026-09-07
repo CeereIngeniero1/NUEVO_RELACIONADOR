@@ -6,8 +6,10 @@ import {
     postAntecedenteSaludPac,
     postAntecedenteFamPac,
     postAntecedenteFarmPac,
+    updateRdaEdicionPaciente,
 } from '../api/entidad1888.js';
 import { validarPacienteDemografia, bloquearSiPacienteSinGuardar } from '../../shared/pacienteDemografiaValidation.js';
+import { getEdicionState, isEditMode } from './edicionRda.js';
 
 function rdaSelect2Value(selectId) {
     const el = document.getElementById(selectId);
@@ -181,6 +183,35 @@ export async function guardarRDAPaciente() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
     try {
+        const editMode = isEditMode() && getEdicionState().tipo === 'paciente';
+        const editId = editMode ? getEdicionState().id : null;
+
+        if (editMode && editId) {
+            const listas = {
+                antecedentesSalud: window.RDA?.getAntecedentes?.() || [],
+                antecedentesFamiliares: window.RDA?.getAntecedentesFamiliares?.() || [],
+                antecedentesFarmacologicos: window.RDA?.getMedicamentos?.() || [],
+            };
+            const dataUpdate = await updateRdaEdicionPaciente(editId, {
+                cabecera: payload,
+                listas,
+                ambiente: getEdicionState().ambiente || 'prod',
+            });
+            if (!dataUpdate.ok) {
+                throw new Error(dataUpdate.error || 'Error al actualizar el RDA');
+            }
+            const idRDA = editId;
+            const resumenPac =
+                '<b>ID Evaluación (actualizado):</b> ' + idRDA + '<br>' +
+                'Antecedentes de salud: ' + listas.antecedentesSalud.length +
+                ' | Familiares: ' + listas.antecedentesFamiliares.length +
+                ' | Medicamentos: ' + listas.antecedentesFarmacologicos.length;
+            await window.rdaOfrecerEnvioIhce('RDA Paciente actualizado', resumenPac, function (ambiente) {
+                return window.enviarIhcePaciente(idRDA, { ambiente: ambiente });
+            });
+            return;
+        }
+
         const dataPrincipal = await guardarEvaluacionPacientePrincipal(payload);
         if (!dataPrincipal.ok) {
             throw new Error(dataPrincipal.error || 'Error al guardar el RDA principal');

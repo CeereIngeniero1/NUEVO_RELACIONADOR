@@ -13,9 +13,11 @@ import {
     postOtraTecCE,
     urlResumenClinicoPdf,
     fetchBlobAuthenticated,
+    updateRdaEdicionCe,
 } from '../api/entidad1888.js';
 import { openIhceBundlePreview, openIhceJsonModal, extractIhceMessage } from './ihceAsignar.js';
 import { validarPacienteDemografia, bloquearSiPacienteSinGuardar } from '../../shared/pacienteDemografiaValidation.js';
+import { getEdicionState, isEditMode } from './edicionRda.js';
 
 function buildDescAntecedenteFamiliar(item) {
     const codigo = (item.codigo || '').trim();
@@ -461,6 +463,45 @@ export async function guardarRDACE() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
     try {
+        const editMode = isEditMode() && getEdicionState().tipo === 'ce';
+        const editId = editMode ? getEdicionState().id : null;
+
+        if (editMode && editId) {
+            const listas = {
+                antecedentesSalud: window.RDA?.getAntecedentesCE?.() || [],
+                antecedentesFamiliares: window.RDA?.getAntecedentesFamiliaresCE?.() || [],
+                antecedentesFarmacologicos: window.RDA?.getMedicamentosCE?.() || [],
+                diagRelacionados: window.RDA?.getDiagRelacionados?.() || [],
+                prescripcionMed: window.RDA?.getPrescripcionMedicamentos?.() || [],
+                prescripcionProc: resolvePrescripcionProcedimientosCE(),
+                otrasTec: window.RDA?.getOtrasTecnologias?.() || [],
+            };
+            const dataUpdate = await updateRdaEdicionCe(editId, {
+                cabecera: payload,
+                listas,
+                ambiente: getEdicionState().ambiente || 'prod',
+            });
+            if (!dataUpdate.ok) {
+                throw new Error(dataUpdate.error || 'Error al actualizar RDACE');
+            }
+            const idCE = editId;
+            const idEvalEl = document.getElementById('RDACE_IdEvaluacionActual');
+            if (idEvalEl) idEvalEl.value = String(idCE);
+            const resumen =
+                '<b>ID Evaluación CE (actualizado):</b> ' + idCE + '<br>' +
+                'Ant. salud: ' + listas.antecedentesSalud.length +
+                ' | Fam: ' + listas.antecedentesFamiliares.length +
+                ' | Meds ant: ' + listas.antecedentesFarmacologicos.length +
+                ' | Dx rel: ' + listas.diagRelacionados.length +
+                ' | Presc. med: ' + listas.prescripcionMed.length +
+                ' | Proc: ' + listas.prescripcionProc.length +
+                ' | Otras: ' + listas.otrasTec.length;
+            await window.rdaOfrecerEnvioIhce('RDA Consulta Externa actualizado', resumen, function (ambiente) {
+                return window.enviarIhceRdace(idCE, { ambiente: ambiente });
+            });
+            return;
+        }
+
         const dataPrincipal = await guardarEvaluacionCEPrincipal(payload);
         const idCE = dataPrincipal.IdEvaluacionEntidadRDACE;
 

@@ -502,3 +502,11 @@ export function refreshListasAntecedentesCE() {
     rerender(document.getElementById("RDACE_ListaAntecedentesFamiliares"), getAntecedentesFamiliaresCE(), "familiar");
     rerender(document.getElementById("RDACE_ListaMedicamentos"), getMedicamentosCE(), "medicamento");
 }
+
+export function refreshListasClinicasCE() {
+    refreshListasAntecedentesCE();
+    rerender(document.getElementById("RDACE_ListaDiagRelacionados"), getDiagRelacionados(), "diagRel");
+    rerender(document.getElementById("RDACE_ListaPrescripcionMedicamentos"), getPrescripcionMedicamentos(), "medCE");
+    rerender(document.getElementById("RDACE_ListaPrescripcionProcedimientos"), getPrescripcionProcedimientos(), "procCE");
+    rerender(document.getElementById("RDACE_ListaOtrasTecnologias"), getOtrasTecnologias(), "otraCE");
+}

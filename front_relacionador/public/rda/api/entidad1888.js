@@ -2,7 +2,7 @@
  * Persistencia RDA 1888 — cabecera + subrecursos (misma ruta que legacy).
  * Usa httpClient (JSON + token).
  */
-import { postJson, getApiV3Base, authJsonHeaders } from './httpClient.js';
+import { postJson, getApiV3Base, authJsonHeaders, getJson, putJson } from './httpClient.js';
 
 export const RDA_RUTAS = {
     evaluacionPaciente: '/EvaluacionEntidadRDA/',
@@ -17,6 +17,8 @@ export const RDA_RUTAS = {
     prescripcionMedCE: '/EvaluacionEntidadRDACE/PrescripcionMedicamentos',
     prescripcionProcCE: '/EvaluacionEntidadRDACE/PrescripcionProcedimientos',
     otrasTecCE: '/EvaluacionEntidadRDACE/OtrasTecnologias',
+    edicionPaciente: (id) => `/RdaEdicion/paciente/${encodeURIComponent(id)}`,
+    edicionCe: (id) => `/RdaEdicion/ce/${encodeURIComponent(id)}`,
 };
 
 export async function guardarEvaluacionPacientePrincipal(payload) {
@@ -57,6 +59,22 @@ export async function postPrescripcionProcCE(body) {
 }
 export async function postOtraTecCE(body) {
     return postJson(RDA_RUTAS.otrasTecCE, body);
+}
+
+export async function fetchRdaEdicionPaciente(id) {
+    return getJson(RDA_RUTAS.edicionPaciente(id));
+}
+
+export async function fetchRdaEdicionCe(id) {
+    return getJson(RDA_RUTAS.edicionCe(id));
+}
+
+export async function updateRdaEdicionPaciente(id, body) {
+    return putJson(RDA_RUTAS.edicionPaciente(id), body);
+}
+
+export async function updateRdaEdicionCe(id, body) {
+    return putJson(RDA_RUTAS.edicionCe(id), body);
 }
 
 /** URL absoluta para descarga PDF CE (GET, sin body). */

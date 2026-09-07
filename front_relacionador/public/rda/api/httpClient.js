@@ -71,3 +71,50 @@ export async function postJsonLoose(path, body) {
     }
     return { ok: r.ok, status: r.status, data, text };
 }
+
+export async function getJson(path) {
+    const base = getApiV3Base();
+    const p = path.startsWith('/') ? path : `/${path}`;
+    const r = await fetch(`${base}${p}`, {
+        method: 'GET',
+        headers: authJsonHeaders(),
+    });
+    const text = await r.text();
+    let data = {};
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (e) {
+        data = { raw: text };
+    }
+    if (!r.ok || data.ok === false) {
+        const err = new Error(data.error || r.statusText || 'Error en petición');
+        err.status = r.status;
+        err.data = data;
+        throw err;
+    }
+    return data;
+}
+
+export async function putJson(path, body) {
+    const base = getApiV3Base();
+    const p = path.startsWith('/') ? path : `/${path}`;
+    const r = await fetch(`${base}${p}`, {
+        method: 'PUT',
+        headers: authJsonHeaders(),
+        body: body != null ? JSON.stringify(body) : undefined,
+    });
+    const text = await r.text();
+    let data = {};
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (e) {
+        data = { raw: text };
+    }
+    if (!r.ok || data.ok === false) {
+        const err = new Error(data.error || r.statusText || 'Error en petición');
+        err.status = r.status;
+        err.data = data;
+        throw err;
+    }
+    return data;
+}

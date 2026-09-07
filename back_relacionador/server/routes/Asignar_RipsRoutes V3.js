@@ -3797,5 +3797,6 @@ router.use(require('./rda/RdaConsultaExternaRoutes'));
 router.use(require('./rda/RdaConsultaExternaRoutesv2'));
 // --- Envío masivo RDA pendientes (listado + lotes vía EnviarIHCE) ---
 router.use(require('./rda/RdaEnvioMasivoRoutes'));
+router.use(require('./rda/RdaEdicionRoutes'));
 
 module.exports = router;
