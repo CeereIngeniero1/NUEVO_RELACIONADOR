@@ -16,6 +16,16 @@ const RIPS_ROOT = getRipsDataRoot();
 const router = Router();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Facturatech identifica el folio numéricamente: 0928 y 928 son la misma factura.
+ * Conserva intactos los folios alfanuméricos para no alterar su identificador.
+ */
+function normalizarFolioFactura(folio) {
+    const valor = String(folio == null ? '' : folio).trim();
+    if (!/^\d+$/.test(valor)) return valor;
+    return String(Number.parseInt(valor, 10));
+}
+
 /* ENDPOINT PARA DESCARGAR LOS XMLS POR LA API DE FACTURATECH BY: CAMILO FLEZLADE */
 router.get('/mostrar-empresas-con-resoluciones-vigentes', async (req, res) => {
     try {
@@ -196,7 +206,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                     username: '890941638',
                     password: 'd63e3771ae7cba422236949ea5826f984e8ea626331104a8a822c9a7333dc04e',
                     prefijo: factura.Prefijo,
-                    folio: factura.NoFactura
+                    folio: normalizarFolioFactura(factura.NoFactura)
                 };
 
                 soap.createClient(soapUrl, (err, client) => {
@@ -410,7 +420,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: factura.NoFactura
+                    folio: normalizarFolioFactura(factura.NoFactura)
                 };
         
                 soap.createClient(soapUrl, async (err, client) => {
@@ -649,7 +659,7 @@ router.post('/descargarxmls-api-facturatech-sin-prefijo/:fechainicial/:fechafina
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: factura.NoFactura
+                    folio: normalizarFolioFactura(factura.NoFactura)
                 };
 
                 soap.createClient(soapUrl, async (err, client) => {
@@ -911,7 +921,7 @@ router.post('/descargarxmls-stream-facturatech-sin-prefijo/:fechainicial/:fechaf
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: factura.NoFactura,
+                    folio: normalizarFolioFactura(factura.NoFactura),
                 };
 
                 soap.createClient(soapUrl, async (err, client) => {
