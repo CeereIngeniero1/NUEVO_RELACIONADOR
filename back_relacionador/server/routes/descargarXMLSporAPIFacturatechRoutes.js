@@ -23,7 +23,53 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 function normalizarFolioFactura(folio) {
     const valor = String(folio == null ? '' : folio).trim();
     if (!/^\d+$/.test(valor)) return valor;
-    return String(Number.parseInt(valor, 10));
+    return valor.replace(/^0+(?=\d)/, '');
+}
+
+function respuestaTieneXml(result) {
+    return Boolean(result?.return?.resourceData?.$value);
+}
+
+function respuestaIndicaRecursoNoEncontrado(result) {
+    const error = String(result?.return?.error?.$value || '').toLowerCase();
+    return (
+        error.includes('no existe el recurso solicitado') ||
+        error.includes('recurso no encontrado') ||
+        error.includes('resource not found') ||
+        error.includes('requested resource does not exist')
+    );
+}
+
+/**
+ * Busca primero el folio exacto guardado en Factura (ej. 0923).
+ * Únicamente si Facturatech indica que no existe, reintenta como número (923).
+ */
+function descargarXmlFacturatech(client, args, callback) {
+    const port = client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort'];
+    const action = port['FtechAction.downloadXMLFile'];
+
+    action.call(port, args, (err, result) => {
+        if (err || respuestaTieneXml(result)) {
+            return callback(err, result);
+        }
+
+        const folioOriginal = String(args.folio == null ? '' : args.folio).trim();
+        const folioNormalizado = normalizarFolioFactura(folioOriginal);
+        const debeReintentar =
+            folioNormalizado &&
+            folioNormalizado !== folioOriginal &&
+            respuestaIndicaRecursoNoEncontrado(result);
+
+        if (!debeReintentar) {
+            return callback(null, result);
+        }
+
+        console.log(
+            `Facturatech no encontró el folio ${folioOriginal}; reintentando como ${folioNormalizado}`
+        );
+        args.folio = folioNormalizado;
+        return action.call(port, args, callback);
+    });
 }
 
 /* ENDPOINT PARA DESCARGAR LOS XMLS POR LA API DE FACTURATECH BY: CAMILO FLEZLADE */
@@ -206,7 +252,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                     username: '890941638',
                     password: 'd63e3771ae7cba422236949ea5826f984e8ea626331104a8a822c9a7333dc04e',
                     prefijo: factura.Prefijo,
-                    folio: normalizarFolioFactura(factura.NoFactura)
+                    folio: factura.NoFactura
                 };
 
                 soap.createClient(soapUrl, (err, client) => {
@@ -217,7 +263,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal',
                         return;
                     }
 
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
+                    descargarXmlFacturatech(client, args, (err, result) => {
                         if (err) {
                             console.error('Error calling FtechAction.downloadXMLFile:', err);
                             processedCount++;
@@ -420,7 +466,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: normalizarFolioFactura(factura.NoFactura)
+                    folio: factura.NoFactura
                 };
         
                 soap.createClient(soapUrl, async (err, client) => {
@@ -435,7 +481,7 @@ router.post('/descargarxmls-api-facturatech/:prefijo/:fechainicial/:fechafinal/:
                         return;
                     }
         
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
+                    descargarXmlFacturatech(client, args, (err, result) => {
                         if (err) {
                             console.error('Error llamando a FtechAction.downloadXMLFile:', err);
                             factura.estado = 'Error en la llamada SOAP' + err.message;
@@ -659,7 +705,7 @@ router.post('/descargarxmls-api-facturatech-sin-prefijo/:fechainicial/:fechafina
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: normalizarFolioFactura(factura.NoFactura)
+                    folio: factura.NoFactura
                 };
 
                 soap.createClient(soapUrl, async (err, client) => {
@@ -672,7 +718,7 @@ router.post('/descargarxmls-api-facturatech-sin-prefijo/:fechainicial/:fechafina
                         return;
                     }
 
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
+                    descargarXmlFacturatech(client, args, (err, result) => {
                         if (err) {
                             factura.estado = 'Error en la llamada SOAP' + err.message;
                             resultadosFinales.push(factura);
@@ -921,7 +967,7 @@ router.post('/descargarxmls-stream-facturatech-sin-prefijo/:fechainicial/:fechaf
                     username: ContenidoCredenciales[0].Usuario,
                     password: ContenidoCredenciales[0].Contrasena,
                     prefijo: factura.Prefijo,
-                    folio: normalizarFolioFactura(factura.NoFactura),
+                    folio: factura.NoFactura,
                 };
 
                 soap.createClient(soapUrl, async (err, client) => {
@@ -931,7 +977,7 @@ router.post('/descargarxmls-stream-facturatech-sin-prefijo/:fechainicial/:fechaf
                         return finishOne(factura);
                     }
 
-                    client['SERVICES-FACTURATECH']['SERVICES-FACTURATECHPort']['FtechAction.downloadXMLFile'](args, (err, result) => {
+                    descargarXmlFacturatech(client, args, (err, result) => {
                         if (err) {
                             factura.estado = `Error en la llamada SOAP${err.message || ''}`;
                             return finishOne(factura);
