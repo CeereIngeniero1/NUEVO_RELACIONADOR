@@ -219,8 +219,20 @@ function nombrePacienteLimpio(nombreRaw) {
         .trim() || 'Paciente';
 }
 
+function extraerIdRipsHc(nombreRaw) {
+    const s = String(nombreRaw || '');
+    if (/HC\s+NO TIENE/i.test(s)) return null;
+    const m = s.match(/HC\s+(\d+)/i);
+    return m ? Number(m[1]) : null;
+}
+
 function esTratamientoRelacionado(p) {
+    if (typeof p.cantidadRips === 'number') return p.cantidadRips === 1;
     return !String(p.NombrePaciente || '').toUpperCase().includes('NO TIENE');
+}
+
+function esTratamientoDuplicadoRips(p) {
+    return Number(p.cantidadRips || 0) >= 2;
 }
 
 function extraerNroPres(p) {
@@ -229,9 +241,41 @@ function extraerNroPres(p) {
     return p.Idtratamiento != null ? String(p.Idtratamiento) : '—';
 }
 
-function agruparPacientesPrepagada(rows) {
+/** Una fila por Id Plan; junta todos los Id RIPS del mismo presupuesto. */
+function consolidarTratamientosPorPlan(rows) {
     const map = new Map();
-    for (const p of rows) {
+    for (const p of rows || []) {
+        const idPlan = p.Idtratamiento;
+        const key = String(idPlan ?? '');
+        if (!map.has(key)) {
+            map.set(key, {
+                DocumentoPaciente: p.DocumentoPaciente,
+                DocumentoEps: p.DocumentoEps,
+                Idtratamiento: idPlan,
+                NombrePaciente: p.NombrePaciente,
+                idsRips: [],
+            });
+        }
+        const entry = map.get(key);
+        const idRips = extraerIdRipsHc(p.NombrePaciente);
+        if (idRips != null && !entry.idsRips.includes(idRips)) {
+            entry.idsRips.push(idRips);
+        }
+        if (!entry.NombrePaciente || /NO TIENE/i.test(String(entry.NombrePaciente))) {
+            entry.NombrePaciente = p.NombrePaciente;
+        }
+    }
+    return [...map.values()].map((e) => ({
+        ...e,
+        cantidadRips: e.idsRips.length,
+        esDuplicadoRips: e.idsRips.length >= 2,
+    }));
+}
+
+function agruparPacientesPrepagada(rows) {
+    const consolidados = consolidarTratamientosPorPlan(rows);
+    const map = new Map();
+    for (const p of consolidados) {
         const doc = String(p.DocumentoPaciente || '').trim();
         const eps = String(p.DocumentoEps || '').trim();
         const key = `grp-${doc}|${eps}`;
@@ -252,16 +296,29 @@ function agruparPacientesPrepagada(rows) {
     }
     return [...map.values()].map((g) => {
         const relacionados = g.tratamientos.filter(esTratamientoRelacionado).length;
+        const duplicados = g.tratamientos.filter(esTratamientoDuplicadoRips).length;
         const total = g.tratamientos.length;
-        return { ...g, relacionados, total };
+        return { ...g, relacionados, duplicados, total };
     });
 }
 
-function badgeProgresoHc(relacionados, total) {
-    const full = total > 0 && relacionados >= total;
-    const none = relacionados === 0;
-    const cls = full ? 'rips-progress-full' : none ? 'rips-progress-none' : 'rips-progress-partial';
-    const label = full ? 'Completo' : none ? 'Sin relacionar' : 'Parcial';
+function badgeProgresoHc(relacionados, total, duplicados = 0) {
+    const full = total > 0 && relacionados >= total && !duplicados;
+    const none = relacionados === 0 && !duplicados;
+    const cls = duplicados
+        ? 'rips-progress-dup'
+        : full
+            ? 'rips-progress-full'
+            : none
+                ? 'rips-progress-none'
+                : 'rips-progress-partial';
+    const label = duplicados
+        ? `${duplicados} presupuesto(s) con más de un RIPS`
+        : full
+            ? 'Completo'
+            : none
+                ? 'Sin relacionar'
+                : 'Parcial';
     return `<span class="rips-progress-badge ${cls}" title="${label}">${relacionados}/${total}</span>`;
 }
 
@@ -281,9 +338,10 @@ function actualizarProgresoFacturaPrepagada(grupos) {
         return;
     }
     progresoFacturaPrepagada.classList.remove('d-none');
+    const duplicados = list.reduce((acc, g) => acc + (Number(g.duplicados) || 0), 0);
     progresoFacturaPrepagada.innerHTML = `
         <span class="rips-factura-progress-label">Factura</span>
-        ${badgeProgresoHc(relacionados, total)}
+        ${badgeProgresoHc(relacionados, total, duplicados)}
     `;
 }
 
@@ -466,7 +524,7 @@ function renderPanelIzquierdoPrepagada(pacientes) {
                 <div class="small text-muted">${grupo.total} tratamiento${grupo.total === 1 ? '' : 's'}</div>
             </td>
             <td>${grupo.DocumentoPaciente || '—'}</td>
-            <td>${badgeProgresoHc(grupo.relacionados, grupo.total)}</td>
+            <td>${badgeProgresoHc(grupo.relacionados, grupo.total, grupo.duplicados || 0)}</td>
         `;
         trGroup.addEventListener('click', () => {
             const wasExpanded = ripsUiState.expandedPatientKey === grupo.key;
@@ -483,11 +541,15 @@ function renderPanelIzquierdoPrepagada(pacientes) {
 
         if (!expanded) return;
 
-        // Relacionados primero, luego pendientes
+        // Duplicados primero (corregir), luego pendientes, luego OK
         const ordenados = [...grupo.tratamientos].sort((a, b) => {
-            const ar = esTratamientoRelacionado(a) ? 1 : 0;
-            const br = esTratamientoRelacionado(b) ? 1 : 0;
-            if (ar !== br) return ar - br; // no relacionados primero (prioridad para relacionar)
+            const prio = (t) => {
+                if (esTratamientoDuplicadoRips(t)) return 0;
+                if (!esTratamientoRelacionado(t)) return 1;
+                return 2;
+            };
+            const d = prio(a) - prio(b);
+            if (d !== 0) return d;
             return String(extraerNroPres(a)).localeCompare(String(extraerNroPres(b)), 'es', { numeric: true });
         });
 
@@ -500,9 +562,22 @@ function renderPanelIzquierdoPrepagada(pacientes) {
             tr.dataset.modo = 'prepagada';
             if (ripsUiState.selectedLeftKey === key) tr.classList.add('cr-row-selected');
 
-            const relacionado = esTratamientoRelacionado(p);
-            const estadoTxt = relacionado ? 'Relacionado' : 'Sin HC relacionada';
-            const estadoCls = relacionado ? 'rips-child-ok' : 'rips-child-pending';
+            const nRips = Number(p.cantidadRips || 0);
+            const dup = nRips >= 2;
+            let estadoTxt;
+            let estadoCls;
+            if (dup) {
+                estadoTxt = `${nRips} RIPS`;
+                estadoCls = 'rips-child-dup';
+                tr.classList.add('rips-child-dup-row');
+            } else if (nRips === 1) {
+                estadoTxt = 'Relacionado';
+                estadoCls = 'rips-child-ok';
+            } else {
+                estadoTxt = 'Sin HC relacionada';
+                estadoCls = 'rips-child-pending';
+            }
+
             tr.innerHTML = `
                 <td class="rips-child-cell">
                     <span class="rips-child-indent">↳</span>
@@ -510,11 +585,26 @@ function renderPanelIzquierdoPrepagada(pacientes) {
                     <small class="text-muted"> · Id ${p.Idtratamiento ?? '—'}</small>
                 </td>
                 <td class="rips-child-cell">${p.DocumentoPaciente || '—'}</td>
-                <td class="rips-child-cell"><span class="${estadoCls}">${estadoTxt}</span></td>
+                <td class="rips-child-cell">
+                    <span class="${estadoCls}">${estadoTxt}</span>
+                    ${
+                        dup
+                            ? `<button type="button" class="btn btn-sm btn-warning rips-btn-desrel-dup ms-1" title="Desrelacionar uno de los RIPS">
+                                Desrelacionar
+                              </button>`
+                            : ''
+                    }
+                </td>
             `;
             tr.addEventListener('click', (ev) => {
+                if (ev.target.closest('.rips-btn-desrel-dup')) return;
                 ev.stopPropagation();
                 onLeftRowClickPrepagada(p, key);
+            });
+            tr.querySelector('.rips-btn-desrel-dup')?.addEventListener('click', async (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                await desrelacionarRipsDuplicadoPresupuesto(p);
             });
             tablaPanelIzquierdo.appendChild(tr);
         });
@@ -609,6 +699,98 @@ async function onLeftRowClickPrepagada(paciente, key) {
     } catch (ex) {
         console.error(ex);
         clearPanelDerecho(`Error: ${ex.message}`);
+    }
+}
+
+/**
+ * Presupuesto con 2+ RIPS: deja desrelacionar uno (limpia Id Factura + Id Plan).
+ */
+async function desrelacionarRipsDuplicadoPresupuesto(paciente) {
+    const ids = Array.isArray(paciente?.idsRips) ? paciente.idsRips.filter(Boolean) : [];
+    const doc = String(paciente?.DocumentoPaciente || '').trim();
+    if (ids.length < 2 || !doc) {
+        await Swal.fire({
+            icon: 'info',
+            text: 'Este presupuesto no tiene RIPS duplicados para desrelacionar.',
+        });
+        return;
+    }
+
+    const options = ids
+        .map((id) => `<option value="${id}">RIPS ${id}</option>`)
+        .join('');
+
+    const conf = await Swal.fire({
+        icon: 'warning',
+        title: 'RIPS duplicados en el presupuesto',
+        html: `
+            <p class="text-start mb-2">
+              El presupuesto <strong>Pres ${extraerNroPres(paciente)}</strong>
+              (Id ${paciente.Idtratamiento ?? '—'}) tiene
+              <strong>${ids.length} RIPS</strong> asociados.
+              Debe quedar <strong>solo uno</strong>.
+            </p>
+            <p class="text-start small text-muted mb-2">
+              Elija cuál desrelacionar (se pondrán en 0 el Id Factura y el Id Plan de ese RIPS):
+            </p>
+            <select id="swalRipsDupSelect" class="swal2-select" style="width:100%;">
+              ${options}
+            </select>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Desrelacionar este',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#f0ad4e',
+        preConfirm: () => {
+            const sel = document.getElementById('swalRipsDupSelect');
+            const v = sel ? Number(sel.value) : 0;
+            if (!v) {
+                Swal.showValidationMessage('Seleccione un RIPS');
+                return false;
+            }
+            return v;
+        },
+    });
+
+    if (!conf.isConfirmed || !conf.value) return;
+
+    try {
+        Swal.fire({
+            title: 'Desrelacionando…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+        const response = await fetch(
+            `${window.getApiBaseUrl()}/apiV3/relacionesRipsDesrelacionador/factura`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idRipsRelacion: Number(conf.value),
+                    documentoPaciente: doc,
+                    limpiarPlan: true,
+                }),
+            }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || `Error HTTP ${response.status}`);
+        }
+        await Swal.fire({
+            icon: 'success',
+            title: 'Listo',
+            text: data.message || `RIPS ${conf.value} desrelacionado.`,
+            timer: 2200,
+            showConfirmButton: false,
+        });
+        refrescarTrasRelacionar();
+    } catch (ex) {
+        console.error(ex);
+        await Swal.fire({
+            icon: 'error',
+            title: 'No se pudo desrelacionar',
+            text: String(ex.message || ex),
+        });
     }
 }
 

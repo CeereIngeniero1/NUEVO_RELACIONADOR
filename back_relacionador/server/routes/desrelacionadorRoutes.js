@@ -292,9 +292,12 @@ router.get("/relacionesRipsDesrelacionador/v2/factura/:idFactura", async (req, r
       }
     }
 
+    // Duplicado = mismo Id Plan con 2+ RIPS (Prepagada/EPS: limpiarPlan)
+    const esDupPlan = (idPlan) =>
+      limpiarPlan && idPlan > 0 && (countByPlan.get(idPlan) || 0) > 1;
+
     const rips = ripsRaw.map((r) => {
       const idPlan = Number(r.idPlanTratamiento || 0);
-      const tratamientoDuplicado = esEps && idPlan > 0 && (countByPlan.get(idPlan) || 0) > 1;
       return {
         idRipsRelacion: Number(r.idRipsRelacion),
         idEvaluacion: Number(r.idEvaluacion || 0),
@@ -304,7 +307,7 @@ router.get("/relacionesRipsDesrelacionador/v2/factura/:idFactura", async (req, r
         nombrePaciente: String(r.nombrePaciente || ""),
         fechaEvaluacion: r.fechaEvaluacion,
         cupsCie: r.cupsCie || "",
-        tratamientoDuplicado,
+        tratamientoDuplicado: esDupPlan(idPlan),
         tieneRips: true,
       };
     });
@@ -312,7 +315,7 @@ router.get("/relacionesRipsDesrelacionador/v2/factura/:idFactura", async (req, r
     const tratamientos = tratamientosRaw.map((t) => {
       const idPlan = Number(t.idPlanTratamiento || 0);
       const idRips = t.idRipsRelacion != null ? Number(t.idRipsRelacion) : null;
-      const tratamientoDuplicado = esEps && idPlan > 0 && (countByPlan.get(idPlan) || 0) > 1;
+      const tratamientoDuplicado = esDupPlan(idPlan);
       return {
         idPlanTratamiento: idPlan,
         nroPlan: String(t.nroPlan || ""),

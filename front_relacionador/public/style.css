@@ -1046,6 +1046,13 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
     border: 1px solid #ef9a9a;
 }
 
+.rips-progress-dup {
+    background: #ffcdd2;
+    color: #b71c1c;
+    border: 1px solid #e57373;
+    box-shadow: 0 0 0 1px rgba(183, 28, 28, 0.15);
+}
+
 .rips-factura-progress {
     display: inline-flex;
     align-items: center;
@@ -1089,6 +1096,25 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
 .rips-child-pending {
     color: #e65100;
     font-weight: 600;
+}
+
+.rips-child-dup {
+    color: #b71c1c;
+    font-weight: 700;
+}
+
+.rips-child-dup-row > td {
+    background: rgba(220, 53, 69, 0.12) !important;
+}
+
+.rips-child-dup-row.cr-row-selected > td {
+    background: #ffcdd2 !important;
+}
+
+.rips-btn-desrel-dup {
+    font-size: 0.7rem !important;
+    padding: 0.1rem 0.4rem !important;
+    vertical-align: middle;
 }
 
 .rips-panel-empty {
