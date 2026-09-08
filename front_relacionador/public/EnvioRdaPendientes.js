@@ -12,7 +12,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
     // Señal de versión en consola para verificar que no hay JS cacheado viejo.
-    try { console.info('[EnvioRdaPendientes] build 20260727c — Ver detalle en errores tras refresco'); } catch (_) {}
+    try { console.info('[EnvioRdaPendientes] build 20260908a — edición directa de pendientes'); } catch (_) {}
 
     /**
      * Tri-estado del envío masivo:
@@ -39,7 +39,17 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         return 'Error';
     }
 
-    /** HTML de la celda Resultado + Corregir según el tri-estado del envío. */
+    function hrefEditarRda(id) {
+        const tipoParam = state.tipo === 'ce' ? 'ce' : 'paciente';
+        const ambienteParam = state.ambiente === 'prod' ? 'prod' : 'sandbox';
+        return `Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(id))}&ambiente=${encodeURIComponent(ambienteParam)}`;
+    }
+
+    function htmlEditarRda(id) {
+        return `<a class="btn btn-sm btn-outline-warning" href="${hrefEditarRda(id)}">Editar RDA</a>`;
+    }
+
+    /** HTML de la celda Resultado + editor del registro. */
     function htmlCeldasEnvio(r) {
         const estado = clasificarResultado(r);
         let resultadoHtml;
@@ -57,17 +67,10 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 '<button type="button" class="btn btn-sm btn-outline-light btn-detalle">Ver detalle</button>';
         }
 
-        let corregirHtml = '<span class="text-muted">—</span>';
-        if (estado === 'error') {
-            const esProd = state.ambiente === 'prod';
-            if (!esProd) {
-                corregirHtml = '<span class="badge bg-secondary">Solo producción</span>';
-            } else {
-                const tipoParam = state.tipo === 'ce' ? 'ce' : 'paciente';
-                corregirHtml =
-                    `<a class="btn btn-sm btn-outline-warning" href="Asignar_RIPS%20V3.html?modo=corregir-rda&tipo=${encodeURIComponent(tipoParam)}&id=${encodeURIComponent(String(r.id))}&ambiente=prod">Corregir RDA</a>`;
-            }
-        }
+        const corregirHtml =
+            estado === 'ok' || estado === 'ya_existia'
+                ? '<span class="text-muted">—</span>'
+                : htmlEditarRda(r.id);
         return { estado, resultadoHtml, corregirHtml };
     }
 
@@ -413,7 +416,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
                 ? htmlCeldasEnvio(prev)
                 : {
                     resultadoHtml: '<span class="text-muted">—</span>',
-                    corregirHtml: '<span class="text-muted">—</span>',
+                    corregirHtml: htmlEditarRda(id),
                 };
             const baseCells =
                 state.tipo === 'paciente'

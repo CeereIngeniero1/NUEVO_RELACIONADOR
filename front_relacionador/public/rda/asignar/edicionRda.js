@@ -59,7 +59,9 @@ function toDatetimeLocal(v) {
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return '';
     const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    // SQL DATETIME no tiene zona horaria. mssql lo serializa con "Z", pero sus
+    // componentes UTC representan el reloj local guardado (08:00 debe verse 08:00).
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 function splitFechaHoras(v) {
@@ -103,6 +105,8 @@ function activarUiPorTipo(tipo) {
     const seccionPaciente = document.getElementById('SeccionRDAPaciente');
     const seccionCe = document.getElementById('SeccionRDAConsultaExterna');
     const cardRda = document.getElementById('cardRDA');
+    const labelPaciente = document.querySelector('label[for="RDATipoPaciente"]');
+    const labelCe = document.querySelector('label[for="RDATipoConsultaExterna"]');
 
     ['cardSeleccionPaciente', 'bloqueBuscarDocumentoRda'].forEach((cardId) => {
         const node = document.getElementById(cardId);
@@ -129,6 +133,9 @@ function activarUiPorTipo(tipo) {
                 /* noop */
             }
         }
+        if (radioPaciente) radioPaciente.disabled = true;
+        if (labelPaciente) labelPaciente.classList.add('d-none');
+        if (labelCe) labelCe.classList.remove('d-none');
         if (seccionCe) seccionCe.classList.remove('d-none');
         if (seccionPaciente) seccionPaciente.classList.add('d-none');
     } else {
@@ -140,6 +147,9 @@ function activarUiPorTipo(tipo) {
                 /* noop */
             }
         }
+        if (radioCe) radioCe.disabled = true;
+        if (labelCe) labelCe.classList.add('d-none');
+        if (labelPaciente) labelPaciente.classList.remove('d-none');
         if (seccionPaciente) seccionPaciente.classList.remove('d-none');
         if (seccionCe) seccionCe.classList.add('d-none');
     }
@@ -335,9 +345,6 @@ export async function bootstrapEdicionDesdeQuery() {
 
     if (!Number.isFinite(id)) {
         throw new Error('Id inválido en modo corrección RDA.');
-    }
-    if (ambiente && ambiente !== 'prod') {
-        throw new Error('Este flujo de corrección solo está habilitado para producción.');
     }
 
     edicionState.active = true;

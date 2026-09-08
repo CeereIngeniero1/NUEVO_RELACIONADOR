@@ -10,6 +10,7 @@ const { sql, poolPromise } = require('../../db2');
 const { loadRdaceAggregate } = require('../../rda/rdaceAggregateLoader');
 const { loadRdaPacienteAggregate } = require('../../rda/rdaPacienteAggregateLoader');
 const { validatePeriodoAtencionNoFuturo } = require('../../rda/rdaPeriodoAtencion');
+const { colombiaDateTimeToMssqlDate } = require('../../rda/fhirColombiaFormat');
 
 const router = Router();
 
@@ -26,6 +27,11 @@ function toTrimmedOrNull(v) {
 }
 
 function toDateOrNull(v) {
+    return colombiaDateTimeToMssqlDate(v);
+}
+
+/** Instante real para validar límites; no se usa para persistir DATETIME sin zona. */
+function toInstantOrNull(v) {
     if (v == null || v === '') return null;
     const d = v instanceof Date ? v : new Date(v);
     return Number.isNaN(d.getTime()) ? null : d;
@@ -330,7 +336,10 @@ router.put('/RdaEdicion/paciente/:id', async (req, res) => {
 
         const dInicio = toDateOrNull(cab.FechaHoraInicioAtencion);
         const dFin = toDateOrNull(cab.FechaHoraFinAtencion);
-        const periodoOk = validatePeriodoAtencionNoFuturo(dInicio, dFin);
+        const periodoOk = validatePeriodoAtencionNoFuturo(
+            toInstantOrNull(cab.FechaHoraInicioAtencion),
+            toInstantOrNull(cab.FechaHoraFinAtencion)
+        );
         if (!periodoOk.ok) {
             return res.status(400).json({ ok: false, error: periodoOk.error });
         }
@@ -562,7 +571,10 @@ router.put('/RdaEdicion/ce/:id', async (req, res) => {
 
         const dInicio = toDateOrNull(cab.FechaHoraInicioAtencion);
         const dFin = toDateOrNull(cab.FechaHoraFinAtencion);
-        const periodoOk = validatePeriodoAtencionNoFuturo(dInicio, dFin);
+        const periodoOk = validatePeriodoAtencionNoFuturo(
+            toInstantOrNull(cab.FechaHoraInicioAtencion),
+            toInstantOrNull(cab.FechaHoraFinAtencion)
+        );
         if (!periodoOk.ok) {
             return res.status(400).json({ ok: false, error: periodoOk.error });
         }
