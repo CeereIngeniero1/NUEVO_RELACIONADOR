@@ -12,7 +12,11 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
     'use strict';
     const MAX_ENVIO_MASIVO = 50;
     // Señal de versión en consola para verificar que no hay JS cacheado viejo.
-    try { console.info('[EnvioRdaPendientes] build 20260908a — edición directa de pendientes'); } catch (_) {}
+    try { console.info('[EnvioRdaPendientes] build 20260910a — credenciales IHCE por empresa'); } catch (_) {}
+
+    function documentoEmpresaSesion() {
+        return String(sessionStorage.getItem('empresaTrabajarExecuted') || '').trim();
+    }
 
     /**
      * Tri-estado del envío masivo:
@@ -179,6 +183,7 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
         selAmbiente: document.getElementById('selAmbiente'),
         btnBuscar: document.getElementById('btnBuscar'),
         btnEnviar: document.getElementById('btnEnviar'),
+        btnCredencialesIhce: document.getElementById('btnCredencialesIhce'),
         chkTodos: document.getElementById('chkTodos'),
         tbody: document.getElementById('tbodyPendientes'),
         theadPaciente: document.getElementById('theadPaciente'),
@@ -974,7 +979,11 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             const resp = await fetch(`${apiBase()}${path}`, {
                 method: 'POST',
                 headers: authHeaders(),
-                body: JSON.stringify({ ids, ambiente }),
+                body: JSON.stringify({
+                    ids,
+                    ambiente,
+                    documentoEmpresa: documentoEmpresaSesion() || undefined,
+                }),
             });
             el.envioBar.style.width = '90%';
             const data = await resp.json();
@@ -1013,6 +1022,109 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
             el.envioProgreso.classList.add('d-none');
             el.envioBarWrap.classList.add('d-none');
         }
+    }
+
+    async function abrirCredencialesIhce() {
+        const documentoEmpresa = documentoEmpresaSesion();
+        if (!documentoEmpresa) {
+            Swal.fire({
+                icon: 'warning',
+                text: 'Seleccione una empresa en el login (sesión) antes de configurar IHCE.',
+            });
+            return;
+        }
+        const ambienteUi = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
+        const resp = await fetch(
+            `${apiBase()}/apiV3/Rda/credenciales-ihce/${encodeURIComponent(documentoEmpresa)}`,
+            { headers: authHeaders() }
+        );
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            throw new Error(data.error || 'No se pudieron cargar las credenciales IHCE');
+        }
+        const actual = (ambienteUi === 'prod' ? data.prod : data.sandbox) || {};
+
+        const form = await Swal.fire({
+            title: 'Credenciales IHCE',
+            width: 640,
+            html: `
+              <div class="text-start small">
+                <p class="mb-2">Empresa: <strong>${documentoEmpresa}</strong> · Ambiente: <strong>${ambienteUi}</strong></p>
+                <label class="form-label">Base URL</label>
+                <input id="ihceBaseUrl" class="swal2-input" value="${String(actual.baseUrl || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Tenant Id</label>
+                <input id="ihceTenantId" class="swal2-input" value="${String(actual.tenantId || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Client Id</label>
+                <input id="ihceClientId" class="swal2-input" value="${String(actual.clientId || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Client Secret</label>
+                <input id="ihceClientSecret" class="swal2-input" type="password"
+                  placeholder="${actual.tieneClientSecret ? '•••••••• (vacío = no cambiar)' : 'Obligatorio'}">
+                <label class="form-label">Scope</label>
+                <input id="ihceScope" class="swal2-input" value="${String(actual.scope || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Subscription Key</label>
+                <input id="ihceSubKey" class="swal2-input" type="password"
+                  placeholder="${actual.tieneSubscriptionKey ? '•••••••• (vacío = no cambiar)' : 'Obligatorio'}">
+                <label class="form-label">Custodian REPS</label>
+                <input id="ihceReps" class="swal2-input" value="${String(actual.custodianReps || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Custodian NIT</label>
+                <input id="ihceNit" class="swal2-input" value="${String(actual.custodianNit || '').replace(/"/g, '&quot;')}">
+                <label class="form-label">Custodian Name</label>
+                <input id="ihceName" class="swal2-input" value="${String(actual.custodianName || '').replace(/"/g, '&quot;')}">
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            preConfirm: () => {
+                const baseUrl = document.getElementById('ihceBaseUrl')?.value?.trim();
+                const tenantId = document.getElementById('ihceTenantId')?.value?.trim();
+                const clientId = document.getElementById('ihceClientId')?.value?.trim();
+                const clientSecret = document.getElementById('ihceClientSecret')?.value || '';
+                const scope = document.getElementById('ihceScope')?.value?.trim();
+                const subscriptionKey = document.getElementById('ihceSubKey')?.value || '';
+                if (!baseUrl || !tenantId || !clientId || !scope) {
+                    Swal.showValidationMessage('Base URL, Tenant Id, Client Id y Scope son obligatorios');
+                    return false;
+                }
+                if (!clientSecret && !actual.tieneClientSecret) {
+                    Swal.showValidationMessage('Client Secret obligatorio la primera vez');
+                    return false;
+                }
+                if (!subscriptionKey && !actual.tieneSubscriptionKey) {
+                    Swal.showValidationMessage('Subscription Key obligatoria la primera vez');
+                    return false;
+                }
+                return {
+                    ambiente: ambienteUi,
+                    baseUrl,
+                    tenantId,
+                    clientId,
+                    clientSecret,
+                    scope,
+                    subscriptionKey,
+                    custodianReps: document.getElementById('ihceReps')?.value?.trim() || '',
+                    custodianNit: document.getElementById('ihceNit')?.value?.trim() || '',
+                    custodianName: document.getElementById('ihceName')?.value?.trim() || '',
+                };
+            },
+        });
+        if (!form.isConfirmed || !form.value) return;
+
+        const saveResp = await fetch(
+            `${apiBase()}/apiV3/Rda/credenciales-ihce/${encodeURIComponent(documentoEmpresa)}`,
+            {
+                method: 'PUT',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(form.value),
+            }
+        );
+        const saveData = await saveResp.json().catch(() => ({}));
+        if (!saveResp.ok) {
+            throw new Error(saveData.error || 'No se guardaron las credenciales');
+        }
+        Swal.fire({
+            icon: 'success',
+            text: `Credenciales IHCE ${ambienteUi} guardadas para ${documentoEmpresa}.`,
+        });
     }
 
     function init() {
@@ -1063,6 +1175,11 @@ import { extractIhceMessage, isIhceYaRegistradoMessage } from './rda/asignar/ihc
 
             el.btnBuscar.addEventListener('click', buscar);
             el.btnEnviar.addEventListener('click', enviarLote);
+            el.btnCredencialesIhce?.addEventListener('click', () => {
+                abrirCredencialesIhce().catch((e) => {
+                    Swal.fire({ icon: 'error', text: e.message || String(e) });
+                });
+            });
             el.selAmbiente.addEventListener('change', () => {
                 state.ambiente = el.selAmbiente.value === 'prod' ? 'prod' : 'sandbox';
                 cargarDashboard();

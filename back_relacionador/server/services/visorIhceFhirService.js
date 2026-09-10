@@ -1,15 +1,26 @@
 const { createIhceHttpsAgent } = require('./ihceVisorHttpsAgent');
 
 /**
- * Misma lógica que Visor/.../documentReference.js (FHIRService), con credenciales IHCE solo desde env.
+ * Misma lógica que Visor/.../documentReference.js (FHIRService), con credenciales IHCE desde BD.
  */
 class VisorIhceFhirService {
     /**
      * @param {'sandbox'|'prod'|'produccion'} ambiente
+     * @param {object} agent — resultado de createIhceHttpsAgent
      */
-    constructor(ambiente) {
-        this._agent = createIhceHttpsAgent(ambiente);
+    constructor(ambiente, agent) {
+        this._agent = agent;
         this.baseUrl = this._agent.creds.baseUrl;
+        this.ambiente = ambiente;
+    }
+
+    /**
+     * @param {'sandbox'|'prod'|'produccion'} ambiente
+     * @param {string} [documentoEmpresa]
+     */
+    static async create(ambiente, documentoEmpresa) {
+        const agent = await createIhceHttpsAgent(ambiente, documentoEmpresa);
+        return new VisorIhceFhirService(ambiente, agent);
     }
 
     async getToken() {

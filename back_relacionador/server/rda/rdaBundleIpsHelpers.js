@@ -1,17 +1,12 @@
 'use strict';
 
-const { loadDotEnvFromCandidates } = require('../config/envLoader');
+const {
+    getIhceCredentialsPublicas,
+    sanitizeEmpresa,
+} = require('../utils/ihceCredenciales');
 
 function str(v) {
     return v != null && String(v).trim() !== '' ? String(v).trim() : '';
-}
-
-function firstEnv(...keys) {
-    for (let i = 0; i < keys.length; i += 1) {
-        const v = process.env[keys[i]];
-        if (v != null && String(v).trim() !== '') return String(v).trim();
-    }
-    return '';
 }
 
 /** @returns {'sandbox'|'prod'} */
@@ -21,48 +16,68 @@ function normalizeIhceAmbiente(ambiente) {
 }
 
 /**
- * Lee prestador IPS desde variables IHCE_* del .env (sin tocar BD).
- * @param {'sandbox'|'prod'} ambiente
+ * @deprecated Ya no lee .env; usar resolvePrestadorForIhceAsync con documentoEmpresa.
  */
 function resolveIhcePrestadorFromEnv(ambiente) {
-    loadDotEnvFromCandidates();
     const amb = normalizeIhceAmbiente(ambiente);
-    const envPrefix = amb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
-    const reps = firstEnv(`${envPrefix}CUSTODIAN_REPS`, 'IHCE_RDACE_DEFAULT_CODIGO_PRESTADOR');
-    const nit = firstEnv(`${envPrefix}CUSTODIAN_NIT`, 'IHCE_RDACE_DEFAULT_NIT_IPS');
-    const name = firstEnv(`${envPrefix}CUSTODIAN_NAME`, 'IHCE_RDACE_DEFAULT_NOMBRE_IPS');
     return {
-        reps,
-        nit,
-        name,
-        envPrefix,
-        configured: Boolean(reps || nit || name),
+        reps: '',
+        nit: '',
+        name: '',
+        envPrefix: amb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_',
+        configured: false,
     };
 }
 
 /**
- * Prioridad: overrides del body > .env > BD.
+ * Prioridad: overrides del body > custodian BD (si viene en sources) > cabecera RDA.
  * @param {'sandbox'|'prod'} ambiente
  * @param {object} [sources]
  */
 function resolvePrestadorForIhce(ambiente, sources = {}) {
-    const env = resolveIhcePrestadorFromEnv(ambiente);
+    const amb = normalizeIhceAmbiente(ambiente);
     const reps =
         str(sources.overrideCodigoPrestador)
-        || env.reps
+        || str(sources.dbCustodianReps)
         || str(sources.codigoPrestador)
         || '';
     const nit =
         str(sources.overrideNitPrestadorIPS)
-        || env.nit
+        || str(sources.dbCustodianNit)
         || str(sources.nitPrestadorIPS)
         || '';
     const name =
         str(sources.overrideNombrePrestadorIPS)
-        || env.name
+        || str(sources.dbCustodianName)
         || str(sources.nombrePrestadorIPS)
         || '';
-    return { reps, nit, name, envPrefix: env.envPrefix };
+    return {
+        reps,
+        nit,
+        name,
+        envPrefix: amb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_',
+    };
+}
+
+/**
+ * Carga custodian desde CredencialesIhce y resuelve prestador.
+ */
+async function resolvePrestadorForIhceAsync(ambiente, sources = {}) {
+    const doc = sanitizeEmpresa(sources.documentoEmpresa);
+    const next = { ...sources };
+    if (doc) {
+        try {
+            const pub = await getIhceCredentialsPublicas(doc, ambiente);
+            if (pub) {
+                next.dbCustodianReps = pub.custodianReps || '';
+                next.dbCustodianNit = pub.custodianNit || '';
+                next.dbCustodianName = pub.custodianName || '';
+            }
+        } catch (_) {
+            /* noop */
+        }
+    }
+    return resolvePrestadorForIhce(ambiente, next);
 }
 
 /**
@@ -74,6 +89,23 @@ function mergePrestadorHeadFromEnv(head, ambiente, bodyOverrides = {}) {
         overrideCodigoPrestador: bodyOverrides.overrideCodigoPrestador,
         overrideNitPrestadorIPS: bodyOverrides.overrideNitPrestadorIPS,
         overrideNombrePrestadorIPS: bodyOverrides.overrideNombrePrestadorIPS,
+        dbCustodianReps: bodyOverrides.dbCustodianReps,
+        dbCustodianNit: bodyOverrides.dbCustodianNit,
+        dbCustodianName: bodyOverrides.dbCustodianName,
+        codigoPrestador: head.CodigoPrestador,
+        nitPrestadorIPS: head.NitPrestadorIPS,
+        nombrePrestadorIPS: head.NombrePrestadorIPS,
+    });
+    if (p.reps) head.CodigoPrestador = p.reps;
+    if (p.nit) head.NitPrestadorIPS = p.nit;
+    if (p.name) head.NombrePrestadorIPS = p.name;
+    return head;
+}
+
+async function mergePrestadorHeadFromDb(head, ambiente, bodyOverrides = {}) {
+    if (!head || typeof head !== 'object') return head;
+    const p = await resolvePrestadorForIhceAsync(ambiente, {
+        ...bodyOverrides,
         codigoPrestador: head.CodigoPrestador,
         nitPrestadorIPS: head.NitPrestadorIPS,
         nombrePrestadorIPS: head.NombrePrestadorIPS,
@@ -217,10 +249,16 @@ function applyPrestadorToBundle(bundle, prestador, opts = {}) {
 }
 
 /**
- * Aplica prestador resuelto (.env + overrides + BD) sobre el bundle.
+ * Aplica prestador resuelto (BD + overrides + cabecera) sobre el bundle.
  */
 function applyEnvCustodianIfConfigured(bundle, ambiente, bodyOverrides = {}, opts = {}) {
     const prestador = resolvePrestadorForIhce(ambiente, bodyOverrides);
+    if (!prestador.reps) return bundle;
+    return applyPrestadorToBundle(bundle, prestador, opts);
+}
+
+async function applyDbCustodianIfConfigured(bundle, ambiente, bodyOverrides = {}, opts = {}) {
+    const prestador = await resolvePrestadorForIhceAsync(ambiente, bodyOverrides);
     if (!prestador.reps) return bundle;
     return applyPrestadorToBundle(bundle, prestador, opts);
 }
@@ -229,8 +267,11 @@ module.exports = {
     normalizeIhceAmbiente,
     resolveIhcePrestadorFromEnv,
     resolvePrestadorForIhce,
+    resolvePrestadorForIhceAsync,
     mergePrestadorHeadFromEnv,
+    mergePrestadorHeadFromDb,
     syncCompositionAttesterWithCustodian,
     applyPrestadorToBundle,
     applyEnvCustodianIfConfigured,
+    applyDbCustodianIfConfigured,
 };

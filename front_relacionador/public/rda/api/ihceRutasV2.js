@@ -37,12 +37,19 @@ export function urlEnviarIhce(kind, ambienteUi) {
  */
 export function bodyEnviarIhce(kind, id, ambienteUi) {
     const amb = ambLogical(ambienteUi);
+    const documentoEmpresa = String(sessionStorage.getItem('empresaTrabajarExecuted') || '').trim();
     if (isRdaV2()) {
-        return kind === 'rdace' ? { IdEvaluacionEntidadRDACE: id } : { IdEvaluacionEntidadRDA: id };
+        const body =
+            kind === 'rdace' ? { IdEvaluacionEntidadRDACE: id } : { IdEvaluacionEntidadRDA: id };
+        if (documentoEmpresa) body.documentoEmpresa = documentoEmpresa;
+        return body;
     }
-    return kind === 'rdace'
-        ? { IdEvaluacionEntidadRDACE: id, ambiente: amb }
-        : { IdEvaluacionEntidadRDA: id, ambiente: amb };
+    const body =
+        kind === 'rdace'
+            ? { IdEvaluacionEntidadRDACE: id, ambiente: amb }
+            : { IdEvaluacionEntidadRDA: id, ambiente: amb };
+    if (documentoEmpresa) body.documentoEmpresa = documentoEmpresa;
+    return body;
 }
 
 /**
@@ -57,8 +64,11 @@ export function urlJsonEnviarPreview(kind) {
 }
 
 export function bodyJsonEnviarPreview(kind, id, ambiente) {
-    if (kind === 'rdace') {
-        return { IdEvaluacionEntidadRDACE: id, ambiente };
-    }
-    return { IdEvaluacionEntidadRDA: id, ambiente };
+    const documentoEmpresa = String(sessionStorage.getItem('empresaTrabajarExecuted') || '').trim();
+    const body =
+        kind === 'rdace'
+            ? { IdEvaluacionEntidadRDACE: id, ambiente }
+            : { IdEvaluacionEntidadRDA: id, ambiente };
+    if (documentoEmpresa) body.documentoEmpresa = documentoEmpresa;
+    return body;
 }

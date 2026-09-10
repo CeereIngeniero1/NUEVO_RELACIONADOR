@@ -1,93 +1,98 @@
 'use strict';
 
 const { URLSearchParams } = require('url');
+const {
+    getIhceCredentials,
+    normalizeAmbiente,
+    resolveDocumentoEmpresaFromRda,
+} = require('../utils/ihceCredenciales');
 
 /**
- * Resuelve credenciales IHCE (misma lógica que EnviarIHCE en RdaPaciente / RDACE).
+ * Resuelve credenciales IHCE desde BD.
  * @param {'sandbox'|'prod'} effectiveAmb
+ * @param {string} documentoEmpresa
  */
-function resolveIhceCreds(effectiveAmb) {
-    const envPrefix = effectiveAmb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
-
-    const firstEnv = (...keys) => {
-        for (let i = 0; i < keys.length; i += 1) {
-            const v = process.env[keys[i]];
-            if (v != null && String(v).trim() !== '') return String(v).trim();
-        }
-        return '';
+async function resolveIhceCreds(effectiveAmb, documentoEmpresa) {
+    const cred = await getIhceCredentials(documentoEmpresa, effectiveAmb);
+    return {
+        envPrefix: cred.envPrefix,
+        baseUrl: cred.baseUrl,
+        tenantId: cred.tenantId,
+        clientId: cred.clientId,
+        clientSecret: cred.clientSecret,
+        scope: cred.scope,
+        subscriptionKey: cred.subscriptionKey,
+        documentoEmpresa: cred.documentoEmpresa,
+        custodianReps: cred.custodianReps,
+        custodianNit: cred.custodianNit,
+        custodianName: cred.custodianName,
     };
-
-    let baseUrl;
-    let tenantId;
-    let clientId;
-    let clientSecret;
-    let scope;
-    let subscriptionKey;
-
-    if (envPrefix === 'IHCE_SANDBOX_') {
-        baseUrl = firstEnv('IHCE_SANDBOX_BASE_URL', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
-        tenantId = firstEnv('IHCE_SANDBOX_TENANT_ID', 'IHCE_TENANT_ID');
-        clientId = firstEnv('IHCE_SANDBOX_CLIENT_ID', 'IHCE_CLIENT_ID');
-        clientSecret = firstEnv('IHCE_SANDBOX_CLIENT_SECRET', 'IHCE_CLIENT_SECRET');
-        scope = firstEnv('IHCE_SANDBOX_SCOPE', 'IHCE_SCOPE');
-        subscriptionKey = firstEnv(
-            'IHCE_SANDBOX_SUBSCRIPTION_KEY',
-            'IHCE_APIM_SUBSCRIPTION_KEY',
-            'IHCE_SUBSCRIPTION_KEY',
-            'OCP_APIM_SUBSCRIPTION_KEY',
-        );
-    } else {
-        baseUrl = firstEnv('IHCE_PROD_BASE_URL', 'IHCE_API_BASE_URL_PROD');
-        tenantId = firstEnv('IHCE_PROD_TENANT_ID');
-        clientId = firstEnv('IHCE_PROD_CLIENT_ID');
-        clientSecret = firstEnv('IHCE_PROD_CLIENT_SECRET');
-        scope = firstEnv('IHCE_PROD_SCOPE');
-        subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
-    }
-
-    return { envPrefix, baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey };
 }
 
 /**
  * Objeto copiable para depuración: el token IHCE se pide como x-www-form-urlencoded, no JSON.
- * @param {'sandbox'|'prod'} effectiveAmb Ambiente ya normalizado (p. ej. el que usa RdaEnvioMasivo).
+ * @param {'sandbox'|'prod'} effectiveAmb
+ * @param {string} [documentoEmpresa]
  */
-function buildIhceTokenRequestDebug(effectiveAmb) {
-    const amb = effectiveAmb === 'prod' ? 'prod' : 'sandbox';
-    const { envPrefix, baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey } = resolveIhceCreds(amb);
+async function buildIhceTokenRequestDebug(effectiveAmb, documentoEmpresa) {
+    const amb = normalizeAmbiente(effectiveAmb);
+    let creds;
+    let resolveError = null;
+    try {
+        const doc =
+            documentoEmpresa
+            || (await resolveDocumentoEmpresaFromRda({
+                documentoEmpresaBody: process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA,
+            }));
+        creds = await resolveIhceCreds(amb, doc);
+    } catch (err) {
+        resolveError = err.message || String(err);
+        creds = {
+            envPrefix: amb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_',
+            baseUrl: '',
+            tenantId: '',
+            clientId: '',
+            clientSecret: '',
+            scope: '',
+            subscriptionKey: '',
+        };
+    }
 
     const missing = [
-        !tenantId && 'TENANT_ID',
-        !clientId && 'CLIENT_ID',
-        !clientSecret && 'CLIENT_SECRET',
-        !scope && 'SCOPE',
+        !creds.tenantId && 'TENANT_ID',
+        !creds.clientId && 'CLIENT_ID',
+        !creds.clientSecret && 'CLIENT_SECRET',
+        !creds.scope && 'SCOPE',
     ].filter(Boolean);
 
-    const tokenUrl = tenantId
-        ? `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`
+    const tokenUrl = creds.tenantId
+        ? `https://login.microsoftonline.com/${creds.tenantId}/oauth2/v2.0/token`
         : '';
 
     const bodyParams = {
         grant_type: 'client_credentials',
-        client_id: clientId || null,
-        client_secret: clientSecret ? '***REDACTADO***' : null,
-        scope: scope || null,
+        client_id: creds.clientId || null,
+        client_secret: creds.clientSecret ? '***REDACTADO***' : null,
+        scope: creds.scope || null,
     };
 
     const bodyUrlEncodedRedacted = new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: clientId || '',
-        client_secret: clientSecret ? '***REDACTADO***' : '',
-        scope: scope || '',
+        client_id: creds.clientId || '',
+        client_secret: creds.clientSecret ? '***REDACTADO***' : '',
+        scope: creds.scope || '',
     }).toString();
 
     return {
         descripcion: 'Solicitud OAuth2 client_credentials (Microsoft Entra) para token IHCE',
         ambienteEfectivo: amb,
-        envPrefix,
+        envPrefix: creds.envPrefix,
+        documentoEmpresa: creds.documentoEmpresa || documentoEmpresa || null,
+        fuente: 'CredencialesIhce (BD)',
+        resolveError,
         nota:
-            'El servidor envía application/x-www-form-urlencoded (no JSON). ' +
-            'Los campos equivalentes van en bodyParams y en bodyUrlEncodedRedacted (client_secret oculto).',
+            'El servidor envía application/x-www-form-urlencoded (no JSON). '
+            + 'Los campos equivalentes van en bodyParams y en bodyUrlEncodedRedacted (client_secret oculto).',
         method: 'POST',
         url: tokenUrl || null,
         headers: {
@@ -97,8 +102,8 @@ function buildIhceTokenRequestDebug(effectiveAmb) {
         bodyParams,
         bodyUrlEncodedRedacted: bodyUrlEncodedRedacted || null,
         faltanVariables: missing.length ? missing : null,
-        ihceApiBaseUrlResuelto: baseUrl || null,
-        subscriptionKeyPresente: Boolean(subscriptionKey && String(subscriptionKey).trim()),
+        ihceApiBaseUrlResuelto: creds.baseUrl || null,
+        subscriptionKeyPresente: Boolean(creds.subscriptionKey && String(creds.subscriptionKey).trim()),
         notaSubscriptionKey:
             'Ocp-Apim-Subscription-Key no se envía en esta petición de token; se usa en las llamadas FHIR posteriores.',
     };

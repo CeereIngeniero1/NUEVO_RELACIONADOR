@@ -302,6 +302,12 @@ router.get('/RdaEnvioMasivo/ce/pendientes', async (req, res) => {
 router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente((req.body || {}).ambiente);
+        const documentoEmpresa = String(
+            (req.body || {}).documentoEmpresa
+            || (req.body || {}).DocumentoEmpresa
+            || process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA
+            || ''
+        ).trim();
         const ids = Array.isArray((req.body || {}).ids) ? (req.body || {}).ids : [];
         const numeric = ids
             .map((x) => parseInt(x, 10))
@@ -317,7 +323,7 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
             });
         }
         loadDotEnvFromCandidates();
-        const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
+        const ihceTokenRequestDebug = await buildIhceTokenRequestDebug(ambiente, documentoEmpresa);
         const resultados = [];
         const v = rdaEnvioMasivoVersion();
         for (let i = 0; i < numeric.length; i += 1) {
@@ -328,11 +334,15 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
                     ambiente === 'prod'
                         ? '/RdaPacienteV2/EnviarIhceProduccionV2'
                         : '/RdaPacienteV2/EnviarIhceSandboxV2';
-                sendResp = await internalPostJson(path, { IdEvaluacionEntidadRDA: id });
+                sendResp = await internalPostJson(path, {
+                    IdEvaluacionEntidadRDA: id,
+                    ...(documentoEmpresa ? { documentoEmpresa } : {}),
+                });
             } else {
                 sendResp = await internalPostJson('/RdaPaciente/EnviarIHCE', {
                     IdEvaluacionEntidadRDA: id,
                     ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
+                    ...(documentoEmpresa ? { documentoEmpresa } : {}),
                 });
             }
             const ok = sendResp.status >= 200 && sendResp.status < 300;
@@ -370,6 +380,12 @@ router.post('/RdaEnvioMasivo/paciente/enviar', async (req, res) => {
 router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente((req.body || {}).ambiente);
+        const documentoEmpresa = String(
+            (req.body || {}).documentoEmpresa
+            || (req.body || {}).DocumentoEmpresa
+            || process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA
+            || ''
+        ).trim();
         const ids = Array.isArray((req.body || {}).ids) ? (req.body || {}).ids : [];
         const numeric = ids
             .map((x) => parseInt(x, 10))
@@ -385,7 +401,7 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
             });
         }
         loadDotEnvFromCandidates();
-        const ihceTokenRequestDebug = buildIhceTokenRequestDebug(ambiente);
+        const ihceTokenRequestDebug = await buildIhceTokenRequestDebug(ambiente, documentoEmpresa);
         const resultados = [];
         const v = rdaEnvioMasivoVersion();
         for (let i = 0; i < numeric.length; i += 1) {
@@ -396,11 +412,15 @@ router.post('/RdaEnvioMasivo/ce/enviar', async (req, res) => {
                     ambiente === 'prod'
                         ? '/RdaConsultaExterna/EnviarIhceProduccionV2'
                         : '/RdaConsultaExterna/EnviarIhceSandboxV2';
-                sendResp = await internalPostJson(path, { IdEvaluacionEntidadRDACE: id });
+                sendResp = await internalPostJson(path, {
+                    IdEvaluacionEntidadRDACE: id,
+                    ...(documentoEmpresa ? { documentoEmpresa } : {}),
+                });
             } else {
                 sendResp = await internalPostJson('/RdaConsultaExterna/EnviarIHCE', {
                     IdEvaluacionEntidadRDACE: id,
                     ambiente: ambiente === 'prod' ? 'prod' : 'sandbox',
+                    ...(documentoEmpresa ? { documentoEmpresa } : {}),
                 });
             }
             const ok = sendResp.status >= 200 && sendResp.status < 300;

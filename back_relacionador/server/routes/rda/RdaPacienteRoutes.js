@@ -20,7 +20,7 @@
 const Router      = require('express').Router;
 const { sql, poolPromise } = require('../../db2');
 const { solicitarTokenIhceShared } = require('../../rda/ihceInteropService');
-const { mergePrestadorHeadFromEnv, applyEnvCustodianIfConfigured, normalizeIhceAmbiente } = require('../../rda/rdaBundleIpsHelpers');
+const { mergePrestadorHeadFromEnv, applyEnvCustodianIfConfigured, applyDbCustodianIfConfigured, normalizeIhceAmbiente } = require('../../rda/rdaBundleIpsHelpers');
 const { resolveTipoAlergiaDisplay, normalizeTipoAlergiaCode, allergyTypeToCategory } = require('../../rda/tipoAlergiaCatalog');
 const {
     buildNationalPersonIdentifier,
@@ -1723,6 +1723,8 @@ router.post(
     const {
         IdEvaluacionEntidadRDA,
         ambiente,
+        documentoEmpresa: documentoEmpresaBody,
+        DocumentoEmpresa,
         overrideCodigoPrestador,
         overrideNitPrestadorIPS,
         overrideNombrePrestadorIPS,
@@ -1751,16 +1753,33 @@ router.post(
         ? 'prod'
         : 'sandbox';
     const effectiveAmb = forceProdOnly ? 'prod' : (forceSandboxOnly ? 'sandbox' : requestedAmb);
-    const envPrefix = effectiveAmb === 'prod' ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
 
-    /** Primer valor de entorno no vacío (trim). Orden importa. */
-    const firstEnv = (...keys) => {
-        for (let i = 0; i < keys.length; i += 1) {
-            const v = process.env[keys[i]];
-            if (v != null && String(v).trim() !== '') return String(v).trim();
+    const {
+        getIhceCredentials,
+        resolveDocumentoEmpresaFromRda,
+    } = require('../../utils/ihceCredenciales');
+    const { applyDbCustodianIfConfigured } = require('../../rda/rdaBundleIpsHelpers');
+
+    let documentoEmpresa = String(documentoEmpresaBody || DocumentoEmpresa || '').trim();
+    if (!documentoEmpresa) {
+        try {
+            const pool = await poolPromise;
+            const headQ = await pool.request().input('Id', sql.Int, id).query(`
+                SELECT TOP 1
+                    e.[Codigo Prestador] AS CodigoPrestador,
+                    e.[NIT Prestador IPS] AS NitPrestadorIPS
+                FROM [dbo].[Evaluacion Entidad RDA] e
+                WHERE e.[Id Evaluacion Entidad RDA] = @Id
+            `);
+            const h = headQ.recordset?.[0] || {};
+            documentoEmpresa = await resolveDocumentoEmpresaFromRda({
+                codigoPrestador: h.CodigoPrestador,
+                nitPrestador: h.NitPrestadorIPS,
+            });
+        } catch (_) {
+            /* noop */
         }
-        return '';
-    };
+    }
 
     let baseUrl;
     let tenantId;
@@ -1768,43 +1787,23 @@ router.post(
     let clientSecret;
     let scope;
     let subscriptionKey;
-    if (envPrefix === 'IHCE_SANDBOX_') {
-        baseUrl = firstEnv('IHCE_SANDBOX_BASE_URL', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
-        tenantId = firstEnv('IHCE_SANDBOX_TENANT_ID', 'IHCE_TENANT_ID');
-        clientId = firstEnv('IHCE_SANDBOX_CLIENT_ID', 'IHCE_CLIENT_ID');
-        clientSecret = firstEnv('IHCE_SANDBOX_CLIENT_SECRET', 'IHCE_CLIENT_SECRET');
-        scope = firstEnv('IHCE_SANDBOX_SCOPE', 'IHCE_SCOPE');
-        subscriptionKey = firstEnv(
-            'IHCE_SANDBOX_SUBSCRIPTION_KEY',
-            'IHCE_APIM_SUBSCRIPTION_KEY',
-            'IHCE_SUBSCRIPTION_KEY',
-            'OCP_APIM_SUBSCRIPTION_KEY',
-        );
-    } else {
-        baseUrl = firstEnv('IHCE_PROD_BASE_URL', 'IHCE_API_BASE_URL_PROD');
-        tenantId = firstEnv('IHCE_PROD_TENANT_ID');
-        clientId = firstEnv('IHCE_PROD_CLIENT_ID');
-        clientSecret = firstEnv('IHCE_PROD_CLIENT_SECRET');
-        scope = firstEnv('IHCE_PROD_SCOPE');
-        subscriptionKey = firstEnv('IHCE_PROD_SUBSCRIPTION_KEY', 'IHCE_APIM_SUBSCRIPTION_KEY_PROD');
-    }
-
-    const missing = [
-        !baseUrl && 'BASE_URL',
-        !tenantId && 'TENANT_ID',
-        !clientId && 'CLIENT_ID',
-        !clientSecret && 'CLIENT_SECRET',
-        !scope && 'SCOPE',
-        !subscriptionKey && 'SUBSCRIPTION_KEY',
-    ].filter(Boolean);
-    if (missing.length) {
-        const hint =
-            envPrefix === 'IHCE_SANDBOX_'
-                ? ' Sandbox: IHCE_SANDBOX_* o IHCE_API_BASE_URL, IHCE_TENANT_ID, IHCE_CLIENT_ID, IHCE_CLIENT_SECRET, IHCE_SCOPE, IHCE_APIM_SUBSCRIPTION_KEY.'
-                : ' Producción: IHCE_PROD_BASE_URL, IHCE_PROD_TENANT_ID, IHCE_PROD_CLIENT_ID, IHCE_PROD_CLIENT_SECRET, IHCE_PROD_SCOPE, IHCE_PROD_SUBSCRIPTION_KEY.';
-        return res.status(500).json({
+    let envPrefix;
+    let ihceCred;
+    try {
+        ihceCred = await getIhceCredentials(documentoEmpresa, effectiveAmb);
+        baseUrl = ihceCred.baseUrl;
+        tenantId = ihceCred.tenantId;
+        clientId = ihceCred.clientId;
+        clientSecret = ihceCred.clientSecret;
+        scope = ihceCred.scope;
+        subscriptionKey = ihceCred.subscriptionKey;
+        envPrefix = ihceCred.envPrefix;
+        documentoEmpresa = ihceCred.documentoEmpresa;
+    } catch (credErr) {
+        return res.status(credErr.status || 400).json({
             ok: false,
-            error: `Faltan variables de entorno IHCE (${missing.join(', ')}).${hint}`,
+            code: credErr.code || 'IHCE_CREDENCIALES',
+            error: credErr.message || String(credErr),
         });
     }
 
@@ -2173,10 +2172,14 @@ router.post(
             });
         }
 
-        applyEnvCustodianIfConfigured(bundle, effectiveAmb, {
+        applyDbCustodianIfConfigured(bundle, effectiveAmb, {
+            documentoEmpresa,
             overrideCodigoPrestador,
             overrideNitPrestadorIPS,
             overrideNombrePrestadorIPS,
+            dbCustodianReps: ihceCred.custodianReps,
+            dbCustodianNit: ihceCred.custodianNit,
+            dbCustodianName: ihceCred.custodianName,
         });
 
         // Modo preview: devolver exactamente el JSON que se enviaría a IHCE.
@@ -2197,7 +2200,7 @@ router.post(
         }
 
         // 2) Obtener token Entra (client_credentials) desde servicio compartido IHCE
-        const tokenOut = await solicitarTokenIhceShared(ambiente === 'prod' ? 'prod' : 'sandbox');
+        const tokenOut = await solicitarTokenIhceShared(effectiveAmb, documentoEmpresa);
         const accessToken = tokenOut.access_token;
         if (!accessToken) {
             return res.status(502).json({ ok: false, error: 'Token IHCE: respuesta sin access_token', details: tokenOut });

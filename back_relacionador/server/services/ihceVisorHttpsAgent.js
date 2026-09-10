@@ -53,11 +53,15 @@ function requestLikeFetch(urlString, options = {}) {
 
 /**
  * Agente compatible con el visor ESM: token OAuth2 y peticiones firmadas a IHCE.
- * Los parámetros clientId/clientSecret/subscriptionKey en las firmas del servicio FHIR se ignoran;
- * siempre se usan las variables de entorno del ambiente elegido.
+ * Credenciales desde CredencialesIhce (BD) vía resolveIhceEnv.
+ * @param {'sandbox'|'prod'|'produccion'} ambiente
+ * @param {string} [documentoEmpresa]
  */
-function createIhceHttpsAgent(ambiente) {
-    const creds = resolveIhceEnv(ambiente);
+async function createIhceHttpsAgent(ambiente, documentoEmpresa) {
+    const doc =
+        (documentoEmpresa != null && String(documentoEmpresa).trim())
+        || String(process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA || '').trim();
+    const creds = await resolveIhceEnv(ambiente, doc);
 
     return {
         creds,
@@ -70,7 +74,7 @@ function createIhceHttpsAgent(ambiente) {
                 !creds.scope && 'SCOPE',
             ].filter(Boolean);
             if (missing.length) {
-                throw new Error(`Faltan variables IHCE (${missing.join(', ')}) para el visor.`);
+                throw new Error(`Faltan credenciales IHCE en BD (${missing.join(', ')}) para el visor.`);
             }
 
             const tokenUrl = `https://login.microsoftonline.com/${creds.tenantId}/oauth2/v2.0/token`;
@@ -113,7 +117,7 @@ function createIhceHttpsAgent(ambiente) {
         async authenticatedRequest(url, token, _subscriptionKeyIgnored, options = {}) {
             const key = creds.subscriptionKey || _subscriptionKeyIgnored;
             if (!key) {
-                throw new Error('Falta SUBSCRIPTION_KEY en variables IHCE.');
+                throw new Error('Falta SUBSCRIPTION_KEY en CredencialesIhce.');
             }
             const defaultHeaders = {
                 Authorization: `Bearer ${token}`,
@@ -138,7 +142,7 @@ function createIhceHttpsAgent(ambiente) {
         async authenticatedRequestPOST(url, token, _subscriptionKeyIgnored, bodyObj) {
             const key = creds.subscriptionKey || _subscriptionKeyIgnored;
             if (!key) {
-                throw new Error('Falta SUBSCRIPTION_KEY en variables IHCE.');
+                throw new Error('Falta SUBSCRIPTION_KEY en CredencialesIhce.');
             }
             const body = JSON.stringify(bodyObj);
             return requestLikeFetch(url, {

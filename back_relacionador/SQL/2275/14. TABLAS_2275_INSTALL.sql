@@ -23,6 +23,7 @@
     - 8. Facturador.sql
     - 9. CredencialesSisproFevRips.sql
     - 11. Tabla_Rips_2275.sql
+    - 19. CredencialesIhce.sql
 ==============================================================================
 */
 
@@ -270,6 +271,35 @@ BEGIN
     CREATE UNIQUE INDEX UX_CredencialesSisproFevRips_Empresa
         ON dbo.CredencialesSisproFevRips ([Documento Empresa]);
     PRINT N'Tabla CredencialesSisproFevRips creada.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'CredencialesIhce' AND schema_id = SCHEMA_ID(N'dbo'))
+BEGIN
+    CREATE TABLE dbo.CredencialesIhce (
+        [Id Credenciales Ihce] INT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_CredencialesIhce PRIMARY KEY,
+        [Documento Empresa] NVARCHAR(50) NOT NULL,
+        [Ambiente] NVARCHAR(20) NOT NULL,
+        [Base Url] NVARCHAR(300) NULL,
+        [Tenant Id] NVARCHAR(100) NULL,
+        [Client Id] NVARCHAR(100) NULL,
+        [Client Secret] NVARCHAR(500) NULL,
+        [Scope] NVARCHAR(300) NULL,
+        [Subscription Key] NVARCHAR(200) NULL,
+        [Custodian Reps] NVARCHAR(50) NULL,
+        [Custodian Nit] NVARCHAR(50) NULL,
+        [Custodian Name] NVARCHAR(200) NULL,
+        [Activo] BIT NOT NULL
+            CONSTRAINT DF_CredencialesIhce_Activo DEFAULT (1),
+        [Fecha Actualizacion] DATETIME2 NOT NULL
+            CONSTRAINT DF_CredencialesIhce_Fecha DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT CK_CredencialesIhce_Ambiente
+            CHECK ([Ambiente] IN (N'sandbox', N'prod'))
+    );
+    CREATE UNIQUE INDEX UX_CredencialesIhce_Empresa_Ambiente
+        ON dbo.CredencialesIhce ([Documento Empresa], [Ambiente]);
+    PRINT N'Tabla CredencialesIhce creada.';
 END
 GO
 

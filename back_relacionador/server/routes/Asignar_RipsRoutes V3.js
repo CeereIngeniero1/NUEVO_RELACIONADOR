@@ -98,7 +98,8 @@ class ICD11_API {
         }
     }
 
-    resolveIhceConfig() {
+    async resolveIhceConfig() {
+        const { getIhceCredentials, getFirstIhceDocumentoEmpresa } = require('../utils/ihceCredenciales');
         const firstEnv = (...keys) => {
             for (const k of keys) {
                 const v = process.env[k];
@@ -108,29 +109,49 @@ class ICD11_API {
         };
         // CIE-11 catálogo: forzado a PRODUCCIÓN (sin fallback a sandbox).
         const preferProd = true;
-        const prefix = 'IHCE_PROD_';
+        const documentoEmpresa =
+            firstEnv('IHCE_ICD11_DOCUMENTO_EMPRESA', 'IHCE_DEFAULT_DOCUMENTO_EMPRESA')
+            || (await getFirstIhceDocumentoEmpresa('prod'));
 
-        const baseUrl = firstEnv(`${prefix}BASE_URL`, 'IHCE_API_BASE_URL_PROD', 'IHCE_API_BASE_URL', 'IHCE_BASE_URL');
-        const tenantId = firstEnv(`${prefix}TENANT_ID`, 'IHCE_TENANT_ID');
-        const clientId = firstEnv(`${prefix}CLIENT_ID`, 'IHCE_CLIENT_ID');
-        const clientSecret = firstEnv(`${prefix}CLIENT_SECRET`, 'IHCE_CLIENT_SECRET');
-        const scope = firstEnv(`${prefix}SCOPE`, 'IHCE_SCOPE');
-        const subscriptionKey = firstEnv(
-            `${prefix}SUBSCRIPTION_KEY`,
-            'IHCE_APIM_SUBSCRIPTION_KEY_PROD',
-            'IHCE_APIM_SUBSCRIPTION_KEY',
-            'IHCE_SUBSCRIPTION_KEY',
-            'OCP_APIM_SUBSCRIPTION_KEY'
-        );
+        let cred = null;
+        try {
+            cred = await getIhceCredentials(documentoEmpresa, 'prod');
+        } catch (err) {
+            this.lastIhceError = err.message || String(err);
+            return {
+                baseUrl: '',
+                tenantId: '',
+                clientId: '',
+                clientSecret: '',
+                scope: '',
+                subscriptionKey: '',
+                codeSystem: firstEnv('IHCE_ICD11_CODESYSTEM') || 'ICD11Codes',
+                preferProd,
+                documentoEmpresa: documentoEmpresa || '',
+                resolveError: err.message || String(err),
+            };
+        }
+
         const codeSystem = firstEnv('IHCE_ICD11_CODESYSTEM') || 'ICD11Codes';
-        return { baseUrl, tenantId, clientId, clientSecret, scope, subscriptionKey, codeSystem, preferProd };
+        return {
+            baseUrl: cred.baseUrl,
+            tenantId: cred.tenantId,
+            clientId: cred.clientId,
+            clientSecret: cred.clientSecret,
+            scope: cred.scope,
+            subscriptionKey: cred.subscriptionKey,
+            codeSystem,
+            preferProd,
+            documentoEmpresa: cred.documentoEmpresa,
+        };
     }
 
     async getIhceAccessToken() {
         if (this.ihceToken && Date.now() < this.ihceTokenExpiry) return this.ihceToken;
-        const cfg = this.resolveIhceConfig();
+        const cfg = await this.resolveIhceConfig();
         if (!cfg.tenantId || !cfg.clientId || !cfg.clientSecret || !cfg.scope) {
-            this.lastIhceError = 'Faltan credenciales OAuth2 IHCE en variables de entorno.';
+            this.lastIhceError = cfg.resolveError
+                || 'Faltan credenciales OAuth2 IHCE en CredencialesIhce (prod).';
             return null;
         }
         const authUrl = `https://login.microsoftonline.com/${cfg.tenantId}/oauth2/v2.0/token`;
@@ -187,9 +208,10 @@ class ICD11_API {
         if (!forceRefresh && this.ihceCatalogCache && now < this.ihceCatalogExpiry) {
             return this.ihceCatalogCache;
         }
-        const cfg = this.resolveIhceConfig();
+        const cfg = await this.resolveIhceConfig();
         if (!cfg.baseUrl || !cfg.subscriptionKey) {
-            this.lastIhceError = 'Faltan BASE_URL o SUBSCRIPTION_KEY para IHCE.';
+            this.lastIhceError = cfg.resolveError
+                || 'Faltan BASE_URL o SUBSCRIPTION_KEY para IHCE en CredencialesIhce (prod).';
             return null;
         }
         const token = await this.getIhceAccessToken();
@@ -3800,5 +3822,6 @@ router.use(require('./rda/RdaConsultaExternaRoutesv2'));
 // --- Envío masivo RDA pendientes (listado + lotes vía EnviarIHCE) ---
 router.use(require('./rda/RdaEnvioMasivoRoutes'));
 router.use(require('./rda/RdaEdicionRoutes'));
+router.use(require('./rda/RdaCredencialesIhceRoutes'));
 
 module.exports = router;

@@ -2,8 +2,7 @@
 
 const https = require('https');
 const { URL, URLSearchParams } = require('url');
-const { resolveIhceCreds } = require('../services/ihceTokenDebug');
-const { resolvePrestadorForIhce } = require('./rdaBundleIpsHelpers');
+const { resolvePrestadorForIhce, resolvePrestadorForIhceAsync } = require('./rdaBundleIpsHelpers');
 
 function str(v) {
     return v != null && String(v).trim() !== '' ? String(v).trim() : '';
@@ -136,8 +135,9 @@ function buildConsultarProfesionalParametersPayload(tipoDocumento, numeroDocumen
     return { resourceType: 'Parameters', parameter };
 }
 
-function buildConsultarOrganizacionParameters(ambiente, body = {}) {
+function buildConsultarOrganizacionParameters(ambiente, body = {}, documentoEmpresa = '') {
     const b = body && typeof body === 'object' ? body : {};
+    // Sync path: custodian debe venir en body o se resuelve en el caller async.
     const p = resolvePrestadorForIhce(ambiente, {
         overrideCodigoPrestador:
             b.HealthcareProviderIdentifier ?? b.reps ?? b.codigoPrestador ?? b.CodigoPrestador ?? b.overrideCodigoPrestador,
@@ -145,6 +145,10 @@ function buildConsultarOrganizacionParameters(ambiente, body = {}) {
             b.TaxIdentifier ?? b.taxId ?? b.nit ?? b.NitPrestadorIPS ?? b.overrideNitPrestadorIPS,
         overrideNombrePrestadorIPS:
             b.name ?? b.nombre ?? b.NombrePrestadorIPS ?? b.overrideNombrePrestadorIPS,
+        dbCustodianReps: b.dbCustodianReps,
+        dbCustodianNit: b.dbCustodianNit,
+        dbCustodianName: b.dbCustodianName,
+        documentoEmpresa,
     });
     const taxId = p.nit;
     const reps = p.reps;
@@ -152,7 +156,7 @@ function buildConsultarOrganizacionParameters(ambiente, body = {}) {
     if (!taxId && !reps && !name) {
         const err = new Error(
             'Envíe en el body al menos uno de: TaxIdentifier/nit, HealthcareProviderIdentifier/reps/codigoPrestador, name/nombre; '
-            + 'o defina IHCE_*_CUSTODIAN_* / IHCE_RDACE_DEFAULT_* en .env.',
+            + 'o configure Custodian* en CredencialesIhce para la empresa.',
         );
         err.code = 'ORG_PARAMETROS_INCOMPLETOS';
         err.status = 400;
@@ -172,8 +176,16 @@ function buildConsultarOrganizacionParameters(ambiente, body = {}) {
     };
 }
 
-async function solicitarTokenIhceShared(ambiente) {
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
+async function solicitarTokenIhceShared(ambiente, documentoEmpresa) {
+    const { resolveIhceCreds } = require('../services/ihceTokenDebug');
+    const { resolveDocumentoEmpresaFromRda } = require('../utils/ihceCredenciales');
+    const amb = ambiente === 'prod' ? 'prod' : 'sandbox';
+    const doc =
+        documentoEmpresa
+        || (await resolveDocumentoEmpresaFromRda({
+            documentoEmpresaBody: process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA,
+        }));
+    const creds = await resolveIhceCreds(amb, doc);
     const missing = [
         !creds.tenantId && 'TENANT_ID',
         !creds.clientId && 'CLIENT_ID',
@@ -181,7 +193,9 @@ async function solicitarTokenIhceShared(ambiente) {
         !creds.scope && 'SCOPE',
     ].filter(Boolean);
     if (missing.length) {
-        const err = new Error(`Faltan variables en .env: ${missing.join(', ')}`);
+        const err = new Error(
+            `Faltan credenciales IHCE en BD (${doc || '?'} / ${amb}): ${missing.join(', ')}`
+        );
         err.code = 'IHCE_ENV_INCOMPLETO';
         err.status = 400;
         throw err;
@@ -197,13 +211,19 @@ async function solicitarTokenIhceShared(ambiente) {
     const parsed = JSON.parse(resp.body || '{}');
     if (resp.status < 200 || resp.status >= 300) {
         const err = new Error(parsed.error_description || parsed.error || `Token HTTP ${resp.status}`);
-        err.code = 'TOKEN_IHCE_ERROR';
-        err.status = resp.status >= 400 && resp.status < 600 ? resp.status : 502;
+        err.status = 502;
         err.details = parsed;
         throw err;
     }
     return {
-        ambiente: ambiente === 'prod' ? 'produccion' : 'sandbox',
+        ...parsed,
+        _meta: {
+            ambiente: amb,
+            documentoEmpresa: creds.documentoEmpresa,
+            baseUrl: creds.baseUrl,
+            subscriptionKey: creds.subscriptionKey,
+        },
+        ambiente: amb === 'prod' ? 'produccion' : 'sandbox',
         env_prefix: creds.envPrefix,
         token_url: tokenUrl,
         ihce_base_url: creds.baseUrl || null,
@@ -227,16 +247,18 @@ async function ihceConsultarProfesionalSaludShared(ambiente, body) {
         err.status = 400;
         throw err;
     }
-    const tokenOut = await solicitarTokenIhceShared(ambiente);
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
-    if (!str(creds.baseUrl) || !str(creds.subscriptionKey)) {
-        const err = new Error('Falta BASE_URL o SUBSCRIPTION_KEY IHCE.');
+    const docEmp = body.documentoEmpresa || body.DocumentoEmpresa || '';
+    const tokenOut = await solicitarTokenIhceShared(ambiente, docEmp);
+    const baseUrl = tokenOut._meta?.baseUrl || '';
+    const subscriptionKey = tokenOut._meta?.subscriptionKey || '';
+    if (!str(baseUrl) || !str(subscriptionKey)) {
+        const err = new Error('Falta BASE_URL o SUBSCRIPTION_KEY IHCE en CredencialesIhce.');
         err.code = 'IHCE_CONFIG_INCOMPLETA';
         err.status = 400;
         throw err;
     }
-    const opUrl = `${String(creds.baseUrl).replace(/\/$/, '')}/Practitioner/$consultar-profesional-salud`;
-    const ihceResp = await httpsPostFhirJson(opUrl, tokenOut.access_token, creds.subscriptionKey, payload);
+    const opUrl = `${String(baseUrl).replace(/\/$/, '')}/Practitioner/$consultar-profesional-salud`;
+    const ihceResp = await httpsPostFhirJson(opUrl, tokenOut.access_token, subscriptionKey, payload);
     let parsedBody;
     try { parsedBody = ihceResp.body ? JSON.parse(ihceResp.body) : null; } catch (_) { parsedBody = { raw: ihceResp.body }; }
     return {
@@ -250,17 +272,36 @@ async function ihceConsultarProfesionalSaludShared(ambiente, body) {
 }
 
 async function ihceConsultarOrganizacionShared(ambiente, body = {}) {
-    const { payload, env_usado } = buildConsultarOrganizacionParameters(ambiente, body);
-    const tokenOut = await solicitarTokenIhceShared(ambiente);
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
-    if (!str(creds.baseUrl) || !str(creds.subscriptionKey)) {
-        const err = new Error('Falta BASE_URL o SUBSCRIPTION_KEY IHCE.');
+    const docEmp = body.documentoEmpresa || body.DocumentoEmpresa || '';
+    const prestador = await resolvePrestadorForIhceAsync(ambiente, {
+        documentoEmpresa: docEmp,
+        overrideCodigoPrestador:
+            body.HealthcareProviderIdentifier ?? body.reps ?? body.codigoPrestador ?? body.CodigoPrestador ?? body.overrideCodigoPrestador,
+        overrideNitPrestadorIPS:
+            body.TaxIdentifier ?? body.taxId ?? body.nit ?? body.NitPrestadorIPS ?? body.overrideNitPrestadorIPS,
+        overrideNombrePrestadorIPS:
+            body.name ?? body.nombre ?? body.NombrePrestadorIPS ?? body.overrideNombrePrestadorIPS,
+    });
+    const { payload, env_usado } = buildConsultarOrganizacionParameters(ambiente, {
+        ...body,
+        dbCustodianReps: prestador.reps,
+        dbCustodianNit: prestador.nit,
+        dbCustodianName: prestador.name,
+        HealthcareProviderIdentifier: prestador.reps || body.HealthcareProviderIdentifier,
+        TaxIdentifier: prestador.nit || body.TaxIdentifier,
+        name: prestador.name || body.name,
+    }, docEmp);
+    const tokenOut = await solicitarTokenIhceShared(ambiente, docEmp);
+    const baseUrl = tokenOut._meta?.baseUrl || '';
+    const subscriptionKey = tokenOut._meta?.subscriptionKey || '';
+    if (!str(baseUrl) || !str(subscriptionKey)) {
+        const err = new Error('Falta BASE_URL o SUBSCRIPTION_KEY IHCE en CredencialesIhce.');
         err.code = 'IHCE_CONFIG_INCOMPLETA';
         err.status = 400;
         throw err;
     }
-    const opUrl = `${String(creds.baseUrl).replace(/\/$/, '')}/Organization/$consultar-organizacion`;
-    const ihceResp = await httpsPostFhirJson(opUrl, tokenOut.access_token, creds.subscriptionKey, payload);
+    const opUrl = `${String(baseUrl).replace(/\/$/, '')}/Organization/$consultar-organizacion`;
+    const ihceResp = await httpsPostFhirJson(opUrl, tokenOut.access_token, subscriptionKey, payload);
     let parsedBody;
     try { parsedBody = ihceResp.body ? JSON.parse(ihceResp.body) : null; } catch (_) { parsedBody = { raw: ihceResp.body }; }
     return {

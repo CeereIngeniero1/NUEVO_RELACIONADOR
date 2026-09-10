@@ -160,22 +160,26 @@ function buildConsultarProfesionalParametersPayload(tipoDocumento, numeroDocumen
     return { resourceType: 'Parameters', parameter };
 }
 
-function buildConsultarOrganizacionParametersFromEnv(ambiente) {
-    const prod = ambiente === 'prod';
-    const pfx = prod ? 'IHCE_PROD_' : 'IHCE_SANDBOX_';
-    let taxId = firstEnvKey(`${pfx}CUSTODIAN_NIT`, 'IHCE_RDACE_DEFAULT_NIT_IPS');
-    let reps = firstEnvKey(`${pfx}CUSTODIAN_REPS`, 'IHCE_RDACE_DEFAULT_CODIGO_PRESTADOR');
-    let name = firstEnvKey(`${pfx}CUSTODIAN_NAME`, 'IHCE_RDACE_DEFAULT_NOMBRE_IPS');
+function resolveDocumentoEmpresaFromBody(body = {}) {
+    return str(
+        body.documentoEmpresa
+        || body.DocumentoEmpresa
+        || process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA
+    );
+}
 
-    if (prod) {
-        if (!taxId) taxId = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_NIT');
-        if (!reps) reps = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_REPS');
-        if (!name) name = firstEnvKey('IHCE_SANDBOX_CUSTODIAN_NAME');
-    }
+async function buildConsultarOrganizacionParametersFromDb(ambiente, documentoEmpresa) {
+    const amb = ambiente === 'prod' ? 'prod' : 'sandbox';
+    const doc = resolveDocumentoEmpresaFromBody({ documentoEmpresa });
+    const creds = await resolveIhceCreds(amb, doc);
+    let taxId = str(creds.custodianNit) || firstEnvKey('IHCE_RDACE_DEFAULT_NIT_IPS');
+    let reps = str(creds.custodianReps) || firstEnvKey('IHCE_RDACE_DEFAULT_CODIGO_PRESTADOR');
+    let name = str(creds.custodianName) || firstEnvKey('IHCE_RDACE_DEFAULT_NOMBRE_IPS');
 
     if (!taxId && !reps && !name) {
         const err = new Error(
-            `Defina al menos uno en .env: ${pfx}CUSTODIAN_NIT, ${pfx}CUSTODIAN_REPS o ${pfx}CUSTODIAN_NAME`
+            `Defina custodian en CredencialesIhce (${creds.documentoEmpresa || doc || '?'} / ${amb}) `
+            + 'o IHCE_RDACE_DEFAULT_NIT_IPS / CODIGO_PRESTADOR / NOMBRE_IPS'
         );
         err.code = 'ORG_ENV_INCOMPLETO';
         err.status = 400;
@@ -193,12 +197,15 @@ function buildConsultarOrganizacionParametersFromEnv(ambiente) {
             TaxIdentifier: taxId || null,
             HealthcareProviderIdentifier: reps || null,
             name: name || null,
+            documentoEmpresa: creds.documentoEmpresa || doc || null,
         },
     };
 }
 
-async function solicitarTokenIhce(ambiente) {
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
+async function solicitarTokenIhce(ambiente, documentoEmpresa) {
+    const amb = ambiente === 'prod' ? 'prod' : 'sandbox';
+    const doc = resolveDocumentoEmpresaFromBody({ documentoEmpresa });
+    const creds = await resolveIhceCreds(amb, doc);
     const missing = [
         !creds.tenantId && 'TENANT_ID',
         !creds.clientId && 'CLIENT_ID',
@@ -206,7 +213,7 @@ async function solicitarTokenIhce(ambiente) {
         !creds.scope && 'SCOPE',
     ].filter(Boolean);
     if (missing.length) {
-        const err = new Error(`Faltan variables en .env: ${missing.join(', ')}`);
+        const err = new Error(`Faltan credenciales IHCE en BD (${doc || '?'} / ${amb}): ${missing.join(', ')}`);
         err.code = 'IHCE_ENV_INCOMPLETO';
         err.status = 400;
         throw err;
@@ -243,6 +250,7 @@ async function solicitarTokenIhce(ambiente) {
     return {
         ambiente: ambiente === 'prod' ? 'produccion' : 'sandbox',
         env_prefix: creds.envPrefix,
+        documentoEmpresa: creds.documentoEmpresa || doc || null,
         token_url: tokenUrl,
         ihce_base_url: creds.baseUrl || null,
         subscription_key_configurada: Boolean(creds.subscriptionKey && str(creds.subscriptionKey)),
@@ -251,6 +259,11 @@ async function solicitarTokenIhce(ambiente) {
         ext_expires_in: parsed.ext_expires_in != null ? parsed.ext_expires_in : null,
         access_token: parsed.access_token || null,
         scope_respuesta: parsed.scope || null,
+        _meta: {
+            baseUrl: creds.baseUrl,
+            subscriptionKey: creds.subscriptionKey,
+            documentoEmpresa: creds.documentoEmpresa || doc || null,
+        },
     };
 }
 
@@ -259,6 +272,7 @@ async function ihceConsultarProfesionalSalud(ambiente, body) {
     const numero = body.numeroDocumentoProfesional ?? body.numeroDocumento ?? body.documentoProfesional ?? body.documento ?? body.numDocProfesional ?? body.numero;
     const humanuser = body.humanuser ?? body.humanUser ?? null;
     const payload = buildConsultarProfesionalParametersPayload(tipo, numero, humanuser);
+    const documentoEmpresa = resolveDocumentoEmpresaFromBody(body);
 
     if (!payload) {
         const err = new Error('Se requiere tipo y número de documento del profesional.');
@@ -267,22 +281,23 @@ async function ihceConsultarProfesionalSalud(ambiente, body) {
         throw err;
     }
 
-    const tokenOut = await solicitarTokenIhce(ambiente === 'prod' ? 'prod' : 'sandbox');
+    const amb = ambiente === 'prod' ? 'prod' : 'sandbox';
+    const tokenOut = await solicitarTokenIhce(amb, documentoEmpresa);
     if (!tokenOut.access_token) {
         const err = new Error('No se obtuvo access_token');
         err.status = 502;
         throw err;
     }
 
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
+    const creds = await resolveIhceCreds(amb, documentoEmpresa);
     if (!str(creds.baseUrl)) {
-        const err = new Error('Falta IHCE_*_BASE_URL en .env.');
+        const err = new Error('Falta BASE_URL IHCE en CredencialesIhce.');
         err.code = 'IHCE_BASE_URL_FALTANTE';
         err.status = 400;
         throw err;
     }
     if (!str(creds.subscriptionKey)) {
-        const err = new Error('Falta SUBSCRIPTION_KEY IHCE en .env.');
+        const err = new Error('Falta SUBSCRIPTION_KEY IHCE en CredencialesIhce.');
         err.code = 'IHCE_SUBSCRIPTION_KEY_FALTANTE';
         err.status = 400;
         throw err;
@@ -308,24 +323,26 @@ async function ihceConsultarProfesionalSalud(ambiente, body) {
     };
 }
 
-async function ihceConsultarOrganizacion(ambiente) {
-    const { payload, env_usado } = buildConsultarOrganizacionParametersFromEnv(ambiente);
-    const tokenOut = await solicitarTokenIhce(ambiente === 'prod' ? 'prod' : 'sandbox');
+async function ihceConsultarOrganizacion(ambiente, body = {}) {
+    const documentoEmpresa = resolveDocumentoEmpresaFromBody(body);
+    const { payload, env_usado } = await buildConsultarOrganizacionParametersFromDb(ambiente, documentoEmpresa);
+    const amb = ambiente === 'prod' ? 'prod' : 'sandbox';
+    const tokenOut = await solicitarTokenIhce(amb, documentoEmpresa);
     if (!tokenOut.access_token) {
         const err = new Error('No se obtuvo access_token');
         err.status = 502;
         throw err;
     }
 
-    const creds = resolveIhceCreds(ambiente === 'prod' ? 'prod' : 'sandbox');
+    const creds = await resolveIhceCreds(amb, documentoEmpresa);
     if (!str(creds.baseUrl)) {
-        const err = new Error('Falta IHCE_*_BASE_URL en .env.');
+        const err = new Error('Falta BASE_URL IHCE en CredencialesIhce.');
         err.code = 'IHCE_BASE_URL_FALTANTE';
         err.status = 400;
         throw err;
     }
     if (!str(creds.subscriptionKey)) {
-        const err = new Error('Falta SUBSCRIPTION_KEY IHCE en .env.');
+        const err = new Error('Falta SUBSCRIPTION_KEY IHCE en CredencialesIhce.');
         err.code = 'IHCE_SUBSCRIPTION_KEY_FALTANTE';
         err.status = 400;
         throw err;
@@ -2061,17 +2078,18 @@ async function enviarIhceDesdeV2(req, res, ambiente) {
             });
         }
 
-        const tokenOut = await solicitarTokenIhceShared(isProd ? 'prod' : 'sandbox');
+        const documentoEmpresa = resolveDocumentoEmpresaFromBody(req.body || {});
+        const tokenOut = await solicitarTokenIhceShared(isProd ? 'prod' : 'sandbox', documentoEmpresa);
         if (!tokenOut.access_token) {
             return res.status(502).json({ ok: false, error: 'No se obtuvo access_token' });
         }
 
-        const creds = resolveIhceCreds(isProd ? 'prod' : 'sandbox');
+        const creds = await resolveIhceCreds(isProd ? 'prod' : 'sandbox', documentoEmpresa);
         if (!str(creds.baseUrl)) {
-            return res.status(400).json({ ok: false, error: 'Falta IHCE_*_BASE_URL en .env.' });
+            return res.status(400).json({ ok: false, error: 'Falta BASE_URL IHCE en CredencialesIhce.' });
         }
         if (!str(creds.subscriptionKey)) {
-            return res.status(400).json({ ok: false, error: 'Falta SUBSCRIPTION_KEY IHCE en .env.' });
+            return res.status(400).json({ ok: false, error: 'Falta SUBSCRIPTION_KEY IHCE en CredencialesIhce.' });
         }
 
         const sendUrl = `${String(creds.baseUrl).replace(/\/$/, '')}/Composition/$enviar-rda-consulta`;
@@ -2121,7 +2139,7 @@ router.post('/RdaConsultaExterna/IhceToken/sandbox', async (req, res) => {
                 error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite solicitar token de sandbox desde este endpoint.',
             });
         }
-        const out = await solicitarTokenIhceShared('sandbox');
+        const out = await solicitarTokenIhceShared('sandbox', resolveDocumentoEmpresaFromBody(req.body || {}));
         if (!out.access_token) {
             return res.status(502).json({ ok: false, error: 'Respuesta sin access_token', details: out });
         }
@@ -2147,7 +2165,7 @@ router.post('/RdaConsultaExterna/IhceToken/produccion', async (req, res) => {
                 error: 'IHCE_FORCE_SANDBOX_ONLY está activo: no se permite solicitar token de producción desde este endpoint.',
             });
         }
-        const out = await solicitarTokenIhceShared('prod');
+        const out = await solicitarTokenIhceShared('prod', resolveDocumentoEmpresaFromBody(req.body || {}));
         if (!out.access_token) {
             return res.status(502).json({ ok: false, error: 'Respuesta sin access_token', details: out });
         }
@@ -2217,7 +2235,7 @@ router.post('/RdaConsultaExterna/IhceConsultarOrganizacion/sandbox', async (req,
                 error: 'IHCE_FORCE_PROD_ONLY está activo: no se permite consultar organización en sandbox desde este endpoint.',
             });
         }
-        const out = await ihceConsultarOrganizacionShared('sandbox');
+        const out = await ihceConsultarOrganizacionShared('sandbox', req.body || {});
         return res.status(out.status > 0 ? out.status : 502).json(out);
     } catch (e) {
         return res.status(e.status || 500).json({
@@ -2239,7 +2257,7 @@ async function handleIhceConsultarOrganizacionProduccion(req, res) {
                 error: 'IHCE_FORCE_SANDBOX_ONLY está activo: no se permite consultar organización en producción desde este endpoint.',
             });
         }
-        const out = await ihceConsultarOrganizacionShared('prod');
+        const out = await ihceConsultarOrganizacionShared('prod', req.body || {});
         return res.status(out.status > 0 ? out.status : 502).json(out);
     } catch (e) {
         return res.status(e.status || 500).json({

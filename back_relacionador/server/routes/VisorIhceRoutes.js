@@ -17,17 +17,24 @@ function normalizeAmbiente(body, query) {
     return resolveIhceDefaultAmbiente();
 }
 
+function resolveDocumentoEmpresa(body, query) {
+    const fromReq =
+        (body && (body.documentoEmpresa || body.DocumentoEmpresa))
+        || (query && (query.documentoEmpresa || query.DocumentoEmpresa));
+    return String(fromReq || process.env.IHCE_DEFAULT_DOCUMENTO_EMPRESA || '').trim();
+}
+
 function assertIhceBase(creds) {
     if (!creds.baseUrl) {
         const err = new Error(
-            'Falta configuración IHCE (BASE_URL). Defina IHCE_SANDBOX_BASE_URL o IHCE_API_BASE_URL, etc.',
+            'Falta configuración IHCE (BASE_URL) en CredencialesIhce.',
         );
         err.status = 500;
         throw err;
     }
     if (!creds.subscriptionKey) {
         const err = new Error(
-            'Falta SUBSCRIPTION_KEY IHCE (IHCE_SANDBOX_SUBSCRIPTION_KEY / IHCE_APIM_SUBSCRIPTION_KEY, etc.).',
+            'Falta SUBSCRIPTION_KEY IHCE en CredencialesIhce.',
         );
         err.status = 500;
         throw err;
@@ -38,12 +45,13 @@ router.use(authenticateToken);
 
 /**
  * POST /apiV3/VisorIHCE/composition
- * Body: { payload, ambiente?: 'sandbox'|'prod' }
+ * Body: { payload, ambiente?: 'sandbox'|'prod', documentoEmpresa? }
  */
 router.post('/VisorIHCE/composition', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente(req.body, req.query);
-        const creds = resolveIhceEnv(ambiente);
+        const documentoEmpresa = resolveDocumentoEmpresa(req.body, req.query);
+        const creds = await resolveIhceEnv(ambiente, documentoEmpresa);
         assertIhceBase(creds);
 
         const { payload } = req.body || {};
@@ -51,7 +59,7 @@ router.post('/VisorIHCE/composition', async (req, res) => {
             return res.status(400).json({ error: 'payload es requerido con los parámetros de búsqueda' });
         }
 
-        const fhirService = new VisorIhceFhirService(ambiente);
+        const fhirService = await VisorIhceFhirService.create(ambiente, documentoEmpresa);
         const dummy = 'env';
 
         const rdaResults = await fhirService.consultarRDACompleto(payload, dummy, dummy, dummy);
@@ -175,12 +183,13 @@ router.post('/VisorIHCE/composition', async (req, res) => {
 
 /**
  * POST /apiV3/VisorIHCE/inmunizacion
- * Body: { payload, ambiente?: 'sandbox'|'prod' }
+ * Body: { payload, ambiente?: 'sandbox'|'prod', documentoEmpresa? }
  */
 router.post('/VisorIHCE/inmunizacion', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente(req.body, req.query);
-        const creds = resolveIhceEnv(ambiente);
+        const documentoEmpresa = resolveDocumentoEmpresa(req.body, req.query);
+        const creds = await resolveIhceEnv(ambiente, documentoEmpresa);
         assertIhceBase(creds);
 
         const { payload } = req.body || {};
@@ -188,7 +197,7 @@ router.post('/VisorIHCE/inmunizacion', async (req, res) => {
             return res.status(400).json({ error: 'payload (Parameters) es requerido' });
         }
 
-        const httpsAgent = createIhceHttpsAgent(ambiente);
+        const httpsAgent = await createIhceHttpsAgent(ambiente, documentoEmpresa);
         const url = `${creds.baseUrl}/Immunization/$consultar-inmunizacion`;
         const token = await httpsAgent.getAccessToken();
         const response = await httpsAgent.authenticatedRequest(url, token, creds.subscriptionKey, {
@@ -228,12 +237,13 @@ router.post('/VisorIHCE/inmunizacion', async (req, res) => {
 
 /**
  * GET /apiV3/VisorIHCE/pagina
- * Query: url, patientId|sessionId, ambiente?
+ * Query: url, patientId|sessionId, ambiente?, documentoEmpresa?
  */
 router.get('/VisorIHCE/pagina', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente(req.body, req.query);
-        const creds = resolveIhceEnv(ambiente);
+        const documentoEmpresa = resolveDocumentoEmpresa(req.body, req.query);
+        const creds = await resolveIhceEnv(ambiente, documentoEmpresa);
         assertIhceBase(creds);
 
         const { url, patientId, sessionId } = req.query;
@@ -249,11 +259,11 @@ router.get('/VisorIHCE/pagina', async (req, res) => {
             });
         }
 
-        const fhirService = new VisorIhceFhirService(ambiente);
+        const fhirService = await VisorIhceFhirService.create(ambiente, documentoEmpresa);
         const dummy = 'env';
         const token = await fhirService.getToken();
 
-        const httpsAgent = createIhceHttpsAgent(ambiente);
+        const httpsAgent = await createIhceHttpsAgent(ambiente, documentoEmpresa);
         const response = await httpsAgent.authenticatedRequest(url, token, creds.subscriptionKey);
 
         if (!response.ok) {
@@ -313,12 +323,13 @@ router.get('/VisorIHCE/pagina', async (req, res) => {
 /**
  * GET /apiV3/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis
  * Proxy de descarga PDF epicrisis desde IHCE (visor ministerio v3).
- * Query: ambiente=sandbox|prod
+ * Query: ambiente=sandbox|prod, documentoEmpresa?
  */
 router.get('/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis', async (req, res) => {
     try {
         const ambiente = normalizeAmbiente(req.body, req.query);
-        const creds = resolveIhceEnv(ambiente);
+        const documentoEmpresa = resolveDocumentoEmpresa(req.body, req.query);
+        const creds = await resolveIhceEnv(ambiente, documentoEmpresa);
         assertIhceBase(creds);
 
         const docId = String(req.params.id || '').trim();
@@ -326,7 +337,7 @@ router.get('/VisorIHCE/DocumentReference/:id/0/descargar-rda-epicrisis', async (
             return res.status(400).json({ error: 'ID de DocumentReference requerido' });
         }
 
-        const httpsAgent = createIhceHttpsAgent(ambiente);
+        const httpsAgent = await createIhceHttpsAgent(ambiente, documentoEmpresa);
         const token = await httpsAgent.getAccessToken();
         const url = `${creds.baseUrl.replace(/\/$/, '')}/DocumentReference/${encodeURIComponent(docId)}/0/descargar-rda-epicrisis`;
 
