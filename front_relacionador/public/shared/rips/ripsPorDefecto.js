@@ -111,6 +111,16 @@
     if (ap) ap.classList.toggle("d-none", v !== "2");
   }
 
+  function valorCodigoCatalogo(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return null;
+    const opt = el.options[el.selectedIndex];
+    if (!opt || opt.value === "" || opt.value == null) return null;
+    const codigo = opt.getAttribute("data-codigo");
+    if (codigo != null && String(codigo).trim() !== "") return String(codigo).trim();
+    return opt.value;
+  }
+
   async function guardarDesdeModal() {
     const tipo = document.getElementById("SelectTipoRIPSPorDefecto")?.value;
     if (!tipo) {
@@ -127,16 +137,17 @@
         TipoUsuario: document.getElementById("SelectPorDefectoTipoUsuarioRIPS")?.value,
         Entidad: document.getElementById("SelectPorDefectoEntidadAC")?.value,
         ViaIngresoServicioSalud: "",
-        ModalidadGrupoServicioTecSal: document.getElementById(
+        ModalidadGrupoServicioTecSal: valorCodigoCatalogo(
           "SelectPorDefectoModalidadGrupoServicioTecSalAC"
-        )?.value,
-        GrupoServicio: document.getElementById("SelectPoDefectoGrupoServiciosAC")?.value,
+        ),
+        GrupoServicio: valorCodigoCatalogo("SelectPoDefectoGrupoServiciosAC"),
         CodigoServicio: document.getElementById("SelectPorDefectoCodigoServicioAC")?.value,
-        FinalidadTecnologiaSalud: document.getElementById(
+        FinalidadTecnologiaSalud: valorCodigoCatalogo(
           "SelectPorDefectoFinalidadTecnologiaSaludAC"
-        )?.value,
-        CausaMotivoAtencion: document.getElementById("SelectPorDefectoCausaMotivoAtencionAC")
-          ?.value,
+        ),
+        CausaMotivoAtencion: valorCodigoCatalogo(
+          "SelectPorDefectoCausaMotivoAtencionAC"
+        ),
         TipoDiagnosticoPrincipal: document.getElementById(
           "SelectPorDefectoTipoDiagnosticoPrincipalAC"
         )?.value,
@@ -150,20 +161,19 @@
         ...datos,
         TipoUsuario: document.getElementById("SelectPorDefectoTipoUsuarioRIPSAP")?.value,
         Entidad: document.getElementById("SelectPorDefectoEntidadAP")?.value,
-        ViaIngresoServicioSalud: document.getElementById(
+        ViaIngresoServicioSalud: valorCodigoCatalogo(
           "SelectPorDefectoViaIngresoServicioSaludAP"
-        )?.value,
-        ModalidadGrupoServicioTecSal: document.getElementById(
+        ),
+        ModalidadGrupoServicioTecSal: valorCodigoCatalogo(
           "SelectPorDefectoModalidadGrupoServicioTecSalAP"
-        )?.value,
-        GrupoServicio: document.getElementById("SelectPorDefectoGrupoServiciosAP")?.value,
-        CodigoServicio: document.getElementById("SelectPorDefectoCodigoServicioAP")?.value,
-        FinalidadTecnologiaSalud: document.getElementById(
-          "SelectPorDefectoFinalidadTecnologiaSaludAP"
-        )?.value,
-        CausaMotivoServicioSalud: document.getElementById(
-          "SelectPorDefectoViaIngresoServicioSaludAP"
-        )?.value,
+        ),
+        GrupoServicio: valorCodigoCatalogo("SelectPorDefectoGrupoServiciosAP"),
+        CodigoServicio: document.getElementById("SelectPorDefectoCodServicioAP")?.value,
+        FinalidadTecnologiaSalud: valorCodigoCatalogo(
+          "SelectPorDefectoFinalidadTecnologíaSaludAP"
+        ),
+        CausaMotivoAtencion: "",
+        TipoDiagnosticoPrincipal: "",
         ConsultaRIPS1: document.getElementById("SelectPorDefectoProcedimientoRIPSAP1")?.value,
         ConsultaRIPS2: document.getElementById("SelectPorDefectoProcedimientoRIPSAP2")?.value,
         DiagnosticoRIPS1: document.getElementById("SelectPorDefectoDiagnosticoRIPSAP1")?.value,

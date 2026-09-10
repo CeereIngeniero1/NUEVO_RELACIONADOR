@@ -1480,6 +1480,24 @@ body.cr-sidebar-collapsed .cr-sidebar-footer .cr-nav-btn-close {
     opacity: 0.72;
 }
 
+/* RIPS por defecto: #ACPorDefecto / #APPorDefecto usan .form-control como contenedor
+   (fondo blanco de Bootstrap) y dejan labels claros ilegibles en modo oscuro. */
+[data-theme="dark"] #ModalRIPSPorDefecto #ACPorDefecto.form-control,
+[data-theme="dark"] #ModalRIPSPorDefecto #APPorDefecto.form-control {
+    background-color: var(--color-bg-row-hover) !important;
+    border-color: var(--color-border-input, #334155) !important;
+    color: var(--color-text) !important;
+}
+
+[data-theme="dark"] #ModalRIPSPorDefecto .modal-body > span {
+    color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] #ModalRIPSPorDefecto #ACPorDefecto label,
+[data-theme="dark"] #ModalRIPSPorDefecto #APPorDefecto label {
+    color: var(--color-text) !important;
+}
+
 .moodal {
     width: 100%;
     position: relative;

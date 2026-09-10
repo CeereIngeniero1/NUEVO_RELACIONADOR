@@ -2166,13 +2166,15 @@ router.get('/ConsultarRIPSPorDefecto/:DocumentoProfesional/:TipoRIPS', async (re
         const TipoRIPS = req.params.TipoRIPS;
         const Consulta = new Request(
             `
-                SELECT 
+                SELECT TOP (1)
                     *
                 FROM
                     [ConsultarRIPSPorDefecto]
                 WHERE
                     [DocumentoEntidad] = @DocumentoProfesional 
                     AND [TipoDeRips] = @TipoRIPS
+                ORDER BY
+                    [IdApiRipsPorDefecto] DESC
             `,
             (err) => {
                 if (err) {

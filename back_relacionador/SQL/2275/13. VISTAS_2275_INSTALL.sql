@@ -437,6 +437,7 @@ GO
 CREATE VIEW dbo.[ConsultarRIPSPorDefecto]
 AS
 SELECT
+    APIRPD.IdApiRipsPorDefecto,
     APIRPD.DocumentoEntidad,
     APIRPD.TipoDeRips,
     TR.[Tipo Rips] AS TipoDeUsuario,
@@ -459,14 +460,19 @@ LEFT OUTER JOIN dbo.Entidad AS Ent
     ON APIRPD.Entidad = Ent.[Documento Entidad]
 LEFT OUTER JOIN dbo.[RIPS Via Ingreso Usuario] AS RIPSVIAINU
     ON APIRPD.ViaIngresoServicioSalud = RIPSVIAINU.Codigo
+    OR APIRPD.ViaIngresoServicioSalud = CAST(RIPSVIAINU.[Id Via Ingreso Usuario] AS nvarchar(20))
 LEFT OUTER JOIN dbo.[RIPS Modalidad Atención] AS RIPSMA
     ON APIRPD.ModalidadGrupoServicioTecnologiaEnSalud = RIPSMA.Codigo
+    OR APIRPD.ModalidadGrupoServicioTecnologiaEnSalud = CAST(RIPSMA.[Id Modalidad Atencion] AS nvarchar(20))
 LEFT OUTER JOIN dbo.[RIPS Grupo Servicios] AS RIPSGS
     ON APIRPD.GrupoServicios = RIPSGS.Codigo
+    OR APIRPD.GrupoServicios = CAST(RIPSGS.[Id Grupo Servicios] AS nvarchar(20))
 LEFT OUTER JOIN dbo.[RIPS Servicios] AS RIPSS
     ON APIRPD.CodigoServicio = RIPSS.[Id Servicios]
+    OR APIRPD.CodigoServicio = CAST(RIPSS.[Código Servicios] AS nvarchar(50))
 LEFT OUTER JOIN dbo.[RIPS Finalidad Consulta Version2] AS RIPSFCV2
     ON APIRPD.FinalidadTecnologiaSalud = RIPSFCV2.Codigo
+    OR APIRPD.FinalidadTecnologiaSalud = CAST(RIPSFCV2.[Id Finalidad Consulta] AS nvarchar(20))
 LEFT OUTER JOIN dbo.[Rips Cups] AS RC1
     ON APIRPD.Diagnostico1 = RC1.Codigo
 LEFT OUTER JOIN dbo.[Rips Cups] AS RC2
@@ -477,6 +483,7 @@ LEFT OUTER JOIN dbo.[Rips Cie10] AS R2C10
     ON APIRPD.Procedimiento2 = R2C10.Codigo
 LEFT OUTER JOIN dbo.[RIPS Causa Externa Version2] AS RCEV2
     ON APIRPD.CausaMotivoAtencion = RCEV2.Codigo
+    OR APIRPD.CausaMotivoAtencion = CAST(RCEV2.[Id RIPS Causa Externa Version2] AS nvarchar(20))
 LEFT OUTER JOIN dbo.[Tipo de Diagnóstico Principal] AS TDP
     ON APIRPD.TipoDiagnosticoPrincipal = TDP.[Código Tipo de Diagnóstico Principal];
 GO

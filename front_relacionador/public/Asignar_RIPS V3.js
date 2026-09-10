@@ -3368,6 +3368,28 @@ BotonRegresar.addEventListener("click", (e) => {
 });
 
 // ASIGNAR RIPS POR DEFECTO
+/** La vista ConsultarRIPSPorDefecto resuelve por Codigo; los selects usan Id. */
+function valorCodigoCatalogoPorDefecto(selectElOrId) {
+  const el =
+    typeof selectElOrId === "string"
+      ? document.getElementById(selectElOrId)
+      : selectElOrId;
+  if (!el) return null;
+  const opt = el.options[el.selectedIndex];
+  if (!opt || opt.value === "" || opt.value == null) return null;
+  const codigo = opt.getAttribute("data-codigo");
+  if (codigo != null && String(codigo).trim() !== "") return String(codigo).trim();
+  return opt.value;
+}
+
+function setOptionCatalogo(option, valueId, codigo, texto) {
+  option.value = valueId == null ? "" : valueId;
+  if (codigo != null && String(codigo).trim() !== "") {
+    option.setAttribute("data-codigo", String(codigo).trim());
+  }
+  option.textContent = texto;
+}
+
 const BotonModalAsignarRIPSPorDefecto = document.getElementById(
   "BotonModalAsignarRIPSPorDefecto"
 );
@@ -3554,9 +3576,13 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
     i += 1
   ) {
     const option = document.createElement("option");
-    option.value = CargarModalidadGrupoServicioTecnologiaSalud[i].IdModalidadAtencion;
-    option.textContent =
-      CargarModalidadGrupoServicioTecnologiaSalud[i].NombreModalidadAtencion;
+    const row = CargarModalidadGrupoServicioTecnologiaSalud[i];
+    setOptionCatalogo(
+      option,
+      row.IdModalidadAtencion,
+      row.Codigo,
+      row.NombreModalidadAtencion
+    );
     SelectPorDefectoModalidadGrupoServicioTecSalAC.appendChild(option);
   }
 
@@ -3587,8 +3613,13 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Agregar las opciones al select de GrupoServiciosAC
   for (let i = 0; i < CargarGrupoServiciosAC.length; i += 1) {
     const option = document.createElement("option");
-    option.value = CargarGrupoServiciosAC[i].IdGrupoServicios;
-    option.textContent = CargarGrupoServiciosAC[i].NombreGrupoServicios;
+    const row = CargarGrupoServiciosAC[i];
+    setOptionCatalogo(
+      option,
+      row.IdGrupoServicios,
+      row.Codigo,
+      row.NombreGrupoServicios
+    );
     SelectPoDefectoGrupoServiciosAC.appendChild(option);
   }
 
@@ -3628,9 +3659,13 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Agregar las opciones al select de FinalidadTecnologiaSalud
   for (let i = 0; i < CargarFinalidadTecnologiaSaludAC.length; i += 1) {
     const option = document.createElement("option");
-    option.value = CargarFinalidadTecnologiaSaludAC[i].IdFinalidadConsulta;
-    option.textContent =
-      CargarFinalidadTecnologiaSaludAC[i].NombreRIPSFinalidadConsultaVersion2;
+    const row = CargarFinalidadTecnologiaSaludAC[i];
+    setOptionCatalogo(
+      option,
+      row.IdFinalidadConsulta,
+      row.Codigo,
+      row.NombreRIPSFinalidadConsultaVersion2
+    );
     SelectPorDefectoFinalidadTecnologiaSaludAC.appendChild(option);
   }
 
@@ -3662,9 +3697,13 @@ const TraerInfoParaRIPSACPorDefecto = async function () {
   // Agregar las opciones al select de CausaMotivoAtencion
   for (let i = 0; i < CargarCausaMotivoAtencion.length; i += 1) {
     const option = document.createElement("option");
-    option.value = CargarCausaMotivoAtencion[i].IdRIPSCausaExternaVersion2;
-    option.textContent =
-      CargarCausaMotivoAtencion[i].NombreRIPSCausaExternaVersion2;
+    const row = CargarCausaMotivoAtencion[i];
+    setOptionCatalogo(
+      option,
+      row.IdRIPSCausaExternaVersion2,
+      row.Codigo,
+      row.NombreRIPSCausaExternaVersion2
+    );
     SelectPorDefectoCausaMotivoAtencionAC.appendChild(option);
   }
 
@@ -4013,9 +4052,13 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   });
   for (let i = 0; i < CargarViaIngresoServicioSaludAP.length; i++) {
     const option = document.createElement("option");
-    option.value = CargarViaIngresoServicioSaludAP[i]["IdViaIngresoUsuario"];
-    option.textContent =
-      CargarViaIngresoServicioSaludAP[i]["NombreViaIngresoUsuario"];
+    const row = CargarViaIngresoServicioSaludAP[i];
+    setOptionCatalogo(
+      option,
+      row["IdViaIngresoUsuario"],
+      row.Codigo,
+      row["NombreViaIngresoUsuario"]
+    );
     SelectPorDefectoViaIngresoServicioSaludAP.appendChild(option);
   }
 
@@ -4046,9 +4089,13 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   });
   for (let i = 0; i < CargarModalidadGrupoServicioTecSalAP.length; i++) {
     const option = document.createElement("option");
-    option.value = CargarModalidadGrupoServicioTecSalAP[i]["IdModalidadAtencion"];
-    option.textContent =
-      CargarModalidadGrupoServicioTecSalAP[i]["NombreModalidadAtencion"];
+    const row = CargarModalidadGrupoServicioTecSalAP[i];
+    setOptionCatalogo(
+      option,
+      row["IdModalidadAtencion"],
+      row.Codigo,
+      row["NombreModalidadAtencion"]
+    );
     SelectPorDefectoModalidadGrupoServicioTecSalAP.appendChild(option);
   }
 
@@ -4077,8 +4124,13 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   });
   for (let i = 0; i < CargarGrupoServiciosAP.length; i++) {
     const option = document.createElement("option");
-    option.value = CargarGrupoServiciosAP[i]["IdGrupoServicios"];
-    option.textContent = CargarGrupoServiciosAP[i]["NombreGrupoServicios"];
+    const row = CargarGrupoServiciosAP[i];
+    setOptionCatalogo(
+      option,
+      row["IdGrupoServicios"],
+      row.Codigo,
+      row["NombreGrupoServicios"]
+    );
     SelectPorDefectoGrupoServiciosAP.appendChild(option);
   }
 
@@ -4117,11 +4169,13 @@ const TraerInfoParaRIPSACPPorDefecto = async function () {
   });
   for (let i = 0; i < CargarFinalidadTecnologiaSaludAP.length; i++) {
     const option = document.createElement("option");
-    option.value = CargarFinalidadTecnologiaSaludAP[i]["IdFinalidadConsulta"];
-    option.textContent =
-      CargarFinalidadTecnologiaSaludAP[i][
-      "NombreRIPSFinalidadConsultaVersion2"
-      ];
+    const row = CargarFinalidadTecnologiaSaludAP[i];
+    setOptionCatalogo(
+      option,
+      row["IdFinalidadConsulta"],
+      row.Codigo,
+      row["NombreRIPSFinalidadConsultaVersion2"]
+    );
     SelectPorDefectoFinalidadTecnologíaSaludAP.appendChild(option);
   }
 
@@ -4700,21 +4754,22 @@ async function GuardarRIPSPorDefecto() {
       const SelectPorDefectoEntidadAC =
         document.getElementById("SelectPorDefectoEntidadAC").value ?? null;
       const SelectPorDefectoModalidadGrupoServicioTecSalAC =
-        document.getElementById(
+        valorCodigoCatalogoPorDefecto(
           "SelectPorDefectoModalidadGrupoServicioTecSalAC"
-        ).value ?? null;
-      const SelectPoDefectoGrupoServiciosAC =
-        document.getElementById("SelectPoDefectoGrupoServiciosAC").value ??
-        null;
+        );
+      const SelectPoDefectoGrupoServiciosAC = valorCodigoCatalogoPorDefecto(
+        "SelectPoDefectoGrupoServiciosAC"
+      );
       const SelectPorDefectoCodigoServicioAC =
         document.getElementById("SelectPorDefectoCodigoServicioAC").value ??
         null;
       const SelectPorDefectoFinalidadTecnologiaSaludAC =
-        document.getElementById("SelectPorDefectoFinalidadTecnologiaSaludAC")
-          .value ?? null;
-      const SelectPorDefectoCausaMotivoAtencionAC =
-        document.getElementById("SelectPorDefectoCausaMotivoAtencionAC")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoFinalidadTecnologiaSaludAC"
+        );
+      const SelectPorDefectoCausaMotivoAtencionAC = valorCodigoCatalogoPorDefecto(
+        "SelectPorDefectoCausaMotivoAtencionAC"
+      );
       const SelectPorDefectoTipoDiagnosticoPrincipalAC =
         document.getElementById("SelectPorDefectoTipoDiagnosticoPrincipalAC")
           .value ?? null;
@@ -4801,20 +4856,22 @@ async function GuardarRIPSPorDefecto() {
       const SelectPorDefectoEntidadAP =
         document.getElementById("SelectPorDefectoEntidadAP").value ?? null;
       const SelectPorDefectoViaIngresoServicioSaludAP =
-        document.getElementById("SelectPorDefectoViaIngresoServicioSaludAP")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoViaIngresoServicioSaludAP"
+        );
       const SelectPorDefectoModalidadGrupoServicioTecSalAP =
-        document.getElementById(
+        valorCodigoCatalogoPorDefecto(
           "SelectPorDefectoModalidadGrupoServicioTecSalAP"
-        ).value ?? null;
-      const SelectPorDefectoGrupoServiciosAP =
-        document.getElementById("SelectPorDefectoGrupoServiciosAP").value ??
-        null;
+        );
+      const SelectPorDefectoGrupoServiciosAP = valorCodigoCatalogoPorDefecto(
+        "SelectPorDefectoGrupoServiciosAP"
+      );
       const SelectPorDefectoCodServicioAP =
         document.getElementById("SelectPorDefectoCodServicioAP").value ?? null;
       const SelectPorDefectoFinalidadTecnologíaSaludAP =
-        document.getElementById("SelectPorDefectoFinalidadTecnologíaSaludAP")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoFinalidadTecnologíaSaludAP"
+        );
       const SelectPorDefectoProcedimientoRIPSAP1 =
         document.getElementById("SelectPorDefectoProcedimientoRIPSAP1").value ??
         null;
@@ -4912,21 +4969,22 @@ async function ActualizarRIPSPorDefecto() {
       const SelectPorDefectoEntidadAC =
         document.getElementById("SelectPorDefectoEntidadAC").value ?? null;
       const SelectPorDefectoModalidadGrupoServicioTecSalAC =
-        document.getElementById(
+        valorCodigoCatalogoPorDefecto(
           "SelectPorDefectoModalidadGrupoServicioTecSalAC"
-        ).value ?? null;
-      const SelectPoDefectoGrupoServiciosAC =
-        document.getElementById("SelectPoDefectoGrupoServiciosAC").value ??
-        null;
+        );
+      const SelectPoDefectoGrupoServiciosAC = valorCodigoCatalogoPorDefecto(
+        "SelectPoDefectoGrupoServiciosAC"
+      );
       const SelectPorDefectoCodigoServicioAC =
         document.getElementById("SelectPorDefectoCodigoServicioAC").value ??
         null;
       const SelectPorDefectoFinalidadTecnologiaSaludAC =
-        document.getElementById("SelectPorDefectoFinalidadTecnologiaSaludAC")
-          .value ?? null;
-      const SelectPorDefectoCausaMotivoAtencionAC =
-        document.getElementById("SelectPorDefectoCausaMotivoAtencionAC")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoFinalidadTecnologiaSaludAC"
+        );
+      const SelectPorDefectoCausaMotivoAtencionAC = valorCodigoCatalogoPorDefecto(
+        "SelectPorDefectoCausaMotivoAtencionAC"
+      );
       const SelectPorDefectoTipoDiagnosticoPrincipalAC =
         document.getElementById("SelectPorDefectoTipoDiagnosticoPrincipalAC")
           .value ?? null;
@@ -5002,20 +5060,22 @@ async function ActualizarRIPSPorDefecto() {
       const SelectPorDefectoEntidadAP =
         document.getElementById("SelectPorDefectoEntidadAP").value ?? null;
       const SelectPorDefectoViaIngresoServicioSaludAP =
-        document.getElementById("SelectPorDefectoViaIngresoServicioSaludAP")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoViaIngresoServicioSaludAP"
+        );
       const SelectPorDefectoModalidadGrupoServicioTecSalAP =
-        document.getElementById(
+        valorCodigoCatalogoPorDefecto(
           "SelectPorDefectoModalidadGrupoServicioTecSalAP"
-        ).value ?? null;
-      const SelectPorDefectoGrupoServiciosAP =
-        document.getElementById("SelectPorDefectoGrupoServiciosAP").value ??
-        null;
+        );
+      const SelectPorDefectoGrupoServiciosAP = valorCodigoCatalogoPorDefecto(
+        "SelectPorDefectoGrupoServiciosAP"
+      );
       const SelectPorDefectoCodServicioAP =
         document.getElementById("SelectPorDefectoCodServicioAP").value ?? null;
       const SelectPorDefectoFinalidadTecnologíaSaludAP =
-        document.getElementById("SelectPorDefectoFinalidadTecnologíaSaludAP")
-          .value ?? null;
+        valorCodigoCatalogoPorDefecto(
+          "SelectPorDefectoFinalidadTecnologíaSaludAP"
+        );
       const SelectPorDefectoProcedimientoRIPSAP1 =
         document.getElementById("SelectPorDefectoProcedimientoRIPSAP1").value ??
         null;

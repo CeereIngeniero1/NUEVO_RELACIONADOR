@@ -124,6 +124,23 @@
     /* slate-50 */
 }
 
+/* Contenedores AC/AP del modal RIPS por defecto (usan .form-control como wrapper) */
+[data-theme="dark"] #ModalRIPSPorDefecto #ACPorDefecto.form-control,
+[data-theme="dark"] #ModalRIPSPorDefecto #APPorDefecto.form-control {
+    background-color: var(--color-bg-row-hover) !important;
+    border-color: var(--color-border-input, #334155) !important;
+    color: var(--color-text) !important;
+}
+
+[data-theme="dark"] #ModalRIPSPorDefecto .modal-body > span {
+    color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] #ModalRIPSPorDefecto #ACPorDefecto label,
+[data-theme="dark"] #ModalRIPSPorDefecto #APPorDefecto label {
+    color: var(--color-text) !important;
+}
+
 /* ── Formularios e Inputs (INYECCIÓN DE MÁXIMA PRIORIDAD) ── */
 [data-theme="dark"] .cr-card input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),
 [data-theme="dark"] .cr-card select,
