@@ -3914,6 +3914,14 @@ SelectPorDefectoTipoUsuarioRIPS.addEventListener("change", async function (e) {
         option.textContent = CargarEntidadResponsable[i].NombreCompletoPaciente;
         SelectPorDefectoEntidadAC.appendChild(option);
       }
+
+      if (e.detail && e.detail.parametro) {
+        const parametro2 = String(e.detail.parametro).trim();
+        const found = Array.from(SelectPorDefectoEntidadAC.options).find(
+          (option) => option.text.trim() === parametro2
+        );
+        if (found) SelectPorDefectoEntidadAC.selectedIndex = found.index;
+      }
     } else {
       SelectPorDefectoEntidadAC.innerHTML = "";
       // Opción por defecto
@@ -3958,6 +3966,14 @@ SelectPoDefectoGrupoServiciosAC.addEventListener("change", async function (e) {
       option.value = CargarServiciosAC[i]["Id Servicios"];
       option.textContent = CargarServiciosAC[i]["Nombre Servicios"];
       SelectPorDefectoCodigoServicioAC.appendChild(option);
+    }
+
+    if (e.detail && e.detail.parametro) {
+      const parametro2 = String(e.detail.parametro).trim();
+      const found = Array.from(SelectPorDefectoCodigoServicioAC.options).find(
+        (option) => option.text.trim() === parametro2
+      );
+      if (found) SelectPorDefectoCodigoServicioAC.selectedIndex = found.index;
     }
   } catch (error) {
     console.error(error);
@@ -4344,6 +4360,14 @@ SelectPorDefectoTipoUsuarioRIPSAP.addEventListener(
             CargarEntidadResponsable[i].NombreCompletoPaciente;
           SelectPorDefectoEntidadAP.appendChild(option);
         }
+
+        if (e.detail && e.detail.parametro) {
+          const parametro2 = String(e.detail.parametro).trim();
+          const found = Array.from(SelectPorDefectoEntidadAP.options).find(
+            (option) => option.text.trim() === parametro2
+          );
+          if (found) SelectPorDefectoEntidadAP.selectedIndex = found.index;
+        }
       } else {
         SelectPorDefectoEntidadAP.innerHTML = "";
         // Opción por defecto
@@ -4390,6 +4414,14 @@ SelectPorDefectoGrupoServiciosAP.addEventListener("change", async function (e) {
       option.textContent = CargarServiciosAC[i]["Nombre Servicios"];
       SelectPorDefectoCodServicioAP.appendChild(option);
     }
+
+    if (e.detail && e.detail.parametro) {
+      const parametro2 = String(e.detail.parametro).trim();
+      const found = Array.from(SelectPorDefectoCodServicioAP.options).find(
+        (option) => option.text.trim() === parametro2
+      );
+      if (found) SelectPorDefectoCodServicioAP.selectedIndex = found.index;
+    }
   } catch (error) {
     console.error(error);
   }
@@ -4397,6 +4429,139 @@ SelectPorDefectoGrupoServiciosAP.addEventListener("change", async function (e) {
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 // FUNCIONALIDAD PARA VER SI EL PROFESIONAL TIENE RIPS POR DEFECTO Y DE TENERLOS, CUÁLES SON
+function seleccionarOpcionModalPorTexto(selectEl, texto, { matchNombreTrasGuion = false } = {}) {
+  if (!selectEl || texto == null || texto === "" || texto === "Sin asignar") return false;
+  const t = String(texto).trim();
+  const found = Array.from(selectEl.options).find((option) => {
+    const ot = option.text.trim();
+    if (ot === t) return true;
+    if (matchNombreTrasGuion) {
+      const after = ot.split(" - ")[1]?.trim();
+      return after === t;
+    }
+    return false;
+  });
+  if (!found) return false;
+  selectEl.selectedIndex = found.index;
+  try {
+    if (window.jQuery && window.jQuery(selectEl).data("select2")) {
+      window.jQuery(selectEl).val(found.value).trigger("change");
+    }
+  } catch (_) {
+    /* noop */
+  }
+  return true;
+}
+
+function asignarCupsCieModal(selectId, nombreOCodigo) {
+  if (!nombreOCodigo || nombreOCodigo === "Sin asignar") return;
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  if (seleccionarOpcionModalPorTexto(el, nombreOCodigo, { matchNombreTrasGuion: true })) {
+    return;
+  }
+  if (seleccionarOpcionModalPorTexto(el, nombreOCodigo)) return;
+  if (window.RipsSelect2) {
+    const codigo =
+      String(nombreOCodigo).includes(" - ")
+        ? String(nombreOCodigo).split(" - ")[0].trim()
+        : String(nombreOCodigo).trim();
+    const texto = String(nombreOCodigo).includes(" - ")
+      ? String(nombreOCodigo)
+      : codigo;
+    window.RipsSelect2.asignarValor(`#${selectId}`, codigo, texto);
+  }
+}
+
+async function hidratarModalRipsPorDefectoDesdeApi(row, tipo) {
+  if (tipo === "1") {
+    const selTipo = document.getElementById("SelectPorDefectoTipoUsuarioRIPS");
+    const selGrupo = document.getElementById("SelectPoDefectoGrupoServiciosAC");
+
+    if (seleccionarOpcionModalPorTexto(selTipo, row.TipoDeUsuario)) {
+      selTipo.dispatchEvent(
+        new CustomEvent("change", {
+          detail: { parametro: row.Entidad || "" },
+          bubbles: true,
+        })
+      );
+    }
+
+    seleccionarOpcionModalPorTexto(
+      document.getElementById("SelectPorDefectoModalidadGrupoServicioTecSalAC"),
+      row.ModalidadGrupoServicioTecnologiaEnSalud
+    );
+
+    if (seleccionarOpcionModalPorTexto(selGrupo, row.GrupoServicios)) {
+      selGrupo.dispatchEvent(
+        new CustomEvent("change", {
+          detail: { parametro: row.CodigoServicio || "" },
+          bubbles: true,
+        })
+      );
+    }
+
+    seleccionarOpcionModalPorTexto(
+      document.getElementById("SelectPorDefectoFinalidadTecnologiaSaludAC"),
+      row.FinalidadTecnologiaSalud
+    );
+    seleccionarOpcionModalPorTexto(
+      document.getElementById("SelectPorDefectoCausaMotivoAtencionAC"),
+      row.CausaMotivoAtencion
+    );
+    seleccionarOpcionModalPorTexto(
+      document.getElementById("SelectPorDefectoTipoDiagnosticoPrincipalAC"),
+      row.TipoDiagnosticoPrincipal
+    );
+
+    asignarCupsCieModal("SelectPorDefectoConsultaRIPS1AC", row.Diagnostico1);
+    asignarCupsCieModal("SelectPorDefectoConsultaRIPS2AC", row.Diagnostico2);
+    asignarCupsCieModal("SelectPorDefectoDiagnosticoRIPSAC1", row.Procedimiento1);
+    asignarCupsCieModal("SelectPorDefectoDiagnosticoRIPSAC2", row.Procedimiento2);
+    return;
+  }
+
+  const selTipo = document.getElementById("SelectPorDefectoTipoUsuarioRIPSAP");
+  const selGrupo = document.getElementById("SelectPorDefectoGrupoServiciosAP");
+
+  if (seleccionarOpcionModalPorTexto(selTipo, row.TipoDeUsuario)) {
+    selTipo.dispatchEvent(
+      new CustomEvent("change", {
+        detail: { parametro: row.Entidad || "" },
+        bubbles: true,
+      })
+    );
+  }
+
+  seleccionarOpcionModalPorTexto(
+    document.getElementById("SelectPorDefectoViaIngresoServicioSaludAP"),
+    row.ViaIngresoServicioSalud
+  );
+  seleccionarOpcionModalPorTexto(
+    document.getElementById("SelectPorDefectoModalidadGrupoServicioTecSalAP"),
+    row.ModalidadGrupoServicioTecnologiaEnSalud
+  );
+
+  if (seleccionarOpcionModalPorTexto(selGrupo, row.GrupoServicios)) {
+    selGrupo.dispatchEvent(
+      new CustomEvent("change", {
+        detail: { parametro: row.CodigoServicio || "" },
+        bubbles: true,
+      })
+    );
+  }
+
+  seleccionarOpcionModalPorTexto(
+    document.getElementById("SelectPorDefectoFinalidadTecnologíaSaludAP"),
+    row.FinalidadTecnologiaSalud
+  );
+
+  asignarCupsCieModal("SelectPorDefectoProcedimientoRIPSAP1", row.Diagnostico1);
+  asignarCupsCieModal("SelectPorDefectoProcedimientoRIPSAP2", row.Diagnostico2);
+  asignarCupsCieModal("SelectPorDefectoDiagnosticoRIPSAP1", row.Procedimiento1);
+  asignarCupsCieModal("SelectPorDefectoDiagnosticoRIPSAP2", row.Procedimiento2);
+}
+
 const BotonVerRIPSPorDefecto = document.getElementById(
   "BotonVerRIPSPorDefecto"
 );
@@ -4404,301 +4569,52 @@ BotonVerRIPSPorDefecto.addEventListener("click", async function (e) {
   const documentousuariologeado = sessionStorage.getItem(
     "documentousuariologeado"
   );
-  switch (SelectTipoRIPSPorDefecto.value) {
-    case "1":
-      try {
-        const ConsultarRIPSACPorDefecto = await fetch(
-          `${getApiBaseUrl()}/apiV3/ConsultarRIPSPorDefecto/${documentousuariologeado}/1`
-        );
-        if (!ConsultarRIPSACPorDefecto.ok) {
-          throw new Error(
-            `Error al obtener los datos: ${ConsultarRIPSACPorDefecto.statusText}`
-          );
-        }
-        const ConsultarRIPSACPorDefectoAC =
-          await ConsultarRIPSACPorDefecto.json();
-        console.log("RIPS AC por defecto: ", ConsultarRIPSACPorDefectoAC);
+  const tipo = SelectTipoRIPSPorDefecto.value;
+  if (tipo !== "1" && tipo !== "2") {
+    Swal.fire({
+      icon: "warning",
+      text: "Seleccione el tipo de RIPS (AC o AP) antes de ver.",
+    });
+    return;
+  }
 
-        if (ConsultarRIPSACPorDefectoAC.length === 0) {
-          alertify
-            .alert(
-              "",
-              "El profesional que ha iniciado sesión no tiene RIPS AC por defecto registrados."
-            )
-            .set("basic", true)
-            .set("movable", false)
-            .resizeTo("60%", 250);
-          return;
-        } else {
-          const TipoDeUsuarioAC =
-            ConsultarRIPSACPorDefectoAC[0].TipoDeUsuario ?? "Sin asignar";
-          const EntidadAC =
-            ConsultarRIPSACPorDefectoAC[0].Entidad ?? "Sin asignar";
-          const ModalidadGrupoServicioTecnologiaEnSaludAC =
-            ConsultarRIPSACPorDefectoAC[0]
-              .ModalidadGrupoServicioTecnologiaEnSalud ?? "Sin asignar";
-          const GrupoServiciosAC =
-            ConsultarRIPSACPorDefectoAC[0].GrupoServicios ?? "Sin asignar";
-          const CodigoServicioAC =
-            ConsultarRIPSACPorDefectoAC[0].CodigoServicio ?? "Sin asignar";
-          const FinalidadTecnologiaSaludAC =
-            ConsultarRIPSACPorDefectoAC[0].FinalidadTecnologiaSalud ??
-            "Sin asignar";
-          const Diagnostico1AC =
-            ConsultarRIPSACPorDefectoAC[0].Diagnostico1 ?? "Sin asignar";
-          const Diagnostico2AC =
-            ConsultarRIPSACPorDefectoAC[0].Diagnostico2 ?? "Sin asignar";
-          const Procedimiento1AC =
-            ConsultarRIPSACPorDefectoAC[0].Procedimiento1 ?? "Sin asignar";
-          const Procedimiento2AC =
-            ConsultarRIPSACPorDefectoAC[0].Procedimiento2 ?? "Sin asignar";
-          const CausaMotivoAtencionAC =
-            ConsultarRIPSACPorDefectoAC[0].CausaMotivoAtencion ?? "Sin asignar";
-          const TipoDiagnosticoPrincipalAC =
-            ConsultarRIPSACPorDefectoAC[0].TipoDiagnosticoPrincipal ??
-            "Sin asignar";
-          alertify
-            .alert(
-              `RIPS AC POR DEFECTO`,
-              `
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Tipo de usuario: </strong><br>${TipoDeUsuarioAC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Entidad: </strong><br>${EntidadAC}</li>
-                                    </ul>
-                                </div>
-                            </div>
+  try {
+    const resp = await fetch(
+      `${getApiBaseUrl()}/apiV3/ConsultarRIPSPorDefecto/${documentousuariologeado}/${tipo}`
+    );
+    if (!resp.ok) {
+      throw new Error(`Error al obtener los datos: ${resp.statusText}`);
+    }
+    const data = await resp.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      Swal.fire({
+        icon: "info",
+        text:
+          tipo === "1"
+            ? "No hay RIPS AC por defecto registrados para este profesional."
+            : "No hay RIPS AP por defecto registrados para este profesional.",
+      });
+      return;
+    }
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>ModalidadGrupoServicioTecSal: </strong><br>${ModalidadGrupoServicioTecnologiaEnSaludAC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>GrupoServicios: </strong><br>${GrupoServiciosAC}</li>
-                                    </ul>
-                                </div>
-                            </div>
+    await hidratarModalRipsPorDefectoDesdeApi(data[0], tipo);
+    BotonActualizarRIPSPorDefecto.disabled = false;
+    BotonEliminarRIPSPorDefecto.disabled = false;
+    BotonGuardarRIPSPorDefecto.disabled = true;
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>CodServicio: </strong><br>${CodigoServicioAC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>FinalidadTecnologiaSalud: </strong><br>${FinalidadTecnologiaSaludAC}</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>CausaMotivoAtención: </strong><br>${CausaMotivoAtencionAC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>TipoDiagnósticoPrincipal: </strong><br>${TipoDiagnosticoPrincipalAC}</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Consulta RIPS 1: </strong><br>${Diagnostico1AC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Consulta RIPS 2: </strong><br>${Diagnostico2AC}</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Diagnóstico RIPS 1: </strong><br>${Procedimiento1AC}</li>
-                                    </ul>
-                                </div>
-            
-                                <div class="col-md-6">
-                                    <ul>
-                                        <li><strong>Diagnóstico RIPS 2: </strong><br>${Procedimiento2AC}</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        `
-            )
-            .set("modal", false)
-            .set("resizable", true)
-            .resizeTo("45%", 350);
-        }
-      } catch (Error) {
-        console.error(
-          `Se generó el siguiente error al mostrar RIPS AC por defecto -> ${Error}`
-        );
-      }
-      break;
-
-    case "2":
-      // alertify.alert('This is a modeless dialog, not pinned to the screen.').set('modal', false).unpin();
-      try {
-        const ConsultarRIPSAPPorDefecto = await fetch(
-          `${getApiBaseUrl()}/apiV3/ConsultarRIPSPorDefecto/${documentousuariologeado}/2`
-        );
-        if (!ConsultarRIPSAPPorDefecto.ok) {
-          throw new Error(
-            `Error al obtener los datos: ${ConsultarRIPSAPPorDefecto.statusText}`
-          );
-        }
-        const ConsultarRIPSAPPorDefectoAP =
-          await ConsultarRIPSAPPorDefecto.json();
-        // console.log(ConsultarRIPSAPPorDefectoAP);
-
-        if (ConsultarRIPSAPPorDefectoAP.length === 0) {
-          alertify
-            .alert(
-              "",
-              "El profesional que ha iniciado sesión no tiene RIPS AP por defecto registrados."
-            )
-            .set("basic", true)
-            .set("movable", false);
-          return;
-        } else {
-          const TipoDeUsuario =
-            ConsultarRIPSAPPorDefectoAP[0].TipoDeUsuario ?? "Sin asignar";
-          const Entidad =
-            ConsultarRIPSAPPorDefectoAP[0].Entidad ?? "Sin asignar";
-          const ViaIngresoServicioSalud =
-            ConsultarRIPSAPPorDefectoAP[0].ViaIngresoServicioSalud ??
-            "Sin asignar";
-          const ModalidadGrupoServicioTecnologiaEnSalud =
-            ConsultarRIPSAPPorDefectoAP[0]
-              .ModalidadGrupoServicioTecnologiaEnSalud ?? "Sin asignar";
-          const GrupoServicios =
-            ConsultarRIPSAPPorDefectoAP[0].GrupoServicios ?? "Sin asignar";
-          const CodigoServicio =
-            ConsultarRIPSAPPorDefectoAP[0].CodigoServicio ?? "Sin asignar";
-          const FinalidadTecnologiaSalud =
-            ConsultarRIPSAPPorDefectoAP[0].FinalidadTecnologiaSalud ??
-            "Sin asignar";
-          const Diagnostico1 =
-            ConsultarRIPSAPPorDefectoAP[0].Diagnostico1 ?? "Sin asignar";
-          const Diagnostico2 =
-            ConsultarRIPSAPPorDefectoAP[0].Diagnostico2 ?? "Sin asignar";
-          const Procedimiento1 =
-            ConsultarRIPSAPPorDefectoAP[0].Procedimiento1 ?? "Sin asignar";
-          const Procedimiento2 =
-            ConsultarRIPSAPPorDefectoAP[0].Procedimiento2 ?? "Sin asignar";
-          alertify
-            .alert(
-              `RIPS AP POR DEFECTO`,
-              `    
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Tipo de usuario: </strong><br>${TipoDeUsuario}</li>
-                                </ul>
-                            </div>
-        
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Entidad: </strong><br>${Entidad}</li>
-                                </ul>
-                            </div>
-                        </div>
-        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>ViaIngresoServicioSalud: </strong><br>${ViaIngresoServicioSalud}</li>
-                                </ul>
-                            </div>
-        
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>ModalidadGrupoServicioTecSal: </strong><br>${ModalidadGrupoServicioTecnologiaEnSalud}</li>
-                                </ul>
-                            </div>
-                        </div>
-        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>GrupoServicios: </strong><br>${GrupoServicios}</li>
-                                </ul>
-                            </div>
-        
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>CodServicio: </strong><br>${CodigoServicio}</li>
-                                </ul>
-                            </div>
-                        </div>
-        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>FinalidadTecnologíaSalud: </strong><br>${FinalidadTecnologiaSalud}</li>
-                                </ul>
-                            </div>
-        
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Procedimiento RIPS 1: </strong><br>${Diagnostico1}</li>
-                                </ul>
-                            </div>
-                        </div>
-        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Procedimiento RIPS 2: </strong><br>${Diagnostico2}</li>
-                                </ul>
-                            </div>
-        
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Diagnóstico RIPS 1: </strong><br>${Procedimiento1}</li>
-                                </ul>
-                            </div>
-                        </div>
-        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul>
-                                    <li><strong>Diagnóstico RIPS 2: </strong><br>${Procedimiento2}</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        `
-            )
-            .set("modal", false)
-            .set("resizable", true)
-            .resizeTo("45%", 350);
-        }
-      } catch (Error) {
-        console.error(`Se generó el siguiente error -> ${Error}`);
-      }
-      break;
+    Swal.fire({
+      icon: "success",
+      title: "Valores cargados",
+      text: "Se llenaron las listas del modal. Puede modificar y pulsar Actualizar.",
+      timer: 2200,
+      showConfirmButton: false,
+    });
+  } catch (Error) {
+    console.error(`Se generó el siguiente error al mostrar RIPS por defecto -> ${Error}`);
+    Swal.fire({
+      icon: "error",
+      text: "No se pudieron cargar los RIPS por defecto en el formulario.",
+    });
   }
 });
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
