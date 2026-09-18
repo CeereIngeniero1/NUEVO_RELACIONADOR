@@ -73,3 +73,8 @@ front_relacionador/public/NombreEquipoServidor.js
 
 # JSON locales de envío IHCE (control, no versionar)
 back_relacionador/jsons/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyc
