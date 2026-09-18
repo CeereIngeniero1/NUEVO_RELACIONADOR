@@ -2108,6 +2108,77 @@ IF NOT EXISTS (SELECT 1 FROM dbo.[Ocupación] WHERE [Código Ocupación] = N'Obr
     INSERT INTO [Ocupación] ([Código Ocupación],[Ocupación],[Descripción Ocupación],[Orden Ocupación],[Id Estado]) VALUES ('9333','Obreros de carga','Obreros de carga',400,7);
 GO
 
+/* Tipo diagnostico principal 1888 — 01/02/03 (idempotente por Codigo) */
+IF OBJECT_ID(N'dbo.[Tipo diagnostico principal 1888]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'01')
+        INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
+        VALUES (N'01', N'Impresión diagnóstica', 7);
+    ELSE
+        UPDATE dbo.[Tipo diagnostico principal 1888]
+        SET Descripcion = N'Impresión diagnóstica', [Id Estado] = 7 WHERE Codigo = N'01';
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'02')
+        INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
+        VALUES (N'02', N'Confirmado nuevo', 7);
+    ELSE
+        UPDATE dbo.[Tipo diagnostico principal 1888]
+        SET Descripcion = N'Confirmado nuevo', [Id Estado] = 7 WHERE Codigo = N'02';
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'03')
+        INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
+        VALUES (N'03', N'Confirmado repetido', 7);
+    ELSE
+        UPDATE dbo.[Tipo diagnostico principal 1888]
+        SET Descripcion = N'Confirmado repetido', [Id Estado] = 7 WHERE Codigo = N'03';
+END
+GO
+
+/* Entorno de atencion 1888 — 01-05 (idempotente por Codigo) */
+IF OBJECT_ID(N'dbo.[Entorno de atencion 1888]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Entorno de atencion 1888] WHERE Codigo = N'01')
+        INSERT INTO dbo.[Entorno de atencion 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'01', N'Hogar', 7);
+    ELSE UPDATE dbo.[Entorno de atencion 1888] SET Descripcion = N'Hogar', [Id Estado] = 7 WHERE Codigo = N'01';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Entorno de atencion 1888] WHERE Codigo = N'02')
+        INSERT INTO dbo.[Entorno de atencion 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'02', N'Comunitario', 7);
+    ELSE UPDATE dbo.[Entorno de atencion 1888] SET Descripcion = N'Comunitario', [Id Estado] = 7 WHERE Codigo = N'02';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Entorno de atencion 1888] WHERE Codigo = N'03')
+        INSERT INTO dbo.[Entorno de atencion 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'03', N'Escolar', 7);
+    ELSE UPDATE dbo.[Entorno de atencion 1888] SET Descripcion = N'Escolar', [Id Estado] = 7 WHERE Codigo = N'03';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Entorno de atencion 1888] WHERE Codigo = N'04')
+        INSERT INTO dbo.[Entorno de atencion 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'04', N'Laboral', 7);
+    ELSE UPDATE dbo.[Entorno de atencion 1888] SET Descripcion = N'Laboral', [Id Estado] = 7 WHERE Codigo = N'04';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Entorno de atencion 1888] WHERE Codigo = N'05')
+        INSERT INTO dbo.[Entorno de atencion 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'05', N'Institucional', 7);
+    ELSE UPDATE dbo.[Entorno de atencion 1888] SET Descripcion = N'Institucional', [Id Estado] = 7 WHERE Codigo = N'05';
+END
+GO
+
+/* Factor De Riesgo 1888 — 01-06 (idempotente por Codigo) */
+IF OBJECT_ID(N'dbo.[Factor De Riesgo 1888]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'01')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'01', N'Químicos', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Químicos', [Id Estado] = 7 WHERE Codigo = N'01';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'02')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'02', N'Físicos', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Físicos', [Id Estado] = 7 WHERE Codigo = N'02';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'03')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'03', N'Biomecánicos', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Biomecánicos', [Id Estado] = 7 WHERE Codigo = N'03';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'04')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'04', N'Psicosociales', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Psicosociales', [Id Estado] = 7 WHERE Codigo = N'04';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'05')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'05', N'Biológicos', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Biológicos', [Id Estado] = 7 WHERE Codigo = N'05';
+    IF NOT EXISTS (SELECT 1 FROM dbo.[Factor De Riesgo 1888] WHERE Codigo = N'06')
+        INSERT INTO dbo.[Factor De Riesgo 1888] (Codigo, Descripcion, [Id Estado]) VALUES (N'06', N'Otro', 7);
+    ELSE UPDATE dbo.[Factor De Riesgo 1888] SET Descripcion = N'Otro', [Id Estado] = 7 WHERE Codigo = N'06';
+END
+GO
+
 /* ============================================================================
    SCRIPTS MERGE AUTÓNOMOS (ya idempotentes — ejecutar si faltan datos masivos)
    ============================================================================

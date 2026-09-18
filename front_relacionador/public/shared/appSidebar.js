@@ -17,6 +17,7 @@ const CORE_LINKS = [
   { id: "asignar", href: "Asignar_RIPS V3.html", icon: "ri-file-list-3-line", label: "Asignar RIPS & RDA", feature: "asignar" },
   { id: "historias", href: "HistoriasClinicas.html", icon: "ri-health-book-line", label: "Historias Clínicas" },
   { id: "envio", href: "EnvioRdaPendientes.html", icon: "ri-send-plane-line", label: "Envío RDA pendientes", feature: "rda" },
+  { id: "credenciales-ihce", href: "CredencialesIhce.html", icon: "ri-key-2-line", label: "Credenciales IHCE", feature: "rda" },
   { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)", feature: "rda" },
   { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar", feature: "rips" },
   { id: "enviar-fevrips", href: "EnviarFevRips.html", icon: "ri-send-plane-2-line", label: "Enviar MinSalud FEV", feature: "rips" },

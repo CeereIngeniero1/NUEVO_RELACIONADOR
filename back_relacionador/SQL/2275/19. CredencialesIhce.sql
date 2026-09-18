@@ -34,10 +34,9 @@ END
 GO
 
 /*
-  Semilla inicial (sin secretos): URLs/tenant/clientId/scope/custodian de referencia Cliniq
-  hacia TODAS las empresas en dbo.Empresa (sandbox + prod).
-  Client Secret y Subscription Key quedan vacíos: cargarlas por empresa desde la UI
-  Credenciales IHCE (Envío RDA) o con UPDATE controlado (no commitear secretos).
+  Semilla inicial: una fila sandbox + una prod por cada empresa en dbo.Empresa.
+  Solo Base Url genérica IHCE; Tenant/Client/Secret/Scope/Subscription/Custodian
+  quedan NULL — completar por empresa en la UI Credenciales IHCE.
 */
 ;WITH Ambientes AS (
     SELECT N'sandbox' AS Ambiente
@@ -71,20 +70,14 @@ SELECT
         THEN N'https://sandbox.ihcecol.gov.co/ihce'
         ELSE N'https://www.ihcecol.gov.co/ihce'
     END,
-    N'3d4b3d76-b910-426c-bd8f-bd964e3e1b53',
-    CASE WHEN a.Ambiente = N'sandbox'
-        THEN N'b3b273e0-3afa-42d8-b081-e7c6ce246f9f'
-        ELSE N'5db52798-a826-41b3-96a8-a0e1374cc718'
-    END,
-    N'', -- Client Secret: configurar por UI / UPDATE (no versionar)
-    CASE WHEN a.Ambiente = N'sandbox'
-        THEN N'api://ca9a5155-3135-4e44-a644-b92175eb4d21/.default'
-        ELSE N'api://0789435e-b8df-40b1-8eac-76dc233bad0b/.default'
-    END,
-    N'', -- Subscription Key: configurar por UI / UPDATE (no versionar)
-    N'0500110244',
-    N'900063460',
-    N'CLINIQ DERMOESTETICA Y LASER S.A',
+    NULL, -- Tenant Id
+    NULL, -- Client Id
+    NULL, -- Client Secret
+    NULL, -- Scope
+    NULL, -- Subscription Key
+    NULL, -- Custodian Reps
+    NULL, -- Custodian Nit
+    NULL, -- Custodian Name
     1
 FROM Empresas e
 CROSS JOIN Ambientes a
