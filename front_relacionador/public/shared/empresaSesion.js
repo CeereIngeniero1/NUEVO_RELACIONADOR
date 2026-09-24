@@ -96,8 +96,19 @@ export async function asegurarEmpresaSesion({ force = false } = {}) {
         const response = await fetch(
           `${getApiBaseUrl()}/XMLS/mostrar-empresas-con-resoluciones-vigentes`
         );
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        empresas = dedupeEmpresas(await response.json());
+        if (!response.ok) {
+          const raw = await response.text();
+          let detail = `HTTP ${response.status}`;
+          try {
+            const body = JSON.parse(raw);
+            if (body && body.message) detail = String(body.message);
+          } catch (_) {
+            if (raw) detail = raw.slice(0, 200);
+          }
+          throw new Error(detail);
+        }
+        const rawOk = await response.text();
+        empresas = dedupeEmpresas(JSON.parse(rawOk || "[]"));
       } catch (err) {
         console.error("[empresaSesion] Error listando empresas:", err);
         await Swal.fire({

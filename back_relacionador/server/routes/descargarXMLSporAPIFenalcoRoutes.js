@@ -17,46 +17,37 @@ const router = Router();
 /* ENDPOINT PARA DESCARGAR LOS XMLS POR LA API DE FACTURATECH BY: CAMILO FLEZLADE */
 router.get('/mostrar-empresas-con-resoluciones-vigentes', async (req, res) => {
     try {
-        if (connection.state.name !== 'LoggedIn') {
-            return res.status(500).send('La conexión a la base de datos no está en un estado válido');
+        const { poolPromise } = require('../db2');
+        const pool = await poolPromise;
+
+        let result = await pool.request().query(`
+            SELECT DISTINCT
+                Emp.[Nombre Comercial Empresa] AS NombreComercialEmpresa,
+                Emp.[Documento Empresa] AS DocumentoEmpresa
+            FROM Empresa Emp
+            INNER JOIN EmpresaV EmpV ON Emp.[Documento Empresa] = EmpV.[Documento Empresa]
+            WHERE EmpV.[Id Estado] = 7
+            ORDER BY Emp.[Nombre Comercial Empresa]
+        `);
+
+        if (!result.recordset || result.recordset.length === 0) {
+            result = await pool.request().query(`
+                SELECT DISTINCT
+                    Emp.[Nombre Comercial Empresa] AS NombreComercialEmpresa,
+                    Emp.[Documento Empresa] AS DocumentoEmpresa
+                FROM Empresa Emp
+                WHERE Emp.[Documento Empresa] IS NOT NULL
+                  AND LTRIM(RTRIM(CAST(Emp.[Documento Empresa] AS NVARCHAR(50)))) <> N''
+                ORDER BY Emp.[Nombre Comercial Empresa]
+            `);
         }
 
-        const query = `
-            SELECT
-                Emp.[Nombre Comercial Empresa] AS NombreComercialEmpresa,
-                Emp.[Documento Empresa] AS DocumentoEmpresa,
-                EmpV.[Id EmpresaV] AS IdEmpresaV,
-                EmpV.[Prefijo Resolución Facturación EmpresaV] + EmpV.[Resolución Facturación EmpresaV] AS ResolucionFacturacion
-            FROM
-                Empresa Emp
-            INNER JOIN 
-                EmpresaV EmpV ON Emp.[Documento Empresa] = EmpV.[Documento Empresa]
-            WHERE 
-                EmpV.[Id Estado] = 7
-        `;
-
-        const result = [];
-        const request = new Request(query, (err, rowCount) => {
-            if (err) {
-                console.error('Error ejecutando la consulta:', err);
-                return res.status(500).send('Error ejecutando la consulta');
-            }
-
-            res.json(result);
-        });
-
-        request.on('row', columns => {
-            const rowObject = {};
-            columns.forEach(column => {
-                rowObject[column.metadata.colName] = column.value;
-            });
-            result.push(rowObject);
-        });
-
-        connection.execSql(request);
+        return res.json(result.recordset || []);
     } catch (error) {
-        console.error('Error inesperado:', error);
-        res.status(500).send('Error inesperado');
+        console.error('Error listando empresas para trabajar:', error);
+        return res.status(500).json({
+            message: error.message || 'Error listando empresas',
+        });
     }
 });
 
