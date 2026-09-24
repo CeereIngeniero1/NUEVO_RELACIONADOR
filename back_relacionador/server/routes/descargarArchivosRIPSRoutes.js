@@ -585,7 +585,7 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
             LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
             left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
             LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
-            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
+            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                                 
@@ -709,7 +709,7 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
             left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
             LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
-            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
+            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
              LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
@@ -1206,7 +1206,7 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             LEFT JOIN [RIPS Grupo Servicios] GP ON GP.[Id Grupo Servicios] = EVR.[Id Grupo Servicios]
             left join [RIPS Servicios] AS Serv ON serv.[Id Servicios]  = evr.[Id Servicios]
             LEFT JOIN [RIPS Causa Externa Version2] as Cau on Cau.[Id RIPS Causa Externa Version2] = evr.[Id Causa Externa]
-            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Tipo de Diagnóstico Principal]
+            LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                                 
