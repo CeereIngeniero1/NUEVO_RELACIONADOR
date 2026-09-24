@@ -555,7 +555,7 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
             MODA.Codigo AS modalidadGrupoServicioTecSal, 
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
-            evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
+            FIN.Codigo AS finalidadTecnologiaSalud, 
             --evr.[Id Causa Externa]  AS causaMotivoAtencion,
             Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -588,6 +588,7 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
             LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+            LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
                                 
             WHERE evr.[Id Acto Quirúrgico] = 1 
             AND EVR.[Id Factura] = @IdFacrua
@@ -809,7 +810,7 @@ router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:f
 				MODA.Codigo AS modalidadGrupoServicioTecSal, 
 				GP.Codigo AS grupoServicios,
 				Serv.[Código Servicios] AS codServicio,
-				EVR.[Id Finalidad Consulta] AS finalidadTecnologiaSalud,
+				FIN.Codigo AS finalidadTecnologiaSalud,
 				tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, 
 				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -841,7 +842,7 @@ router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:f
                 INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+				LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
                 AND EVR.[Id Factura] = @IdFacrua
@@ -937,7 +938,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
 				MODA.Codigo AS modalidadGrupoServicioTecSal, 
 				GP.Codigo AS grupoServicios,
 				Serv.[Código Servicios] AS codServicio,
-				EVR.[Id Finalidad Consulta] AS finalidadTecnologiaSalud,
+				FIN.Codigo AS finalidadTecnologiaSalud,
 				tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, 
 				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -969,7 +970,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
                 INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				--LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+				LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
                 AND EVR.[Id Factura] = @IdFacrua
@@ -1055,7 +1056,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 				MODA.Codigo AS modalidadGrupoServicioTecSal, 
 				GP.Codigo AS grupoServicios,
 				Serv.[Código Servicios] AS codServicio,
-				EVR.[Id Finalidad Consulta] AS finalidadTecnologiaSalud,
+				FIN.Codigo AS finalidadTecnologiaSalud,
 				tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, 
 				eva.[Documento Profesional] AS numDocumentoIdentificacion, 
 				EVR.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -1090,7 +1091,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
                 INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
                 left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
                 left join [RIPS Via Ingreso Usuario]   viaI ON VIAI.[Id Via Ingreso Usuario] = EVR.[Id Via Ingreso Usuario]     
-				--LEFT JOIN [RIPS Finalidad Consulta Version2] as fp ON EVR.[Id Finalidad Consulta] = fp.Codigo
+				LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
 					   
 
                 WHERE evr.[Id Acto Quirúrgico] <> 1 
@@ -1172,7 +1173,7 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             MODA.Codigo AS modalidadGrupoServicioTecSal, 
             GP.Codigo   AS grupoServicios, 
             Serv.[Código Servicios] AS codServicio,
-            evr.[Id Finalidad Consulta] AS finalidadTecnologiaSalud, 
+            FIN.Codigo AS finalidadTecnologiaSalud, 
             --evr.[Id Causa Externa]  AS causaMotivoAtencion,
             Cau.Codigo AS causaMotivoAtencion,
             evr.[Diagnostico Rips] AS codDiagnosticoPrincipal, 
@@ -1209,6 +1210,7 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             LEFT JOIN [Tipo de Diagnóstico Principal] as tdp ON evr.[Id Tipo de Diagnóstico Principal] = tdp.[Id Tipo de Diagnóstico Principal]
             INNER JOIN Entidad as Profe ON Profe.[Documento Entidad] = eva.[Documento Profesional]
             left join [Tipo de Documento] AS tpp ON Profe.[Id Tipo de Documento] = tpp.[Id Tipo de Documento] 
+            LEFT JOIN [RIPS Finalidad Consulta Version2] FIN ON FIN.[Id Finalidad Consulta] = EVR.[Id Finalidad Consulta]
                                 
             WHERE evr.[Id Acto Quirúrgico] = 1 
             AND EVR.[Id Factura] = @IdFacrua
