@@ -67,6 +67,37 @@ function getVisorApiBase() {
   return String(getApiBaseUrl() || '').replace(/\/$/, '') + '/apiV3/VisorIHCE';
 }
 
+/** Documento empresa de sesión (selector post-login). */
+function getDocumentoEmpresaSesionVisor() {
+  const doc = String(
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('empresaTrabajarExecuted')) || ''
+  ).trim();
+  if (!doc || doc.toLowerCase() === 'true' || doc.toLowerCase() === 'false') return '';
+  return doc;
+}
+
+function requireDocumentoEmpresaSesionVisor() {
+  const doc = getDocumentoEmpresaSesionVisor();
+  if (!doc) {
+    throw new Error(
+      'Falta la empresa de trabajo en sesión. Vuelva a Inicio / cierre sesión e inicie de nuevo para seleccionar empresa.'
+    );
+  }
+  return doc;
+}
+
+function withDocumentoEmpresaBody(obj) {
+  const body = obj && typeof obj === 'object' ? { ...obj } : {};
+  body.documentoEmpresa = requireDocumentoEmpresaSesionVisor();
+  return body;
+}
+
+function withDocumentoEmpresaQuery(url) {
+  const doc = requireDocumentoEmpresaSesionVisor();
+  const sep = String(url).includes('?') ? '&' : '?';
+  return `${url}${sep}documentoEmpresa=${encodeURIComponent(doc)}`;
+}
+
 function visorAuthHeaders(includeJsonContentType) {
   const h = { Accept: 'application/json' };
   if (includeJsonContentType !== false) h['Content-Type'] = 'application/json';
@@ -476,7 +507,7 @@ const APIService = {
 
     const fechaDesde = DOM.elements.inputFechaDesde?.value || '';
 
-    const parametros = {
+    const parametros = withDocumentoEmpresaBody({
       ambiente: CONFIG.ambiente,
       payload: {
         resourceType: 'Parameters',
@@ -490,7 +521,7 @@ const APIService = {
           }
         ]
       }
-    };
+    });
 
     if (fechaDesde) {
       parametros.payload.parameter.push({ name: 'fechaDesde', valueDate: fechaDesde });
@@ -524,7 +555,7 @@ const APIService = {
     const resp = await fetch(`${getVisorApiBase()}/inmunizacion`, {
       method: 'POST',
       headers: visorAuthHeaders(),
-      body: JSON.stringify({
+      body: JSON.stringify(withDocumentoEmpresaBody({
         ambiente: CONFIG.ambiente,
         payload: {
           resourceType: 'Parameters',
@@ -536,7 +567,7 @@ const APIService = {
             ]
           }]
         }
-      })
+      }))
     });
 
     const rawText = await resp.text();
@@ -590,11 +621,12 @@ const APIService = {
   },
 
   async cargarPagina(url, patientId) {
-    const queryUrl =
+    const queryUrl = withDocumentoEmpresaQuery(
       `${getVisorApiBase()}/pagina` +
       `?url=${encodeURIComponent(url)}` +
       `&patientId=${encodeURIComponent(patientId)}` +
-      `&ambiente=${encodeURIComponent(CONFIG.ambiente)}`;
+      `&ambiente=${encodeURIComponent(CONFIG.ambiente)}`
+    );
 
     const response = await fetch(queryUrl, { headers: visorAuthHeaders(false) });
     
@@ -613,9 +645,10 @@ const APIService = {
       throw new Error('No se pudo extraer el ID del DocumentReference: ' + ruta);
     }
     const docId = match[1];
-    const url =
+    const url = withDocumentoEmpresaQuery(
       `${getVisorApiBase()}/DocumentReference/${encodeURIComponent(docId)}/0/descargar-rda-epicrisis` +
-      `?ambiente=${encodeURIComponent(CONFIG.ambiente)}`;
+      `?ambiente=${encodeURIComponent(CONFIG.ambiente)}`
+    );
 
     const response = await fetch(url, { headers: visorAuthHeadersForPdf() });
     if (!response.ok) {
