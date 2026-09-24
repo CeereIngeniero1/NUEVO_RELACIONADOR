@@ -166,7 +166,18 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua, Sinfactura, fechaInicio, fechaFin, DocumentoPaciente });
+        facturasOriginales.push({
+            originalNumFactura,
+            facturaKey,
+            idTipoRips,
+            idEvaRips,
+            IdTrata,
+            IdFacrua,
+            Sinfactura,
+            fechaInicio,
+            fechaFin,
+            DocumentoPaciente,
+        });
     });
 
     request.on('requestCompleted', async () => {
@@ -176,7 +187,13 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
 
 
             // Buscar la factura en facturasOriginales
-            const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
+            const facturaData = facturasOriginales.find(
+                (f) =>
+                    f.facturaKey === factura ||
+                    `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura ||
+                    f.originalNumFactura === factura ||
+                    aplicarNumFacturaSegunEnv(f.originalNumFactura) === factura
+            );
 
             if (facturaData) {
                 // const { originalNumFactura, idTipoRips } = facturaData;
@@ -417,7 +434,7 @@ WHERE
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua });
+        facturasOriginales.push({ originalNumFactura, facturaKey, idTipoRips, idEvaRips, IdTrata, IdFacrua });
     });
 
     request.on('requestCompleted', async () => {
@@ -427,7 +444,13 @@ WHERE
 
 
             // Buscar la factura en facturasOriginales
-            const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
+            const facturaData = facturasOriginales.find(
+                (f) =>
+                    f.facturaKey === factura ||
+                    `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura ||
+                    f.originalNumFactura === factura ||
+                    aplicarNumFacturaSegunEnv(f.originalNumFactura) === factura
+            );
             if (facturaData) {
                 // const { originalNumFactura, idTipoRips } = facturaData;
 

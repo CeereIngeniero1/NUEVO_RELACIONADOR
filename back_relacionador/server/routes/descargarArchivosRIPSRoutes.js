@@ -189,7 +189,18 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua, Sinfactura, fechaInicio, fechaFin, DocumentoPaciente });
+        facturasOriginales.push({
+            originalNumFactura,
+            facturaKey,
+            idTipoRips,
+            idEvaRips,
+            IdTrata,
+            IdFacrua,
+            Sinfactura,
+            fechaInicio,
+            fechaFin,
+            DocumentoPaciente,
+        });
     });
     console.log(" ripsEPS");
     request.on('requestCompleted', async () => {
@@ -199,7 +210,14 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
 
             // console.log(factura);
             // Buscar la factura en facturasOriginales
-            const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
+            // facturaKey = clave real en resultados (puede ser MR9410 si RIPS_NUM_FACTURA_SIN_CEROS)
+            const facturaData = facturasOriginales.find(
+                (f) =>
+                    f.facturaKey === factura ||
+                    `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura ||
+                    f.originalNumFactura === factura ||
+                    aplicarNumFacturaSegunEnv(f.originalNumFactura) === factura
+            );
             // console.log('facturas que hay ', facturaData);
             if (facturaData) {
                 // const { originalNumFactura, idTipoRips } = facturaData;
@@ -441,7 +459,7 @@ WHERE
         }
         // facturasOriginales.push({ originalNumFactura, idTipoRips });
 
-        facturasOriginales.push({ originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua });
+        facturasOriginales.push({ originalNumFactura, facturaKey, idTipoRips, idEvaRips, IdTrata, IdFacrua });
     });
     console.log(" ripsEPS");
     request.on('requestCompleted', async () => {
@@ -451,7 +469,13 @@ WHERE
 
             // console.log(factura);
             // Buscar la factura en facturasOriginales
-            const facturaData = facturasOriginales.find(f => `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura || f.originalNumFactura === factura);
+            const facturaData = facturasOriginales.find(
+                (f) =>
+                    f.facturaKey === factura ||
+                    `null_${f.originalNumFactura}_${consulta.usuarios[0].numDocumentoIdentificacion}` === factura ||
+                    f.originalNumFactura === factura ||
+                    aplicarNumFacturaSegunEnv(f.originalNumFactura) === factura
+            );
             console.log('facturas que hay ', facturaData);
             if (facturaData) {
                 // const { originalNumFactura, idTipoRips } = facturaData;
