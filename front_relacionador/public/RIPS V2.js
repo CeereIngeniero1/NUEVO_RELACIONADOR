@@ -1884,13 +1884,9 @@ window.addEventListener('load', async () => {
     // Verificar si la función EmpresaATrabajar ya se ejecutó
     const empresaTrabajarExecuted = sessionStorage.getItem("empresaTrabajarExecuted");
 
-    if (!empresaTrabajarExecuted) {
+    if (!empresaTrabajarExecuted || empresaTrabajarExecuted === 'true' || empresaTrabajarExecuted === 'false') {
         // Ejecutar la función solo si no se ha ejecutado antes
         await EmpresaATrabajar();
-
-        // Marcar que ya se ejecutó
-        sessionStorage.setItem("empresaTrabajarExecuted", "true");
-        console.log(sessionStorage.getItem("empresaTrabajarExecuted"));
     }
 
     /* USAR EL DOCUMENTO DE LA EMPRESA SELECCIONADA */

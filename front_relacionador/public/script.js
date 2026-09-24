@@ -34,7 +34,10 @@ const login = async () => {
                 localStorage.setItem('token', token);
                 localStorage.setItem('token_exp', exp);
                 localStorage.setItem('userLevel', userLevel); // Guarda el nivel de usuario en localStorage
-                sessionStorage.setItem('documentousuariologeado', documentousuariologeado)
+                sessionStorage.setItem('documentousuariologeado', documentousuariologeado);
+                // Cada login debe volver a pedir empresa de trabajo
+                sessionStorage.removeItem('empresaTrabajarExecuted');
+                sessionStorage.removeItem('empresaTrabajarNombre');
 
 
                 alertify.success('Inicio de sesión correcto');

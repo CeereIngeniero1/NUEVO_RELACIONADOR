@@ -9,6 +9,7 @@
  */
 import { initThemeToggle, syncTopbarUserName, relocateModalsToBody } from "./shell.js";
 import { getFeatureFlags } from "./featureFlags.js";
+import { asegurarEmpresaSesion } from "./empresaSesion.js";
 
 const STORAGE_COLLAPSED = "ceere_sidebar_collapsed";
 
@@ -424,6 +425,11 @@ export function mountAppSidebar(options = {}) {
     nameHost.textContent = "";
     nameHost.appendChild(userSpan);
   }
+
+  // Siempre exigir empresa de trabajo tras login (RIPS y/o RDA)
+  asegurarEmpresaSesion().catch((err) => {
+    console.error("[appSidebar] Error asegurando empresa de sesión:", err);
+  });
 
   return { mounted: true, active };
 }
