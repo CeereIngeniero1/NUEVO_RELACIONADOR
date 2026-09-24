@@ -11,6 +11,10 @@ const { Console } = require('console');
 const pipelineAsync = promisify(require('stream').pipeline);
 const { getRipsDataRoot } = require('../config/paths');
 const { rutaXmlEmpresaPorClave, rutaDirEmpresa } = require('../utils/xmlCache');
+const {
+    aplicarNumFacturaSegunEnv,
+    conNumFacturaSegunEnv,
+} = require('../utils/ripsNumFactura');
 
 const INTERNAL_API_BASE = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
 const RIPS_ROOT = getRipsDataRoot();
@@ -131,9 +135,10 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
         if (Sinfactura === 1 || numFactura === null || numFactura === undefined || String(numFactura).trim() === '') {
             numFactura = null;
             // Sinfactura = 1;
+        } else {
+            // RIPS_NUM_FACTURA_SIN_CEROS=true → MR0009219 → MR9219 (facturación nueva)
+            numFactura = aplicarNumFacturaSegunEnv(numFactura);
         }
-
-
 
         // console.log(`Se supone que este es el nuevo  num factura ${numFactura}`);
 
@@ -385,6 +390,9 @@ WHERE
         // Determina si se debe cambiar el numFactura a null
         if (numFactura === null || /000000/.test(numFactura)) {
             numFactura = null;
+        } else {
+            // RIPS_NUM_FACTURA_SIN_CEROS=true → MR0009219 → MR9219 (facturación nueva)
+            numFactura = aplicarNumFacturaSegunEnv(numFactura);
         }
 
         // Determina la clave de la factura
@@ -1325,15 +1333,15 @@ router.post('/generar-zip/:fechaInicio/:fechaFin/:prefijo', async (req, res) => 
                 documentos.forEach((documento, docIndex) => {
                     const nombreArchivo = `${numFacturaConsulta}_${documento}.json`;
                     // const nombreArchivo = `${numFacturaConsulta}_${documento}_${docIndex + 1}.json`;
-                    const contenidoJSON = JSON.stringify(consulta, null, 2); // Genera el JSON del objeto consulta en lugar de un array
+                    const contenidoJSON = JSON.stringify(conNumFacturaSegunEnv(consulta), null, 2); // Genera el JSON del objeto consulta en lugar de un array
                     zip.file(nombreArchivo, contenidoJSON);
                 });
             });
         } else {
             const documentos = consultas.flatMap(consulta => consulta.usuarios ? consulta.usuarios.map(usuario => usuario.numDocumentoIdentificacion) : []);
-            const nombreArchivoCombinado = `${numFacturaConsulta}.json`;
+            const nombreArchivoCombinado = `${aplicarNumFacturaSegunEnv(numFacturaConsulta) || numFacturaConsulta}.json`;
             // const nombreArchivoCombinado = `${numFacturaConsulta}_${documentos.join('_')}.json`;
-            const contenidoJSONCombinado = JSON.stringify(consultas[0], null, 2); // Toma solo el primer elemento del array para generar el JSON
+            const contenidoJSONCombinado = JSON.stringify(conNumFacturaSegunEnv(consultas[0]), null, 2); // Toma solo el primer elemento del array para generar el JSON
             zip.file(nombreArchivoCombinado, contenidoJSONCombinado);
         }
     }
@@ -1436,9 +1444,9 @@ router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) 
                     ? consulta.usuarios.map((u) => u.numDocumentoIdentificacion)
                     : ['unknown'];
                 docs.forEach((documento) => {
-                    sinFacturaFiles.push({
+                        sinFacturaFiles.push({
                         nombre: `SinFactura_${documento}.json`,
-                        contenido: JSON.stringify(consulta, null, 2),
+                        contenido: JSON.stringify(conNumFacturaSegunEnv(consulta), null, 2),
                     });
                 });
                 continue;
@@ -1448,7 +1456,7 @@ router.post('/generar-zip-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) 
             if (!byPrefijo[prefijo]) byPrefijo[prefijo] = [];
             byPrefijo[prefijo].push({
                 clave,
-                contenido: JSON.stringify(consultas[0], null, 2),
+                contenido: JSON.stringify(conNumFacturaSegunEnv(consultas[0]), null, 2),
             });
         }
         return { byPrefijo, sinFacturaFiles };
