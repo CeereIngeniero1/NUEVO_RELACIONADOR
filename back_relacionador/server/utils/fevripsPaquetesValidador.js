@@ -9,6 +9,7 @@ const path = require('path');
 const { getRipsDataRoot } = require('../config/paths');
 const { claveXml, existeXmlEmpresa } = require('./xmlCache');
 const { encontrarJsonParaClave, encontrarJsonSinFactura } = require('./fevripsFacturasXml');
+const { alinearArchivoJsonConXml } = require('./ripsNumFacturaDesdeXml');
 
 function esSinFacturaItem(item) {
   const tipo = String(item?.tipo || '').toUpperCase();
@@ -121,6 +122,7 @@ function exportarPaqueteValidador(documentoEmpresa, item) {
   fs.copyFileSync(rutaJson, destJson);
   if (!sinFactura && rutaXml) {
     fs.copyFileSync(rutaXml, destXml);
+    alinearArchivoJsonConXml(destJson, destXml);
   }
 
   return {

@@ -15,6 +15,7 @@ const {
     aplicarNumFacturaSegunEnv,
     conNumFacturaSegunEnv,
 } = require('../utils/ripsNumFactura');
+const { alinearArchivoJsonConXml } = require('../utils/ripsNumFacturaDesdeXml');
 
 const INTERNAL_API_BASE = `http://localhost:${process.env.BACK_PORT || process.env.PORT || 3000}`;
 const RIPS_ROOT = getRipsDataRoot();
@@ -304,7 +305,7 @@ router.get('/usuarios/rips/:fechaInicio/:fechaFin/:ResolucionesRips/:documentoEm
      --CASE 
         --WHEN LEN(tpe.[Tipo Entidad]) > 1 THEN tpe.[Tipo Entidad] 
         --ELSE '0' + tpe.[Tipo Entidad] END AS [tipoUsuario],
-        '11' AS [tipoUsuario],
+        '12' AS [tipoUsuario],
     CONVERT(VARCHAR, en3.[Fecha Nacimiento EntidadIII], 23) AS [fechaNacimiento], 
     Sexo.[Sexo] AS [codSexo], 
     País.País AS [codPaisResidencia], 
@@ -1685,6 +1686,7 @@ router.post('/cerrar-todo-en-uno/:fechaInicio/:fechaFin', async (req, res) => {
                     fs.mkdirSync(destDir, { recursive: true });
                     fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
                     fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
+                    alinearArchivoJsonConXml(path.join(destDir, jf), path.join(destDir, `${clave}.xml`));
                 }
             }
         } catch (err) {

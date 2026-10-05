@@ -3,6 +3,7 @@ const fs = require('fs');
 const chokidar = require('chokidar');
 const { getRipsDataRoot } = require('../config/paths');
 const { rutaXmlEmpresaPorClave } = require('../utils/xmlCache');
+const { alinearArchivoJsonConXml } = require('../utils/ripsNumFacturaDesdeXml');
 
 // Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT en .env — ver server/config/paths.js)
 const RIPS_ROOT = getRipsDataRoot();
@@ -103,6 +104,7 @@ function crearSubcarpetasYCopiarArchivos() {
       fs.mkdirSync(destDir, { recursive: true });
       fs.copyFileSync(path.join(rutaJson, jf), path.join(destDir, jf));
       fs.copyFileSync(xmlPath, path.join(destDir, `${clave}.xml`));
+      alinearArchivoJsonConXml(path.join(destDir, jf), path.join(destDir, `${clave}.xml`));
     }
 
     procesarArchivosSinFactura(rutaJson, rutaReporteSinFacturas);

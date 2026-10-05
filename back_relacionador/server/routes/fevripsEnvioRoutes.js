@@ -28,6 +28,7 @@ const {
   listarSinFacturaPorRango,
 } = require('../utils/fevripsFacturasXml');
 const { existeXmlEmpresa, claveXml } = require('../utils/xmlCache');
+const { alinearRipsConXml } = require('../utils/ripsNumFacturaDesdeXml');
 const { marcarEnviadoTrasEnvioOk } = require('../utils/fevripsMarcarEnviado');
 const {
   formatErrMessage,
@@ -404,7 +405,11 @@ async function enviarPaquetesLista(documentoEmpresa, paquetes, opts = {}) {
         if (!paquete.rutaXml || !fs.existsSync(paquete.rutaXml)) {
           throw new Error('XML ausente en paquete CON_FACTURA');
         }
-        resultado = await cargarFevRips(documentoEmpresa, rips, xmlToBase64(paquete.rutaXml));
+        resultado = await cargarFevRips(
+          documentoEmpresa,
+          alinearRipsConXml(rips, paquete.rutaXml),
+          xmlToBase64(paquete.rutaXml)
+        );
       } else {
         resultado = await cargarRipsSinFactura(documentoEmpresa, rips);
       }
