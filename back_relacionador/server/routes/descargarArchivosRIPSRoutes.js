@@ -1064,8 +1064,18 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
 				NULL   AS codDiagnosticoRelacionado, 
 				NULL AS codComplicacion, 
 				--FII.[Valor FacturaII] AS vrServicio,
-                case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then FII.[Valor FacturaII] else FII.[Valor FacturaII]+ cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS vrServicio,
-				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '03' END AS tipoPagoModerador,
+                case
+                 when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null 
+                 then FII.[Valor FacturaII] 
+                 -- else FII.[Valor FacturaII] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+                 else FII.[Valor FacturaII]  
+                  END AS vrServicio,
+				case 
+                when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null 
+                then '05' 
+                -- else '03' 
+                else '04' 
+                END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
 				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
@@ -1184,8 +1194,18 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             tdp.[Código Tipo de Diagnóstico Principal] AS tipoDiagnosticoPrincipal,
             tpp.[Tipo de Documento] AS tipoDocumentoIdentificacion, eva.[Documento Profesional] AS numDocumentoIdentificacion, 
             --FII.[Valor FacturaII] AS vrServicio,
-            case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then FII.[Valor FacturaII] else FII.[Valor FacturaII]+ cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS vrServicio,
-            	case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then '05' else '03' END AS tipoPagoModerador,
+            case 
+            when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null 
+            then FII.[Valor FacturaII]
+             -- else FII.[Valor FacturaII] + cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] 
+             else FII.[Valor FacturaII]  
+              END AS vrServicio,
+            	case 
+                when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null 
+                then '05' 
+                -- else '03' 
+                else '04' 
+                END AS tipoPagoModerador,
 				--'05' AS tipoPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO TIPOS DE PAGO
 				case when cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento] is null then 0 else cpit.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento]  END AS valorPagoModerador,
 				--'0' AS valorPagoModerador, -- ESTO DESPUES SE TIENE QUE CAMBIAR POR QUE SI EXISTE EN ALGUNOS CASO VALORES DE PAGO SEGUN EL TIPO PAGO
