@@ -742,6 +742,9 @@ GO
     parts.append(section("5c/9 Seed Entorno + Factor Riesgo 1888"))
     parts.append(gen_seed_entorno_factor_riesgo())
 
+    parts.append(section("5d/9 Seed EPS SGSSS + Parentesco + catálogos RDA 1888"))
+    parts.append(strip_install_header(read_text(D1888 / "22. Seed_Catalogos_RDA_EPS_Parentesco.sql")))
+
     parts.append(section("6/9 Ocupación CIUO88AC"))
     parts.append(gen_ocupacion_ciuo_safe())
 
