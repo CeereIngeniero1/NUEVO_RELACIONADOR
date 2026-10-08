@@ -744,6 +744,8 @@ GO
 
     parts.append(section("5d/9 Seed EPS SGSSS + Parentesco + catálogos RDA 1888"))
     parts.append(strip_install_header(read_text(D1888 / "22. Seed_Catalogos_RDA_EPS_Parentesco.sql")))
+    parts.append(section("5e/9 Seed Egreso y Remision + Finalidad tecnología salud 1888"))
+    parts.append(strip_install_header(read_text(D1888 / "23. Seed_EgresoRemision_FinalidadTecSalud.sql")))
 
     parts.append(section("6/9 Ocupación CIUO88AC"))
     parts.append(gen_ocupacion_ciuo_safe())

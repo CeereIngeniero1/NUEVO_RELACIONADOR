@@ -15,21 +15,27 @@ function initMedicamentosDCISelect2(selector, fillCodigoId, fillNombreId) {
     select.select2({
         placeholder: "Buscar medicamento DCI...",
         allowClear: true,
+        width: "100%",
         minimumInputLength: 2,
         ajax: {
             delay: 300,
             transport: function (params, success, failure) {
                 const term = (params.data.term || "").trim();
-                const url = term.length
-                    ? `${getApiBaseUrl()}/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`
-                    : `${getApiBaseUrl()}/apiV3/MedicamentosDCI/`;
+                if (term.length < 2) {
+                    success({ results: [] });
+                    return;
+                }
+                const url = `${getApiBaseUrl()}/apiV3/MedicamentosDCI/${encodeURIComponent(term)}`;
                 fetch(url)
-                    .then(r => r.json())
-                    .then(data => success({ results: data }))
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(data => success({ results: data || [] }))
                     .catch(failure);
             },
             processResults: function (data) {
-                const arr = data.results || data;
+                const arr = data.results || data || [];
                 return {
                     results: arr.map(m => ({
                         id: m.Descripcion,

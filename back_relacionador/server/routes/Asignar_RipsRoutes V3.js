@@ -3734,13 +3734,16 @@ router.get('/MedicamentosDCI/', async (req, res) => {
 });
 
 router.get('/MedicamentosDCI/:MedicamentoDCI', async (req, res) => {
-    const MedicamentoDCI = req.params.MedicamentoDCI;
+    const MedicamentoDCI = String(req.params.MedicamentoDCI || '').trim();
     try {
         const pool = await poolPromise;
-        const result = await pool.request().query(`
-            SELECT  IDMedicamentoDCI1888, Codigo, Descripcion, IdEstado
+        const result = await pool.request()
+            .input('Busqueda', sql.NVarChar, '%' + MedicamentoDCI + '%')
+            .query(`
+            SELECT TOP 200 IDMedicamentoDCI1888, Codigo, Descripcion, IdEstado
             FROM     [Cnsta Medicamentos DCI 1888]
-            Where Descripcion like '%${MedicamentoDCI}%' OR Codigo like '%${MedicamentoDCI}%'
+            WHERE    Descripcion LIKE @Busqueda OR Codigo LIKE @Busqueda
+            ORDER BY Descripcion
         `);
         res.json(result.recordset);
     } catch (error) {
