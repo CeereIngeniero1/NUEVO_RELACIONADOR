@@ -476,7 +476,10 @@ BEGIN
         [Id Grupo Servicios]              INT           NULL,
         [Id Via Ingreso Usuario]          INT           NULL,
         [Id Causa Motivo Atencion]        INT           NULL,
-        [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1)
+        [Contenido Documento PDF Base64]  NVARCHAR(MAX) NULL,
+        [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1),
+        [Enviado]                         INT           NOT NULL CONSTRAINT DF_EERDACE_Enviado DEFAULT (0),
+        [Enviado pruebas]                 INT           NOT NULL CONSTRAINT DF_EERDACE_EnviadoPruebas DEFAULT (0)
     );
 END
 GO
@@ -901,6 +904,19 @@ GO
 IF COL_LENGTH(N'dbo.[Evaluacion Entidad RDA]', N'Enviado pruebas') IS NULL
     ALTER TABLE dbo.[Evaluacion Entidad RDA] ADD [Enviado pruebas] INT NOT NULL
         CONSTRAINT DF_EERDA_EnviadoPruebas_Alt DEFAULT (0);
+GO
+
+/* Evaluacion Entidad RDA Consulta Externa — columnas envío IHCE y PDF Base64 */
+IF COL_LENGTH(N'dbo.[Evaluacion Entidad RDA Consulta Externa]', N'Enviado') IS NULL
+    ALTER TABLE dbo.[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado] INT NOT NULL
+        CONSTRAINT DF_EERDACE_Enviado DEFAULT (0);
+GO
+IF COL_LENGTH(N'dbo.[Evaluacion Entidad RDA Consulta Externa]', N'Enviado pruebas') IS NULL
+    ALTER TABLE dbo.[Evaluacion Entidad RDA Consulta Externa] ADD [Enviado pruebas] INT NOT NULL
+        CONSTRAINT DF_EERDACE_EnviadoPruebas DEFAULT (0);
+GO
+IF COL_LENGTH(N'dbo.[Evaluacion Entidad RDA Consulta Externa]', N'Contenido Documento PDF Base64') IS NULL
+    ALTER TABLE dbo.[Evaluacion Entidad RDA Consulta Externa] ADD [Contenido Documento PDF Base64] NVARCHAR(MAX) NULL;
 GO
 
 PRINT N'=== ALTER_1888_INSTALL — instalación completada ===';

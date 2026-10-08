@@ -54,7 +54,10 @@ BEGIN
         [Id Grupo Servicios]              INT           NULL,
         [Id Via Ingreso Usuario]          INT           NULL,
         [Id Causa Motivo Atencion]        INT           NULL,
-        [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1)
+        [Contenido Documento PDF Base64]  NVARCHAR(MAX) NULL,
+        [Id Estado]                       INT           NOT NULL CONSTRAINT DF_RDACE_IdEstado DEFAULT (1),
+        [Enviado]                         INT           NOT NULL CONSTRAINT DF_EERDACE_Enviado DEFAULT (0),
+        [Enviado pruebas]                 INT           NOT NULL CONSTRAINT DF_EERDACE_EnviadoPruebas DEFAULT (0)
     );
 END
 GO
