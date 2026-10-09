@@ -28,14 +28,16 @@ UPDATE dbo.País SET País = 170
 WHERE [Descripción País] = N'Colombia' AND (País IS NULL OR País <> 170);
 GO
 
-/* Zona residencia → códigos SISPRO */
-UPDATE dbo.[Zona Residencia] SET [Código Zona Residencia] = 1
-WHERE [Descripción Zona Residencia] = N'Rural'
-  AND ([Código Zona Residencia] IS NULL OR [Código Zona Residencia] <> 1);
-GO
-UPDATE dbo.[Zona Residencia] SET [Código Zona Residencia] = 2
+/* Zona residencia → códigos SISPRO ZonaVersion2 (01 Urbana, 02 Rural) */
+UPDATE dbo.[Zona Residencia]
+SET [Código Zona Residencia] = N'01', [Zona Residencia] = N'U'
 WHERE [Descripción Zona Residencia] = N'Urbana'
-  AND ([Código Zona Residencia] IS NULL OR [Código Zona Residencia] <> 2);
+  AND ([Código Zona Residencia] IS NULL OR [Código Zona Residencia] <> N'01');
+GO
+UPDATE dbo.[Zona Residencia]
+SET [Código Zona Residencia] = N'02', [Zona Residencia] = N'R'
+WHERE [Descripción Zona Residencia] = N'Rural'
+  AND ([Código Zona Residencia] IS NULL OR [Código Zona Residencia] <> N'02');
 GO
 
 /* Tipo diagnóstico principal → códigos versión 2 */
