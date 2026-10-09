@@ -1,4 +1,5 @@
-const { Request, TYPES } = require('tedious');
+const { TYPES } = require('tedious');
+const { Request, valorRipsTexto } = require('../utils/ripsFilaSegura');
 const Router = require('express').Router;
 const connection = require('../db');
 const path = require('path');
@@ -434,7 +435,7 @@ WHERE
 
         const usuario = {
             tipoDocumentoIdentificacion: columns[4].value,
-            numDocumentoIdentificacion: columns[5].value.trim().replace(/\r?\n|\r/g, ''),
+            numDocumentoIdentificacion: String(columns[5].value ?? '').trim().replace(/\r?\n|\r/g, ''),
             tipoUsuario: columns[6].value,
             fechaNacimiento: columns[7].value,
             codSexo: columns[8].value,
@@ -624,8 +625,8 @@ router.get('/servicios/ripsACSinfactura/:IdFacrua/:numDocumentoIdentificacion/:f
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString(),
-            causaMotivoAtencion: columns[8].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[7], 'finalidadTecnologiaSalud'),
+            causaMotivoAtencion: valorRipsTexto(columns[8], 'causaMotivoAtencion'),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
             codDiagnosticoRelacionado2: columns[11].value,
@@ -746,8 +747,8 @@ router.get('/servicios/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString(),
-            causaMotivoAtencion: columns[8].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[7], 'finalidadTecnologiaSalud'),
+            causaMotivoAtencion: valorRipsTexto(columns[8], 'causaMotivoAtencion'),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
             codDiagnosticoRelacionado2: columns[11].value,
@@ -879,7 +880,7 @@ router.get('/servicios/ripsAPSinFactura/:IdFacrua/:numDocumentoIdentificacion/:f
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[9], 'finalidadTecnologiaSalud'),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -1002,7 +1003,7 @@ router.get('/servicios/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIdentif
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[9], 'finalidadTecnologiaSalud'),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -1134,7 +1135,7 @@ router.get('/serviciosEPS/ripsAP/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             modalidadGrupoServicioTecSal: columns[6].value,
             grupoServicios: columns[7].value,
             codServicio: parseInt(columns[8].value, 10),
-            finalidadTecnologiaSalud: columns[9].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[9], 'finalidadTecnologiaSalud'),
             tipoDocumentoIdentificacion: columns[10].value,
             numDocumentoIdentificacion: columns[11].value,
             codDiagnosticoPrincipal: columns[12].value,
@@ -1263,8 +1264,8 @@ router.get('/serviciosEPS/ripsAC/:idEvaRips/:IdTrata/:IdFacrua/:numDocumentoIden
             modalidadGrupoServicioTecSal: columns[4].value,
             grupoServicios: columns[5].value,
             codServicio: parseInt(columns[6].value, 10),
-            finalidadTecnologiaSalud: columns[7].value.toString(),
-            causaMotivoAtencion: columns[8].value.toString(),
+            finalidadTecnologiaSalud: valorRipsTexto(columns[7], 'finalidadTecnologiaSalud'),
+            causaMotivoAtencion: valorRipsTexto(columns[8], 'causaMotivoAtencion'),
             codDiagnosticoPrincipal: columns[9].value,
             codDiagnosticoRelacionado1: columns[10].value,
             codDiagnosticoRelacionado2: columns[11].value,
