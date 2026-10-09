@@ -1,5 +1,10 @@
 const { TYPES } = require('tedious');
-const { Request, valorRipsTexto } = require('../utils/ripsFilaSegura');
+const {
+    Request,
+    valorRipsTexto,
+    obtenerServiciosRips,
+    asignarServiciosRips,
+} = require('../utils/ripsFilaSegura');
 const Router = require('express').Router;
 const connection = require('../db');
 const path = require('path');
@@ -227,48 +232,19 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
                 const { fechaInicio, fechaFin, idEvaRips, IdTrata, IdFacrua, Sinfactura, DocumentoPaciente } = facturaData;
 
                 for (const usuario of consulta.usuarios) {
-                    try {
-                        let consultasResponse;
-                        if (Sinfactura === 1) {
-                           console.log(`DOCUMENTO DEL PACIENTE ${DocumentoPaciente} SIN FACTURA ? ${Sinfactura}`);
-
-                            consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
-                        } else {
-                            consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
-                        }
-
-                        const consultasData = await consultasResponse.json();
-
-                        if (consultasData.length > 0) {
-                            usuario.servicios.consultas.push(...consultasData);
-                        } else {
-                            delete usuario.servicios.consultas;
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener consultas:', error);
+                    const ref = `factura ${IdFacrua} doc ${DocumentoPaciente}`;
+                    if (Sinfactura === 1) {
+                        console.log(`DOCUMENTO DEL PACIENTE ${DocumentoPaciente} SIN FACTURA ? ${Sinfactura}`);
                     }
+                    const urlConsultas = Sinfactura === 1
+                        ? `${INTERNAL_API_BASE}/RIPS/servicios/ripsACSinfactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`
+                        : `${INTERNAL_API_BASE}/RIPS/servicios/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`;
+                    asignarServiciosRips(usuario, 'consultas', await obtenerServiciosRips(urlConsultas, `consultas (${ref})`));
 
-                    try {
-                        let procedimientosResponse;
-                        if (Sinfactura === 1) {
-                            // console.log(`Se supone que esta es la fecha pa ${IdFacrua} ${DocumentoPaciente}  ${fechaInicio}  ${fechaFin} `);
-
-                            procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`);
-
-                        } else {
-                            procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`);
-
-                        }
-                        const procedimientosData = await procedimientosResponse.json();
-
-                        if (procedimientosData.length > 0) {
-                            usuario.servicios.procedimientos.push(...procedimientosData);
-                        } else {
-                            delete usuario.servicios.procedimientos;
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener procedimientos:', error);
-                    }
+                    const urlProcedimientos = Sinfactura === 1
+                        ? `${INTERNAL_API_BASE}/RIPS/servicios/ripsAPSinFactura/${IdFacrua}/${DocumentoPaciente}/${fechaInicio}/${fechaFin}`
+                        : `${INTERNAL_API_BASE}/RIPS/servicios/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${DocumentoPaciente}`;
+                    asignarServiciosRips(usuario, 'procedimientos', await obtenerServiciosRips(urlProcedimientos, `procedimientos (${ref})`));
                 }
             } else {
                 console.error(`Factura con clave ${factura} no encontrada en facturasOriginales.`);
@@ -485,33 +461,15 @@ WHERE
                 const { originalNumFactura, idTipoRips, idEvaRips, IdTrata, IdFacrua } = facturaData;
 
                 for (const usuario of consulta.usuarios) {
-                    try {
-                        // const consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAC/${originalNumFactura}/${usuario.numDocumentoIdentificacion}/${fechaInicio}/${fechaFin}/${ResolucionesRips}`);
-                        const consultasResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
-                        const consultasData = await consultasResponse.json();
-
-                        if (consultasData.length > 0) {
-
-                            usuario.servicios.consultas.push(...consultasData);
-                        } else {
-                            delete usuario.servicios.consultas;
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener consultas:', error);
-                    }
-
-                    try {
-                        const procedimientosResponse = await fetch(`${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`);
-                        const procedimientosData = await procedimientosResponse.json();
-
-                        if (procedimientosData.length > 0) {
-                            usuario.servicios.procedimientos.push(...procedimientosData);
-                        } else {
-                            delete usuario.servicios.procedimientos;
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener procedimientos:', error);
-                    }
+                    const ref = `factura ${IdFacrua} doc ${usuario.numDocumentoIdentificacion}`;
+                    asignarServiciosRips(usuario, 'consultas', await obtenerServiciosRips(
+                        `${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAC/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`,
+                        `consultas EPS (${ref})`
+                    ));
+                    asignarServiciosRips(usuario, 'procedimientos', await obtenerServiciosRips(
+                        `${INTERNAL_API_BASE}/RIPS/serviciosEPS/ripsAP/${idEvaRips}/${IdTrata}/${IdFacrua}/${usuario.numDocumentoIdentificacion}`,
+                        `procedimientos EPS (${ref})`
+                    ));
                 }
             } else {
                 console.error(`Factura con clave ${factura} no encontrada en facturasOriginales.`);
