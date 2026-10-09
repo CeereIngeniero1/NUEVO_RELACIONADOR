@@ -699,6 +699,7 @@ def build_1888() -> Path:
   PRERREQUISITO: 00_INSTALL_2275_COMPLETO.sql (o paquete 14→15→16→17→13).
 
   Orden interno:
+    0. CredencialesIhce (tabla + semilla; también está en el 2275)
     1. TABLAS
     2. ALTER
     3. RUNTIME (trazabilidad IHCE, sp_Paciente_Guardar, trigger Entidad1888)
@@ -720,6 +721,9 @@ PRINT N'=== INICIO INSTALL 1888 COMPLETO ===';
 GO
 """
     )
+
+    parts.append(section("0/9 CredencialesIhce (tabla + semilla, usada por RDA)"))
+    parts.append(strip_install_header(read_text(D2275 / "19. CredencialesIhce.sql")))
 
     parts.append(section("1/9 TABLAS_1888"))
     parts.append(strip_install_header(read_text(D1888 / "TABLAS_1888_INSTALL.sql")))
