@@ -1324,7 +1324,7 @@ SET Descripcion = CASE Codigo
     WHEN N'03' THEN N'PACIENTE DERIVADO A OTRO SERVICIO'
     WHEN N'04' THEN N'REFERIDO A OTRA INSTITUCION'
     WHEN N'05' THEN N'CONTRAREFERIDO A OTRA INSTITUCION'
-    WHEN N'06' THEN N'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIARIA'
+    WHEN N'06' THEN N'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIRIA'
     WHEN N'07' THEN N'DERIVADO A SERVICIO SOCIAL'
     WHEN N'08' THEN N'PACIENTE CONTINUA EN EL SERVICIO (CORTE FACTURACION)'
     ELSE Descripcion END
@@ -1333,9 +1333,9 @@ GO
 
 UPDATE dbo.[Tipo diagnostico principal 1888]
 SET Descripcion = CASE Codigo
-    WHEN N'01' THEN N'Impresión diagnóstica'
-    WHEN N'02' THEN N'Confirmado nuevo'
-    WHEN N'03' THEN N'Confirmado repetido'
+    WHEN N'01' THEN N'Impresión Diagnóstica'
+    WHEN N'02' THEN N'Confirmado Nuevo'
+    WHEN N'03' THEN N'Confirmado Repetido'
     ELSE Descripcion END
 WHERE Codigo IN (N'01',N'02',N'03');
 GO
@@ -1451,7 +1451,7 @@ GO
 
 /* País Colombia default */
 IF NOT EXISTS (SELECT 1 FROM dbo.País1888 WHERE Codigo = N'170')
-    INSERT INTO dbo.País1888 (Codigo, Nombre, Estado) VALUES (N'170', N'COLOMBIA', 7);
+    INSERT INTO dbo.País1888 (Codigo, Nombre, Estado) VALUES (N'170', N'Colombia', 7);
 GO
 
 /* Regimen */
@@ -1483,751 +1483,751 @@ IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo de tecnología en salud 1888] WHERE Codig
 GO
 
 /* Países ISO (insert_paises.sql) */
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Afghanistan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'004')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('004', N'Afghanistan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Albania')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'008')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('008', N'Albania', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Antarctica')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'010')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('010', N'Antarctica', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Algeria')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'012')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('012', N'Algeria', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'American Samoa')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'016')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('016', N'American Samoa', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Andorra')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'020')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('020', N'Andorra', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Angola')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'024')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('024', N'Angola', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Antigua and Barbuda')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'028')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('028', N'Antigua and Barbuda', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Azerbaijan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'031')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('031', N'Azerbaijan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Argentina')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'032')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('032', N'Argentina', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Australia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'036')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('036', N'Australia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Austria')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'040')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('040', N'Austria', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bahamas')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'044')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('044', N'Bahamas', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bahrain')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'048')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('048', N'Bahrain', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bangladesh')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'050')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('050', N'Bangladesh', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Armenia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'051')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('051', N'Armenia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Barbados')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'052')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('052', N'Barbados', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Belgium')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'056')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('056', N'Belgium', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bermuda')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'060')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('060', N'Bermuda', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bhutan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'064')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('064', N'Bhutan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bolivia, Plurinational State of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'068')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('068', N'Bolivia, Plurinational State of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bosnia and Herzegovina')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'070')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('070', N'Bosnia and Herzegovina', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Botswana')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'072')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('072', N'Botswana', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bouvet Island')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'074')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('074', N'Bouvet Island', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Brazil')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'076')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('076', N'Brazil', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Belize')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'084')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('084', N'Belize', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'British Indian Ocean Territory')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'086')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('086', N'British Indian Ocean Territory', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Solomon Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'090')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('090', N'Solomon Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Virgin Islands, British')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'092')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('092', N'Virgin Islands, British', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Brunei Darussalam')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'096')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('096', N'Brunei Darussalam', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bulgaria')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'100')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('100', N'Bulgaria', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Myanmar')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'104')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('104', N'Myanmar', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Burundi')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'108')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('108', N'Burundi', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Belarus')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'112')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('112', N'Belarus', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cambodia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'116')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('116', N'Cambodia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cameroon')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'120')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('120', N'Cameroon', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Canada')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'124')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('124', N'Canada', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cabo Verde')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'132')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('132', N'Cabo Verde', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cayman Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'136')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('136', N'Cayman Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Central African Republic')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'140')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('140', N'Central African Republic', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sri Lanka')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'144')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('144', N'Sri Lanka', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Chad')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'148')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('148', N'Chad', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Chile')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'152')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('152', N'Chile', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'China')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'156')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('156', N'China', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Taiwan, Province of China')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'158')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('158', N'Taiwan, Province of China', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Christmas Island')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'162')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('162', N'Christmas Island', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cocos (Keeling) Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'166')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('166', N'Cocos (Keeling) Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Colombia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'170')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('170', N'Colombia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Comoros')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'174')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('174', N'Comoros', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mayotte')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'175')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('175', N'Mayotte', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Congo')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'178')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('178', N'Congo', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Congo, the Democratic Republic of the')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'180')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('180', N'Congo, the Democratic Republic of the', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cook Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'184')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('184', N'Cook Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Costa Rica')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'188')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('188', N'Costa Rica', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Croatia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'191')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('191', N'Croatia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cuba')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'192')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('192', N'Cuba', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Cyprus')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'196')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('196', N'Cyprus', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Czechia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'203')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('203', N'Czechia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Benin')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'204')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('204', N'Benin', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Denmark')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'208')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('208', N'Denmark', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Dominica')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'212')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('212', N'Dominica', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Dominican Republic')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'214')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('214', N'Dominican Republic', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ecuador')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'218')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('218', N'Ecuador', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'El Salvador')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'222')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('222', N'El Salvador', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Equatorial Guinea')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'226')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('226', N'Equatorial Guinea', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ethiopia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'231')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('231', N'Ethiopia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Eritrea')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'232')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('232', N'Eritrea', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Estonia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'233')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('233', N'Estonia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Faroe Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'234')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('234', N'Faroe Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Falkland Islands (Malvinas)')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'238')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('238', N'Falkland Islands (Malvinas)', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'South Georgia and the South Sandwich Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'239')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('239', N'South Georgia and the South Sandwich Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Fiji')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'242')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('242', N'Fiji', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Finland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'246')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('246', N'Finland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Åland Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'248')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('248', N'Åland Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'France')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'250')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('250', N'France', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'French Guiana')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'254')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('254', N'French Guiana', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'French Polynesia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'258')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('258', N'French Polynesia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'French Southern Territories')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'260')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('260', N'French Southern Territories', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Djibouti')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'262')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('262', N'Djibouti', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Gabon')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'266')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('266', N'Gabon', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Georgia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'268')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('268', N'Georgia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Gambia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'270')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('270', N'Gambia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Palestine, State of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'275')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('275', N'Palestine, State of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Germany')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'276')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('276', N'Germany', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ghana')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'288')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('288', N'Ghana', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Gibraltar')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'292')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('292', N'Gibraltar', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Kiribati')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'296')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('296', N'Kiribati', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Greece')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'300')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('300', N'Greece', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Greenland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'304')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('304', N'Greenland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Grenada')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'308')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('308', N'Grenada', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guadeloupe')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'312')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('312', N'Guadeloupe', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guam')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'316')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('316', N'Guam', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guatemala')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'320')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('320', N'Guatemala', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guinea')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'324')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('324', N'Guinea', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guyana')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'328')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('328', N'Guyana', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Haiti')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'332')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('332', N'Haiti', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Heard Island and McDonald Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'334')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('334', N'Heard Island and McDonald Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Holy See')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'336')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('336', N'Holy See', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Honduras')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'340')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('340', N'Honduras', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Hong Kong')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'344')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('344', N'Hong Kong', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Hungary')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'348')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('348', N'Hungary', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Iceland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'352')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('352', N'Iceland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'India')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'356')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('356', N'India', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Indonesia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'360')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('360', N'Indonesia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Iran, Islamic Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'364')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('364', N'Iran, Islamic Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Iraq')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'368')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('368', N'Iraq', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ireland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'372')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('372', N'Ireland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Israel')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'376')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('376', N'Israel', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Italy')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'380')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('380', N'Italy', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ivoire')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'384')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('384', N'Côte d''Ivoire', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Jamaica')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'388')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('388', N'Jamaica', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Japan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'392')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('392', N'Japan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Kazakhstan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'398')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('398', N'Kazakhstan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Jordan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'400')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('400', N'Jordan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Kenya')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'404')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('404', N'Kenya', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N's Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'408')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('408', N'Korea, Democratic People''s Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Korea, Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'410')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('410', N'Korea, Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Kuwait')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'414')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('414', N'Kuwait', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Kyrgyzstan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'417')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('417', N'Kyrgyzstan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N's Democratic Republic')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'418')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('418', N'Lao People''s Democratic Republic', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Lebanon')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'422')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('422', N'Lebanon', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Lesotho')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'426')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('426', N'Lesotho', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Latvia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'428')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('428', N'Latvia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Liberia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'430')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('430', N'Liberia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Libya')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'434')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('434', N'Libya', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Liechtenstein')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'438')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('438', N'Liechtenstein', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Lithuania')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'440')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('440', N'Lithuania', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Luxembourg')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'442')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('442', N'Luxembourg', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Macao')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'446')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('446', N'Macao', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Madagascar')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'450')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('450', N'Madagascar', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Malawi')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'454')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('454', N'Malawi', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Malaysia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'458')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('458', N'Malaysia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Maldives')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'462')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('462', N'Maldives', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mali')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'466')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('466', N'Mali', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Malta')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'470')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('470', N'Malta', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Martinique')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'474')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('474', N'Martinique', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mauritania')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'478')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('478', N'Mauritania', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mauritius')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'480')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('480', N'Mauritius', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mexico')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'484')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('484', N'Mexico', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Monaco')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'492')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('492', N'Monaco', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mongolia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'496')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('496', N'Mongolia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Moldova, Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'498')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('498', N'Moldova, Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Montenegro')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'499')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('499', N'Montenegro', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Montserrat')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'500')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('500', N'Montserrat', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Morocco')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'504')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('504', N'Morocco', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Mozambique')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'508')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('508', N'Mozambique', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Oman')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'512')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('512', N'Oman', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Namibia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'516')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('516', N'Namibia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Nauru')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'520')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('520', N'Nauru', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Nepal')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'524')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('524', N'Nepal', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Netherlands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'528')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('528', N'Netherlands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Curaçao')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'531')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('531', N'Curaçao', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Aruba')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'533')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('533', N'Aruba', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sint Maarten (Dutch part)')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'534')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('534', N'Sint Maarten (Dutch part)', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Bonaire, Sint Eustatius and Saba')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'535')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('535', N'Bonaire, Sint Eustatius and Saba', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'New Caledonia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'540')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('540', N'New Caledonia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Vanuatu')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'548')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('548', N'Vanuatu', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'New Zealand')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'554')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('554', N'New Zealand', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Nicaragua')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'558')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('558', N'Nicaragua', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Niger')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'562')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('562', N'Niger', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Nigeria')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'566')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('566', N'Nigeria', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Niue')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'570')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('570', N'Niue', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Norfolk Island')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'574')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('574', N'Norfolk Island', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Norway')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'578')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('578', N'Norway', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Northern Mariana Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'580')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('580', N'Northern Mariana Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'United States Minor Outlying Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'581')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('581', N'United States Minor Outlying Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Micronesia, Federated States of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'583')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('583', N'Micronesia, Federated States of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Marshall Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'584')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('584', N'Marshall Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Palau')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'585')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('585', N'Palau', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Pakistan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'586')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('586', N'Pakistan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Panama')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'591')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('591', N'Panama', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Papua New Guinea')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'598')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('598', N'Papua New Guinea', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Paraguay')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'600')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('600', N'Paraguay', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Peru')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'604')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('604', N'Peru', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Philippines')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'608')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('608', N'Philippines', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Pitcairn')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'612')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('612', N'Pitcairn', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Poland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'616')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('616', N'Poland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Portugal')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'620')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('620', N'Portugal', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guinea-Bissau')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'624')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('624', N'Guinea-Bissau', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Timor-Leste')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'626')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('626', N'Timor-Leste', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Puerto Rico')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'630')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('630', N'Puerto Rico', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Qatar')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'634')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('634', N'Qatar', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Réunion')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'638')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('638', N'Réunion', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Romania')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'642')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('642', N'Romania', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Russian Federation')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'643')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('643', N'Russian Federation', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Rwanda')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'646')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('646', N'Rwanda', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Barthélemy')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'652')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('652', N'Saint Barthélemy', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Helena, Ascension and Tristan da Cunha')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'654')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('654', N'Saint Helena, Ascension and Tristan da Cunha', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Kitts and Nevis')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'659')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('659', N'Saint Kitts and Nevis', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Anguilla')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'660')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('660', N'Anguilla', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Lucia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'662')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('662', N'Saint Lucia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Martin (French part)')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'663')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('663', N'Saint Martin (French part)', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Pierre and Miquelon')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'666')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('666', N'Saint Pierre and Miquelon', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saint Vincent and the Grenadines')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'670')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('670', N'Saint Vincent and the Grenadines', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'San Marino')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'674')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('674', N'San Marino', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sao Tome and Principe')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'678')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('678', N'Sao Tome and Principe', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Saudi Arabia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'682')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('682', N'Saudi Arabia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Senegal')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'686')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('686', N'Senegal', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Serbia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'688')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('688', N'Serbia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Seychelles')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'690')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('690', N'Seychelles', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sierra Leone')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'694')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('694', N'Sierra Leone', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Singapore')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'702')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('702', N'Singapore', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Slovakia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'703')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('703', N'Slovakia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Viet Nam')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'704')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('704', N'Viet Nam', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Slovenia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'705')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('705', N'Slovenia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Somalia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'706')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('706', N'Somalia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'South Africa')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'710')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('710', N'South Africa', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Zimbabwe')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'716')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('716', N'Zimbabwe', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Spain')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'724')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('724', N'Spain', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'South Sudan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'728')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('728', N'South Sudan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sudan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'729')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('729', N'Sudan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Western Sahara')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'732')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('732', N'Western Sahara', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Suriname')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'740')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('740', N'Suriname', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Svalbard and Jan Mayen')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'744')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('744', N'Svalbard and Jan Mayen', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Swaziland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'748')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('748', N'Swaziland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Sweden')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'752')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('752', N'Sweden', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Switzerland')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'756')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('756', N'Switzerland', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Syrian Arab Republic')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'760')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('760', N'Syrian Arab Republic', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tajikistan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'762')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('762', N'Tajikistan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Thailand')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'764')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('764', N'Thailand', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Togo')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'768')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('768', N'Togo', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tokelau')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'772')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('772', N'Tokelau', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tonga')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'776')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('776', N'Tonga', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Trinidad and Tobago')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'780')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('780', N'Trinidad and Tobago', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'United Arab Emirates')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'784')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('784', N'United Arab Emirates', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tunisia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'788')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('788', N'Tunisia', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Turkey')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'792')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('792', N'Turkey', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Turkmenistan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'795')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('795', N'Turkmenistan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Turks and Caicos Islands')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'796')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('796', N'Turks and Caicos Islands', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tuvalu')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'798')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('798', N'Tuvalu', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Uganda')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'800')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('800', N'Uganda', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Ukraine')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'804')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('804', N'Ukraine', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Macedonia, the former Yugoslav Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'807')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('807', N'Macedonia, the former Yugoslav Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Egypt')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'818')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('818', N'Egypt', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'United Kingdom')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'826')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('826', N'United Kingdom', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Guernsey')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'831')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('831', N'Guernsey', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Jersey')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'832')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('832', N'Jersey', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Isle of Man')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'833')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('833', N'Isle of Man', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Tanzania, United Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'834')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('834', N'Tanzania, United Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'United States of America')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'840')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('840', N'United States of America', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Virgin Islands, U.S.')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'850')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('850', N'Virgin Islands, U.S.', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Burkina Faso')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'854')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('854', N'Burkina Faso', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Uruguay')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'858')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('858', N'Uruguay', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Uzbekistan')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'860')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('860', N'Uzbekistan', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Venezuela, Bolivarian Republic of')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'862')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('862', N'Venezuela, Bolivarian Republic of', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Wallis and Futuna')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'876')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('876', N'Wallis and Futuna', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Samoa')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'882')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('882', N'Samoa', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Yemen')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'887')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('887', N'Yemen', 7);
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'Zambia')
+IF NOT EXISTS (SELECT 1 FROM dbo.[País1888] WHERE Codigo = N'894')
     INSERT INTO dbo.[País1888] (Codigo, Nombre, Estado) VALUES ('894', N'Zambia', 7);
 GO
 GO
@@ -2245,24 +2245,24 @@ IF OBJECT_ID(N'dbo.[Tipo diagnostico principal 1888]', N'U') IS NOT NULL
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'01')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'01', N'Impresión diagnóstica', 7);
+        VALUES (N'01', N'Impresión Diagnóstica', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Impresión diagnóstica', [Id Estado] = 7 WHERE Codigo = N'01';
+        SET Descripcion = N'Impresión Diagnóstica', [Id Estado] = 7 WHERE Codigo = N'01';
 
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'02')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'02', N'Confirmado nuevo', 7);
+        VALUES (N'02', N'Confirmado Nuevo', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Confirmado nuevo', [Id Estado] = 7 WHERE Codigo = N'02';
+        SET Descripcion = N'Confirmado Nuevo', [Id Estado] = 7 WHERE Codigo = N'02';
 
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'03')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'03', N'Confirmado repetido', 7);
+        VALUES (N'03', N'Confirmado Repetido', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Confirmado repetido', [Id Estado] = 7 WHERE Codigo = N'03';
+        SET Descripcion = N'Confirmado Repetido', [Id Estado] = 7 WHERE Codigo = N'03';
 END
 GO
 
@@ -2565,7 +2565,7 @@ BEGIN
         ('03', 'PACIENTE DERIVADO A OTRO SERVICIO'),
         ('04', 'REFERIDO A OTRA INSTITUCION'),
         ('05', 'CONTRAREFERIDO A OTRA INSTITUCION'),
-        ('06', 'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIARIA'),
+        ('06', 'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIRIA'),
         ('07', 'DERIVADO A SERVICIO SOCIAL'),
         ('08', 'PACIENTE CONTINUA EN EL SERVICIO (CORTE FACTURACION)');
 
@@ -2629,6 +2629,332 @@ GO
 
 PRINT N'Verificar: SELECT * FROM dbo.[Cnsta Egreso y Remision 1888];          -- 8';
 PRINT N'Verificar: SELECT * FROM dbo.[Cnsta Finalidad tecnologia salud 1888]; -- 34';
+GO
+
+PRINT N'>>> 5f/9 Limpieza de duplicados en catálogos RIPS/RDA';
+GO
+
+/* ==============================================================================
+   5f/9 Limpieza de duplicados en catálogos RIPS/RDA
+   ============================================================================== */
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @Ejecutar BIT = 1;
+
+IF OBJECT_ID(N'tempdb..#Cat') IS NOT NULL DROP TABLE #Cat;
+IF OBJECT_ID(N'tempdb..#Ref') IS NOT NULL DROP TABLE #Ref;
+IF OBJECT_ID(N'tempdb..#Map') IS NOT NULL DROP TABLE #Map;
+IF OBJECT_ID(N'tempdb..#Res') IS NOT NULL DROP TABLE #Res;
+
+CREATE TABLE #Cat (
+    Orden INT IDENTITY(1,1) NOT NULL,
+    Tabla SYSNAME NOT NULL PRIMARY KEY,
+    ColId SYSNAME NULL,
+    ColCodigo SYSNAME NOT NULL,
+    ColEstado SYSNAME NULL
+);
+INSERT INTO #Cat (Tabla, ColId, ColCodigo, ColEstado) VALUES
+    (N'País1888',                            N'Id Pais1888',                            N'Codigo',           N'Estado'),
+    (N'Ciudad1888',                          N'Id Ciudad1888',                          N'Codigo',           N'Estado'),
+    (N'Etnia',                               N'Id Etnia',                               N'Código Etnia',     N'Id Estado'),
+    (N'Sexo Identidad Genero',               N'Id Sexo Identidad Genero',               N'Codigo',           N'Id Estado'),
+    (N'Discapacidad',                        N'Id Discapacidad',                        N'Codigo',           N'Id Estado'),
+    (N'Ocupacion 1888',                      N'Id Ocupacion 1888',                      N'Codigo',           N'Id Estado'),
+    (N'Medicamento DCI 1888',                N'ID Medicamento DCI 1888',                N'Codigo',           N'Id Estado'),
+    (N'Tipo de tecnología en salud 1888',    N'Id Tipo de tecnología en salud 1888',    N'Codigo',           N'Id Estado'),
+    (N'Tipo diagnostico principal 1888',     N'Id Tipo diagnostico principal 1888',     N'Codigo',           N'Id Estado'),
+    (N'Entorno de atencion 1888',            N'Id Entorno de atencion 1888',            N'Codigo',           N'Id Estado'),
+    (N'Factor De Riesgo 1888',               N'Id Factor De Riesgo 1888',               N'Codigo',           N'Id Estado'),
+    (N'Egreso y Remision 1888',              N'Id Egreso y Remision 1888',              N'Codigo',           N'Id Estado'),
+    (N'Alcance incapacidad 1888',            N'Id Alcance incapacidad 1888',            N'Codigo',           N'Id Estado'),
+    (N'Tipo de alergia 1888',                N'Id Tipo de alergia 1888',                N'Codigo',           N'Id Estado'),
+    (N'Finalidad tecnologia salud 1888',     N'Id Finalidad tecnologia salud 1888',     N'Codigo',           N'Id Estado'),
+    (N'Via administracion medicamento 1888', N'Id Via administracion medicamento 1888', N'Codigo',           N'Id Estado'),
+    (N'Otra tecnologia categoria 1888',      N'Id Otra tecnologia categoria 1888',      N'Codigo',           N'Id Estado'),
+    (N'Unidad medida dosis 1888',            N'Id Unidad medida dosis 1888',            N'Codigo',           N'Id Estado'),
+    (N'Unidad tiempo duracion 1888',         N'Id Unidad tiempo duracion 1888',         N'Codigo',           N'Id Estado'),
+    (N'Unidad tiempo frecuencia 1888',       N'Id Unidad tiempo frecuencia 1888',       N'Codigo',           N'Id Estado'),
+    (N'Parentesco familiar RDA 1888',        N'Id Parentesco familiar RDA 1888',        N'Codigo',           N'Id Estado'),
+    (N'Entidades sgsss 1888',                N'Id sgsss',                               N'Codigo',           N'Id Estado'),
+    (N'Entidades Prepagadas 1888',           N'Id Entidades Prepagadas 1888',           N'Codigo',           N'Id Estado'),
+    (N'CIE11_Codigos',                       N'IdCIE11',                                N'Codigo',           NULL),
+    (N'CUPS_Codigos',                        N'IdCUPS',                                 N'Codigo',           N'IdEstado'),
+    (N'RIPS Finalidad Consulta Version2',    N'Id Finalidad Consulta',                  N'Codigo',           N'Id Estado'),
+    (N'RIPS Causa Externa Version2',         N'Id RIPS Causa Externa Version2',         N'Codigo',           N'Id Estado'),
+    (N'RIPS Via Ingreso Usuario',            N'Id Via Ingreso Usuario',                 N'Codigo',           N'Id Estado'),
+    (N'RIPS Modalidad Atención',             N'Id Modalidad Atencion',                  N'Codigo',           N'Id Estado'),
+    (N'RIPS Grupo Servicios',                N'Id Grupo Servicios',                     N'Codigo',           N'Id Estado'),
+    (N'RIPS Servicios',                      N'Id Servicios',                           N'Código Servicios', N'Id Estado'),
+    (N'Rips Cie10',                          NULL,                                      N'Codigo',           NULL),
+    (N'Rips Cups',                           NULL,                                      N'Codigo',           NULL);
+
+/* Compartida = 1: la columna también guarda Ids de tablas de CeereSIO; no se reapunta. */
+CREATE TABLE #Ref (Tabla SYSNAME NOT NULL, TablaRef SYSNAME NOT NULL, ColRef SYSNAME NOT NULL, Compartida BIT NOT NULL);
+INSERT INTO #Ref (Tabla, TablaRef, ColRef, Compartida) VALUES
+    (N'País1888',              N'Entidad1888',                             N'Id Pais Nacionalidad',          0),
+    (N'País1888',              N'Entidad1888',                             N'Id Pais Recidencia',            0),
+    (N'País1888',              N'Evaluacion Entidad RDA',                  N'Id Pais Nacionalidad',          0),
+    (N'País1888',              N'Evaluacion Entidad RDA',                  N'Id Pais Recidencia',            0),
+    (N'Ciudad1888',            N'Entidad1888',                             N'Id Municipio Recidencia',       0),
+    (N'Ciudad1888',            N'Evaluacion Entidad RDA',                  N'Id Municipio Recidencia',       0),
+    (N'Etnia',                 N'Entidad1888',                             N'Id Etnia',                      0),
+    (N'Etnia',                 N'Evaluacion Entidad RDA',                  N'Id Etnia',                      0),
+    (N'Sexo Identidad Genero', N'Entidad1888',                             N'Id Identidad Genero',           0),
+    (N'Sexo Identidad Genero', N'Evaluacion Entidad RDA',                  N'Id Identidad Genero',           0),
+    (N'Discapacidad',          N'Entidad1888',                             N'Id Discapacidad',               0),
+    (N'Discapacidad',          N'Evaluacion Entidad RDA',                  N'Id Discapacidad',               0),
+    (N'RIPS Causa Externa Version2', N'Evaluacion Entidad RDA Consulta Externa', N'Id Causa Motivo Atencion', 0),
+    (N'RIPS Causa Externa Version2', N'Evaluación Entidad Rips',           N'Id Causa Externa Version2',     0),
+    (N'RIPS Causa Externa Version2', N'Evaluación Entidad Rips',           N'Id Causa Externa',              1),
+    (N'RIPS Finalidad Consulta Version2', N'Evaluación Entidad Rips',      N'Id Finalidad Consulta',         1),
+    (N'RIPS Finalidad Consulta Version2', N'Evaluación Entidad Rips',      N'Id Finalidad Consulta Version2', 1),
+    (N'RIPS Via Ingreso Usuario', N'Evaluación Entidad Rips',              N'Id Via Ingreso Usuario',        0),
+    (N'RIPS Via Ingreso Usuario', N'Evaluacion Entidad RDA',               N'Id Via Ingreso Usuario',        0),
+    (N'RIPS Via Ingreso Usuario', N'Evaluacion Entidad RDA Consulta Externa', N'Id Via Ingreso Usuario',     0),
+    (N'RIPS Modalidad Atención', N'Evaluación Entidad Rips',               N'Id Modalidad Atencion',         0),
+    (N'RIPS Modalidad Atención', N'Evaluacion Entidad RDA',                N'Id Modalidad Atencion',         0),
+    (N'RIPS Modalidad Atención', N'Evaluacion Entidad RDA Consulta Externa', N'Id Modalidad Atencion',       0),
+    (N'RIPS Grupo Servicios',  N'Evaluación Entidad Rips',                 N'Id Grupo Servicios',            0),
+    (N'RIPS Grupo Servicios',  N'Evaluacion Entidad RDA',                  N'Id Grupo Servicios',            0),
+    (N'RIPS Grupo Servicios',  N'Evaluacion Entidad RDA Consulta Externa', N'Id Grupo Servicios',            0),
+    (N'RIPS Servicios',        N'Evaluación Entidad Rips',                 N'Id Servicios',                  0);
+
+CREATE TABLE #Map (IdDup INT NOT NULL PRIMARY KEY, IdKeep INT NOT NULL, Referenciada BIT NOT NULL DEFAULT (0));
+CREATE TABLE #Res (
+    Orden INT NOT NULL, Tabla SYSNAME NOT NULL, Filas INT NULL, CodigosDuplicados INT NULL, FilasSobrantes INT NULL,
+    Reapuntadas INT NOT NULL DEFAULT (0), Eliminadas INT NOT NULL DEFAULT (0), Inactivadas INT NOT NULL DEFAULT (0)
+);
+
+DECLARE @Orden INT, @Tabla SYSNAME, @ColId SYSNAME, @ColCodigo SYSNAME, @ColEstado SYSNAME;
+DECLARE @Obj NVARCHAR(400), @Cod NVARCHAR(600), @Key NVARCHAR(800), @OrdenFila NVARCHAR(600);
+DECLARE @sql NVARCHAR(MAX), @n INT, @Filas INT, @Codigos INT, @Sobrantes INT, @Reap INT, @Elim INT, @Inact INT;
+DECLARE @TablaRef SYSNAME, @ColRef SYSNAME, @Compartida BIT;
+
+BEGIN TRY
+    BEGIN TRAN;
+
+    DECLARE curCat CURSOR LOCAL FAST_FORWARD FOR
+        SELECT Orden, Tabla, ColId, ColCodigo, ColEstado FROM #Cat ORDER BY Orden;
+    OPEN curCat;
+    FETCH NEXT FROM curCat INTO @Orden, @Tabla, @ColId, @ColCodigo, @ColEstado;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @Obj = N'dbo.' + QUOTENAME(@Tabla);
+        IF OBJECT_ID(@Obj, N'U') IS NULL
+           OR COL_LENGTH(@Obj, @ColCodigo) IS NULL
+           OR (@ColId IS NOT NULL AND COL_LENGTH(@Obj, @ColId) IS NULL)
+            GOTO Siguiente;
+        IF @ColEstado IS NOT NULL AND COL_LENGTH(@Obj, @ColEstado) IS NULL
+            SET @ColEstado = NULL;
+
+        SET @Cod = QUOTENAME(@ColCodigo);
+        SET @Key = N'LTRIM(RTRIM(CAST(' + @Cod + N' AS NVARCHAR(400))))';
+        SELECT @Reap = 0, @Elim = 0, @Inact = 0;
+
+        SET @sql = N'SELECT @F = COUNT(*) FROM ' + @Obj + N';
+            SELECT @C = COUNT(*), @S = ISNULL(SUM(n - 1), 0)
+            FROM (SELECT COUNT(*) AS n FROM ' + @Obj + N'
+                  WHERE ' + @Cod + N' IS NOT NULL AND ' + @Key + N' <> N''''
+                  GROUP BY ' + @Key + N' HAVING COUNT(*) > 1) x;';
+        EXEC sp_executesql @sql, N'@F INT OUTPUT, @C INT OUTPUT, @S INT OUTPUT',
+            @F = @Filas OUTPUT, @C = @Codigos OUTPUT, @S = @Sobrantes OUTPUT;
+
+        IF @Sobrantes > 0 AND @Ejecutar = 1
+        BEGIN
+            IF @ColId IS NULL
+            BEGIN
+                SET @sql = N';WITH x AS (
+                        SELECT ROW_NUMBER() OVER (PARTITION BY ' + @Key + N' ORDER BY (SELECT NULL)) AS rn
+                        FROM ' + @Obj + N'
+                        WHERE ' + @Cod + N' IS NOT NULL AND ' + @Key + N' <> N'''')
+                    DELETE FROM x WHERE rn > 1;
+                    SET @E = @@ROWCOUNT;';
+                EXEC sp_executesql @sql, N'@E INT OUTPUT', @E = @Elim OUTPUT;
+            END
+            ELSE
+            BEGIN
+                TRUNCATE TABLE #Map;
+                SET @OrdenFila = CASE WHEN @ColEstado IS NULL THEN N''
+                                      ELSE N'CASE WHEN ' + QUOTENAME(@ColEstado) + N' = 7 THEN 0 ELSE 1 END, ' END
+                               + QUOTENAME(@ColId);
+                SET @sql = N';WITH x AS (
+                        SELECT ' + QUOTENAME(@ColId) + N' AS Id,
+                               ROW_NUMBER() OVER (PARTITION BY ' + @Key + N' ORDER BY ' + @OrdenFila + N') AS rn,
+                               FIRST_VALUE(' + QUOTENAME(@ColId) + N') OVER (PARTITION BY ' + @Key + N' ORDER BY ' + @OrdenFila + N'
+                                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS IdKeep
+                        FROM ' + @Obj + N'
+                        WHERE ' + @Cod + N' IS NOT NULL AND ' + @Key + N' <> N'''')
+                    INSERT INTO #Map (IdDup, IdKeep) SELECT Id, IdKeep FROM x WHERE rn > 1;';
+                EXEC sp_executesql @sql;
+
+                DECLARE curRef CURSOR LOCAL FAST_FORWARD FOR
+                    SELECT TablaRef, ColRef, Compartida FROM #Ref WHERE Tabla = @Tabla;
+                OPEN curRef;
+                FETCH NEXT FROM curRef INTO @TablaRef, @ColRef, @Compartida;
+                WHILE @@FETCH_STATUS = 0
+                BEGIN
+                    IF OBJECT_ID(N'dbo.' + QUOTENAME(@TablaRef), N'U') IS NOT NULL
+                       AND COL_LENGTH(N'dbo.' + QUOTENAME(@TablaRef), @ColRef) IS NOT NULL
+                    BEGIN
+                        IF @Compartida = 0
+                        BEGIN
+                            SET @sql = N'UPDATE r SET ' + QUOTENAME(@ColRef) + N' = m.IdKeep
+                                FROM dbo.' + QUOTENAME(@TablaRef) + N' r
+                                INNER JOIN #Map m
+                                    ON LTRIM(RTRIM(CAST(r.' + QUOTENAME(@ColRef) + N' AS NVARCHAR(50)))) = CAST(m.IdDup AS NVARCHAR(50));
+                                SET @R = @@ROWCOUNT;';
+                            EXEC sp_executesql @sql, N'@R INT OUTPUT', @R = @n OUTPUT;
+                            SET @Reap = @Reap + @n;
+                        END
+                        ELSE
+                        BEGIN
+                            SET @sql = N'UPDATE m SET Referenciada = 1 FROM #Map m
+                                WHERE EXISTS (SELECT 1 FROM dbo.' + QUOTENAME(@TablaRef) + N' r
+                                    WHERE LTRIM(RTRIM(CAST(r.' + QUOTENAME(@ColRef) + N' AS NVARCHAR(50)))) = CAST(m.IdDup AS NVARCHAR(50)));';
+                            EXEC sp_executesql @sql;
+                        END
+                    END
+                    FETCH NEXT FROM curRef INTO @TablaRef, @ColRef, @Compartida;
+                END
+                CLOSE curRef;
+                DEALLOCATE curRef;
+
+                IF @ColEstado IS NULL
+                    UPDATE #Map SET Referenciada = 0;
+
+                SET @sql = N'DELETE t FROM ' + @Obj + N' t
+                    INNER JOIN #Map m ON m.IdDup = t.' + QUOTENAME(@ColId) + N' AND m.Referenciada = 0;
+                    SET @E = @@ROWCOUNT;';
+                EXEC sp_executesql @sql, N'@E INT OUTPUT', @E = @Elim OUTPUT;
+
+                IF @ColEstado IS NOT NULL
+                BEGIN
+                    SET @sql = N'UPDATE t SET ' + QUOTENAME(@ColEstado) + N' = 8 FROM ' + @Obj + N' t
+                        INNER JOIN #Map m ON m.IdDup = t.' + QUOTENAME(@ColId) + N' AND m.Referenciada = 1
+                        WHERE ISNULL(t.' + QUOTENAME(@ColEstado) + N', 0) <> 8;
+                        SET @I = @@ROWCOUNT;';
+                    EXEC sp_executesql @sql, N'@I INT OUTPUT', @I = @Inact OUTPUT;
+                END
+            END
+        END
+
+        INSERT INTO #Res (Orden, Tabla, Filas, CodigosDuplicados, FilasSobrantes, Reapuntadas, Eliminadas, Inactivadas)
+        VALUES (@Orden, @Tabla, @Filas, @Codigos, @Sobrantes, @Reap, @Elim, @Inact);
+
+        Siguiente:
+        FETCH NEXT FROM curCat INTO @Orden, @Tabla, @ColId, @ColCodigo, @ColEstado;
+    END
+    CLOSE curCat;
+    DEALLOCATE curCat;
+
+    COMMIT;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    DECLARE @Err NVARCHAR(4000) = N'Limpieza de duplicados cancelada (' + ISNULL(@Tabla, N'?') + N'): ' + ERROR_MESSAGE();
+    RAISERROR(@Err, 16, 1);
+END CATCH;
+
+IF EXISTS (SELECT 1 FROM #Res WHERE FilasSobrantes > 0)
+    SELECT Tabla, Filas AS [Filas antes], CodigosDuplicados AS [Códigos duplicados], FilasSobrantes AS [Filas sobrantes],
+           Reapuntadas AS [Referencias reapuntadas], Eliminadas, Inactivadas,
+           CASE WHEN @Ejecutar = 1 THEN FilasSobrantes - Eliminadas ELSE 0 END AS [Quedan inactivas (usadas por RIPS)]
+    FROM #Res WHERE FilasSobrantes > 0 ORDER BY Orden;
+
+DECLARE @Total INT, @TotElim INT, @TotInact INT, @TotReap INT;
+SELECT @Total = ISNULL(SUM(FilasSobrantes), 0), @TotElim = ISNULL(SUM(Eliminadas), 0),
+       @TotInact = ISNULL(SUM(Inactivadas), 0), @TotReap = ISNULL(SUM(Reapuntadas), 0)
+FROM #Res;
+PRINT CASE
+    WHEN @Total = 0 THEN N'Limpieza de duplicados: no se encontraron duplicados.'
+    WHEN @Ejecutar = 0 THEN N'Limpieza de duplicados (solo reporte): ' + CAST(@Total AS NVARCHAR(20)) + N' filas sobrantes. Cambie @Ejecutar = 1 para corregir.'
+    ELSE N'Limpieza de duplicados: ' + CAST(@TotElim AS NVARCHAR(20)) + N' eliminadas, '
+         + CAST(@TotInact AS NVARCHAR(20)) + N' inactivadas, ' + CAST(@TotReap AS NVARCHAR(20)) + N' referencias reapuntadas; '
+         + CAST(@Total - @TotElim AS NVARCHAR(20)) + N' copias quedan inactivas porque RIPS existentes las usan.'
+END;
+GO
+
+PRINT N'>>> 5g/9 Sync display CodeSystems IHCE';
+GO
+
+/* ==============================================================================
+   5g/9 Sync display CodeSystems IHCE
+   ============================================================================== */
+
+/* ---- País1888 ---- */
+IF OBJECT_ID(N'dbo.[País1888]', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.[País1888] SET Nombre = N'Colombia'
+    WHERE LTRIM(RTRIM(Codigo)) = N'170' AND Nombre <> N'Colombia' COLLATE Latin1_General_CS_AS;
+END
+GO
+
+/* ---- Tipo diagnostico principal 1888 ---- */
+IF OBJECT_ID(N'dbo.[Tipo diagnostico principal 1888]', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.[Tipo diagnostico principal 1888]
+    SET Descripcion = CASE LTRIM(RTRIM(Codigo))
+        WHEN N'01' THEN N'Impresión Diagnóstica'
+        WHEN N'02' THEN N'Confirmado Nuevo'
+        WHEN N'03' THEN N'Confirmado Repetido'
+    END
+    WHERE LTRIM(RTRIM(Codigo)) IN (N'01', N'02', N'03');
+END
+GO
+
+/* ---- RIPS Causa Externa Version2 ---- */
+IF OBJECT_ID(N'dbo.[RIPS Causa Externa Version2]', N'U') IS NOT NULL
+BEGIN
+    DECLARE @Causa TABLE (Codigo NVARCHAR(10) NOT NULL PRIMARY KEY, Nombre NVARCHAR(400) NOT NULL);
+    INSERT INTO @Causa (Codigo, Nombre) VALUES
+        (N'21', N'ACCIDENTE DE TRABAJO'),
+        (N'22', N'ACCIDENTE EN EL HOGAR'),
+        (N'23', N'ACCIDENTE DE TRANSITO DE ORIGEN COMUN'),
+        (N'24', N'ACCIDENTE DE TRANSITO DE ORIGEN LABORAL'),
+        (N'25', N'ACCIDENTE EN EL ENTORNO EDUCATIVO'),
+        (N'26', N'OTRO TIPO DE ACCIDENTE'),
+        (N'27', N'EVENTO CATASTROFICO DE ORIGEN NATURAL'),
+        (N'28', N'LESION POR AGRESION'),
+        (N'29', N'LESION AUTO INFLIGIDA'),
+        (N'30', N'SOSPECHA DE VIOLENCIA FISICA'),
+        (N'31', N'SOSPECHA DE VIOLENCIA PSICOLOGICA'),
+        (N'32', N'SOSPECHA DE VIOLENCIA SEXUAL'),
+        (N'33', N'SOSPECHA DE NEGLIGENCIA Y ABANDONO'),
+        (N'34', N'IVE RELACIONADO CON PELIGRO A LA SALUD O VIDA DE LA MUJER'),
+        (N'35', N'IVE POR MALFORMACION CONGENITA INCOMPATIBLE CON LA VIDA'),
+        (N'36', N'IVE POR VIOLENCIA SEXUAL, INCESTO O POR INSEMINACION ARTIFICIAL O TRANSFERENCIA DE OVULO FECUNDADO NO CONSENTIDA'),
+        (N'37', N'EVENTO ADVERSO EN SALUD'),
+        (N'38', N'ENFERMEDAD GENERAL'),
+        (N'39', N'ENFERMEDAD LABORAL'),
+        (N'40', N'PROMOCION Y MANTENIMIENTO DE LA SALUD - INTERVENCIONES INDIVIDUALES'),
+        (N'41', N'INTERVENCION COLECTIVA'),
+        (N'42', N'ATENCION DE POBLACION MATERNO PERINATAL'),
+        (N'43', N'RIESGO AMBIENTAL'),
+        (N'44', N'OTROS EVENTOS CATASTROFICOS'),
+        (N'45', N'ACCIDENTE DE MINA ANTIPERSONAL - MAP'),
+        (N'46', N'ACCIDENTE DE ARTEFACTO EXPLOSIVO IMPROVISADO - AEI'),
+        (N'47', N'ACCIDENTE DE MUNICION SIN EXPLOTAR - MUSE'),
+        (N'48', N'OTRA VICTIMA DE CONFLICTO ARMADO COLOMBIANO'),
+        (N'49', N'IVE POR DECISION O MANIFESTACION DE VOLUNTAD DE LA PERSONA GESTANTE HASTA LA SEMANA 24 DE GESTACION');
+
+    UPDATE t SET [Nombre RIPS Causa Externa Version2] = c.Nombre
+    FROM dbo.[RIPS Causa Externa Version2] t
+    INNER JOIN @Causa c ON c.Codigo = LTRIM(RTRIM(t.Codigo));
+END
+GO
+
+/* ---- Egreso y Remision 1888 (el 06 lleva la ortografía del CodeSystem oficial) ---- */
+IF OBJECT_ID(N'dbo.[Egreso y Remision 1888]', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.[Egreso y Remision 1888]
+    SET Descripcion = N'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIRIA'
+    WHERE LTRIM(RTRIM(Codigo)) = N'06';
+END
+GO
+
+PRINT N'=== 25. Sync_Display_CodeSystems_IHCE — completado ===';
 GO
 
 PRINT N'>>> 6/9 Ocupación CIUO88AC';

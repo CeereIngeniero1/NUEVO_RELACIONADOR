@@ -508,7 +508,7 @@ SET Descripcion = CASE Codigo
     WHEN N'03' THEN N'PACIENTE DERIVADO A OTRO SERVICIO'
     WHEN N'04' THEN N'REFERIDO A OTRA INSTITUCION'
     WHEN N'05' THEN N'CONTRAREFERIDO A OTRA INSTITUCION'
-    WHEN N'06' THEN N'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIARIA'
+    WHEN N'06' THEN N'DERIVADO O REFERIDO A HOSPITALIZACION DOMICILIRIA'
     WHEN N'07' THEN N'DERIVADO A SERVICIO SOCIAL'
     WHEN N'08' THEN N'PACIENTE CONTINUA EN EL SERVICIO (CORTE FACTURACION)'
     ELSE Descripcion END
@@ -517,9 +517,9 @@ GO
 
 UPDATE dbo.[Tipo diagnostico principal 1888]
 SET Descripcion = CASE Codigo
-    WHEN N'01' THEN N'Impresión diagnóstica'
-    WHEN N'02' THEN N'Confirmado nuevo'
-    WHEN N'03' THEN N'Confirmado repetido'
+    WHEN N'01' THEN N'Impresión Diagnóstica'
+    WHEN N'02' THEN N'Confirmado Nuevo'
+    WHEN N'03' THEN N'Confirmado Repetido'
     ELSE Descripcion END
 WHERE Codigo IN (N'01',N'02',N'03');
 GO
@@ -544,9 +544,7 @@ def wrap_inserts_from_file(path, table, cod_col="Codigo"):
             s = line.strip()
             if not s.upper().startswith("INSERT"):
                 continue
-            m = re.search(r"VALUES\s*\([^)]*N?'([^']+)'", s, re.I)
-            if not m:
-                m = re.search(r"VALUES\s*\(\s*'([^']+)'", s, re.I)
+            m = re.search(r"VALUES\s*\(\s*N?'([^']+)'", s, re.I)
             if m:
                 cod = m.group(1)
                 out.append(
@@ -607,7 +605,7 @@ def gen_datos():
     c += r"""
 /* País Colombia default */
 IF NOT EXISTS (SELECT 1 FROM dbo.País1888 WHERE Codigo = N'170')
-    INSERT INTO dbo.País1888 (Codigo, Nombre, Estado) VALUES (N'170', N'COLOMBIA', 7);
+    INSERT INTO dbo.País1888 (Codigo, Nombre, Estado) VALUES (N'170', N'Colombia', 7);
 GO
 
 /* Regimen */

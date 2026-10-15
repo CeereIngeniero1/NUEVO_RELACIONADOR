@@ -309,24 +309,24 @@ IF OBJECT_ID(N'dbo.[Tipo diagnostico principal 1888]', N'U') IS NOT NULL
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'01')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'01', N'Impresión diagnóstica', 7);
+        VALUES (N'01', N'Impresión Diagnóstica', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Impresión diagnóstica', [Id Estado] = 7 WHERE Codigo = N'01';
+        SET Descripcion = N'Impresión Diagnóstica', [Id Estado] = 7 WHERE Codigo = N'01';
 
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'02')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'02', N'Confirmado nuevo', 7);
+        VALUES (N'02', N'Confirmado Nuevo', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Confirmado nuevo', [Id Estado] = 7 WHERE Codigo = N'02';
+        SET Descripcion = N'Confirmado Nuevo', [Id Estado] = 7 WHERE Codigo = N'02';
 
     IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'03')
         INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-        VALUES (N'03', N'Confirmado repetido', 7);
+        VALUES (N'03', N'Confirmado Repetido', 7);
     ELSE
         UPDATE dbo.[Tipo diagnostico principal 1888]
-        SET Descripcion = N'Confirmado repetido', [Id Estado] = 7 WHERE Codigo = N'03';
+        SET Descripcion = N'Confirmado Repetido', [Id Estado] = 7 WHERE Codigo = N'03';
 END
 GO
 """
@@ -750,6 +750,10 @@ GO
     parts.append(strip_install_header(read_text(D1888 / "22. Seed_Catalogos_RDA_EPS_Parentesco.sql")))
     parts.append(section("5e/9 Seed Egreso y Remision + Finalidad tecnología salud 1888"))
     parts.append(strip_install_header(read_text(D1888 / "23. Seed_EgresoRemision_FinalidadTecSalud.sql")))
+    parts.append(section("5f/9 Limpieza de duplicados en catálogos RIPS/RDA"))
+    parts.append(strip_install_header(read_text(D1888 / "24. Limpiar_Duplicados_Catalogos.sql")))
+    parts.append(section("5g/9 Sync display CodeSystems IHCE"))
+    parts.append(strip_install_header(read_text(D1888 / "25. Sync_Display_CodeSystems_IHCE.sql")))
 
     parts.append(section("6/9 Ocupación CIUO88AC"))
     parts.append(gen_ocupacion_ciuo_safe())

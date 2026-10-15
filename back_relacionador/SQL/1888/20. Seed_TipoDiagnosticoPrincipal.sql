@@ -19,28 +19,28 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'01')
     INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-    VALUES (N'01', N'Impresión diagnóstica', 7);
+    VALUES (N'01', N'Impresión Diagnóstica', 7);
 ELSE
     UPDATE dbo.[Tipo diagnostico principal 1888]
-    SET Descripcion = N'Impresión diagnóstica', [Id Estado] = 7
+    SET Descripcion = N'Impresión Diagnóstica', [Id Estado] = 7
     WHERE Codigo = N'01';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'02')
     INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-    VALUES (N'02', N'Confirmado nuevo', 7);
+    VALUES (N'02', N'Confirmado Nuevo', 7);
 ELSE
     UPDATE dbo.[Tipo diagnostico principal 1888]
-    SET Descripcion = N'Confirmado nuevo', [Id Estado] = 7
+    SET Descripcion = N'Confirmado Nuevo', [Id Estado] = 7
     WHERE Codigo = N'02';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.[Tipo diagnostico principal 1888] WHERE Codigo = N'03')
     INSERT INTO dbo.[Tipo diagnostico principal 1888] (Codigo, Descripcion, [Id Estado])
-    VALUES (N'03', N'Confirmado repetido', 7);
+    VALUES (N'03', N'Confirmado Repetido', 7);
 ELSE
     UPDATE dbo.[Tipo diagnostico principal 1888]
-    SET Descripcion = N'Confirmado repetido', [Id Estado] = 7
+    SET Descripcion = N'Confirmado Repetido', [Id Estado] = 7
     WHERE Codigo = N'03';
 GO
 

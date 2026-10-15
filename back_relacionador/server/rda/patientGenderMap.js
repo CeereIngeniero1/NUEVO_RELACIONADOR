@@ -37,7 +37,7 @@ function patientGenderFromCatalog(input) {
         fhirGender: FHIR_BY_GRUPO[grupoCode],
         bioGender: {
             code: grupoCode,
-            display: display || DISPLAY_BY_GRUPO[grupoCode],
+            display: DISPLAY_BY_GRUPO[grupoCode] || display,
         },
     };
 }
