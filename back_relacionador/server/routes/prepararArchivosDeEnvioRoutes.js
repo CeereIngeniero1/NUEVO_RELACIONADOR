@@ -5,6 +5,14 @@ const { getRipsDataRoot } = require('../config/paths');
 const { rutaXmlEmpresaPorClave } = require('../utils/xmlCache');
 const { alinearArchivoJsonConXml } = require('../utils/ripsNumFacturaDesdeXml');
 
+// Evita que un fallo de fs.watch tumbe el worker (y a veces la sesión del servidor).
+process.on('uncaughtException', (err) => {
+  console.error('[empaquetado] uncaughtException:', err && (err.message || err));
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[empaquetado] unhandledRejection:', err && (err.message || err));
+});
+
 // Rutas de las carpetas (raíz: CEERE_RIPS_DATA_ROOT en .env — ver server/config/paths.js)
 const RIPS_ROOT = getRipsDataRoot();
 const carpeta1 = path.join(RIPS_ROOT, 'ARCHIVOS_RIPS_JSON');
@@ -16,8 +24,15 @@ let empaquetadoTimer = null;
 function verificarCarpetas(...carpetas) {
   carpetas.forEach((carpeta) => {
     if (!fs.existsSync(carpeta)) {
-      console.error(`La carpeta ${carpeta} no existe. Por favor, verifica las rutas.`);
-      process.exit(1);
+      try {
+        fs.mkdirSync(carpeta, { recursive: true });
+        console.warn(`[empaquetado] Carpeta creada: ${carpeta}`);
+      } catch (err) {
+        console.error(
+          `[empaquetado] La carpeta ${carpeta} no existe y no se pudo crear:`,
+          err.message || err
+        );
+      }
     }
   });
 }
@@ -173,16 +188,62 @@ if (n > 0) {
 
 crearSubcarpetasYCopiarArchivos();
 
-const watchOpts = {
-  persistent: true,
-  ignoreInitial: true, // no re-disparar por cada archivo ya existente al arrancar
-  awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
-};
+/**
+ * En algunos servidores (TSPlus, rutas de red, permisos) fs.watch nativo falla con
+ * errno -4094 y tumba Node si no se atrapa. Preferimos polling estable.
+ * Desactivar: RIPS_EMPAQUETADO_WATCH=0
+ */
+const watchEnabled = !['0', 'false', 'no', 'off'].includes(
+  String(process.env.RIPS_EMPAQUETADO_WATCH || '1').trim().toLowerCase()
+);
+const forcePolling = !['0', 'false', 'no', 'off'].includes(
+  String(process.env.RIPS_EMPAQUETADO_USE_POLLING || '1').trim().toLowerCase()
+);
 
-const watcher1 = chokidar.watch(carpeta1, watchOpts);
-const watcher2 = chokidar.watch(carpeta2, watchOpts);
+function iniciarWatcher(ruta, etiqueta) {
+  if (!watchEnabled) {
+    console.log(`[empaquetado] Watch desactivado (${etiqueta}). Empaquetado solo al arranque.`);
+    return null;
+  }
+  if (!fs.existsSync(ruta)) {
+    console.warn(`[empaquetado] No se vigila ${etiqueta}: ruta inexistente (${ruta}).`);
+    return null;
+  }
 
-watcher1.on('all', () => programarEmpaquetado());
-watcher2.on('all', () => programarEmpaquetado());
+  const watchOpts = {
+    persistent: true,
+    ignoreInitial: true,
+    ignorePermissionErrors: true,
+    awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 100 },
+    // Polling evita el crash UNKNOWN/watch (-4094) en varios Windows/remoto
+    usePolling: forcePolling,
+    interval: 2000,
+    binaryInterval: 2000,
+  };
+
+  try {
+    const watcher = chokidar.watch(ruta, watchOpts);
+    watcher.on('all', () => programarEmpaquetado());
+    watcher.on('error', (err) => {
+      console.error(
+        `[empaquetado] Error vigilando ${etiqueta} (${ruta}):`,
+        err && (err.message || err)
+      );
+    });
+    console.log(
+      `[empaquetado] Vigilando ${etiqueta}${forcePolling ? ' (polling)' : ''}: ${ruta}`
+    );
+    return watcher;
+  } catch (err) {
+    console.error(
+      `[empaquetado] No se pudo iniciar watch de ${etiqueta}:`,
+      err && (err.message || err)
+    );
+    return null;
+  }
+}
+
+iniciarWatcher(carpeta1, 'ARCHIVOS_RIPS_JSON');
+iniciarWatcher(carpeta2, 'XMLS');
 
 module.exports = {};

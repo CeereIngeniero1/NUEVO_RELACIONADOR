@@ -183,7 +183,29 @@ module.exports = app;
 
 if (require.main === module) {
     // Worker solo cuando el servidor corre en modo standalone (evita colgar suites de prueba).
-    PrepararArchivosDeEnvio = new Worker(path.join(__dirname, './routes/prepararArchivosDeEnvioRoutes.js'));
+    try {
+        PrepararArchivosDeEnvio = new Worker(
+            path.join(__dirname, './routes/prepararArchivosDeEnvioRoutes.js')
+        );
+        PrepararArchivosDeEnvio.on('error', (err) => {
+            console.error(
+                '[empaquetado] Worker error (el API sigue activo):',
+                err && (err.message || err)
+            );
+        });
+        PrepararArchivosDeEnvio.on('exit', (code) => {
+            if (code !== 0) {
+                console.error(
+                    `[empaquetado] Worker salió con código ${code}. El API sigue activo; el empaquetado automático puede estar detenido.`
+                );
+            }
+        });
+    } catch (err) {
+        console.error(
+            '[empaquetado] No se pudo iniciar el worker (el API sigue activo):',
+            err && (err.message || err)
+        );
+    }
 
     app.listen(port, () => {
         console.log(`Servidor escuchando en http://localhost:${port}`);
