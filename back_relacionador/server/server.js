@@ -154,12 +154,15 @@ app.use('/apiv2', epsRoutesv2);
 app.use('/api', AsignarRips);
 
 app.use('/apiV2', AsignarRipsv2);
+// Relación automática RIPS↔Factura: ANTES de otros /apiV3 para que no la “traguen”
+app.use('/apiV3', relacionAutoRipsFacturaRoutes);
+app.get('/apiV3/Rips/relacion-automatica-factura/ping', (req, res) => {
+    res.json({ ok: true, service: 'relacion-automatica-rips-factura', via: 'server.js' });
+});
 app.use('/apiV3', AsignarRipsv3);
 app.use('/apiV3', HistoriasClinicasRoutes);
 app.use('/apiV3', DesrelacionadorRoutes);
 app.use('/apiV3', VisorIhceRoutes);
-// Relación automática RIPS↔Factura (montaje directo para que no dependa de otros routers)
-app.use('/apiV3', relacionAutoRipsFacturaRoutes);
 app.use('/apiV3Experimental', AsignarRipsv3Experimental);
 
 app.use('/api', MaestroListasRIPS);
@@ -212,5 +215,8 @@ if (require.main === module) {
 
     app.listen(port, () => {
         console.log(`Servidor escuchando en http://localhost:${port}`);
+        console.log(
+            `[relacion-auto] GET http://localhost:${port}/apiV3/Rips/relacion-automatica-factura/ping`
+        );
     });
 }

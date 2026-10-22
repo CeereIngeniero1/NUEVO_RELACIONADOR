@@ -142,12 +142,29 @@
     }
 
     async function cargar() {
-        const resp = await fetch(`${apiBase()}/apiV3/Rips/relacion-automatica-factura`, {
-            headers: authHeaders(false),
-        });
+        const url = `${apiBase()}/apiV3/Rips/relacion-automatica-factura`;
+        let resp;
+        try {
+            resp = await fetch(url, { headers: authHeaders(false) });
+        } catch (netErr) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Backend no responde',
+                html:
+                    `<p class="mb-2">No se pudo conectar a:</p>`
+                    + `<p><code>${url}</code></p>`
+                    + '<p class="small text-muted mb-0">El front (3100) está arriba, pero el API (normalmente puerto 3000) no está corriendo o apunta a otra carpeta. '
+                    + 'Pare Node, haga <code>git pull</code> en la misma carpeta del backend y ejecute <code>node .\\server.js</code>.</p>',
+            });
+            return null;
+        }
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            await manejarErrorCarga(data, resp.status, 'No se pudo leer la configuración');
+            await manejarErrorCarga(
+                data,
+                resp.status,
+                `No se pudo leer la configuración (${resp.status}) → ${url}`
+            );
             return null;
         }
         pintar(data.activo, data.fechaActualizacion);

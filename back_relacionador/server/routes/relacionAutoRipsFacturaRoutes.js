@@ -108,6 +108,15 @@ async function ensureRelacionAutomaticaInstall() {
     };
 }
 
+/** Ping sin BD: sirve para verificar que el backend nuevo está cargado. */
+router.get('/Rips/relacion-automatica-factura/ping', (req, res) => {
+    res.json({
+        ok: true,
+        service: 'relacion-automatica-rips-factura',
+        version: '2026-10-22',
+    });
+});
+
 /**
  * POST /Rips/relacion-automatica-factura/ensure-install
  */
