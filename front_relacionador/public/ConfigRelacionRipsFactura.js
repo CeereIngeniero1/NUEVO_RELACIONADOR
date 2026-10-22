@@ -122,8 +122,15 @@
         if (status === 404) {
             await Swal.fire({
                 icon: 'error',
-                title: 'Ruta no encontrada',
-                text: 'Reinicie el backend (node server.js) para cargar la API de relación automática.',
+                title: 'Ruta no encontrada (API)',
+                html:
+                    '<p class="mb-2">El <strong>front</strong> (puerto 3100) ya tiene la pantalla, pero el <strong>backend</strong> (puerto 3000) no responde esa ruta.</p>'
+                    + '<ol class="text-start small mb-0">'
+                    + '<li>En la carpeta del proyecto: <code>git pull</code></li>'
+                    + '<li>Pare el Node del backend (Ctrl+C)</li>'
+                    + '<li>Arranque de nuevo: <code>cd back_relacionador\\server</code> → <code>node .\\server.js</code></li>'
+                    + '<li>Pruebe: <code>http://localhost:3000/apiV3/Rips/relacion-automatica-factura</code></li>'
+                    + '</ol>',
             });
             return;
         }

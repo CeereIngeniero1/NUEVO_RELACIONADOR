@@ -3826,6 +3826,6 @@ router.use(require('./rda/RdaConsultaExternaRoutesv2'));
 router.use(require('./rda/RdaEnvioMasivoRoutes'));
 router.use(require('./rda/RdaEdicionRoutes'));
 router.use(require('./rda/RdaCredencialesIhceRoutes'));
-router.use(require('./relacionAutoRipsFacturaRoutes'));
+// relacionAutoRipsFacturaRoutes se monta en server.js (/apiV3) para evitar 404 si este router falla al cargar.
 
 module.exports = router;
