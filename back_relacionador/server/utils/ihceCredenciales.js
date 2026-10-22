@@ -70,6 +70,131 @@ function assertOauthCompleto(cred) {
     }
 }
 
+function isCredencialesIhceTableMissingError(err) {
+    const msg = String(err && (err.message || err) || '');
+    return /Invalid object name|nombre de objeto.*CredencialesIhce|CredencialesIhce.*no es v[aá]lido|does not exist/i.test(msg);
+}
+
+function errorTablaCredencialesIhceAusente() {
+    const e = new Error(
+        'No existe la tabla CredencialesIhce en esta base de datos. '
+        + 'Puede crearla desde la pantalla Credenciales IHCE o ejecutar SQL/2275/19. CredencialesIhce.sql'
+    );
+    e.code = 'IHCE_TABLA_AUSENTE';
+    e.status = 409;
+    return e;
+}
+
+async function credencialesIhceTableExists() {
+    const { poolPromise } = require('../db2');
+    const pool = await poolPromise;
+    const result = await pool.request().query(`
+        SELECT CASE
+            WHEN EXISTS (
+                SELECT 1 FROM sys.tables
+                WHERE name = N'CredencialesIhce' AND schema_id = SCHEMA_ID(N'dbo')
+            ) THEN 1 ELSE 0
+        END AS existe
+    `);
+    return Number(result.recordset?.[0]?.existe) === 1;
+}
+
+/**
+ * Crea dbo.CredencialesIhce si no existe (idempotente).
+ * Opcionalmente siembra filas vacías sandbox/prod por cada Empresa.
+ * @param {{ seedEmpresas?: boolean }} [opts]
+ */
+async function ensureCredencialesIhceTable(opts = {}) {
+    const seedEmpresas = opts.seedEmpresas !== false;
+    const { poolPromise } = require('../db2');
+    const pool = await poolPromise;
+    const existed = await credencialesIhceTableExists();
+
+    if (!existed) {
+        await pool.request().query(`
+            CREATE TABLE dbo.CredencialesIhce (
+                [Id Credenciales Ihce] INT IDENTITY(1,1) NOT NULL
+                    CONSTRAINT PK_CredencialesIhce PRIMARY KEY,
+                [Documento Empresa] NVARCHAR(50) NOT NULL,
+                [Ambiente] NVARCHAR(20) NOT NULL,
+                [Base Url] NVARCHAR(300) NULL,
+                [Tenant Id] NVARCHAR(100) NULL,
+                [Client Id] NVARCHAR(100) NULL,
+                [Client Secret] NVARCHAR(500) NULL,
+                [Scope] NVARCHAR(300) NULL,
+                [Subscription Key] NVARCHAR(200) NULL,
+                [Custodian Reps] NVARCHAR(50) NULL,
+                [Custodian Nit] NVARCHAR(50) NULL,
+                [Custodian Name] NVARCHAR(200) NULL,
+                [Activo] BIT NOT NULL
+                    CONSTRAINT DF_CredencialesIhce_Activo DEFAULT (1),
+                [Fecha Actualizacion] DATETIME2 NOT NULL
+                    CONSTRAINT DF_CredencialesIhce_Fecha DEFAULT (SYSUTCDATETIME()),
+                CONSTRAINT CK_CredencialesIhce_Ambiente
+                    CHECK ([Ambiente] IN (N'sandbox', N'prod'))
+            );
+
+            CREATE UNIQUE INDEX UX_CredencialesIhce_Empresa_Ambiente
+                ON dbo.CredencialesIhce ([Documento Empresa], [Ambiente]);
+        `);
+    }
+
+    let seeded = 0;
+    if (seedEmpresas) {
+        try {
+            const seedResult = await pool.request().query(`
+                ;WITH Ambientes AS (
+                    SELECT N'sandbox' AS Ambiente
+                    UNION ALL
+                    SELECT N'prod'
+                ),
+                Empresas AS (
+                    SELECT DISTINCT LTRIM(RTRIM([Documento Empresa])) AS DocumentoEmpresa
+                    FROM dbo.Empresa
+                    WHERE [Documento Empresa] IS NOT NULL
+                      AND LTRIM(RTRIM([Documento Empresa])) <> N''
+                )
+                INSERT INTO dbo.CredencialesIhce (
+                    [Documento Empresa], [Ambiente], [Base Url], [Activo]
+                )
+                SELECT
+                    e.DocumentoEmpresa,
+                    a.Ambiente,
+                    CASE WHEN a.Ambiente = N'sandbox'
+                        THEN N'https://sandbox.ihcecol.gov.co/ihce'
+                        ELSE N'https://www.ihcecol.gov.co/ihce'
+                    END,
+                    1
+                FROM Empresas e
+                CROSS JOIN Ambientes a
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.CredencialesIhce c
+                    WHERE c.[Documento Empresa] = e.DocumentoEmpresa
+                      AND c.[Ambiente] = a.Ambiente
+                );
+            `);
+            const affected = seedResult.rowsAffected;
+            seeded = Array.isArray(affected)
+                ? Number(affected[affected.length - 1] || 0)
+                : Number(affected || 0);
+        } catch (seedErr) {
+            // Empresa puede no existir en BD mínimas; la tabla ya quedó creada.
+            console.warn('[ihceCredenciales] Semilla Empresa omitida:', seedErr.message || seedErr);
+        }
+    }
+
+    return {
+        ok: true,
+        created: !existed,
+        alreadyExisted: existed,
+        seeded,
+        message: existed
+            ? `Tabla CredencialesIhce ya existía${seeded ? `; filas sembradas: ${seeded}` : ''}.`
+            : `Tabla CredencialesIhce creada${seeded ? `; filas sembradas: ${seeded}` : ''}.`,
+    };
+}
+
 async function getFromSql(documentoEmpresa, ambiente) {
     const key = sanitizeEmpresa(documentoEmpresa);
     const amb = normalizeAmbiente(ambiente);
@@ -123,13 +248,8 @@ async function getIhceCredentials(documentoEmpresa, ambiente) {
     try {
         cred = await getFromSql(key, amb);
     } catch (err) {
-        if (/Invalid object name|no existe|does not exist/i.test(String(err.message || err))) {
-            const e = new Error(
-                'No existe la tabla CredencialesIhce. Ejecute SQL/2275/19. CredencialesIhce.sql'
-            );
-            e.code = 'IHCE_TABLA_AUSENTE';
-            e.status = 500;
-            throw e;
+        if (isCredencialesIhceTableMissingError(err)) {
+            throw errorTablaCredencialesIhceAusente();
         }
         throw err;
     }
@@ -153,7 +273,10 @@ async function getIhceCredentialsPublicas(documentoEmpresa, ambiente) {
     let cred;
     try {
         cred = await getFromSql(key, amb);
-    } catch (_) {
+    } catch (err) {
+        if (isCredencialesIhceTableMissingError(err)) {
+            throw errorTablaCredencialesIhceAusente();
+        }
         return null;
     }
     if (!cred) return null;
@@ -175,11 +298,18 @@ async function getIhceCredentialsPublicas(documentoEmpresa, ambiente) {
 async function listIhceCredentialsByEmpresa(documentoEmpresa) {
     const key = sanitizeEmpresa(documentoEmpresa);
     if (!key) return { sandbox: null, prod: null };
-    const [sandbox, prod] = await Promise.all([
-        getIhceCredentialsPublicas(key, 'sandbox'),
-        getIhceCredentialsPublicas(key, 'prod'),
-    ]);
-    return { documentoEmpresa: key, sandbox, prod };
+    try {
+        const [sandbox, prod] = await Promise.all([
+            getIhceCredentialsPublicas(key, 'sandbox'),
+            getIhceCredentialsPublicas(key, 'prod'),
+        ]);
+        return { documentoEmpresa: key, sandbox, prod };
+    } catch (err) {
+        if (isCredencialesIhceTableMissingError(err) || err.code === 'IHCE_TABLA_AUSENTE') {
+            throw errorTablaCredencialesIhceAusente();
+        }
+        throw err;
+    }
 }
 
 async function upsertIhceCredentials(documentoEmpresa, ambiente, payload) {
@@ -191,7 +321,15 @@ async function upsertIhceCredentials(documentoEmpresa, ambiente, payload) {
         throw err;
     }
 
-    const prev = await getFromSql(key, amb).catch(() => null);
+    let prev = null;
+    try {
+        prev = await getFromSql(key, amb);
+    } catch (err) {
+        if (isCredencialesIhceTableMissingError(err)) {
+            throw errorTablaCredencialesIhceAusente();
+        }
+        throw err;
+    }
     const merged = {
         ...(prev || {}),
         ...(payload || {}),
@@ -216,46 +354,53 @@ async function upsertIhceCredentials(documentoEmpresa, ambiente, payload) {
 
     const { sql, poolPromise } = require('../db2');
     const pool = await poolPromise;
-    await pool
-        .request()
-        .input('DocumentoEmpresa', sql.NVarChar(50), key)
-        .input('Ambiente', sql.NVarChar(20), amb)
-        .input('BaseUrl', sql.NVarChar(300), cred.baseUrl)
-        .input('TenantId', sql.NVarChar(100), cred.tenantId)
-        .input('ClientId', sql.NVarChar(100), cred.clientId)
-        .input('ClientSecret', sql.NVarChar(500), cred.clientSecret)
-        .input('Scope', sql.NVarChar(300), cred.scope)
-        .input('SubscriptionKey', sql.NVarChar(200), cred.subscriptionKey)
-        .input('CustodianReps', sql.NVarChar(50), cred.custodianReps || null)
-        .input('CustodianNit', sql.NVarChar(50), cred.custodianNit || null)
-        .input('CustodianName', sql.NVarChar(200), cred.custodianName || null)
-        .query(`
-            MERGE dbo.CredencialesIhce AS t
-            USING (SELECT @DocumentoEmpresa AS [Documento Empresa], @Ambiente AS [Ambiente]) AS s
-              ON t.[Documento Empresa] = s.[Documento Empresa]
-             AND t.[Ambiente] = s.[Ambiente]
-            WHEN MATCHED THEN UPDATE SET
-                [Base Url] = @BaseUrl,
-                [Tenant Id] = @TenantId,
-                [Client Id] = @ClientId,
-                [Client Secret] = @ClientSecret,
-                [Scope] = @Scope,
-                [Subscription Key] = @SubscriptionKey,
-                [Custodian Reps] = @CustodianReps,
-                [Custodian Nit] = @CustodianNit,
-                [Custodian Name] = @CustodianName,
-                [Activo] = 1,
-                [Fecha Actualizacion] = SYSUTCDATETIME()
-            WHEN NOT MATCHED THEN INSERT (
-                [Documento Empresa], [Ambiente], [Base Url], [Tenant Id], [Client Id],
-                [Client Secret], [Scope], [Subscription Key],
-                [Custodian Reps], [Custodian Nit], [Custodian Name], [Activo]
-            ) VALUES (
-                @DocumentoEmpresa, @Ambiente, @BaseUrl, @TenantId, @ClientId,
-                @ClientSecret, @Scope, @SubscriptionKey,
-                @CustodianReps, @CustodianNit, @CustodianName, 1
-            );
-        `);
+    try {
+        await pool
+            .request()
+            .input('DocumentoEmpresa', sql.NVarChar(50), key)
+            .input('Ambiente', sql.NVarChar(20), amb)
+            .input('BaseUrl', sql.NVarChar(300), cred.baseUrl)
+            .input('TenantId', sql.NVarChar(100), cred.tenantId)
+            .input('ClientId', sql.NVarChar(100), cred.clientId)
+            .input('ClientSecret', sql.NVarChar(500), cred.clientSecret)
+            .input('Scope', sql.NVarChar(300), cred.scope)
+            .input('SubscriptionKey', sql.NVarChar(200), cred.subscriptionKey)
+            .input('CustodianReps', sql.NVarChar(50), cred.custodianReps || null)
+            .input('CustodianNit', sql.NVarChar(50), cred.custodianNit || null)
+            .input('CustodianName', sql.NVarChar(200), cred.custodianName || null)
+            .query(`
+                MERGE dbo.CredencialesIhce AS t
+                USING (SELECT @DocumentoEmpresa AS [Documento Empresa], @Ambiente AS [Ambiente]) AS s
+                  ON t.[Documento Empresa] = s.[Documento Empresa]
+                 AND t.[Ambiente] = s.[Ambiente]
+                WHEN MATCHED THEN UPDATE SET
+                    [Base Url] = @BaseUrl,
+                    [Tenant Id] = @TenantId,
+                    [Client Id] = @ClientId,
+                    [Client Secret] = @ClientSecret,
+                    [Scope] = @Scope,
+                    [Subscription Key] = @SubscriptionKey,
+                    [Custodian Reps] = @CustodianReps,
+                    [Custodian Nit] = @CustodianNit,
+                    [Custodian Name] = @CustodianName,
+                    [Activo] = 1,
+                    [Fecha Actualizacion] = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN INSERT (
+                    [Documento Empresa], [Ambiente], [Base Url], [Tenant Id], [Client Id],
+                    [Client Secret], [Scope], [Subscription Key],
+                    [Custodian Reps], [Custodian Nit], [Custodian Name], [Activo]
+                ) VALUES (
+                    @DocumentoEmpresa, @Ambiente, @BaseUrl, @TenantId, @ClientId,
+                    @ClientSecret, @Scope, @SubscriptionKey,
+                    @CustodianReps, @CustodianNit, @CustodianName, 1
+                );
+            `);
+    } catch (err) {
+        if (isCredencialesIhceTableMissingError(err)) {
+            throw errorTablaCredencialesIhceAusente();
+        }
+        throw err;
+    }
 
     return getIhceCredentialsPublicas(key, amb);
 }
@@ -346,4 +491,7 @@ module.exports = {
     resolveDocumentoEmpresaFromRda,
     resolveIhceCredentials,
     getFirstIhceDocumentoEmpresa,
+    isCredencialesIhceTableMissingError,
+    credencialesIhceTableExists,
+    ensureCredencialesIhceTable,
 };

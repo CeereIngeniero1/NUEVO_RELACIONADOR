@@ -21,6 +21,7 @@ const CORE_LINKS = [
   { id: "credenciales-ihce", href: "CredencialesIhce.html", icon: "ri-key-2-line", label: "Credenciales IHCE", feature: "rda" },
   { id: "visor", href: "visor/visor.html", icon: "ri-eye-line", label: "Visor IHCE (RDA)", feature: "rda" },
   { id: "desrelacionar", href: "DesrelacionarV2.html", icon: "ri-link-unlink", label: "Desrelacionar", feature: "rips" },
+  { id: "relacion-auto-rips", href: "ConfigRelacionRipsFactura.html", icon: "ri-links-line", label: "Relación auto RIPS", feature: "rips" },
   { id: "enviar-fevrips", href: "EnviarFevRips.html", icon: "ri-send-plane-2-line", label: "Enviar MinSalud FEV", feature: "rips" },
 ];
 

@@ -3826,5 +3826,6 @@ router.use(require('./rda/RdaConsultaExternaRoutesv2'));
 router.use(require('./rda/RdaEnvioMasivoRoutes'));
 router.use(require('./rda/RdaEdicionRoutes'));
 router.use(require('./rda/RdaCredencialesIhceRoutes'));
+router.use(require('./relacionAutoRipsFacturaRoutes'));
 
 module.exports = router;

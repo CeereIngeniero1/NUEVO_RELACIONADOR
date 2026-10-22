@@ -6,9 +6,49 @@ const {
     upsertIhceCredentials,
     sanitizeEmpresa,
     normalizeAmbiente,
+    ensureCredencialesIhceTable,
+    credencialesIhceTableExists,
+    isCredencialesIhceTableMissingError,
 } = require('../../utils/ihceCredenciales');
 
 const router = Router();
+
+/**
+ * POST /Rda/credenciales-ihce/ensure-table
+ * Crea dbo.CredencialesIhce si no existe (idempotente) y siembra filas vacías por Empresa.
+ */
+router.post('/Rda/credenciales-ihce/ensure-table', async (req, res) => {
+    try {
+        const seedEmpresas = !['0', 'false', 'no', 'off'].includes(
+            String(req.body?.seedEmpresas ?? 'true').trim().toLowerCase()
+        );
+        const result = await ensureCredencialesIhceTable({ seedEmpresas });
+        return res.json(result);
+    } catch (err) {
+        return res.status(err.status || 500).json({
+            ok: false,
+            error: err.message || String(err),
+            code: err.code || 'IHCE_ENSURE_TABLE_ERROR',
+        });
+    }
+});
+
+/**
+ * GET /Rda/credenciales-ihce/status
+ * Indica si la tabla existe (sin secretos).
+ */
+router.get('/Rda/credenciales-ihce/status', async (req, res) => {
+    try {
+        const exists = await credencialesIhceTableExists();
+        return res.json({ ok: true, tableExists: exists });
+    } catch (err) {
+        return res.status(err.status || 500).json({
+            ok: false,
+            error: err.message || String(err),
+            code: err.code,
+        });
+    }
+});
 
 /**
  * GET /Rda/credenciales-ihce/:documentoEmpresa
@@ -23,10 +63,11 @@ router.get('/Rda/credenciales-ihce/:documentoEmpresa', async (req, res) => {
         const data = await listIhceCredentialsByEmpresa(doc);
         return res.json({ ok: true, ...data });
     } catch (err) {
-        return res.status(err.status || 500).json({
+        const status = err.code === 'IHCE_TABLA_AUSENTE' ? 409 : (err.status || 500);
+        return res.status(status).json({
             ok: false,
             error: err.message || String(err),
-            code: err.code,
+            code: err.code || (isCredencialesIhceTableMissingError(err) ? 'IHCE_TABLA_AUSENTE' : undefined),
         });
     }
 });
@@ -62,10 +103,11 @@ router.put('/Rda/credenciales-ihce/:documentoEmpresa', async (req, res) => {
             credenciales: saved,
         });
     } catch (err) {
-        return res.status(err.status || 500).json({
+        const status = err.code === 'IHCE_TABLA_AUSENTE' ? 409 : (err.status || 500);
+        return res.status(status).json({
             ok: false,
             error: err.message || String(err),
-            code: err.code,
+            code: err.code || (isCredencialesIhceTableMissingError(err) ? 'IHCE_TABLA_AUSENTE' : undefined),
         });
     }
 });

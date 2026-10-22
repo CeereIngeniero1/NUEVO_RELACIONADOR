@@ -1,6 +1,7 @@
 /**
  * Módulo: Credenciales IHCE por empresa (sandbox + prod).
  * GET/PUT /apiV3/Rda/credenciales-ihce/:documentoEmpresa
+ * POST /apiV3/Rda/credenciales-ihce/ensure-table — crea la tabla si no existe
  */
 (function () {
     'use strict';
@@ -60,6 +61,80 @@
             custodianName: 'prName',
         },
     };
+
+    function esTablaAusente(data, message) {
+        const code = String(data && data.code || '');
+        const msg = String((data && data.error) || message || '');
+        return (
+            code === 'IHCE_TABLA_AUSENTE'
+            || (
+                /CredencialesIhce/i.test(msg)
+                && /no existe|nombre de objeto|Invalid object name|no es v[aá]lido|tabla/i.test(msg)
+            )
+        );
+    }
+
+    async function crearTablaCredencialesIhce() {
+        const resp = await fetch(`${apiBase()}/apiV3/Rda/credenciales-ihce/ensure-table`, {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seedEmpresas: true }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            throw new Error(data.error || 'No se pudo crear la tabla CredencialesIhce');
+        }
+        return data;
+    }
+
+    async function ofrecerCrearTabla(mensajeOriginal) {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Falta la tabla CredencialesIhce',
+            html:
+                '<p class="mb-2">Esta base de datos no tiene la tabla <code>dbo.CredencialesIhce</code>.</p>'
+                + '<p class="mb-0 small text-muted">¿Desea crearla ahora? Se sembrarán filas vacías por empresa (sandbox y producción) para que pueda guardar las credenciales.</p>',
+            showCancelButton: true,
+            confirmButtonText: 'Crear tabla',
+            cancelButtonText: 'Cancelar',
+            footer: mensajeOriginal
+                ? `<span class="small text-muted">${String(mensajeOriginal).slice(0, 220)}</span>`
+                : undefined,
+        });
+        if (!result.isConfirmed) return false;
+
+        Swal.fire({
+            title: 'Creando tabla…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+        try {
+            const data = await crearTablaCredencialesIhce();
+            await Swal.fire({
+                icon: 'success',
+                title: 'Tabla lista',
+                text: data.message || 'CredencialesIhce creada. Ya puede guardar sandbox/producción.',
+            });
+            await cargar();
+            return true;
+        } catch (e) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'No se pudo crear la tabla',
+                text: e.message || String(e),
+            });
+            return false;
+        }
+    }
+
+    async function manejarErrorApi(data, fallbackMsg) {
+        const msg = (data && data.error) || fallbackMsg || 'Error';
+        if (esTablaAusente(data, msg)) {
+            await ofrecerCrearTabla(msg);
+            return;
+        }
+        await Swal.fire({ icon: 'error', text: msg });
+    }
 
     function fillForm(ambiente, data) {
         const map = FIELDS[ambiente];
@@ -129,7 +204,8 @@
         );
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            throw new Error(data.error || 'No se pudieron cargar las credenciales');
+            await manejarErrorApi(data, 'No se pudieron cargar las credenciales');
+            return;
         }
         state.sandbox = data.sandbox || null;
         state.prod = data.prod || null;
@@ -160,7 +236,8 @@
         );
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            throw new Error(data.error || 'No se guardaron las credenciales');
+            await manejarErrorApi(data, 'No se guardaron las credenciales');
+            return;
         }
         Swal.fire({
             icon: 'success',
