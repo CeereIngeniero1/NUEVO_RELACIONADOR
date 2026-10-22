@@ -18,7 +18,13 @@
         if (typeof window.getApiBaseUrl === 'function') {
             return String(window.getApiBaseUrl()).replace(/\/$/, '');
         }
-        return '';
+        const cfg = window.__APP_CONFIG__ || {};
+        if (cfg.API_BASE_URL) {
+            return String(cfg.API_BASE_URL).replace(/\/$/, '');
+        }
+        const host = (window.location && window.location.hostname) || 'localhost';
+        const port = cfg.BACK_PORT || '3000';
+        return `http://${host}:${port}`;
     }
 
     const el = {
@@ -120,16 +126,17 @@
     async function manejarErrorCarga(data, status, fallbackMsg) {
         const msg = (data && data.error) || fallbackMsg || 'No se pudo leer la configuración';
         if (status === 404) {
+            const url = `${apiBase()}/apiV3/Rips/relacion-automatica-factura`;
             await Swal.fire({
                 icon: 'error',
                 title: 'Ruta no encontrada (API)',
                 html:
-                    '<p class="mb-2">El <strong>front</strong> (puerto 3100) ya tiene la pantalla, pero el <strong>backend</strong> (puerto 3000) no responde esa ruta.</p>'
+                    '<p class="mb-2">No respondió:</p>'
+                    + `<p><code>${url}</code></p>`
+                    + '<p class="small mb-2">Si el host es <code>:3100</code>, el front no está apuntando al backend.</p>'
                     + '<ol class="text-start small mb-0">'
-                    + '<li>En la carpeta del proyecto: <code>git pull</code></li>'
-                    + '<li>Pare el Node del backend (Ctrl+C)</li>'
-                    + '<li>Arranque de nuevo: <code>cd back_relacionador\\server</code> → <code>node .\\server.js</code></li>'
-                    + '<li>Pruebe: <code>http://localhost:3000/apiV3/Rips/relacion-automatica-factura</code></li>'
+                    + '<li><code>git pull</code> y reinicie front + backend</li>'
+                    + '<li>Pruebe: <code>http://localhost:3000/apiV3/Rips/relacion-automatica-factura/ping</code></li>'
                     + '</ol>',
             });
             return;
