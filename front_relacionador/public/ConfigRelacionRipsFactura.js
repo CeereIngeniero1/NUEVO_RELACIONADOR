@@ -1,12 +1,14 @@
 /**
  * Switch: relación automática RIPS ↔ Factura
  * GET/PUT /apiV3/Rips/relacion-automatica-factura
+ * POST .../ensure-install
  */
 (function () {
     'use strict';
 
-    function authHeaders() {
-        const h = { 'Content-Type': 'application/json' };
+    function authHeaders(json) {
+        const h = {};
+        if (json) h['Content-Type'] = 'application/json';
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         if (token) h.Authorization = `Bearer ${token}`;
         return h;
@@ -28,6 +30,17 @@
 
     let saving = false;
 
+    function esTablaAusente(data, message, status) {
+        const code = String(data && data.code || '');
+        const msg = String((data && data.error) || message || '');
+        return (
+            code === 'RELACION_AUTO_TABLA_AUSENTE'
+            || status === 409
+            || (/ConfigRelacionAutomaticaRipsFactura/i.test(msg)
+                && /no existe|nombre de objeto|Invalid object name|no es v[aá]lido|tabla|Ejecute SQL/i.test(msg))
+        );
+    }
+
     function pintar(activo, fecha) {
         if (el.sw) el.sw.checked = Boolean(activo);
         if (el.lblEstado) {
@@ -48,13 +61,87 @@
         }
     }
 
+    async function instalar() {
+        const resp = await fetch(
+            `${apiBase()}/apiV3/Rips/relacion-automatica-factura/ensure-install`,
+            {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: '{}',
+            }
+        );
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            throw new Error(data.error || 'No se pudo instalar la relación automática');
+        }
+        return data;
+    }
+
+    async function ofrecerInstalar(mensajeOriginal) {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Falta instalar en esta BD',
+            html:
+                '<p class="mb-2">Esta base no tiene la configuración/triggers de relación automática RIPS↔Factura.</p>'
+                + '<p class="mb-0 small text-muted">¿Desea instalarlos ahora? Quedará <strong>desactivado</strong> hasta que active el switch.</p>',
+            showCancelButton: true,
+            confirmButtonText: 'Instalar ahora',
+            cancelButtonText: 'Cancelar',
+            footer: mensajeOriginal
+                ? `<span class="small text-muted">${String(mensajeOriginal).slice(0, 240)}</span>`
+                : undefined,
+        });
+        if (!result.isConfirmed) return false;
+
+        Swal.fire({
+            title: 'Instalando…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+        try {
+            const data = await instalar();
+            await Swal.fire({
+                icon: 'success',
+                title: 'Listo',
+                text: data.message || 'Instalación completada.',
+            });
+            await cargar();
+            return true;
+        } catch (e) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'No se pudo instalar',
+                text: e.message || String(e),
+            });
+            return false;
+        }
+    }
+
+    async function manejarErrorCarga(data, status, fallbackMsg) {
+        const msg = (data && data.error) || fallbackMsg || 'No se pudo leer la configuración';
+        if (status === 404) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Ruta no encontrada',
+                text: 'Reinicie el backend (node server.js) para cargar la API de relación automática.',
+            });
+            return;
+        }
+        if (esTablaAusente(data, msg, status)) {
+            await ofrecerInstalar(msg);
+            return;
+        }
+        await Swal.fire({ icon: 'error', text: msg });
+    }
+
     async function cargar() {
         const resp = await fetch(`${apiBase()}/apiV3/Rips/relacion-automatica-factura`, {
-            headers: authHeaders(),
+            headers: authHeaders(false),
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            throw new Error(data.error || 'No se pudo leer la configuración');
+            await manejarErrorCarga(data, resp.status, 'No se pudo leer la configuración');
+            return null;
         }
         pintar(data.activo, data.fechaActualizacion);
         return data;
@@ -65,11 +152,16 @@
         try {
             const resp = await fetch(`${apiBase()}/apiV3/Rips/relacion-automatica-factura`, {
                 method: 'PUT',
-                headers: authHeaders(),
+                headers: authHeaders(true),
                 body: JSON.stringify({ activo: Boolean(activo) }),
             });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) {
+                if (esTablaAusente(data, data.error, resp.status)) {
+                    const ok = await ofrecerInstalar(data.error);
+                    if (ok) await guardar(activo);
+                    return;
+                }
                 throw new Error(data.error || 'No se pudo guardar');
             }
             pintar(data.activo, new Date().toISOString());
@@ -92,7 +184,6 @@
         el.sw?.addEventListener('change', () => {
             if (saving) return;
             const next = Boolean(el.sw.checked);
-            // revert visual until confirmed
             el.sw.checked = !next;
             Swal.fire({
                 icon: 'question',
