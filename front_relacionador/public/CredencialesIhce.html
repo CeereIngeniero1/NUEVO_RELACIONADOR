@@ -79,7 +79,7 @@
                         Empresa activa:
                         <strong id="lblDocumentoEmpresa">—</strong>
                     </p>
-                    <p class="ihce-cred-hint mb-0">
+                    <p class="ihce-cred-hint mb-0" id="lblCredHint">
                         Los secretos (Client Secret y Subscription Key) no se muestran.
                         Déjelos vacíos para no cambiarlos. Complete sandbox y/o producción según necesite.
                     </p>
@@ -92,7 +92,7 @@
             </div>
 
             <div class="row g-3">
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-6" id="colCredSandbox">
                     <form id="formSandbox" class="ihce-cred-panel ihce-cred-panel--sandbox">
                         <h2><i class="ri-cloud-line me-1"></i> Sandbox</h2>
                         <div class="mb-2">
@@ -138,7 +138,7 @@
                         </button>
                     </form>
                 </div>
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-6" id="colCredProd">
                     <form id="formProd" class="ihce-cred-panel ihce-cred-panel--prod">
                         <h2><i class="ri-shield-keyhole-line me-1"></i> Producción</h2>
                         <div class="mb-2">

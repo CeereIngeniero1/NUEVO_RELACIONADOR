@@ -246,7 +246,34 @@
         await cargar();
     }
 
+    function aplicarVisibilidadAmbientes() {
+        const cfg = window.__APP_CONFIG__ || {};
+        const forceProd = cfg.IHCE_FORCE_PROD_ONLY === true;
+        const forceSandbox = cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+        const enableSandbox = !forceProd && cfg.IHCE_ENABLE_SANDBOX !== false;
+        const enableProd = !forceSandbox && cfg.IHCE_ENABLE_PROD !== false;
+        const colSb = document.getElementById('colCredSandbox');
+        const colPr = document.getElementById('colCredProd');
+        const hint = document.getElementById('lblCredHint');
+        if (colSb) colSb.classList.toggle('d-none', !enableSandbox);
+        if (colPr) colPr.classList.toggle('d-none', !enableProd);
+        if (colPr && enableProd && !enableSandbox) {
+            colPr.classList.remove('col-lg-6');
+            colPr.classList.add('col-lg-8');
+        }
+        if (hint) {
+            if (forceProd) {
+                hint.textContent =
+                    'Modo solo producción (IHCE_FORCE_PROD_ONLY). Los secretos no se muestran; déjelos vacíos para no cambiarlos.';
+            } else if (forceSandbox) {
+                hint.textContent =
+                    'Modo solo sandbox (IHCE_FORCE_SANDBOX_ONLY). Los secretos no se muestran; déjelos vacíos para no cambiarlos.';
+            }
+        }
+    }
+
     function init() {
+        aplicarVisibilidadAmbientes();
         el.btnRecargar?.addEventListener('click', () => {
             cargar().catch((e) => Swal.fire({ icon: 'error', text: e.message || String(e) }));
         });
