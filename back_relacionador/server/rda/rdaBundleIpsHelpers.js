@@ -136,6 +136,24 @@ function syncCompositionAttesterWithCustodian(bundle) {
  * @param {{ reps?: string, nit?: string, name?: string }} prestador
  * @param {{ rdace?: boolean }} [opts] rdace=true ajusta Encounter/DocumentReference
  */
+function rewriteLocalRefs(node, rewriteMap) {
+    if (!node || typeof node !== 'object' || !rewriteMap || !rewriteMap.size) return;
+    if (Array.isArray(node)) {
+        node.forEach((x) => rewriteLocalRefs(x, rewriteMap));
+        return;
+    }
+    if (typeof node.reference === 'string' && node.reference.trim().startsWith('#')) {
+        const rid = node.reference.trim().slice(1);
+        if (rewriteMap.has(rid)) {
+            node.reference = `#${rewriteMap.get(rid)}`;
+        }
+    }
+    Object.keys(node).forEach((k) => {
+        if (k === 'reference') return;
+        rewriteLocalRefs(node[k], rewriteMap);
+    });
+}
+
 function applyPrestadorToBundle(bundle, prestador, opts = {}) {
     const reps = str(prestador && prestador.reps);
     if (!reps || !bundle) return bundle;
@@ -145,6 +163,32 @@ function applyPrestadorToBundle(bundle, prestador, opts = {}) {
     const rdace = opts.rdace === true;
 
     const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
+    const ipsProfileToken = 'CareDeliveryOrganizationRDA';
+
+    // Ids IPS viejos (p. ej. NIT en formulario) → REPS real; también Location {id}-01
+    const rewriteMap = new Map();
+    entries.forEach((e) => {
+        if (!e || !e.resource || e.resource.resourceType !== 'Organization') return;
+        const profiles = e.resource.meta && Array.isArray(e.resource.meta.profile) ? e.resource.meta.profile : [];
+        const isIpsOrg = profiles.some((p) => String(p || '').includes(ipsProfileToken));
+        if (!isIpsOrg) return;
+        const oldId = str(e.resource.id);
+        if (oldId && oldId !== reps) {
+            rewriteMap.set(oldId, reps);
+            rewriteMap.set(`${oldId}-01`, `${reps}-01`);
+        }
+    });
+    // Si no había Organization IPS aún, pero hay Location tipo {nit}-01
+    entries.forEach((e) => {
+        if (!e || !e.resource || e.resource.resourceType !== 'Location') return;
+        const locId = str(e.resource.id);
+        const m = locId.match(/^(.+)-01$/);
+        if (m && m[1] && m[1] !== reps) {
+            rewriteMap.set(m[1], reps);
+            rewriteMap.set(locId, `${reps}-01`);
+        }
+    });
+
     const compEntry = entries.find((e) => e && e.resource && e.resource.resourceType === 'Composition');
     if (compEntry && compEntry.resource) {
         compEntry.resource.custodian = { reference: `#${reps}` };
@@ -235,7 +279,29 @@ function applyPrestadorToBundle(bundle, prestador, opts = {}) {
         ];
     }
 
-    const ipsProfileToken = 'CareDeliveryOrganizationRDA';
+    // Location: renombrar id NIT-01 → REPS-01 y apuntar managingOrganization al REPS
+    entries.forEach((e) => {
+        if (!e || !e.resource || e.resource.resourceType !== 'Location') return;
+        const loc = e.resource;
+        const locId = str(loc.id);
+        if (rewriteMap.has(locId)) {
+            loc.id = rewriteMap.get(locId);
+        } else if (locId && locId !== `${reps}-01` && /^.+-01$/.test(locId)) {
+            loc.id = `${reps}-01`;
+        }
+        if (loc.identifier && Array.isArray(loc.identifier)) {
+            loc.identifier.forEach((idObj) => {
+                if (idObj && idObj.system && String(idObj.system).includes('REPS')) {
+                    idObj.value = loc.id || `${reps}-01`;
+                }
+            });
+        }
+        loc.managingOrganization = { reference: `#${reps}` };
+        if (!str(loc.name) || /^Sede\s+/i.test(str(loc.name))) {
+            loc.name = name || `Sede ${reps}`;
+        }
+    });
+
     bundle.entry = (Array.isArray(bundle.entry) ? bundle.entry : []).filter((e) => {
         if (!e || !e.resource || e.resource.resourceType !== 'Organization') return true;
         const profiles = e.resource.meta && Array.isArray(e.resource.meta.profile) ? e.resource.meta.profile : [];
@@ -243,6 +309,10 @@ function applyPrestadorToBundle(bundle, prestador, opts = {}) {
         if (!isIpsOrg) return true;
         return String(e.resource.id || '') === reps;
     });
+
+    if (rewriteMap.size) {
+        rewriteLocalRefs(bundle, rewriteMap);
+    }
 
     syncCompositionAttesterWithCustodian(bundle);
     return bundle;

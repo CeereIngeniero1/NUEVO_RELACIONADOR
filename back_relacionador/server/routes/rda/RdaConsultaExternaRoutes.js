@@ -58,6 +58,7 @@ const {
 } = require('../../rda/fhirColombiaFormat');
 const {
     resolvePrestadorForIhce,
+    resolvePrestadorForIhceAsync,
     applyEnvCustodianIfConfigured,
     applyDbCustodianIfConfigured,
     normalizeIhceAmbiente,
@@ -1309,7 +1310,14 @@ router.post('/RdaConsultaExterna/FhirBundle', async (req, res) => {
         const { loadDotEnvFromCandidates } = require('../../config/envLoader');
         loadDotEnvFromCandidates();
         const ihceAmb = normalizeIhceAmbiente(reqBody.ambiente);
-        const prestadorIps = resolvePrestadorForIhce(ihceAmb, {
+        // Resolver REPS desde CredencialesIhce (BD) ANTES de armar ids/refs; si no, el NIT del
+        // formulario queda como Organization.id y luego applyDbCustodian deja #NIT huérfano.
+        const prestadorIps = await resolvePrestadorForIhceAsync(ihceAmb, {
+            documentoEmpresa:
+                reqBody.documentoEmpresa
+                || reqBody.DocumentoEmpresa
+                || (empresaIps && empresaIps.DocumentoEmpresa)
+                || '',
             overrideCodigoPrestador: reqBody.overrideCodigoPrestador,
             overrideNitPrestadorIPS: reqBody.overrideNitPrestadorIPS,
             overrideNombrePrestadorIPS: reqBody.overrideNombrePrestadorIPS,
