@@ -136,8 +136,13 @@ function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
 }
 
 function ethnicityFromDb(codigoEtnia, textoEtnia) {
-    const code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    let code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const display = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    if ((!code || code === '0') && display && /ninguna\s+de\s+las\s+anteriores/i.test(display)) {
+        return { code: '99', display: 'Ninguna de las anteriores' };
+    }
+    if (code && /^\d+$/.test(code)) code = String(parseInt(code, 10));
+    if (code === '99') return { code: '99', display: display || 'Ninguna de las anteriores' };
     if (!code || skipRdaEthnicityExtension(code, display)) return null;
     return { code, display: display || undefined };
 }

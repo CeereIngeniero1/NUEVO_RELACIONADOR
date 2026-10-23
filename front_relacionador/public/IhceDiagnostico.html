@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico IHCE — CEERE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="Asignar_RIPS.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="icon" href="images/Logo.png" type="image/x-icon">
+    <style>
+        .diag-panel {
+            border: 1px solid var(--color-border, #dee2e6);
+            border-radius: 0.65rem;
+            padding: 1.1rem 1.25rem;
+            background: var(--color-surface, #fff);
+        }
+        [data-theme="dark"] .diag-panel {
+            background: var(--color-surface-elevated, #1e293b);
+        }
+        .diag-out {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.78rem;
+            max-height: 420px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.85rem 1rem;
+        }
+        .diag-hint { font-size: 0.85rem; color: var(--color-text-secondary, #6c757d); }
+        .diag-badge-ok { color: #198754; font-weight: 600; }
+        .diag-badge-bad { color: #dc3545; font-weight: 600; }
+    </style>
+    <script>
+        if (localStorage.getItem('ceere_theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+
+<body class="app-layout">
+
+    <nav class="cr-topbar" id="crTopbar">
+        <div class="cr-topbar-brand d-flex align-items-center flex-wrap gap-2">
+            <img src="images/Ceere_logo.png" alt="Logo" class="cr-topbar-logo">
+            <span class="cr-topbar-title">Relacionador RIPS</span>
+            <span class="text-muted d-none d-sm-inline">|</span>
+            <span class="small fw-semibold" style="color: var(--color-primary, #007E82);">Diagnóstico IHCE</span>
+        </div>
+        <div class="cr-topbar-right">
+            <div class="cr-topbar-user">
+                <div class="cr-topbar-user-icon"><i class="fa-solid fa-user"></i></div>
+                <span id="TopbarUserName">Usuario</span>
+            </div>
+            <button type="button" class="cr-topbar-logout" id="crBtnThemeToggle">
+                <i class="fa-solid fa-moon"></i><span>Tema Oscuro</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="cr-page-content">
+        <h1 class="cr-page-heading">Diagnóstico IHCE (Postman sin envíos)</h1>
+        <main class="container-fluid px-0">
+            <div class="cr-card cr-card-left-border mb-3">
+                <div class="cr-card-body">
+                    <p class="mb-1">
+                        Empresa sesión: <strong id="lblDocumentoEmpresa">—</strong>
+                    </p>
+                    <p class="diag-hint mb-0">
+                        Usa <strong>CredencialesIhce</strong> de la BD (igual que el envío real). El bloque
+                        <code>IHCE_*</code> del <code>.env</code> no aplica aquí.
+                        Las rutas <code>$enviar-*</code> están bloqueadas a propósito.
+                    </p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <div class="diag-panel">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="selAmbiente">Ambiente</label>
+                            <select id="selAmbiente" class="form-select">
+                                <option value="sandbox" selected>Sandbox</option>
+                                <option value="prod">Producción</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="selOperacion">Operación</label>
+                            <select id="selOperacion" class="form-select"></select>
+                        </div>
+
+                        <div id="boxOrg" class="border rounded p-2 mb-3 d-none">
+                            <div class="small fw-semibold mb-2">Organización (opcional; si vacío → custodian BD)</div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-0">NIT (TaxIdentifier)</label>
+                                <input id="inpNit" class="form-control form-control-sm" placeholder="70115364">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-0">REPS</label>
+                                <input id="inpReps" class="form-control form-control-sm" placeholder="0500105802">
+                            </div>
+                            <div>
+                                <label class="form-label small mb-0">Nombre</label>
+                                <input id="inpOrgName" class="form-control form-control-sm" placeholder="JUAN DARIO PUERTA DIAZ">
+                            </div>
+                        </div>
+
+                        <div id="boxPaciente" class="border rounded p-2 mb-3 d-none">
+                            <div class="small fw-semibold mb-2">Paciente / profesional</div>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <label class="form-label small mb-0">Tipo</label>
+                                    <input id="inpTipoDoc" class="form-control form-control-sm" value="CC">
+                                </div>
+                                <div class="col-8">
+                                    <label class="form-label small mb-0">Documento</label>
+                                    <input id="inpNumDoc" class="form-control form-control-sm" placeholder="1026161053">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label class="form-label small mb-0">humanuser (ej. CC-70115364)</label>
+                                <input id="inpHuman" class="form-control form-control-sm" placeholder="CC-70115364">
+                            </div>
+                        </div>
+
+                        <div id="boxExtra" class="border rounded p-2 mb-3 d-none">
+                            <label class="form-label small mb-0">Composition Id / code / JSON Parameters</label>
+                            <textarea id="inpExtra" class="form-control form-control-sm" rows="4"
+                                placeholder='compositionId, code, o JSON Parameters completo'></textarea>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" id="btnProbar" class="btn btn-primary">
+                                <i class="ri-play-line me-1"></i> Probar
+                            </button>
+                            <button type="button" id="btnToken" class="btn btn-outline-secondary btn-sm">
+                                Solo token
+                            </button>
+                            <button type="button" id="btnOrg" class="btn btn-outline-secondary btn-sm">
+                                Consultar organización
+                            </button>
+                            <button type="button" id="btnPac" class="btn btn-outline-secondary btn-sm">
+                                Paciente exacto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="diag-panel">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold">Resultado</span>
+                            <span id="lblStatus" class="small"></span>
+                        </div>
+                        <pre id="outJson" class="diag-out mb-0">Seleccione una operación y pulse Probar.</pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/config.js"></script>
+    <script src="/apiConfig.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { mountAppSidebar } from "./shared/appSidebar.js";
+        import { applyProductUiGates } from "./shared/productUiGates.js";
+        const boot = () => {
+            applyProductUiGates();
+            mountAppSidebar({ active: "ihce-diagnostico" });
+        };
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot);
+        } else {
+            boot();
+        }
+    </script>
+    <script src="IhceDiagnostico.js?v=20261023a"></script>
+</body>
+
+</html>

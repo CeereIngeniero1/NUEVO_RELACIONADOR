@@ -66,8 +66,19 @@ function skipRdaEthnicityExtension(codigoEtnia, textoEtnia) {
 }
 
 function resolveEthnicityForFhir(codigoEtnia, textoEtnia) {
-    const code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
+    let code = codigoEtnia != null && String(codigoEtnia).trim() !== '' ? String(codigoEtnia).trim() : '';
     const display = textoEtnia != null && String(textoEtnia).trim() !== '' ? String(textoEtnia).trim() : '';
+    // Catálogo legacy (p. ej. Puerta IdEtnia=7): texto "Ninguna..." con CódigoEtnia NULL.
+    // IHCE exige ExtensionPatientEthnicity 1..1 → código oficial 99.
+    if ((!code || code === '0') && display && /ninguna\s+de\s+las\s+anteriores/i.test(display)) {
+        return { code: '99', display: 'Ninguna de las anteriores' };
+    }
+    if (code && /^\d+$/.test(code)) {
+        code = String(parseInt(code, 10)); // 099 → 99
+    }
+    if (code === '99') {
+        return { code: '99', display: display || 'Ninguna de las anteriores' };
+    }
     if (skipRdaEthnicityExtension(code, display)) {
         return { code: 'Y', display: 'Y' };
     }
