@@ -22,11 +22,23 @@ function normalizeAmbiente(val) {
 
 function ihceForceSandboxOnlyUi() {
   const cfg = window.__APP_CONFIG__ || {};
-  return cfg.IHCE_FORCE_SANDBOX_ONLY === true;
+  return cfg.IHCE_FORCE_SANDBOX_ONLY === true || cfg.IHCE_FORCE_SANDBOX_ONLY === 'true';
 }
 function ihceForceProdOnlyUi() {
   const cfg = window.__APP_CONFIG__ || {};
-  return cfg.IHCE_FORCE_PROD_ONLY === true;
+  return cfg.IHCE_FORCE_PROD_ONLY === true || cfg.IHCE_FORCE_PROD_ONLY === 'true';
+}
+function ihceEnableSandboxUi() {
+  const cfg = window.__APP_CONFIG__ || {};
+  if (ihceForceProdOnlyUi()) return false;
+  if (cfg.IHCE_ENABLE_SANDBOX === false || cfg.IHCE_ENABLE_SANDBOX === 'false') return false;
+  return true;
+}
+function ihceEnableProdUi() {
+  const cfg = window.__APP_CONFIG__ || {};
+  if (ihceForceSandboxOnlyUi()) return false;
+  if (cfg.IHCE_ENABLE_PROD === false || cfg.IHCE_ENABLE_PROD === 'false') return false;
+  return true;
 }
 
 function loadDefaultAmbienteFromConfig() {
@@ -4466,22 +4478,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const selAmb = document.getElementById('inputAmbienteIHCE');
   if (selAmb) {
-    if (ihceForceProdOnlyUi()) {
+    const allowSandbox = ihceEnableSandboxUi();
+    const allowProd = ihceEnableProdUi();
+    if (!allowSandbox) {
       const sandboxOpt = selAmb.querySelector('option[value="sandbox"]');
       if (sandboxOpt) sandboxOpt.remove();
+    }
+    if (!allowProd) {
+      const prodOpt = selAmb.querySelector('option[value="prod"]');
+      if (prodOpt) prodOpt.remove();
+    }
+    if (ihceForceProdOnlyUi() || (allowProd && !allowSandbox)) {
       selAmb.value = 'prod';
+      CONFIG.ambiente = 'prod';
       selAmb.disabled = true;
       selAmb.title = 'Modo solo producción activo';
       console.log('🌐 Ambiente visor IHCE: producción forzada');
-    } else if (ihceForceSandboxOnlyUi()) {
-      const prodOpt = selAmb.querySelector('option[value="prod"]');
-      if (prodOpt) prodOpt.remove();
+    } else if (ihceForceSandboxOnlyUi() || (allowSandbox && !allowProd)) {
       selAmb.value = 'sandbox';
+      CONFIG.ambiente = 'sandbox';
       selAmb.disabled = true;
       selAmb.title = 'Modo solo sandbox activo';
       console.log('🌐 Ambiente visor IHCE: sandbox forzado');
     } else {
       selAmb.value = CONFIG.ambiente;
+      selAmb.disabled = false;
       selAmb.addEventListener('change', function () {
         CONFIG.ambiente = normalizeAmbiente(this.value);
         saveAmbienteToStorage(CONFIG.ambiente);
