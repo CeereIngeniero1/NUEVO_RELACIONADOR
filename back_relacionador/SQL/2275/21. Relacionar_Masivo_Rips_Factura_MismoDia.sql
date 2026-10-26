@@ -68,6 +68,10 @@ FacturasLibres AS (
       AND NULLIF(LTRIM(RTRIM(f.[Documento Paciente])), N'') IS NOT NULL
       AND (tc.[Tipo de Comprobante] IS NULL OR tc.[Tipo de Comprobante] NOT LIKE N'%Nota%')
       AND NOT EXISTS (
+            SELECT 1 FROM dbo.VwFacturasCopagoNoSalud cop
+            WHERE cop.[Id Factura] = f.[Id Factura]
+        )
+      AND NOT EXISTS (
             SELECT 1
             FROM dbo.[Evaluación Entidad Rips] r2
             WHERE r2.[Id Factura] = f.[Id Factura]

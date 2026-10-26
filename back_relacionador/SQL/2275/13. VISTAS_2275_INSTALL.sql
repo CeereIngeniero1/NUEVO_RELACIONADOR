@@ -515,9 +515,67 @@ LEFT OUTER JOIN dbo.Empresa AS em
     ON eve.[Documento Empresa] = em.[Documento Empresa];
 GO
 
+/* Copago no-salud (cuota inicial EPS/prepagada). Detalle: 23. Factura_Copago_No_Salud.sql
+   Orden: dropear dependientes (ConsultaFacturas + fn) antes de la vista base. */
 IF OBJECT_ID(N'dbo.[ConsultaFacturasPaciente]', N'V') IS NOT NULL
     DROP VIEW dbo.[ConsultaFacturasPaciente];
 GO
+IF OBJECT_ID(N'dbo.fn_EsFacturaCopagoNoSalud', N'FN') IS NOT NULL
+    DROP FUNCTION dbo.fn_EsFacturaCopagoNoSalud;
+GO
+IF OBJECT_ID(N'dbo.VwFacturasCopagoNoSalud', N'V') IS NOT NULL
+    DROP VIEW dbo.VwFacturasCopagoNoSalud;
+GO
+CREATE VIEW dbo.VwFacturasCopagoNoSalud
+AS
+SELECT DISTINCT
+    fii.[Id Factura]
+FROM dbo.FacturaII AS fii
+INNER JOIN dbo.[Plan de Tratamiento Tratamientos] AS ptt
+    ON ptt.[Id Plan de Tratamiento] = fii.[Id Plan de Tratamiento]
+INNER JOIN dbo.[Forma de Pago Tratamiento] AS fpt
+    ON fpt.[Id Forma de Pago Tratamiento] = ptt.[Id Forma de Pago Tratamiento]
+INNER JOIN dbo.[Tipo Responsable] AS tr
+    ON tr.[Id Tipo Responsable] = ptt.[Id Tipo Responsable]
+LEFT JOIN dbo.[Cuotas Pactadas Inicial Tratamiento] AS cpi
+    ON cpi.[Id Plan de Tratamiento Tratamientos] = ptt.[Id Plan de Tratamiento Tratamientos]
+LEFT JOIN dbo.Factura AS f
+    ON f.[Id Factura] = fii.[Id Factura]
+WHERE
+    (
+        ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%EPS%'
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepago%'
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepagad%'
+    )
+    AND (
+        ISNULL(tr.[Tipo Responsable], N'') LIKE N'%EPS%'
+        OR ISNULL(tr.[Tipo Responsable], N'') LIKE N'%Prepag%'
+    )
+    AND (
+        ISNULL(fii.[Descripción FacturaII], N'') LIKE N'%Copago%'
+        OR (
+            cpi.[Id Cuotas Pactadas Inicial Tratamiento] IS NOT NULL
+            AND ISNULL(cpi.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento], 0) > 0
+            AND (
+                ABS(ISNULL(fii.[Valor FacturaII], 0)
+                    - ISNULL(cpi.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento], 0)) < 1
+                OR ABS(ISNULL(f.[Total Factura], 0)
+                    - ISNULL(cpi.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento], 0)) < 1
+            )
+        )
+    );
+GO
+CREATE FUNCTION dbo.fn_EsFacturaCopagoNoSalud (@IdFactura INT)
+RETURNS BIT
+AS
+BEGIN
+    IF @IdFactura IS NULL OR @IdFactura = 0 RETURN 0;
+    IF EXISTS (SELECT 1 FROM dbo.VwFacturasCopagoNoSalud AS c WHERE c.[Id Factura] = @IdFactura)
+        RETURN 1;
+    RETURN 0;
+END;
+GO
+
 
 CREATE VIEW dbo.[ConsultaFacturasPaciente]
 AS
@@ -539,6 +597,11 @@ WHERE NOT EXISTS (
     SELECT 1
     FROM dbo.[Evaluación Entidad Rips] evr
     WHERE evr.[Id Factura] = Fac.[Id Factura]
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM dbo.VwFacturasCopagoNoSalud AS cop
+    WHERE cop.[Id Factura] = Fac.[Id Factura]
 );
 GO
 

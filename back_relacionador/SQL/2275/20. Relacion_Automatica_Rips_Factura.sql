@@ -12,9 +12,11 @@
     - El backend llama usp_RelacionAutomatica_RipsFactura cada IntervaloMinutos
       (default 30) si Activo=1. También: POST .../ejecutar-ahora.
     - Anulación de factura: trigger ligero desrelaciona el RIPS (siempre).
+    - Excluye facturas de copago (VwFacturasCopagoNoSalud / script 23).
 
   Idempotente. SQL Server 2014+.
   Quita triggers INSERT viejos (Relacion_* y TR_RelacionAuto_*_Insert).
+  Requiere haber ejecutado 23. Factura_Copago_No_Salud.sql (o ensure-install).
 */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -172,6 +174,12 @@ BEGIN
           AND NULLIF(LTRIM(RTRIM(e.[Documento Entidad])), N'') IS NOT NULL
           AND ISNULL(f.[Id Estado], 0) <> 5
           AND (tc.[Tipo de Comprobante] IS NULL OR tc.[Tipo de Comprobante] NOT LIKE N'%Nota%')
+          /* Excluir facturas de copago (cuota inicial EPS/prepagada) — no son salud */
+          AND NOT EXISTS (
+                SELECT 1
+                FROM dbo.VwFacturasCopagoNoSalud AS cop
+                WHERE cop.[Id Factura] = f.[Id Factura]
+            )
           AND NOT EXISTS (
                 SELECT 1
                 FROM dbo.[Evaluación Entidad Rips] rx

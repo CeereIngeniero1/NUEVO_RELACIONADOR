@@ -174,6 +174,10 @@ async function listarFacturasConEstadoXml(documentoEmpresa, fechaInicio, fechaFi
           SELECT 1 FROM [Evaluación Entidad Rips] RIPS
           WHERE RIPS.[Id Factura] = Fac.[Id Factura]
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM dbo.VwFacturasCopagoNoSalud cop
+          WHERE cop.[Id Factura] = Fac.[Id Factura]
+        )
       ORDER BY Fac.[Fecha Factura], Fac.[No Factura]
     `);
 

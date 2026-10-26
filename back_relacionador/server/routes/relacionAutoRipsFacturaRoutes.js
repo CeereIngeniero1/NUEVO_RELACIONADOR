@@ -64,25 +64,13 @@ async function configTableExists(pool) {
     return Number(result.recordset?.[0]?.existe) === 1;
 }
 
-async function ensureRelacionAutomaticaInstall() {
-    const { poolPromise } = require('../db2');
-    const pool = await poolPromise;
-    const sqlPath = path.join(
-        __dirname,
-        '..',
-        '..',
-        'SQL',
-        '2275',
-        '20. Relacion_Automatica_Rips_Factura.sql'
-    );
+async function runSqlFileBatches(pool, sqlPath) {
     if (!fs.existsSync(sqlPath)) {
         const err = new Error(`No se encontró el instalador: ${sqlPath}`);
         err.code = 'RELACION_AUTO_SQL_NO_ENCONTRADO';
         err.status = 500;
         throw err;
     }
-
-    const existed = await configTableExists(pool);
     const raw = fs.readFileSync(sqlPath, 'utf8');
     const batches = raw
         .split(/^\s*GO\s*$/gim)
@@ -99,6 +87,21 @@ async function ensureRelacionAutomaticaInstall() {
         await pool.request().batch(batch);
         executed += 1;
     }
+    return executed;
+}
+
+async function ensureRelacionAutomaticaInstall() {
+    const { poolPromise } = require('../db2');
+    const pool = await poolPromise;
+    const sqlDir = path.join(__dirname, '..', '..', 'SQL', '2275');
+    const pathCopago = path.join(sqlDir, '23. Factura_Copago_No_Salud.sql');
+    const pathRelacion = path.join(sqlDir, '20. Relacion_Automatica_Rips_Factura.sql');
+
+    const existed = await configTableExists(pool);
+    let executed = 0;
+    // Primero exclusiones de copago (vista usada por el SP y listados)
+    executed += await runSqlFileBatches(pool, pathCopago);
+    executed += await runSqlFileBatches(pool, pathRelacion);
 
     await ensureConfigRow(pool);
     const objs = await pool.request().query(`
@@ -106,7 +109,9 @@ async function ensureRelacionAutomaticaInstall() {
             CASE WHEN OBJECT_ID(N'dbo.usp_RelacionAutomatica_RipsFactura', N'P') IS NOT NULL
                 THEN 1 ELSE 0 END AS spOk,
             CASE WHEN OBJECT_ID(N'dbo.TR_RelacionAuto_Factura_Anulada', N'TR') IS NOT NULL
-                THEN 1 ELSE 0 END AS triggerAnulaOk
+                THEN 1 ELSE 0 END AS triggerAnulaOk,
+            CASE WHEN OBJECT_ID(N'dbo.VwFacturasCopagoNoSalud', N'V') IS NOT NULL
+                THEN 1 ELSE 0 END AS vwCopagoOk
     `);
     const row = objs.recordset?.[0] || {};
 
@@ -117,9 +122,10 @@ async function ensureRelacionAutomaticaInstall() {
         batchesExecuted: executed,
         spInstalled: Number(row.spOk) === 1,
         triggerAnulacion: Number(row.triggerAnulaOk) === 1,
+        vwCopago: Number(row.vwCopagoOk) === 1,
         message: existed
-            ? 'Instalación verificada (SP por lote). Switch OFF hasta que lo active.'
-            : 'Relación automática instalada (SP + scheduler). Switch OFF; actívelo cuando quiera.',
+            ? 'Instalación verificada (SP + exclusión copago). Switch OFF hasta que lo active.'
+            : 'Relación automática instalada (SP + exclusión copago). Switch OFF; actívelo cuando quiera.',
     };
 }
 

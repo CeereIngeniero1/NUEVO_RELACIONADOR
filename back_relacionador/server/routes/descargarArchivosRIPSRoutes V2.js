@@ -86,6 +86,10 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
 
         WHERE CONVERT(DATE, eve.[Fecha Evaluación Entidad], 23) BETWEEN @fechaInicio AND @fechaFin
         AND eve.[Documento Empresa] = @documentoEmpresaSeleccionada
+        AND NOT EXISTS (
+            SELECT 1 FROM dbo.VwFacturasCopagoNoSalud cop
+            WHERE cop.[Id Factura] = fc.[Id Factura]
+        )
         ORDER BY en.[Documento Entidad] DESC
         `,
         (err) => {
