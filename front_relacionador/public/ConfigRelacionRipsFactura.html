@@ -83,10 +83,10 @@
         <main class="container-fluid px-0">
             <div class="cfg-panel">
                 <p class="cfg-hint mb-0">
-                    Si está activo, al crear una <strong>factura</strong> el sistema busca un RIPS AC/AP del mismo
-                    paciente y del mismo día sin factura y lo relaciona (el más reciente).
-                    Al crear un <strong>RIPS AC/AP</strong> sin factura, busca una factura del mismo día no usada
-                    (excluye notas) y la relaciona. Si se <strong>anula</strong> una factura, el RIPS se desrelaciona.
+                    Si está activo, el backend ejecuta periódicamente un <strong>procedimiento almacenado</strong>
+                    que relaciona RIPS AC/AP sin factura con facturas del mismo paciente y día
+                    (excluye notas). Procesa un <strong>lote limitado (TOP)</strong> para no saturar la BD.
+                    Si se <strong>anula</strong> una factura, el RIPS se desrelaciona al instante.
                 </p>
 
                 <div class="cfg-switch-row">
@@ -94,6 +94,7 @@
                         <div class="fw-semibold">Activar relación automática</div>
                         <div id="lblEstado" class="cfg-status off">Desactivado</div>
                         <div id="lblFecha" class="cfg-hint mt-1"></div>
+                        <div id="lblUltimaEjecucion" class="cfg-hint mt-1"></div>
                     </div>
                     <div class="form-check form-switch m-0">
                         <input class="form-check-input" type="checkbox" role="switch" id="switchRelacionAuto"
@@ -103,14 +104,21 @@
 
                 <ul class="cfg-hint mb-3 ps-3">
                     <li>Solo RIPS tipo <strong>AC</strong> y <strong>AP</strong>.</li>
-                    <li>Solo mismo día (fecha calendario).</li>
+                    <li>Solo mismo día (fecha calendario); empareja 1 a 1.</li>
                     <li>No relaciona notas crédito/débito.</li>
+                    <li>Intervalo por defecto: <strong>30 minutos</strong> · lote: <strong>TOP 50</strong>.</li>
                     <li>Por defecto viene <strong>apagado</strong> hasta que usted lo active.</li>
+                    <li>Requiere el <strong>backend encendido</strong> (el scheduler vive en Node).</li>
                 </ul>
 
-                <button type="button" id="btnRecargar" class="btn btn-outline-secondary btn-sm">
-                    <i class="ri-refresh-line me-1"></i> Recargar estado
-                </button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" id="btnRecargar" class="btn btn-outline-secondary btn-sm">
+                        <i class="ri-refresh-line me-1"></i> Recargar estado
+                    </button>
+                    <button type="button" id="btnEjecutarAhora" class="btn btn-outline-primary btn-sm">
+                        <i class="ri-play-line me-1"></i> Ejecutar ahora
+                    </button>
+                </div>
             </div>
         </main>
     </div>
@@ -132,7 +140,7 @@
             mountAppSidebar({ active: "relacion-auto-rips" });
         }
     </script>
-    <script src="ConfigRelacionRipsFactura.js?v=20261022e"></script>
+    <script src="ConfigRelacionRipsFactura.js?v=20261026a"></script>
 </body>
 
 </html>

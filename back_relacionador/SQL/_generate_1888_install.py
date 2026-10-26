@@ -345,7 +345,7 @@ def gen_alter():
   ---------------------------------------------------------------------------
   Si Entidad1888 existe pero faltan columnas de país/municipio/Alergeno,
   ejecutar ANTES de recrear la vista (también en
-  FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
+  FIXES/FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
 
     IF COL_LENGTH('dbo.Entidad1888', 'Id Pais Nacionalidad') IS NULL
       ALTER TABLE dbo.Entidad1888 ADD [Id Pais Nacionalidad] INT NULL;

@@ -78,7 +78,19 @@ def ensure_go(block: str) -> str:
 
 # ─── 2275 helpers ───────────────────────────────────────────────────────────
 
+_GRUPO_SERVICIO_BY_DESC = {
+    "CONSULTA EXTERNA": "01",
+    "APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA": "02",
+    "INTERNACION": "03",
+    "QUIRURGICOS": "04",
+    "ATENCION INMEDIATA": "05",
+}
+
+
 def gen_rips_servicios() -> str:
+    """INSERT con Codigo Grupo Servicios: la vista Cnsta Relacionador Servicios
+    hace INNER JOIN por ese campo; si NULL, CodServicio no aparece en Asignar RIPS.
+    """
     src = read_text(D2275 / "3. Query.sql")
     m = re.search(
         r"INSERT\s+INTO\s+\[dbo\]\.\[RIPS Servicios\].*?VALUES\s*(.*?)(?=\n\n--|\n\nUPDATE|\nGO)",
@@ -87,16 +99,67 @@ def gen_rips_servicios() -> str:
     )
     if not m:
         return "/* WARN: no se extrajo RIPS Servicios */\n"
-    out = ["/* RIPS Servicios (~160) — desde 3. Query.sql */\n"]
-    for row in re.finditer(r"\(\s*'([^']+)'\s*,\s*'((?:[^']|'')*)'\s*,\s*'((?:[^']|'')*)'\s*,\s*(\d+)\s*\)", m.group(1)):
+    out = [
+        "/* RIPS Servicios (~160) — desde 3. Query.sql.\n"
+        "   Incluye [Codigo Grupo Servicios] (01-05) para el INNER JOIN de\n"
+        "   [Cnsta Relacionador Servicios]. */\n"
+    ]
+    for row in re.finditer(
+        r"\(\s*'([^']+)'\s*,\s*'((?:[^']|'')*)'\s*,\s*'((?:[^']|'')*)'\s*,\s*(\d+)\s*\)",
+        m.group(1),
+    ):
         cod, nom, desc, est = row.groups()
+        grupo = _GRUPO_SERVICIO_BY_DESC.get(desc)
+        if not grupo:
+            raise ValueError(f"Sin Codigo Grupo para Descripción={desc!r} (Código={cod})")
         nom_sql = nom.replace("'", "''")
         desc_sql = desc.replace("'", "''")
         out.append(
             f"IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'{cod}')\n"
-            f"    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])\n"
-            f"    VALUES (N'{cod}', N'{nom_sql}', N'{desc_sql}', {est});\nGO\n"
+            f"    INSERT INTO dbo.[RIPS Servicios] "
+            f"([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])\n"
+            f"    VALUES (N'{cod}', N'{nom_sql}', N'{desc_sql}', {est}, N'{grupo}');\nGO\n"
         )
+    # Red de seguridad: rellenar NULLs si la columna Descripcion tiene/sin tilde
+    out.append(
+        """
+/* Asegurar Codigo Grupo en filas ya insertadas (NULL) — idempotente */
+IF COL_LENGTH(N'dbo.[RIPS Servicios]', N'Codigo Grupo Servicios') IS NULL
+    ALTER TABLE dbo.[RIPS Servicios] ADD [Codigo Grupo Servicios] NVARCHAR(50) NULL;
+GO
+DECLARE @colDescr SYSNAME =
+(
+    SELECT TOP 1 c.name
+    FROM sys.columns c
+    WHERE c.object_id = OBJECT_ID(N'dbo.[RIPS Servicios]')
+      AND c.name LIKE N'Descripci% Servicios'
+);
+IF @colDescr IS NOT NULL
+BEGIN
+    DECLARE @sql NVARCHAR(MAX) = N'
+UPDATE dbo.[RIPS Servicios]
+SET [Codigo Grupo Servicios] = CASE LTRIM(RTRIM([' + @colDescr + N']))
+    WHEN N''CONSULTA EXTERNA'' THEN N''01''
+    WHEN N''APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA'' THEN N''02''
+    WHEN N''INTERNACION'' THEN N''03''
+    WHEN N''QUIRURGICOS'' THEN N''04''
+    WHEN N''ATENCION INMEDIATA'' THEN N''05''
+    ELSE [Codigo Grupo Servicios]
+END
+WHERE [Codigo Grupo Servicios] IS NULL
+  AND LTRIM(RTRIM([' + @colDescr + N'])) IN (
+    N''CONSULTA EXTERNA'',
+    N''APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA'',
+    N''INTERNACION'',
+    N''QUIRURGICOS'',
+    N''ATENCION INMEDIATA''
+);';
+    EXEC sys.sp_executesql @sql;
+    PRINT N'Codigo Grupo Servicios (NULL) actualizados: ' + CAST(@@ROWCOUNT AS NVARCHAR(20));
+END
+GO
+"""
+    )
     return "".join(out)
 
 

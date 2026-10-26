@@ -97,7 +97,10 @@ UPDATE dbo.[RIPS Grupo Servicios] SET [Descripción Grupo Servicios] = N'ATENCIO
 WHERE Codigo = N'05' AND ISNULL([Descripción Grupo Servicios], N'') <> N'ATENCION INMEDIATA';
 GO
 
-/* Codigo Grupo Servicios en RIPS Servicios */
+/* Codigo Grupo Servicios en RIPS Servicios.
+   En 00_INSTALL el valor ya va en el INSERT (01-05). Este bloque rellena NULLs.
+   Sin este campo, [Cnsta Relacionador Servicios] (INNER JOIN) no lista CodServicio.
+   Ver también FIXES/22. Fix_Rips_Servicios_Codigo_Grupo.sql */
 UPDATE dbo.[RIPS Servicios] SET [Codigo Grupo Servicios] = N'01'
 WHERE [Descripción Servicios] = N'CONSULTA EXTERNA' AND ISNULL([Codigo Grupo Servicios], N'') <> N'01';
 GO

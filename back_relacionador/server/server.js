@@ -31,6 +31,7 @@ const MaestroListasRIPS = require('./routes/MaestroListasRipsRoutes');
 const Facturador = require('./routes/FacturadorRoutes');
 const fevripsEnvioRoutes = require('./routes/fevripsEnvioRoutes');
 const relacionAutoRipsFacturaRoutes = require('./routes/relacionAutoRipsFacturaRoutes');
+const { startRelacionAutoScheduler } = require('./jobs/relacionAutoRipsFacturaScheduler');
 
 /* =========================================================================================================== */
 // Se crea un nuevo worker que ejecutará el archivo asignarNombreServidorRoutes.js
@@ -218,5 +219,13 @@ if (require.main === module) {
         console.log(
             `[relacion-auto] GET http://localhost:${port}/apiV3/Rips/relacion-automatica-factura/ping`
         );
+        try {
+            startRelacionAutoScheduler();
+        } catch (err) {
+            console.error(
+                '[relacion-auto] No se pudo iniciar el scheduler:',
+                err && (err.message || err)
+            );
+        }
     });
 }

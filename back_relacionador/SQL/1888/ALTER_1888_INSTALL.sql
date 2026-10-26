@@ -26,7 +26,7 @@
   ---------------------------------------------------------------------------
   HOTFIX CLIENTE (Message 207 — tablas incompletas)
   ---------------------------------------------------------------------------
-  Ejecutar ANTES de recrear vistas (o FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
+  Ejecutar ANTES de recrear vistas (o FIXES/FIX_Entidad1888_columnas_Cnsta_Usuarios_Info.sql):
 
   -- Entidad1888 (Cnsta Relacionador Usuarios Info)
   IF COL_LENGTH(N'dbo.Entidad1888', N'Id Pais Nacionalidad') IS NULL

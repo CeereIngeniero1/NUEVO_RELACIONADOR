@@ -1,7 +1,7 @@
 /**
- * Switch: relación automática RIPS ↔ Factura
+ * Switch: relación automática RIPS ↔ Factura (SP por lote + scheduler)
  * GET/PUT /apiV3/Rips/relacion-automatica-factura
- * POST .../ensure-install
+ * POST .../ensure-install | .../ejecutar-ahora
  */
 (function () {
     'use strict';
@@ -31,7 +31,9 @@
         sw: document.getElementById('switchRelacionAuto'),
         lblEstado: document.getElementById('lblEstado'),
         lblFecha: document.getElementById('lblFecha'),
+        lblUltima: document.getElementById('lblUltimaEjecucion'),
         btnRecargar: document.getElementById('btnRecargar'),
+        btnEjecutar: document.getElementById('btnEjecutarAhora'),
     };
 
     let saving = false;
@@ -47,22 +49,41 @@
         );
     }
 
-    function pintar(activo, fecha) {
-        if (el.sw) el.sw.checked = Boolean(activo);
+    function fmtFecha(fecha) {
+        if (!fecha) return '';
+        try {
+            return new Date(fecha).toLocaleString('es-CO');
+        } catch (_) {
+            return String(fecha);
+        }
+    }
+
+    function pintar(data) {
+        const activo = Boolean(data && data.activo);
+        if (el.sw) el.sw.checked = activo;
         if (el.lblEstado) {
             el.lblEstado.textContent = activo ? 'Activado' : 'Desactivado';
-            el.lblEstado.classList.toggle('on', Boolean(activo));
+            el.lblEstado.classList.toggle('on', activo);
             el.lblEstado.classList.toggle('off', !activo);
         }
         if (el.lblFecha) {
-            if (fecha) {
-                try {
-                    el.lblFecha.textContent = 'Último cambio: ' + new Date(fecha).toLocaleString('es-CO');
-                } catch (_) {
-                    el.lblFecha.textContent = 'Último cambio: ' + String(fecha);
-                }
+            const interv = data && data.intervaloMinutos != null ? data.intervaloMinutos : 30;
+            const top = data && data.topLote != null ? data.topLote : 50;
+            const cambio = data && data.fechaActualizacion
+                ? 'Último cambio: ' + fmtFecha(data.fechaActualizacion)
+                : '';
+            el.lblFecha.textContent = cambio
+                ? `${cambio} · cada ${interv} min · TOP ${top}`
+                : `Cada ${interv} min · TOP ${top}`;
+        }
+        if (el.lblUltima) {
+            if (data && data.ultimaEjecucion) {
+                const n = data.ultimoRelacionados != null ? data.ultimoRelacionados : '?';
+                const msg = data.ultimoMensaje ? ` (${data.ultimoMensaje})` : '';
+                el.lblUltima.textContent =
+                    `Última ejecución: ${fmtFecha(data.ultimaEjecucion)} → ${n} relacionados${msg}`;
             } else {
-                el.lblFecha.textContent = '';
+                el.lblUltima.textContent = 'Aún no hay ejecuciones registradas.';
             }
         }
     }
@@ -88,8 +109,8 @@
             icon: 'warning',
             title: 'Falta instalar en esta BD',
             html:
-                '<p class="mb-2">Esta base no tiene la configuración/triggers de relación automática RIPS↔Factura.</p>'
-                + '<p class="mb-0 small text-muted">¿Desea instalarlos ahora? Quedará <strong>desactivado</strong> hasta que active el switch.</p>',
+                '<p class="mb-2">Esta base no tiene el SP de relación automática RIPS↔Factura.</p>'
+                + '<p class="mb-0 small text-muted">¿Desea instalarlo ahora? Quedará <strong>desactivado</strong> hasta que active el switch.</p>',
             showCancelButton: true,
             confirmButtonText: 'Instalar ahora',
             cancelButtonText: 'Cancelar',
@@ -133,11 +154,7 @@
                 html:
                     '<p class="mb-2">No respondió:</p>'
                     + `<p><code>${url}</code></p>`
-                    + '<p class="small mb-2">Si el host es <code>:3100</code>, el front no está apuntando al backend.</p>'
-                    + '<ol class="text-start small mb-0">'
-                    + '<li><code>git pull</code> y reinicie front + backend</li>'
-                    + '<li>Pruebe: <code>http://localhost:3000/apiV3/Rips/relacion-automatica-factura/ping</code></li>'
-                    + '</ol>',
+                    + '<p class="small mb-0">Reinicie el backend con el código nuevo.</p>',
             });
             return;
         }
@@ -160,8 +177,7 @@
                 html:
                     `<p class="mb-2">No se pudo conectar a:</p>`
                     + `<p><code>${url}</code></p>`
-                    + '<p class="small text-muted mb-0">El front (3100) está arriba, pero el API (normalmente puerto 3000) no está corriendo o apunta a otra carpeta. '
-                    + 'Pare Node, haga <code>git pull</code> en la misma carpeta del backend y ejecute <code>node .\\server.js</code>.</p>',
+                    + '<p class="small text-muted mb-0">El scheduler vive en el backend: debe estar corriendo.</p>',
             });
             return null;
         }
@@ -174,7 +190,10 @@
             );
             return null;
         }
-        pintar(data.activo, data.fechaActualizacion);
+        if (data.spInstalado === false) {
+            await ofrecerInstalar('Falta el procedimiento usp_RelacionAutomatica_RipsFactura');
+        }
+        pintar(data);
         return data;
     }
 
@@ -195,7 +214,6 @@
                 }
                 throw new Error(data.error || 'No se pudo guardar');
             }
-            pintar(data.activo, new Date().toISOString());
             await Swal.fire({
                 icon: 'success',
                 text: data.message || (activo ? 'Activado' : 'Desactivado'),
@@ -208,9 +226,60 @@
         }
     }
 
+    async function ejecutarAhora() {
+        Swal.fire({
+            title: 'Ejecutando lote…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+        try {
+            const resp = await fetch(
+                `${apiBase()}/apiV3/Rips/relacion-automatica-factura/ejecutar-ahora`,
+                {
+                    method: 'POST',
+                    headers: authHeaders(true),
+                    body: '{}',
+                }
+            );
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                if (esTablaAusente(data, data.error, resp.status)) {
+                    Swal.close();
+                    await ofrecerInstalar(data.error);
+                    return;
+                }
+                throw new Error(data.error || 'No se pudo ejecutar');
+            }
+            await Swal.fire({
+                icon: 'success',
+                title: 'Lote ejecutado',
+                text: data.message || `Relacionados: ${data.relacionados || 0}`,
+            });
+            await cargar();
+        } catch (e) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: e.message || String(e),
+            });
+        }
+    }
+
     function init() {
         el.btnRecargar?.addEventListener('click', () => {
             cargar().catch((e) => Swal.fire({ icon: 'error', text: e.message || String(e) }));
+        });
+        el.btnEjecutar?.addEventListener('click', () => {
+            Swal.fire({
+                icon: 'question',
+                title: '¿Ejecutar lote ahora?',
+                text: 'Correrá el SP una vez (con TOP configurado), aunque el switch esté apagado.',
+                showCancelButton: true,
+                confirmButtonText: 'Ejecutar',
+                cancelButtonText: 'Cancelar',
+            }).then((r) => {
+                if (r.isConfirmed) ejecutarAhora();
+            });
         });
         el.sw?.addEventListener('change', () => {
             if (saving) return;
@@ -220,8 +289,8 @@
                 icon: 'question',
                 title: next ? '¿Activar relación automática?' : '¿Desactivar relación automática?',
                 text: next
-                    ? 'Las facturas y RIPS AC/AP nuevos del mismo día se relacionarán solos.'
-                    : 'Dejará de relacionar automáticamente. Lo ya relacionado no se toca.',
+                    ? 'Cada ~30 min el backend relacionará un lote de RIPS AC/AP con facturas del mismo día.'
+                    : 'Dejará de correr el lote automático. Lo ya relacionado no se toca.',
                 showCancelButton: true,
                 confirmButtonText: next ? 'Activar' : 'Desactivar',
                 cancelButtonText: 'Cancelar',

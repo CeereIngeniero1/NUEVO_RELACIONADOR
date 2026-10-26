@@ -864,8 +864,7 @@ WHERE NOT EXISTS (
     WHERE er.Documento_Entidad = e.[Documento Entidad]);
 GO
 
-/* RIPS Servicios — ver MERGE completo en 3. Query.sql líneas 130-289.
-   Ejecutar UPDATES_2275 después de cargar para asignar Codigo Grupo Servicios. */
+/* RIPS Servicios — INSERT incluye [Codigo Grupo Servicios] (01-05). */
 GO
 
 PRINT N'>>> 4b/7 DATOS — RIPS Servicios';
@@ -877,634 +876,677 @@ GO
 
 /* RIPS Servicios (~160) — desde 3. Query.sql */
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'105')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'105', N'CUIDADO INTERMEDIO NEONATAL', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'105', N'CUIDADO INTERMEDIO NEONATAL', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'106')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'106', N'CUIDADO INTERMEDIO PEDIATRICO', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'106', N'CUIDADO INTERMEDIO PEDIATRICO', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'107')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'107', N'CUIDADO INTERMEDIO ADULTOS', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'107', N'CUIDADO INTERMEDIO ADULTOS', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'108')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'108', N'CUIDADO INTENSIVO NEONATAL', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'108', N'CUIDADO INTENSIVO NEONATAL', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'109')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'109', N'CUIDADO INTENSIVO PEDIATRICO', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'109', N'CUIDADO INTENSIVO PEDIATRICO', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'110')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'110', N'CUIDADO INTENSIVO ADULTOS', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'110', N'CUIDADO INTENSIVO ADULTOS', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'1101')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'1101', N'ATENCION DEL PARTO', N'ATENCION INMEDIATA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'1101', N'ATENCION DEL PARTO', N'ATENCION INMEDIATA', 7, N'05');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'1102')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'1102', N'URGENCIAS', N'ATENCION INMEDIATA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'1102', N'URGENCIAS', N'ATENCION INMEDIATA', 7, N'05');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'1103')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'1103', N'TRANSPORTE ASISTENCIAL BASICO', N'ATENCION INMEDIATA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'1103', N'TRANSPORTE ASISTENCIAL BASICO', N'ATENCION INMEDIATA', 7, N'05');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'1104')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'1104', N'TRANSPORTE ASISTENCIAL MEDICALIZADO', N'ATENCION INMEDIATA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'1104', N'TRANSPORTE ASISTENCIAL MEDICALIZADO', N'ATENCION INMEDIATA', 7, N'05');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'1105')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'1105', N'ATENCION PREHOSPITALARIA', N'ATENCION INMEDIATA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'1105', N'ATENCION PREHOSPITALARIA', N'ATENCION INMEDIATA', 7, N'05');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'120')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'120', N'CUIDADO BASICO NEONATAL', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'120', N'CUIDADO BASICO NEONATAL', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'129')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'129', N'HOSPITALIZACION ADULTOS', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'129', N'HOSPITALIZACION ADULTOS', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'130')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'130', N'HOSPITALIZACION PEDIATRICA', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'130', N'HOSPITALIZACION PEDIATRICA', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'131')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'131', N'HOSPITALIZACION EN SALUD MENTAL', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'131', N'HOSPITALIZACION EN SALUD MENTAL', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'132')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'132', N'HOSPITALIZACION PARCIAL', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'132', N'HOSPITALIZACION PARCIAL', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'133')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'133', N'HOSPITALIZACION PACIENTE CRONICO CON VENTILADOR', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'133', N'HOSPITALIZACION PACIENTE CRONICO CON VENTILADOR', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'134')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'134', N'HOSPITALIZACION PACIENTE CRONICO SIN VENTILADOR', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'134', N'HOSPITALIZACION PACIENTE CRONICO SIN VENTILADOR', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'135')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'135', N'HOSPITALIZACION EN  CONSUMO DE SUSTANCIAS PSICOACTIVAS', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'135', N'HOSPITALIZACION EN  CONSUMO DE SUSTANCIAS PSICOACTIVAS', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'138')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'138', N'CUIDADO BASICO DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', N'INTERNACION', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'138', N'CUIDADO BASICO DEL CONSUMO DE SUSTANCIAS PSICOACTIVAS', N'INTERNACION', 7, N'03');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'201')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'201', N'CIRUGIA DE CABEZA Y CUELLO', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'201', N'CIRUGIA DE CABEZA Y CUELLO', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'202')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'202', N'CIRUGIA CARDIOVASCULAR', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'202', N'CIRUGIA CARDIOVASCULAR', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'203')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'203', N'CIRUGIA GENERAL', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'203', N'CIRUGIA GENERAL', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'204')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'204', N'CIRUGIA GINECOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'204', N'CIRUGIA GINECOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'205')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'205', N'CIRUGIA MAXILOFACIAL', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'205', N'CIRUGIA MAXILOFACIAL', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'207')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'207', N'CIRUGIA ORTOPEDICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'207', N'CIRUGIA ORTOPEDICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'208')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'208', N'CIRUGIA OFTALMOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'208', N'CIRUGIA OFTALMOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'209')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'209', N'CIRUGIA OTORRINOLARINGOLOGIA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'209', N'CIRUGIA OTORRINOLARINGOLOGIA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'210')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'210', N'CIRUGIA ONCOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'210', N'CIRUGIA ONCOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'211')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'211', N'CIRUGIA ORAL', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'211', N'CIRUGIA ORAL', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'212')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'212', N'CIRUGIA PEDIATRICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'212', N'CIRUGIA PEDIATRICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'213')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'213', N'CIRUGIA PLASTICA Y ESTETICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'213', N'CIRUGIA PLASTICA Y ESTETICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'214')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'214', N'CIRUGIA VASCULAR Y ANGIOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'214', N'CIRUGIA VASCULAR Y ANGIOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'215')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'215', N'CIRUGIA UROLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'215', N'CIRUGIA UROLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'217')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'217', N'OTRAS CIRUGIAS', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'217', N'OTRAS CIRUGIAS', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'218')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'218', N'CIRUGIA ENDOVASCULAR NEUROLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'218', N'CIRUGIA ENDOVASCULAR NEUROLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'227')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'227', N'CIRUGIA ONCOLOGICA PEDIATRICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'227', N'CIRUGIA ONCOLOGICA PEDIATRICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'231')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'231', N'CIRUGIA DE LA MANO', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'231', N'CIRUGIA DE LA MANO', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'232')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'232', N'CIRUGIA DE MAMA Y TUMORES TEJIDOS BLANDOS', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'232', N'CIRUGIA DE MAMA Y TUMORES TEJIDOS BLANDOS', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'233')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'233', N'CIRUGIA DERMATOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'233', N'CIRUGIA DERMATOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'234')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'234', N'CIRUGIA DE TORAX', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'234', N'CIRUGIA DE TORAX', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'235')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'235', N'CIRUGIA GASTROINTESTINAL', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'235', N'CIRUGIA GASTROINTESTINAL', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'237')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'237', N'CIRUGIA PLASTICA ONCOLOGICA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'237', N'CIRUGIA PLASTICA ONCOLOGICA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'245')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'245', N'NEUROCIRUGIA', N'QUIRURGICOS', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'245', N'NEUROCIRUGIA', N'QUIRURGICOS', 7, N'04');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'301')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'301', N'ANESTESIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'301', N'ANESTESIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'302')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'302', N'CARDIOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'302', N'CARDIOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'303')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'303', N'CIRUGIA CARDIOVASCULAR', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'303', N'CIRUGIA CARDIOVASCULAR', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'304')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'304', N'CIRUGIA GENERAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'304', N'CIRUGIA GENERAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'306')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'306', N'CIRUGIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'306', N'CIRUGIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'308')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'308', N'DERMATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'308', N'DERMATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'309')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'309', N'DOLOR Y CUIDADOS PALIATIVOS', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'309', N'DOLOR Y CUIDADOS PALIATIVOS', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'310')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'310', N'ENDOCRINOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'310', N'ENDOCRINOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'311')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'311', N'ENDODONCIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'311', N'ENDODONCIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'312')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'312', N'ENFERMERIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'312', N'ENFERMERIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'313')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'313', N'ESTOMATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'313', N'ESTOMATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'316')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'316', N'GASTROENTEROLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'316', N'GASTROENTEROLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'317')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'317', N'GENETICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'317', N'GENETICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'318')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'318', N'GERIATRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'318', N'GERIATRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'320')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'320', N'GINECOBSTETRICIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'320', N'GINECOBSTETRICIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'321')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'321', N'HEMATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'321', N'HEMATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'323')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'323', N'INFECTOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'323', N'INFECTOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'324')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'324', N'INMUNOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'324', N'INMUNOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'325')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'325', N'MEDICINA FAMILIAR', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'325', N'MEDICINA FAMILIAR', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'326')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'326', N'MEDICINA FISICA Y DEL DEPORTE', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'326', N'MEDICINA FISICA Y DEL DEPORTE', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'327')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'327', N'MEDICINA FISICA Y REHABILITACION', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'327', N'MEDICINA FISICA Y REHABILITACION', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'328')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'328', N'MEDICINA GENERAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'328', N'MEDICINA GENERAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'329')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'329', N'MEDICINA INTERNA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'329', N'MEDICINA INTERNA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'330')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'330', N'NEFROLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'330', N'NEFROLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'331')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'331', N'NEUMOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'331', N'NEUMOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'332')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'332', N'NEUROLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'332', N'NEUROLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'333')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'333', N'NUTRICION Y DIETETICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'333', N'NUTRICION Y DIETETICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'334')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'334', N'ODONTOLOGIA GENERAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'334', N'ODONTOLOGIA GENERAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'335')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'335', N'OFTALMOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'335', N'OFTALMOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'336')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'336', N'ONCOLOGIA CLINICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'336', N'ONCOLOGIA CLINICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'337')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'337', N'OPTOMETRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'337', N'OPTOMETRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'338')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'338', N'ORTODONCIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'338', N'ORTODONCIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'339')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'339', N'ORTOPEDIA Y/O TRAUMATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'339', N'ORTOPEDIA Y/O TRAUMATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'340')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'340', N'OTORRINOLARINGOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'340', N'OTORRINOLARINGOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'342')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'342', N'PEDIATRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'342', N'PEDIATRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'343')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'343', N'PERIODONCIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'343', N'PERIODONCIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'344')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'344', N'PSICOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'344', N'PSICOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'345')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'345', N'PSIQUIATRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'345', N'PSIQUIATRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'346')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'346', N'REHABILITACION ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'346', N'REHABILITACION ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'347')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'347', N'REHABILITACION ORAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'347', N'REHABILITACION ORAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'348')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'348', N'REUMATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'348', N'REUMATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'354')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'354', N'TOXICOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'354', N'TOXICOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'355')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'355', N'UROLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'355', N'UROLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'356')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'356', N'OTRAS CONSULTAS DE ESPECIALIDAD', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'356', N'OTRAS CONSULTAS DE ESPECIALIDAD', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'361')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'361', N'CARDIOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'361', N'CARDIOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'362')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'362', N'CIRUGIA DE CABEZA Y CUELLO', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'362', N'CIRUGIA DE CABEZA Y CUELLO', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'363')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'363', N'CIRUGIA DE MANO', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'363', N'CIRUGIA DE MANO', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'364')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'364', N'CIRUGIA DE MAMA Y TUMORES TEJIDOS BLANDOS', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'364', N'CIRUGIA DE MAMA Y TUMORES TEJIDOS BLANDOS', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'365')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'365', N'CIRUGIA DERMATOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'365', N'CIRUGIA DERMATOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'366')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'366', N'CIRUGIA DE TORAX', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'366', N'CIRUGIA DE TORAX', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'367')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'367', N'CIRUGIA GASTROINTESTINAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'367', N'CIRUGIA GASTROINTESTINAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'368')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'368', N'CIRUGIA GINECOLOGICA LAPAROSCOPICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'368', N'CIRUGIA GINECOLOGICA LAPAROSCOPICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'369')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'369', N'CIRUGIA PLASTICA Y ESTETICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'369', N'CIRUGIA PLASTICA Y ESTETICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'370')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'370', N'CIRUGIA PLASTICA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'370', N'CIRUGIA PLASTICA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'371')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'371', N'OTRAS CONSULTAS GENERALES', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'371', N'OTRAS CONSULTAS GENERALES', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'372')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'372', N'CIRUGIA VASCULAR', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'372', N'CIRUGIA VASCULAR', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'373')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'373', N'CIRUGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'373', N'CIRUGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'374')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'374', N'CIRUGIA ONCOLOGICA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'374', N'CIRUGIA ONCOLOGICA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'375')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'375', N'DERMATOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'375', N'DERMATOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'377')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'377', N'COLOPROCTOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'377', N'COLOPROCTOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'379')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'379', N'GINECOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'379', N'GINECOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'383')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'383', N'MEDICINA NUCLEAR', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'383', N'MEDICINA NUCLEAR', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'384')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'384', N'NEFROLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'384', N'NEFROLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'385')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'385', N'NEONATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'385', N'NEONATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'386')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'386', N'NEUMOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'386', N'NEUMOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'387')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'387', N'NEUROCIRUGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'387', N'NEUROCIRUGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'388')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'388', N'NEUROPEDIATRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'388', N'NEUROPEDIATRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'390')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'390', N'OFTALMOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'390', N'OFTALMOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'391')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'391', N'ONCOLOGIA Y HEMATOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'391', N'ONCOLOGIA Y HEMATOLOGIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'393')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'393', N'ORTOPEDIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'393', N'ORTOPEDIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'395')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'395', N'UROLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'395', N'UROLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'396')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'396', N'ODONTOPEDIATRIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'396', N'ODONTOPEDIATRIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'397')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'397', N'MEDICINA ESTETICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'397', N'MEDICINA ESTETICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'406')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'406', N'HEMATOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'406', N'HEMATOLOGIA ONCOLOGICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'407')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'407', N'MEDICINA DEL TRABAJO Y MEDICINA LABORAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'407', N'MEDICINA DEL TRABAJO Y MEDICINA LABORAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'408')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'408', N'RADIOTERAPIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'408', N'RADIOTERAPIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'409')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'409', N'ORTOPEDIA PEDIATRICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'409', N'ORTOPEDIA PEDIATRICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'410')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'410', N'CIRUGIA ORAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'410', N'CIRUGIA ORAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'411')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'411', N'CIRUGIA MAXILOFACIAL', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'411', N'CIRUGIA MAXILOFACIAL', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'412')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'412', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - HOMEOPATICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'412', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - HOMEOPATICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'413')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'413', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - AYURVEDICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'413', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - AYURVEDICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'414')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'414', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - TRADICIONAL CHINA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'414', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - TRADICIONAL CHINA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'415')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'415', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - NATUROPATICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'415', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - NATUROPATICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'416')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'416', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - NEURALTERAPEUTICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'416', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - NEURALTERAPEUTICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'417')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'417', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - BIOENERGETICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'417', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - BIOENERGETICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'418')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'418', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - TERAPIA  CON FILTROS', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'418', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - TERAPIA  CON FILTROS', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'419')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'419', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - TERAPIAS  MANUALES', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'419', N'TERAPIAS ALTERNATIVAS Y COMPLEMENTARIAS - TERAPIAS  MANUALES', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'420')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'420', N'VACUNACION', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'420', N'VACUNACION', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'421')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'421', N'PATOLOGIA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'421', N'PATOLOGIA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'422')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'422', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - OSTEOPATICA', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'422', N'MEDICINA ALTERNATIVA Y COMPLEMENTARIA - OSTEOPATICA', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'423')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'423', N'SEGURIDAD Y SALUD EN EL TRABAJO', N'CONSULTA EXTERNA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'423', N'SEGURIDAD Y SALUD EN EL TRABAJO', N'CONSULTA EXTERNA', 7, N'01');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'706')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'706', N'LABORATORIO CLINICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'706', N'LABORATORIO CLINICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'709')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'709', N'QUIMIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'709', N'QUIMIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'711')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'711', N'RADIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'711', N'RADIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'712')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'712', N'TOMA DE MUESTRAS DE LABORATORIO CLINICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'712', N'TOMA DE MUESTRAS DE LABORATORIO CLINICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'714')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'714', N'SERVICIO FARMACEUTICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'714', N'SERVICIO FARMACEUTICO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'715')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'715', N'MEDICINA NUCLEAR', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'715', N'MEDICINA NUCLEAR', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'717')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'717', N'LABORATORIO CITOLOGIAS CERVICO-UTERINAS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'717', N'LABORATORIO CITOLOGIAS CERVICO-UTERINAS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'728')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'728', N'TERAPIA OCUPACIONAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'728', N'TERAPIA OCUPACIONAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'729')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'729', N'TERAPIA RESPIRATORIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'729', N'TERAPIA RESPIRATORIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'731')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'731', N'LABORATORIO DE HISTOTECNOLOGIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'731', N'LABORATORIO DE HISTOTECNOLOGIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'733')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'733', N'HEMODIALISIS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'733', N'HEMODIALISIS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'734')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'734', N'DIALISIS PERITONEAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'734', N'DIALISIS PERITONEAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'739')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'739', N'FISIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'739', N'FISIOTERAPIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'740')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'740', N'FONOAUDIOLOGIA Y/O TERAPIA DEL LENGUAJE', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'740', N'FONOAUDIOLOGIA Y/O TERAPIA DEL LENGUAJE', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'742')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'742', N'DIAGNOSTICO VASCULAR', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'742', N'DIAGNOSTICO VASCULAR', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'743')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'743', N'HEMODINAMIA E INTERVENCIONISMO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'743', N'HEMODINAMIA E INTERVENCIONISMO', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'744')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'744', N'IMAGENES DIAGNOSTICAS- IONIZANTES', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'744', N'IMAGENES DIAGNOSTICAS- IONIZANTES', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'745')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'745', N'IMAGENES DIAGNOSTICAS - NO IONIZANTES', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'745', N'IMAGENES DIAGNOSTICAS - NO IONIZANTES', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'746')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'746', N'GESTION PRE-TRANSFUSIONAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'746', N'GESTION PRE-TRANSFUSIONAL', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'747')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'747', N'PATOLOGIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'747', N'PATOLOGIA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'748')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'748', N'RADIOLOGIA ODONTOLOGICA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'748', N'RADIOLOGIA ODONTOLOGICA', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.[RIPS Servicios] WHERE [Código Servicios] = N'749')
-    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado])
-    VALUES (N'749', N'TOMA DE MUESTRAS DE CUELLO UTERINO Y GINECOLOGICAS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7);
+    INSERT INTO dbo.[RIPS Servicios] ([Código Servicios],[Nombre Servicios],[Descripción Servicios],[Id Estado],[Codigo Grupo Servicios])
+    VALUES (N'749', N'TOMA DE MUESTRAS DE CUELLO UTERINO Y GINECOLOGICAS', N'APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA', 7, N'02');
 GO
 
+
+/* Codigo Grupo Servicios: ya va en el INSERT; este bloque rellena NULLs
+   (clientes ya instalados / columna Descripcion con/sin tilde).
+   Vista Cnsta Relacionador Servicios hace INNER JOIN por este campo.
+   Script puntual: FIXES/22. Fix_Rips_Servicios_Codigo_Grupo.sql */
+PRINT N'>>> 4b2/7 DATOS — asegurar Codigo Grupo Servicios en RIPS Servicios';
+GO
+IF COL_LENGTH(N'dbo.[RIPS Servicios]', N'Codigo Grupo Servicios') IS NULL
+    ALTER TABLE dbo.[RIPS Servicios] ADD [Codigo Grupo Servicios] NVARCHAR(50) NULL;
+GO
+DECLARE @colDescr SYSNAME =
+(
+    SELECT TOP 1 c.name
+    FROM sys.columns c
+    WHERE c.object_id = OBJECT_ID(N'dbo.[RIPS Servicios]')
+      AND c.name LIKE N'Descripci% Servicios'
+);
+IF @colDescr IS NULL
+    RAISERROR(N'No se encontro Descripcion Servicios en [RIPS Servicios].', 16, 1);
+ELSE
+BEGIN
+    DECLARE @sql NVARCHAR(MAX) = N'
+UPDATE dbo.[RIPS Servicios]
+SET [Codigo Grupo Servicios] = CASE LTRIM(RTRIM([' + @colDescr + N']))
+    WHEN N''CONSULTA EXTERNA'' THEN N''01''
+    WHEN N''APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA'' THEN N''02''
+    WHEN N''INTERNACION'' THEN N''03''
+    WHEN N''QUIRURGICOS'' THEN N''04''
+    WHEN N''ATENCION INMEDIATA'' THEN N''05''
+    ELSE [Codigo Grupo Servicios]
+END
+WHERE [Codigo Grupo Servicios] IS NULL
+  AND LTRIM(RTRIM([' + @colDescr + N'])) IN (
+    N''CONSULTA EXTERNA'',
+    N''APOYO DIAGNOSTICO Y COMPLEMENTACION TERAPEUTICA'',
+    N''INTERNACION'',
+    N''QUIRURGICOS'',
+    N''ATENCION INMEDIATA''
+);';
+    EXEC sys.sp_executesql @sql;
+    PRINT N'Codigo Grupo Servicios actualizados: ' + CAST(@@ROWCOUNT AS NVARCHAR(20));
+END
+GO
 PRINT N'>>> 4c/7 DATOS — Finalidad/Causa Version2';
 GO
 
