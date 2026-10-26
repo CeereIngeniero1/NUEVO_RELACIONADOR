@@ -174,7 +174,7 @@
     <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module">
         import { mountAppSidebar } from "./shared/appSidebar.js";
-        import { applyProductUiGates } from "./shared/productUiGates.js";
+        import { applyProductUiGates } from "./shared/featureFlags.js";
         const boot = () => {
             applyProductUiGates();
             mountAppSidebar({ active: "ihce-diagnostico" });

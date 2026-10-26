@@ -129,18 +129,19 @@
     <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module">
         import { mountAppSidebar } from "./shared/appSidebar.js";
-        import { applyProductUiGates } from "./shared/productUiGates.js";
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => {
-                applyProductUiGates();
-                mountAppSidebar({ active: "relacion-auto-rips" });
-            });
-        } else {
+        import { guardPageAccess, applyProductUiGates } from "./shared/featureFlags.js";
+        const boot = () => {
+            if (guardPageAccess({ requireRips: true })) return;
             applyProductUiGates();
             mountAppSidebar({ active: "relacion-auto-rips" });
+        };
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot);
+        } else {
+            boot();
         }
     </script>
-    <script src="ConfigRelacionRipsFactura.js?v=20261026a"></script>
+    <script src="ConfigRelacionRipsFactura.js?v=20261026b"></script>
 </body>
 
 </html>
