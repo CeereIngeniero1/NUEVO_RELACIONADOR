@@ -7,16 +7,12 @@
     2) Y Tipo Responsable texto tipo EPS/Prepagada
     3) Y el pago viene de cuota INICIAL (valor) o Descripción FacturaII con 'Copago'
 
+  Nota: la columna Descripcion FacturaII se resuelve por sys.columns (tilde/encoding).
+
   Objetos:
     - Vista  dbo.VwFacturasCopagoNoSalud
     - Función dbo.fn_EsFacturaCopagoNoSalud(@IdFactura)
     - Actualiza ConsultaFacturasPaciente para no listar copagos
-
-  Uso en consultas:
-    AND NOT EXISTS (
-      SELECT 1 FROM dbo.VwFacturasCopagoNoSalud c
-      WHERE c.[Id Factura] = Fac.[Id Factura]
-    )
 
   Idempotente. SQL Server 2014+.
 ==============================================================================
@@ -37,6 +33,18 @@ IF OBJECT_ID(N'dbo.VwFacturasCopagoNoSalud', N'V') IS NOT NULL
     DROP VIEW dbo.VwFacturasCopagoNoSalud;
 GO
 
+DECLARE @colDescr SYSNAME =
+(
+    SELECT TOP 1 c.name
+    FROM sys.columns c
+    WHERE c.object_id = OBJECT_ID(N'dbo.FacturaII')
+      AND c.name LIKE N'Descripci% FacturaII'
+);
+
+IF @colDescr IS NULL
+    SET @colDescr = N'Descripcion FacturaII'; -- fallback si no existe la columna
+
+DECLARE @sql NVARCHAR(MAX) = N'
 CREATE VIEW dbo.VwFacturasCopagoNoSalud
 AS
 SELECT DISTINCT
@@ -54,16 +62,16 @@ LEFT JOIN dbo.Factura AS f
     ON f.[Id Factura] = fii.[Id Factura]
 WHERE
     (
-        ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%EPS%'
-        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepago%'
-        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepagad%'
+        ISNULL(fpt.[Forma de Pago Tratamiento], N'''') LIKE N''%EPS%''
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'''') LIKE N''%Prepago%''
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'''') LIKE N''%Prepagad%''
     )
     AND (
-        ISNULL(tr.[Tipo Responsable], N'') LIKE N'%EPS%'
-        OR ISNULL(tr.[Tipo Responsable], N'') LIKE N'%Prepag%'
+        ISNULL(tr.[Tipo Responsable], N'''') LIKE N''%EPS%''
+        OR ISNULL(tr.[Tipo Responsable], N'''') LIKE N''%Prepag%''
     )
     AND (
-        ISNULL(fii.[Descripción FacturaII], N'') LIKE N'%Copago%'
+        ISNULL(fii.[' + @colDescr + N'], N'''') LIKE N''%Copago%''
         OR (
             cpi.[Id Cuotas Pactadas Inicial Tratamiento] IS NOT NULL
             AND ISNULL(cpi.[Valor de Cuota Cuotas Pactadas Inicial Tratamiento], 0) > 0
@@ -79,6 +87,10 @@ WHERE
             )
         )
     );
+';
+
+EXEC sys.sp_executesql @sql;
+PRINT N'Vista VwFacturasCopagoNoSalud creada (col descr: ' + @colDescr + N').';
 GO
 
 CREATE FUNCTION dbo.fn_EsFacturaCopagoNoSalud (@IdFactura INT)
