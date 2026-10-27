@@ -26,7 +26,12 @@ router.get('/EPS/:fechaInicio/:fechaFin', (req, res) => {
     INNER JOIN [Tipo Responsable] as tr ON ptt.[Id Tipo Responsable] = tr.[Id Tipo Responsable]
 	INNER JOIN  EmpresaV EV ON EV.[Id EmpresaV] = FC.[Id EmpresaV] 
     
-    WHERE tr.[Tipo Responsable] IN ('Entidad Prepagada', 'EPS') AND fc.[Fecha Factura] BETWEEN @fechaInicio AND @fechaFin
+    WHERE tr.[Tipo Responsable] IN ('Entidad Prepagada', 'EPS')
+      AND fc.[Fecha Factura] BETWEEN @fechaInicio AND @fechaFin
+      AND NOT EXISTS (
+          SELECT 1 FROM dbo.VwFacturasCopagoNoSalud AS cop
+          WHERE cop.[Id Factura] = fc.[Id Factura]
+      )
     `, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de las EPS:', err.message);
