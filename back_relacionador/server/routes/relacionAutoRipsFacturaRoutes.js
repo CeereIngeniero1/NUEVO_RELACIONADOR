@@ -95,12 +95,14 @@ async function ensureRelacionAutomaticaInstall() {
     const pool = await poolPromise;
     const sqlDir = path.join(__dirname, '..', '..', 'SQL', '2275');
     const pathCopago = path.join(sqlDir, '23. Factura_Copago_No_Salud.sql');
+    const pathEpsPrep = path.join(sqlDir, '24. Factura_Plan_Eps_Prepagada.sql');
     const pathRelacion = path.join(sqlDir, '20. Relacion_Automatica_Rips_Factura.sql');
 
     const existed = await configTableExists(pool);
     let executed = 0;
-    // Primero exclusiones de copago (vista usada por el SP y listados)
+    // Primero exclusiones de copago / EPS-prepagada (vistas usadas por SP y listados)
     executed += await runSqlFileBatches(pool, pathCopago);
+    executed += await runSqlFileBatches(pool, pathEpsPrep);
     executed += await runSqlFileBatches(pool, pathRelacion);
 
     await ensureConfigRow(pool);

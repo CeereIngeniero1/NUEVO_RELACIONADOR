@@ -103,6 +103,10 @@ router.get('/usuarios/ripsParticular/:fechaInicio/:fechaFin/:ResolucionesRips/:d
             SELECT 1 FROM dbo.VwFacturasCopagoNoSalud cop
             WHERE cop.[Id Factura] = fc.[Id Factura]
         )
+        AND NOT EXISTS (
+            SELECT 1 FROM dbo.VwFacturasPlanEpsPrepagada eps
+            WHERE eps.[Id Factura] = fc.[Id Factura]
+        )
         ORDER BY en.[Documento Entidad] DESC
         `,
         (err) => {

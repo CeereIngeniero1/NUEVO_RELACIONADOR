@@ -577,6 +577,32 @@ END;
 GO
 
 
+IF OBJECT_ID(N'dbo.VwFacturasPlanEpsPrepagada', N'V') IS NOT NULL
+    DROP VIEW dbo.VwFacturasPlanEpsPrepagada;
+GO
+CREATE VIEW dbo.VwFacturasPlanEpsPrepagada
+AS
+SELECT DISTINCT
+    fii.[Id Factura]
+FROM dbo.FacturaII AS fii
+INNER JOIN dbo.[Plan de Tratamiento Tratamientos] AS ptt
+    ON ptt.[Id Plan de Tratamiento] = fii.[Id Plan de Tratamiento]
+INNER JOIN dbo.[Forma de Pago Tratamiento] AS fpt
+    ON fpt.[Id Forma de Pago Tratamiento] = ptt.[Id Forma de Pago Tratamiento]
+INNER JOIN dbo.[Tipo Responsable] AS tr
+    ON tr.[Id Tipo Responsable] = ptt.[Id Tipo Responsable]
+WHERE
+    (
+        ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%EPS%'
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepago%'
+        OR ISNULL(fpt.[Forma de Pago Tratamiento], N'') LIKE N'%Prepagad%'
+    )
+    AND (
+        ISNULL(tr.[Tipo Responsable], N'') LIKE N'%EPS%'
+        OR ISNULL(tr.[Tipo Responsable], N'') LIKE N'%Prepag%'
+    );
+GO
+
 CREATE VIEW dbo.[ConsultaFacturasPaciente]
 AS
 SELECT
@@ -602,6 +628,11 @@ AND NOT EXISTS (
     SELECT 1
     FROM dbo.VwFacturasCopagoNoSalud AS cop
     WHERE cop.[Id Factura] = Fac.[Id Factura]
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM dbo.VwFacturasPlanEpsPrepagada AS eps
+    WHERE eps.[Id Factura] = Fac.[Id Factura]
 );
 GO
 

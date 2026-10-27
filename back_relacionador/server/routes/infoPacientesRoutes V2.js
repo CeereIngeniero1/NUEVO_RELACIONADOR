@@ -144,6 +144,7 @@ router.get('/facturas/:documento', (req, res) => {
     WHERE fc.[Documento Paciente] = @Documento
     AND NOT EXISTS (SELECT 1 FROM dbo.[Evaluación Entidad Rips V2] AS ap WHERE fc.[Id Factura] = ap.[Id Factura])
     AND NOT EXISTS (SELECT 1 FROM dbo.VwFacturasCopagoNoSalud AS cop WHERE cop.[Id Factura] = fc.[Id Factura])
+    AND NOT EXISTS (SELECT 1 FROM dbo.VwFacturasPlanEpsPrepagada AS eps WHERE eps.[Id Factura] = fc.[Id Factura])
     ORDER BY fc.[Fecha Factura] DESC
     `, (err, rowCount) => {
         if (err) {
@@ -274,6 +275,10 @@ router.get('/buscarFacturas/:documento', (req, res) => {
     AND NOT EXISTS (
         SELECT 1 FROM dbo.VwFacturasCopagoNoSalud AS cop
         WHERE cop.[Id Factura] = fc.[Id Factura]
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM dbo.VwFacturasPlanEpsPrepagada AS eps
+        WHERE eps.[Id Factura] = fc.[Id Factura]
     )`, (err, rowCount) => {
         if (err) {
             console.error('Error al ejecutar la consulta de facturas:', err.message);
