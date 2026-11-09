@@ -391,6 +391,8 @@ function applyModoUI() {
             ? 'Historias clínicas RIPS (últimos 4 meses)'
             : 'Historias clínicas RIPS pendientes (últimos 4 meses)';
     }
+    document.getElementById('btnModoParticular')?.classList.toggle('is-active', !prepagada);
+    document.getElementById('btnModoPrepagada')?.classList.toggle('is-active', prepagada);
     ripsUiState.sortLeft = { col: null, dir: 1 };
     ripsUiState.sortRight = { col: null, dir: 1 };
     paintTheadIzquierdo();
@@ -840,6 +842,50 @@ checkboxPrepagada.addEventListener('change', () => {
         alerta();
     }
 });
+
+document.getElementById('btnModoParticular')?.addEventListener('click', () => {
+    if (checkboxParticular.checked) return;
+    checkboxParticular.checked = true;
+    checkboxParticular.dispatchEvent(new Event('change'));
+});
+
+document.getElementById('btnModoPrepagada')?.addEventListener('click', () => {
+    if (checkboxPrepagada.checked) return;
+    checkboxPrepagada.checked = true;
+    checkboxPrepagada.dispatchEvent(new Event('change'));
+});
+
+document.getElementById('btnRangoFechas')?.addEventListener('click', () => {
+    if (!checkboxParticular.checked && !checkboxPrepagada.checked) {
+        checkboxParticular.checked = true;
+        checkboxPrepagada.checked = false;
+        applyModoUI();
+    }
+    alerta();
+});
+
+function pintarRangoFechas() {
+    const el = document.getElementById('lblRangoFechas');
+    if (!el) return;
+    const a = localStorage.getItem('fechaInicio');
+    const b = localStorage.getItem('fechaFin');
+    if (!a || !b) {
+        el.textContent = 'Elegir fechas';
+        return;
+    }
+    const fmt = (iso) => {
+        const p = String(iso).slice(0, 10).split('-');
+        if (p.length !== 3) return iso;
+        const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        return `${Number(p[2])} ${meses[Number(p[1]) - 1] || ''}`;
+    };
+    const ya = a.slice(0, 4);
+    const yb = b.slice(0, 4);
+    el.textContent = ya === yb
+        ? `${fmt(a)} – ${fmt(b)} ${yb}`
+        : `${fmt(a)} ${ya} – ${fmt(b)} ${yb}`;
+}
+pintarRangoFechas();
 
 if (checkboxPrepagada.checked) {
     applyModoUI();
@@ -1443,6 +1489,7 @@ const alerta = async () => {
                 // Almacenar las fechas en localStorage
                 localStorage.setItem("fechaInicio", fechaInicio);
                 localStorage.setItem("fechaFin", fechaFin);
+                if (typeof pintarRangoFechas === 'function') pintarRangoFechas();
 
                 if (checkboxParticular.checked) {
                     await MensajeDeCarga('Cargando facturas');
