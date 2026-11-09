@@ -826,33 +826,61 @@ function refrescarTrasRelacionar() {
     }
 }
 
-checkboxParticular.addEventListener('change', () => {
-    if (checkboxParticular.checked) {
-        checkboxPrepagada.checked = false;
-        applyModoUI();
-        alerta();
-    }
-});
+function textoFechaCorta(iso) {
+    const p = String(iso || '').slice(0, 10).split('-');
+    if (p.length !== 3) return String(iso || '');
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return `${Number(p[2])} ${meses[Number(p[1]) - 1] || ''} ${p[0]}`;
+}
 
-checkboxPrepagada.addEventListener('change', () => {
-    if (checkboxPrepagada.checked) {
-        checkboxParticular.checked = false;
-        span_paciente.textContent = 'Seleccionar factura prepagada / EPS:';
-        applyModoUI();
-        alerta();
+async function confirmarYConsultar(esPrepagada) {
+    if (esPrepagada ? checkboxPrepagada.checked : checkboxParticular.checked) return;
+
+    const inicio = localStorage.getItem('fechaInicio');
+    const fin = localStorage.getItem('fechaFin');
+    if (!inicio || !fin) {
+        await Swal.fire({
+            icon: 'info',
+            title: 'Falta el rango',
+            text: 'Primero elige las fechas en el botón de la izquierda.',
+        });
+        return;
     }
-});
+
+    const tipo = esPrepagada ? 'prepagadas / EPS' : 'particulares';
+    const ok = await Swal.fire({
+        icon: 'question',
+        title: esPrepagada ? 'Consultar prepagadas' : 'Consultar particulares',
+        text: `Se hará la consulta de facturas ${tipo} del ${textoFechaCorta(inicio)} al ${textoFechaCorta(fin)}.`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí',
+        cancelButtonText: 'No',
+    });
+    if (!ok.isConfirmed) return;
+
+    fechaInicio = inicio;
+    fechaFin = fin;
+    checkboxParticular.checked = !esPrepagada;
+    checkboxPrepagada.checked = esPrepagada;
+    if (esPrepagada) {
+        span_paciente.textContent = 'Seleccionar factura prepagada / EPS:';
+    }
+    applyModoUI();
+
+    if (esPrepagada) {
+        getEPS(inicio, fin);
+    } else {
+        await MensajeDeCarga('Cargando facturas');
+        getFacturasRango(inicio, fin, documentoEmpresaSeleccionada);
+    }
+}
 
 document.getElementById('btnModoParticular')?.addEventListener('click', () => {
-    if (checkboxParticular.checked) return;
-    checkboxParticular.checked = true;
-    checkboxParticular.dispatchEvent(new Event('change'));
+    confirmarYConsultar(false);
 });
 
 document.getElementById('btnModoPrepagada')?.addEventListener('click', () => {
-    if (checkboxPrepagada.checked) return;
-    checkboxPrepagada.checked = true;
-    checkboxPrepagada.dispatchEvent(new Event('change'));
+    confirmarYConsultar(true);
 });
 
 document.getElementById('btnRangoFechas')?.addEventListener('click', () => {
