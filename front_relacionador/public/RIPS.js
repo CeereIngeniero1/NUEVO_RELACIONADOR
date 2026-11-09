@@ -883,13 +883,31 @@ document.getElementById('btnModoPrepagada')?.addEventListener('click', () => {
     confirmarYConsultar(true);
 });
 
-document.getElementById('btnRangoFechas')?.addEventListener('click', () => {
-    if (!checkboxParticular.checked && !checkboxPrepagada.checked) {
-        checkboxParticular.checked = true;
-        checkboxPrepagada.checked = false;
-        applyModoUI();
-    }
-    alerta();
+document.getElementById('btnRangoFechas')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    abrirCalendarioRango();
+});
+document.getElementById('btnCerrarRango')?.addEventListener('click', () => cerrarCalendarioRango());
+document.getElementById('btnAplicarRango')?.addEventListener('click', () => aplicarRangoFechas());
+document.getElementById('popRangoFechas')?.addEventListener('click', (ev) => {
+    const dia = ev.target.closest?.('[data-iso]');
+    if (dia) elegirDia(dia.getAttribute('data-iso'));
+});
+document.getElementById('calPrev')?.addEventListener('click', () => {
+    calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+    renderCalendario();
+});
+document.getElementById('calNext')?.addEventListener('click', () => {
+    calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+    renderCalendario();
+});
+document.getElementById('calPrevYear')?.addEventListener('click', () => {
+    calCursor = new Date(calCursor.getFullYear() - 1, calCursor.getMonth(), 1);
+    renderCalendario();
+});
+document.getElementById('calNextYear')?.addEventListener('click', () => {
+    calCursor = new Date(calCursor.getFullYear() + 1, calCursor.getMonth(), 1);
+    renderCalendario();
 });
 
 function pintarRangoFechas() {
@@ -1491,55 +1509,144 @@ if (modalFacturaManual) {
 let fechaInicio;
 let fechaFin;
 
-const alerta = async () => {
-    // Obtener las fechas almacenadas en localStorage
-    const storedFechaInicio = localStorage.getItem("fechaInicio");
-    const storedFechaFin = localStorage.getItem("fechaFin");
+const MESES_CAL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const DIAS_CAL = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+let calCursor = new Date();
+let calStart = '';
+let calEnd = '';
 
-    const { value: formValues } = await Swal.fire({
-        title: checkboxParticular.checked
-            ? "Seleccione el rango de fecha para cargar las facturas"
-            : "Seleccione el rango de fecha para cargar las facturas EPS",
-        html: `
-            <label style="color: white;">FECHA INICIO</label>
-            <input type="date" id="swal-input1" class="swal2-input" value="${storedFechaInicio || ''}">
+function isoHoy(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+function parseIso(iso) {
+    const p = String(iso || '').slice(0, 10).split('-');
+    if (p.length !== 3) return null;
+    const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+function isoATexto(iso) {
+    const d = parseIso(iso);
+    if (!d) return '';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+function textoAIso(texto) {
+    const m = String(texto || '').trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (!m) return '';
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    if (Number.isNaN(d.getTime()) || d.getDate() !== Number(m[1])) return '';
+    return isoHoy(d);
+}
+function syncCamposRango() {
+    const ini = document.getElementById('inputFechaInicio');
+    const fin = document.getElementById('inputFechaFin');
+    if (ini) ini.value = isoATexto(calStart);
+    if (fin) fin.value = isoATexto(calEnd);
+}
+function pintarMes(contenedor, year, month) {
+    const first = new Date(year, month, 1);
+    let startDow = first.getDay() - 1;
+    if (startDow < 0) startDow = 6;
+    const days = new Date(year, month + 1, 0).getDate();
+    let html = '<table class="rips-cal-table"><thead><tr>';
+    DIAS_CAL.forEach((d) => { html += `<th>${d}</th>`; });
+    html += '</tr></thead><tbody><tr>';
+    for (let i = 0; i < startDow; i++) html += '<td></td>';
+    for (let day = 1; day <= days; day++) {
+        const iso = isoHoy(new Date(year, month, day));
+        let cls = 'rips-cal-day';
+        if (calStart && calEnd && iso > calStart && iso < calEnd) cls += ' is-in';
+        if (iso === calStart) cls += ' is-start';
+        if (iso === calEnd) cls += ' is-end';
+        html += `<td><button type="button" class="${cls}" data-iso="${iso}">${day}</button></td>`;
+        if ((startDow + day) % 7 === 0 && day !== days) html += '</tr><tr>';
+    }
+    html += '</tr></tbody></table>';
+    contenedor.innerHTML = html;
+}
+function renderCalendario() {
+    const y = calCursor.getFullYear();
+    const m = calCursor.getMonth();
+    const der = new Date(y, m + 1, 1);
+    const tIzq = document.getElementById('calTituloIzq');
+    const tDer = document.getElementById('calTituloDer');
+    if (tIzq) tIzq.textContent = `${MESES_CAL[m]} ${y}`;
+    if (tDer) tDer.textContent = `${MESES_CAL[der.getMonth()]} ${der.getFullYear()}`;
+    const izq = document.getElementById('calMesIzq');
+    const derEl = document.getElementById('calMesDer');
+    if (izq) pintarMes(izq, y, m);
+    if (derEl) pintarMes(derEl, der.getFullYear(), der.getMonth());
+    syncCamposRango();
+}
+function elegirDia(iso) {
+    if (!calStart || (calStart && calEnd)) {
+        calStart = iso;
+        calEnd = '';
+    } else if (iso < calStart) {
+        calEnd = calStart;
+        calStart = iso;
+    } else {
+        calEnd = iso;
+    }
+    renderCalendario();
+}
+function abrirCalendarioRango() {
+    const pop = document.getElementById('popRangoFechas');
+    const btn = document.getElementById('btnRangoFechas');
+    if (!pop) return;
+    calStart = localStorage.getItem('fechaInicio') || '';
+    calEnd = localStorage.getItem('fechaFin') || '';
+    const base = parseIso(calStart) || new Date();
+    calCursor = new Date(base.getFullYear(), base.getMonth(), 1);
+    const hint = document.getElementById('hintRangoFechas');
+    if (hint) hint.textContent = 'Clic en el primer día y luego en el último. También puedes escribirlos.';
+    renderCalendario();
+    pop.hidden = false;
+    btn?.setAttribute('aria-expanded', 'true');
+}
 
-            <label style="color: white;">FECHA FIN</label>
-            <input type="date" id="swal-input2" class="swal2-input" value="${storedFechaFin || ''}">
-        `,
-        focusConfirm: false,
-        preConfirm: async () => {
-            fechaInicio = document.getElementById("swal-input1").value;
-            fechaFin = document.getElementById("swal-input2").value;
+function cerrarCalendarioRango() {
+    const pop = document.getElementById('popRangoFechas');
+    if (pop) pop.hidden = true;
+    document.getElementById('btnRangoFechas')?.setAttribute('aria-expanded', 'false');
+}
 
-            // Validar que se hayan seleccionado ambas fechas
-            if (fechaInicio && fechaFin) {
-                // Almacenar las fechas en localStorage
-                localStorage.setItem("fechaInicio", fechaInicio);
-                localStorage.setItem("fechaFin", fechaFin);
-                if (typeof pintarRangoFechas === 'function') pintarRangoFechas();
+async function aplicarRangoFechas() {
+    const escritoIni = textoAIso(document.getElementById('inputFechaInicio')?.value || '');
+    const escritoFin = textoAIso(document.getElementById('inputFechaFin')?.value || '');
+    const ini = escritoIni || calStart;
+    const fin = escritoFin || calEnd;
+    const hint = document.getElementById('hintRangoFechas');
+    if (!ini || !fin) {
+        if (hint) hint.textContent = 'Elige o escribe el día inicial y el final.';
+        return;
+    }
+    if (ini > fin) {
+        if (hint) hint.textContent = 'La fecha inicial no puede ser mayor que la final.';
+        return;
+    }
+    fechaInicio = ini;
+    fechaFin = fin;
+    localStorage.setItem('fechaInicio', ini);
+    localStorage.setItem('fechaFin', fin);
+    if (typeof pintarRangoFechas === 'function') pintarRangoFechas();
+    cerrarCalendarioRango();
 
-                if (checkboxParticular.checked) {
-                    await MensajeDeCarga('Cargando facturas');
-                    getFacturasRango(fechaInicio, fechaFin, documentoEmpresaSeleccionada);
-                }
+    if (!checkboxParticular.checked && !checkboxPrepagada.checked) {
+        checkboxParticular.checked = true;
+        applyModoUI();
+    }
+    if (checkboxParticular.checked) {
+        await MensajeDeCarga('Cargando facturas');
+        getFacturasRango(ini, fin, documentoEmpresaSeleccionada);
+    } else if (checkboxPrepagada.checked) {
+        getEPS(ini, fin);
+    }
+}
 
-                if (checkboxPrepagada.checked) {
-                    getEPS(fechaInicio, fechaFin);
-                }
-
-
-            } else {
-                // Mostrar un mensaje si falta alguna de las fechas
-                Swal.showValidationMessage("Por favor, seleccione ambas fechas");
-            }
-        }
-    });
-
-    // if (formValues) {
-    //     Swal.fire("Pacientes Cargados correctamente");
-    // }
-};
+const alerta = () => abrirCalendarioRango();
 
 function buscarPacientePorDocumento() {
     var inputDocumento = document.getElementById("documentoInput").value;

@@ -67,11 +67,37 @@
                         <input type="text" id="documentoInput" placeholder="Buscar paciente, documento o factura" autocomplete="off">
                         <label id="labelBuscarRips" class="visually-hidden">Buscar en listado</label>
                     </div>
-                    <button type="button" class="rips-date-btn" id="btnRangoFechas">
-                        <i class="ri-calendar-line"></i>
-                        <span id="lblRangoFechas">Elegir fechas</span>
-                        <i class="ri-arrow-down-s-line"></i>
-                    </button>
+                    <div class="rips-date-wrap">
+                        <button type="button" class="rips-date-btn" id="btnRangoFechas" aria-expanded="false" aria-controls="popRangoFechas">
+                            <i class="ri-calendar-line"></i>
+                            <span id="lblRangoFechas">Elegir fechas</span>
+                            <i class="ri-arrow-down-s-line"></i>
+                        </button>
+                        <div class="rips-date-pop" id="popRangoFechas" hidden>
+                            <div class="rips-date-fields">
+                                <input type="text" id="inputFechaInicio" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" aria-label="Desde">
+                                <span>→</span>
+                                <input type="text" id="inputFechaFin" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" aria-label="Hasta">
+                            </div>
+                            <div class="rips-cal-nav">
+                                <button type="button" id="calPrevYear" title="Año anterior">«</button>
+                                <button type="button" id="calPrev" title="Mes anterior">‹</button>
+                                <span id="calTituloIzq"></span>
+                                <span id="calTituloDer"></span>
+                                <button type="button" id="calNext" title="Mes siguiente">›</button>
+                                <button type="button" id="calNextYear" title="Año siguiente">»</button>
+                            </div>
+                            <div class="rips-cal-grid">
+                                <div id="calMesIzq"></div>
+                                <div id="calMesDer"></div>
+                            </div>
+                            <p class="rips-date-hint" id="hintRangoFechas"></p>
+                            <div class="rips-date-actions">
+                                <button type="button" id="btnCerrarRango">Cerrar</button>
+                                <button type="button" id="btnAplicarRango">Aplicar</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="rips-mode" role="group" aria-label="Tipo de factura">
                         <button type="button" id="btnModoParticular" class="is-active">Particular</button>
                         <button type="button" id="btnModoPrepagada">Prepagada</button>
@@ -124,6 +150,51 @@
                     border: 0; outline: none; width: 100%; background: transparent;
                     font-size: .92rem; color: #0f2744;
                 }
+                .rips-date-wrap { position: relative; }
+                .rips-date-pop {
+                    position: absolute; top: calc(100% + .45rem); left: 0; z-index: 40;
+                    width: 520px; max-width: min(520px, 92vw); padding: .7rem .75rem .6rem;
+                    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+                    box-shadow: 0 16px 40px rgba(15, 39, 68, .16);
+                }
+                .rips-date-fields {
+                    display: flex; align-items: center; gap: .4rem; margin-bottom: .55rem;
+                }
+                .rips-date-fields input {
+                    flex: 1; border: 1px solid #99f6e4; border-radius: 8px; padding: .35rem .5rem;
+                    font-size: .85rem; color: #0f2744; text-align: center;
+                }
+                .rips-date-fields span { color: #64748b; }
+                .rips-cal-nav {
+                    display: grid; grid-template-columns: auto auto 1fr 1fr auto auto;
+                    align-items: center; gap: .25rem; margin-bottom: .25rem;
+                }
+                .rips-cal-nav button {
+                    border: 0; background: transparent; color: #64748b; font-size: 1.05rem;
+                    width: 1.6rem; height: 1.6rem; border-radius: 6px; cursor: pointer;
+                }
+                .rips-cal-nav button:hover { background: #f1f5f9; }
+                .rips-cal-nav span { text-align: center; font-weight: 700; color: #0f2744; font-size: .9rem; }
+                .rips-cal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+                .rips-cal-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+                .rips-cal-table th { color: #94a3b8; font-weight: 600; padding: .2rem 0; text-align: center; }
+                .rips-cal-day {
+                    width: 2rem; height: 1.85rem; border: 0; background: transparent; border-radius: 6px;
+                    cursor: pointer; color: #0f2744;
+                }
+                .rips-cal-day:hover { background: #ccfbf1; }
+                .rips-cal-day.is-out { color: #cbd5e1; }
+                .rips-cal-day.is-in { background: #0f766e; color: #fff; border-radius: 0; }
+                .rips-cal-day.is-start { background: #0f766e; color: #fff; border-radius: 6px 0 0 6px; }
+                .rips-cal-day.is-end { background: #22d3ee; color: #083344; border-radius: 0 6px 6px 0; font-weight: 700; }
+                .rips-cal-day.is-start.is-end { border-radius: 6px; }
+                .rips-date-hint { min-height: 1rem; margin: .15rem 0 .45rem; font-size: .75rem; color: #b45309; }
+                .rips-date-actions { display: flex; justify-content: flex-end; gap: .4rem; }
+                .rips-date-actions button {
+                    border: 1px solid #e2e8f0; background: #fff; border-radius: 999px;
+                    padding: .3rem .7rem; font-weight: 600; cursor: pointer;
+                }
+                #btnAplicarRango { background: #0f766e; color: #fff; border-color: #0f766e; }
                 .rips-date-btn, .rips-mode button {
                     border: 1px solid #e2e8f0; background: #fff; color: #334155;
                     border-radius: 999px; padding: .55rem .9rem; font-weight: 600;
@@ -143,12 +214,20 @@
                 [data-theme="dark"] .rips-empresa-pill,
                 [data-theme="dark"] .rips-search,
                 [data-theme="dark"] .rips-date-btn,
+                [data-theme="dark"] .rips-date-pop,
                 [data-theme="dark"] .rips-mode button {
                     background: #1e293b; border-color: #334155; color: #e2e8f0;
                 }
-                [data-theme="dark"] .rips-mode button.is-active {
+                [data-theme="dark"] .rips-mode button.is-active,
+                [data-theme="dark"] #btnAplicarRango {
                     background: #0f766e; border-color: #0f766e; color: #fff;
                 }
+                [data-theme="dark"] .rips-date-pop label,
+                [data-theme="dark"] .rips-date-pop input,
+                [data-theme="dark"] .rips-cal-nav span,
+                [data-theme="dark"] .rips-cal-day { color: #e2e8f0; }
+                [data-theme="dark"] .rips-cal-day.is-start { color: #fff; }
+                [data-theme="dark"] .rips-cal-day.is-end { color: #083344; }
             </style>
 
             <!-- ═══════════════════════════════════════════
